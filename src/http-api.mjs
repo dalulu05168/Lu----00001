@@ -1,3 +1,4 @@
+import { isDatabaseReady } from "./readiness.mjs";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -30,7 +31,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   }
   if(url.pathname==="/health"&&req.method==="GET")return send(res,200,{status:"alive",brokerConnected:false,pricingConnected:typeof resolveExecutionPrice==="function"});
   if(url.pathname==="/ready"&&req.method==="GET"){
-   try{await db.query("SELECT 1");return send(res,200,{status:"ready",database:"connected",brokerConnected:false});}
+   try{if(!await isDatabaseReady(db))return send(res,503,{status:"not_ready",database:"schema_missing",brokerConnected:false});return send(res,200,{status:"ready",database:"connected",brokerConnected:false});}
    catch{return send(res,503,{status:"not_ready",database:"unavailable",brokerConnected:false});}
   }
   const route=url.pathname;
