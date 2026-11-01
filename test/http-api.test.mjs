@@ -19,10 +19,10 @@ test("rejects invalid JSON",async()=>withServer(async base=>{
  const res=await fetch(base+"/api/orders",{method:"POST",headers:{authorization:"Bearer good","idempotency-key":"key-12345678"},body:"{"});assert.equal(res.status,400);
 }));
 
-test("rejects unverified pricing even with valid session",async()=>withServer(async base=>{
+test("rejects client-supplied execution pricing",async()=>withServer(async base=>{
  const res=await fetch(base+"/api/orders",{method:"POST",headers:{authorization:"Bearer good","idempotency-key":"key-12345678","content-type":"application/json"},body:JSON.stringify({market:"US",symbol:"AAPL",side:"BUY",quantity:1,priceCents:1,fxUsdMicros:1})});
- assert.equal(res.status,503);
- assert.equal((await res.json()).error,"Verified market pricing unavailable");
+ assert.equal(res.status,400);
+ assert.equal((await res.json()).error,"Unexpected fields");
 }));
 
 test("registration rejects client-defined opening funds",async()=>withServer(async base=>{
@@ -35,4 +35,13 @@ test("account endpoint requires authenticated session",async()=>withServer(async
 test("registration rejects invalid email before database writes",async()=>withServer(async base=>{
  const res=await fetch(base+"/api/auth/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:"invalid",password:"secure password"})});
  assert.equal(res.status,400);
+}));
+
+test("without trusted provider, order request returns 503",async()=>withServer(async base=>{
+ const res=await fetch(base+"/api/orders",{method:"POST",headers:{authorization:"Bearer good","idempotency-key":"key-12345678","content-type":"application/json"},body:JSON.stringify({market:"US",symbol:"AAPL",side:"BUY",quantity:1})});
+ assert.equal(res.status,503);
+ assert.equal((await res.json()).error,"Verified market pricing unavailable");
+}));
+test("auth endpoints reject GET method",async()=>withServer(async base=>{
+ const res=await fetch(base+"/api/auth/login");assert.equal(res.status,405);
 }));
