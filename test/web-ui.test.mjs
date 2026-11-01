@@ -50,6 +50,11 @@ test("trading terminal renders, switches markets, and handles account session wi
     await new Promise(resolve => setTimeout(resolve, 25));
     assert.equal(el("cash").textContent, "1,250.00");
     assert.equal(el("positionCount").textContent, "1");
+    assert.equal(el("marketCards").querySelectorAll(".market-card-ratio")[0].textContent, "100%");
+    assert.equal(el("marketCards").querySelectorAll(".market-card-detail")[0].textContent, "1 只标的");
+    assert.equal(el("marketCards").querySelectorAll(".market-card-ratio")[1].textContent, "0%");
+    assert.equal(el("positions").querySelectorAll(".holding-company").length, 1);
+    assert.equal(el("positions").querySelector(".holding-name").textContent, "Apple Inc.");
     assert.equal(el("accountStatus").textContent, "已连接");
     assert.equal(el("quotePrice").textContent, "—");
     assert.equal(el("orderForm").querySelector('button[type="submit"]').disabled, true);
