@@ -67,7 +67,7 @@ a{color:inherit;text-decoration:none}
 .metric-card,.panel{min-width:0;background:#fff;border:1px solid var(--border);border-radius:13px;box-shadow:0 1px 3px #272a3510}
 .metric-card{min-height:112px;padding:14px 15px}
 .metric-header{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#898b90;font-size:11px;line-height:1.5}
-.metric-icon{font-size:17px;color:#9da0a6;font-weight:400;line-height:1}
+.metric-icon{display:grid;place-items:center;color:#9da0a6}.metric-icon svg{width:18px;height:18px;display:block}
 .metric-value{font-size:25px;line-height:1.35;letter-spacing:-.045em;font-weight:400;color:#24262a;margin:12px 0 3px;font-variant-numeric:tabular-nums}
 .metric-card p{font-size:10px;color:#96999f;margin:0;line-height:1.5}
 .primary-grid{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(270px,1fr);gap:13px;margin-top:13px}
