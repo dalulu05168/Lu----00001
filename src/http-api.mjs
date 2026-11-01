@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { placeInternalOrder } from "./order-service.mjs";
 import {registerAccount,loginAccount,logoutAccount,getAccountSnapshot} from "./account-service.mjs";
 
-function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(JSON.stringify(data));}
+function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
 export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
@@ -59,7 +59,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>maxBodyBytes){send(res,413,{error:"Request too large"});req.destroy();return;}}
    const data=JSON.parse(body);
    if(!data||typeof data!=="object"||Array.isArray(data))return send(res,400,{error:"Invalid body"});
-   const allowed=["side","market","symbol","quantity","priceCents","fxUsdMicros"];
+   const allowed=["side","market","symbol","quantity"];
    if(Object.keys(data).some(k=>!allowed.includes(k)))return send(res,400,{error:"Unexpected fields"});
    // Do not trust a browser-supplied execution price or FX rate.
    // Until a licensed read-only quote service and pricing policy are configured,
