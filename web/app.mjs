@@ -1,11 +1,13 @@
-import { createAccount, applyOrder, MARKETS } from "../src/ledger.mjs";
+const MARKETS=["US","HK","CN","MY"];
+let token=sessionStorage.getItem("gsp_token");
+let account={cashCents:0,positions:{},orders:[]};
 const instruments=[
  {market:"US",symbol:"AAPL",name:"Apple Inc."},{market:"US",symbol:"MSFT",name:"Microsoft"},
  {market:"HK",symbol:"0700",name:"Tencent Holdings"},{market:"HK",symbol:"9988",name:"Alibaba Group"},
  {market:"CN",symbol:"600519",name:"贵州茅台"},{market:"CN",symbol:"000001",name:"平安银行"},
  {market:"MY",symbol:"1155",name:"Maybank"},{market:"MY",symbol:"1023",name:"CIMB Group"}
 ];
-let market="US",selected=instruments[0],account=createAccount();
+let market="US",selected=instruments[0];
 const el=id=>document.getElementById(id);
 const money=n=>(n/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 function render(){
@@ -17,5 +19,31 @@ function render(){
  el("orders").replaceChildren(...(account.orders.length?[...account.orders].reverse().map(o=>{const d=document.createElement("div");d.textContent=o.market+" "+o.symbol+" · "+(o.side==="BUY"?"买入":"卖出")+" "+o.quantity+" 股 · 内部记录";return d}):[document.createTextNode("暂无订单")]));
 }
 el("search").addEventListener("input",render);
-el("orderForm").addEventListener("submit",e=>{e.preventDefault();try{account=applyOrder(account,{side:el("side").value,market:selected.market,symbol:selected.symbol,quantity:Number(el("quantity").value),priceCents:Number(el("priceCents").value)});el("feedback").textContent="订单已记录于当前页面内存；刷新页面将清空。";render()}catch(err){el("feedback").textContent=err.message}});
+async function request(path,options={}){
+ const response=await fetch("/api"+path,{...options,headers:{"content-type":"application/json",...(token?{authorization:"Bearer "+token}:{}),...(options.headers||{})}});
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(result.error||"Request failed");
+ return result;
+}
+async function refreshAccount(){
+ if(!token)return;
+ try{
+  const snapshot=await request("/account");
+  account={cashCents:snapshot.account.cashCents,positions:Object.fromEntries(snapshot.positions.map(p=>[p.market+":"+p.symbol,Number(p.quantity)])),orders:snapshot.orders.map(o=>({...o,execution:"INTERNAL_ONLY"}))};
+  render();
+ }catch(error){el("feedback").textContent="账户同步失败："+error.message;}
+}
+el("orderForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ if(!token){el("feedback").textContent="请先登录账户";return;}
+ const button=el("orderForm").querySelector("button[type=submit]");
+ button.disabled=true;
+ try{
+  await request("/orders",{method:"POST",headers:{"idempotency-key":crypto.randomUUID()},body:JSON.stringify({side:el("side").value,market:selected.market,symbol:selected.symbol,quantity:Number(el("quantity").value)})});
+  el("feedback").textContent="内部订单已由服务器记录";
+  await refreshAccount();
+ }catch(error){el("feedback").textContent="订单未执行："+error.message;}
+ finally{button.disabled=false;}
+});
 render();
+refreshAccount();
