@@ -1,22 +1,19 @@
 import { createServer } from "node:http";
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { placeInternalOrder } from "./order-service.mjs";
 import {registerAccount,loginAccount,logoutAccount,getAccountSnapshot} from "./account-service.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(JSON.stringify(data));}
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
-function tokenMatches(supplied,expected){
- if(!supplied||!expected)return false;
- const a=Buffer.from(supplied),b=Buffer.from(expected);
- return a.length===b.length&&timingSafeEqual(a,b);
-}
 export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
   if(url.pathname==="/health"&&req.method==="GET")return send(res,200,{status:"ok",brokerConnected:false});
   const route=url.pathname;
-  const isAuthRoute=["/api/auth/register","/api/auth/login"].includes(route)&&req.method==="POST";
+  const authPath=["/api/auth/register","/api/auth/login"].includes(route);
+  const isAuthRoute=authPath&&req.method==="POST";
+  if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
   const isProtected=["/api/orders","/api/account","/api/auth/logout"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
