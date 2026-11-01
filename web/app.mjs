@@ -214,8 +214,20 @@ async function updateConnection() {
     const health = await res.json();
     if (health.status !== "alive") throw new Error("Unexpected API status");
     pricingConnected = health.pricingConnected === true;
-    status.classList.add("ready");
-    label.textContent = pricingConnected ? "服务已连接" : "服务在线 · 行情待接入";
+    const dbResponse = await fetch("/api/ready",{cache:"no-store"});
+    if (!dbResponse.ok) {
+      status.classList.add("failed");
+      label.textContent = "账户数据库未连接";
+    } else {
+      const database = await dbResponse.json();
+      if (database.status !== "ready" || database.database !== "connected") {
+        status.classList.add("failed");
+        label.textContent = "账户数据库未就绪";
+      } else {
+        status.classList.add("ready");
+        label.textContent = pricingConnected ? "账户与行情就绪" : "账户已连接 · 行情待接入";
+      }
+    }
   } catch {
     status.classList.add("failed");
     label.textContent = "接口暂不可用";
