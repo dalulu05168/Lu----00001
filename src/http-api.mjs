@@ -9,7 +9,7 @@ function tokenMatches(supplied,expected){
  const a=Buffer.from(supplied),b=Buffer.from(expected);
  return a.length===b.length&&timingSafeEqual(a,b);
 }
-export function createApi({db,resolveSession,createId=randomUUID,maxBodyBytes=8192}){
+export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
@@ -29,7 +29,20 @@ export function createApi({db,resolveSession,createId=randomUUID,maxBodyBytes=81
    if(!data||typeof data!=="object"||Array.isArray(data))return send(res,400,{error:"Invalid body"});
    const allowed=["side","market","symbol","quantity","priceCents","fxUsdMicros"];
    if(Object.keys(data).some(k=>!allowed.includes(k)))return send(res,400,{error:"Unexpected fields"});
-   const result=await placeInternalOrder(db,session.accountId,key,data,createId());
+   // Do not trust a browser-supplied execution price or FX rate.
+   // Until a licensed read-only quote service and pricing policy are configured,
+   // the HTTP endpoint is disabled instead of creating misleading orders.
+   if(typeof resolveExecutionPrice!=="function")return send(res,503,{error:"Verified market pricing unavailable"});
+   const verified=await resolveExecutionPrice({market:data.market,symbol:data.symbol,side:data.side,quantity:data.quantity});
+   if(!verified||!Number.isSafeInteger(verified.priceCents)||verified.priceCents<=0||
+      !Number.isSafeInteger(verified.fxUsdMicros)||verified.fxUsdMicros<=0||
+      !Number.isFinite(verified.timestampMs)||Date.now()-verified.timestampMs>60000||
+      verified.timestampMs>Date.now()+5000)
+      return send(res,503,{error:"Verified market pricing unavailable"});
+   const result=await placeInternalOrder(db,session.accountId,key,{
+     side:data.side,market:data.market,symbol:data.symbol,quantity:data.quantity,
+     priceCents:verified.priceCents,fxUsdMicros:verified.fxUsdMicros
+   },createId());
    return send(res,result.replayed?200:201,result);
   }catch(err){
    if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
