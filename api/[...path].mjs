@@ -35,7 +35,7 @@ function send(res, status, body) {
 export default async function handler(req, res) {
   const path = (req.url || "/").split("?")[0];
   if (req.method === "GET" && path === "/api/health") {
-    return send(res, 200, { status: "alive", brokerConnected: false });
+    return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: false });
   }
 
   const current = getRuntime();
