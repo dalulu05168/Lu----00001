@@ -31,3 +31,37 @@ jobs:
           test -s public/styles.css
           grep -q 'marketCards' public/index.html
           grep -q 'refreshAccount' public/app.mjs
+
+  postgres-integration:
+    name: PostgreSQL integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-password-only
+          POSTGRES_DB: global_stock_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d global_stock_platform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:test-password-only@127.0.0.1:5432/global_stock_platform
+      TEST_DATABASE_URL: postgres://postgres:test-password-only@127.0.0.1:5432/global_stock_platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Apply PostgreSQL migrations
+        run: npm run migrate
+      - name: Verify repeat migrations are safe
+        run: npm run migrate
+      - name: Real PostgreSQL account and order tests
+        run: node --test test/postgres-integration.test.mjs
