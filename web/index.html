@@ -82,9 +82,9 @@
             <span id="marketLabel">US MARKET</span><span class="instrument-separator">·</span><span id="symbolTitle">AAPL</span><span class="instrument-name" id="symbolName">Apple Inc.</span>
             <span class="instrument-price" id="quotePrice">—</span>
           </div>
-          <div class="chart" aria-label="组合表现走势（当前未取得历史价格）">
-            <div class="chart-yaxis"><span>+20%</span><span>+15%</span><span>+10%</span><span>+5%</span><span>0%</span><span>−5%</span></div>
-            <div class="chart-stage"><div class="chart-grid" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="chart-empty"><span class="chart-empty-graphic">⌁</span><span>历史行情尚未接入</span><small>仅在取得真实、授权的数据后绘制走势</small></div></div>
+          <div class="chart chart--unavailable" aria-label="组合表现走势（目前没有授权的历史行情，未绘制图线）">
+            <div class="chart-yaxis" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="chart-stage"><div class="chart-grid" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="chart-empty"><span class="chart-empty-graphic">⌁</span><span>暂无可用的历史行情</span><small>仅展示取得授权并验证来源的真实数据</small></div></div>
           </div>
           <div class="chart-months" aria-hidden="true"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div>
           <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
@@ -99,8 +99,8 @@
 
       <div class="secondary-grid" id="markets-section">
         <section class="panel allocation-panel" aria-labelledby="allocationTitle">
-          <div class="panel-heading"><h2 id="allocationTitle">Allocation</h2><span class="view-label">By Market</span></div>
-          <p class="panel-caption">Market distribution · 四地市场</p>
+          <div class="panel-heading"><h2 id="allocationTitle">Allocation</h2><span class="view-label">By Holdings</span></div>
+          <p class="panel-caption">按真实持仓标的数量统计 · 非市值权重</p>
           <div id="marketCards" class="market-cards"></div>
           <div class="allocation-footer">
             <div><span>Cash Balance</span><strong id="cash">—</strong><small>USD</small></div>
@@ -108,8 +108,8 @@
           </div>
         </section>
         <section class="panel movers-panel" aria-labelledby="moversTitle">
-          <div class="panel-heading"><h2 id="moversTitle">Top Movers</h2><span class="view-label">Market watch</span></div>
-          <p class="panel-caption">Watchlist · 自选列表</p>
+          <div class="panel-heading"><h2 id="moversTitle">Watchlist</h2><span class="view-label">Market watch</span></div>
+          <p class="panel-caption">参考股票列表 · 涨跌幅待授权行情接入</p>
           <label class="search-box" for="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search symbol / company" autocomplete="off"></label>
           <div id="symbols" class="symbol-list" aria-live="polite"></div>
           <div class="movers-footer">涨跌幅需连接授权行情后显示</div>
