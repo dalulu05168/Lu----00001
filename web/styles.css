@@ -49,12 +49,12 @@ a{color:inherit;text-decoration:none}
 .topnav a{height:100%;display:flex;align-items:center;position:relative;color:#555555;font-size:12px}
 .topnav a.selected{color:#000000}
 .topnav a.selected::after{content:"";height:1.5px;background:#2e3033;left:0;right:0;bottom:-1px;position:absolute}
-.topnav a:hover{color:#292b30}
+.topnav a:hover{color:#000000}
 .filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .filters-label{font-size:9px;color:#666666;letter-spacing:.075em}
 .market-nav{display:flex;gap:2px;background:#f7f8f9;border:1px solid #f0f1f2;border-radius:10px;padding:3px}
 .market{border:0;border-radius:7px;min-height:30px;padding:4px 9px;display:flex;gap:5px;align-items:center;color:#333333;background:transparent;white-space:nowrap}
-.market.active{background:white;box-shadow:0 1px 4px #2f34400c;color:#33363a}
+.market.active{background:white;box-shadow:0 1px 4px #2f34400c;color:#000000}
 .market-code{font-size:10px;letter-spacing:0;font-weight:500;color:#000000}
 .market-label{font-size:11px;display:flex}
 .market-label strong{font-weight:400}
@@ -77,17 +77,17 @@ a{color:inherit;text-decoration:none}
 .panel-heading h2 small{font-weight:400;color:#555555;font-size:12px}
 .panel-info{font-size:13px;font-weight:400;color:#555555}
 .subtle-link{font-size:10px;color:#555555;white-space:nowrap}
-.subtle-link:hover{color:#292b2f}
+.subtle-link:hover{color:#000000}
 .subtle-link span{margin-left:4px}
 .view-label{font-size:10px;color:#555555;white-space:nowrap}
 .panel-caption{font-size:10px;color:#666666;margin:8px 0 16px}
 .benchmark-legend{display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin-top:15px;font-size:10px;color:#333333}
-.benchmark-legend small{color:#a2a5aa;font-size:10px;margin-left:auto}
+.benchmark-legend small{color:#666666;font-size:10px;margin-left:auto}
 .legend-swatch{display:inline-block;vertical-align:middle;width:16px;height:2px;margin-right:5px;border-radius:5px;background:#2d2e31}
 .legend-swatch.dashed{height:0;border-top:1px dashed #b9bcc1;background:none}
 .instrument-selector{display:flex;align-items:center;gap:7px;min-height:36px;font-size:10px;color:#555555}
 .instrument-selector #marketLabel{letter-spacing:.045em}
-.instrument-selector #symbolTitle{color:#33363c;font-size:11px}
+.instrument-selector #symbolTitle{color:#000000;font-size:11px}
 .instrument-separator{color:#c1c3c6}
 .instrument-name{color:#666666}
 .instrument-price{margin-left:auto;font-size:17px;color:#000000;font-variant-numeric:tabular-nums}
@@ -133,11 +133,11 @@ a{color:inherit;text-decoration:none}
 .search-box{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #eceeef;border-radius:8px;margin-bottom:7px;color:#555555}
 .search-box>span{font-size:18px;line-height:12px}
 .search-box input{outline:0;border:0;background:transparent;width:100%;min-width:0;font-size:11px;color:#000000}
-.search-box input::placeholder{color:#acafb3}
+.search-box input::placeholder{color:#666666}
 .symbol-list{max-height:158px;overflow:auto;display:grid;gap:0}
 .symbol{display:flex;align-items:center;gap:8px;border:0;border-bottom:1px solid #f1f2f3;background:#fff;color:#333333;text-align:left;padding:8px 1px;min-width:0}
 .symbol:hover,.symbol.active{background:#f8faf9}
-.symbol-icon{height:24px;width:24px;border:1px solid #eceeef;border-radius:50%;display:grid;place-items:center;color:#8c9295;font-size:8px}
+.symbol-icon{height:24px;width:24px;border:1px solid #eceeef;border-radius:50%;display:grid;place-items:center;color:#555555;font-size:8px}
 .symbol-text{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
 .symbol-text strong{font-size:10px;color:#000000;font-weight:500}
 .symbol-text small{font-size:9px;color:#666666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -146,15 +146,15 @@ a{color:inherit;text-decoration:none}
 .movers-footer{margin-top:auto;padding-top:10px;color:#666666;font-size:10px}
 .intelligence-items{display:grid;gap:8px}
 .intelligence-item{min-height:59px;padding:10px 11px;border:1px solid #edeef0;border-radius:10px}
-.intelligence-category{color:#a2a5a9;font-size:9px;letter-spacing:.02em}
-.intelligence-item p{color:#66696f;line-height:1.45;font-size:11px;margin:7px 0 0}
+.intelligence-category{color:#666666;font-size:9px;letter-spacing:.02em}
+.intelligence-item p{color:#333333;line-height:1.45;font-size:11px;margin:7px 0 0}
 .account-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:13px}
 .account-panel,.order-panel{min-height:235px}
 #authForm{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
 .form-field{display:flex;flex-direction:column;gap:8px;font-size:11px;color:#333333}
-.form-field input,.form-field select{width:100%;height:39px;border:1px solid #e8eaec;border-radius:8px;padding:0 11px;background:#fff;color:#42454a;outline:0;font-size:11px}
+.form-field input,.form-field select{width:100%;height:39px;border:1px solid #e8eaec;border-radius:8px;padding:0 11px;background:#fff;color:#000000;outline:0;font-size:11px}
 .form-field input:focus,.form-field select:focus{border-color:#a6aaa9}
-.form-field input::placeholder{color:#b9bbbf}
+.form-field input::placeholder{color:#666666}
 .auth-buttons{grid-column:1/-1;display:flex;gap:10px}
 .primary-button,.secondary-button{min-height:37px;padding:9px 17px;border-radius:8px;font-size:11px;font-weight:400}
 .primary-button{background:#313337;color:#fff;border:1px solid #313337}
