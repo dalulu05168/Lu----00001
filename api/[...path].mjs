@@ -1,3 +1,4 @@
+import { isDatabaseReady } from "../src/readiness.mjs";
 import { Pool } from "pg";
 import { createApi } from "../src/http-api.mjs";
 import { createSessionResolver } from "../src/auth.mjs";
@@ -49,7 +50,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET" && path === "/api/ready") {
     try {
-      await current.db.query("SELECT 1");
+      if (!await isDatabaseReady(current.db)) return send(res, 503, { status: "not_ready", database: "schema_missing", brokerConnected: false });
       return send(res, 200, { status: "ready", database: "connected", brokerConnected: false });
     } catch {
       return send(res, 503, { status: "not_ready", database: "unavailable", brokerConnected: false });
