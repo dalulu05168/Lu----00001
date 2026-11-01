@@ -17,6 +17,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     globalThis.fetch = async (url, options = {}) => {
       calls.push({ url, method: options.method || "GET", body: options.body });
       if (url === "/api/health") return json(200, { status: "alive", brokerConnected: false, pricingConnected: false });
+      if (url === "/api/ready") return json(200, { status: "ready", database: "connected" });
       if (url === "/api/auth/login") return json(200, { token: "test-session-token" });
       if (url === "/api/account") return json(200, {
         account: { id: "account-1", cashCents: 125000, currency: "USD" },
@@ -32,6 +33,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("markets").querySelectorAll("button").length, 4);
     assert.equal(el("marketCards").querySelectorAll("button").length, 4);
     assert.equal(el("quotePrice").textContent, "—");
+    assert.equal(el("connectionText").textContent, "账户已连接 · 行情待接入");
     assert.equal(el("cash").textContent, "—");
     assert.equal(el("orderForm").querySelector('button[type="submit"]').disabled, true);
     el("markets").querySelectorAll("button")[1].click();
