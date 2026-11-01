@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { placeInternalOrder } from "./order-service.mjs";
+import {registerAccount,loginAccount,logoutAccount,getAccountSnapshot} from "./account-service.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(JSON.stringify(data));}
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
@@ -14,12 +15,46 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
   if(url.pathname==="/health"&&req.method==="GET")return send(res,200,{status:"ok",brokerConnected:false});
-  if(url.pathname!=="/api/orders"||req.method!=="POST")return send(res,404,{error:"Not found"});
+  const route=url.pathname;
+  const isAuthRoute=["/api/auth/register","/api/auth/login"].includes(route)&&req.method==="POST";
+  const isProtected=["/api/orders","/api/account","/api/auth/logout"].includes(route);
+  if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
+  if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/auth/logout"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
+  if(isAuthRoute){
+   let payload="";
+   try{
+    for await(const chunk of req){payload+=chunk;if(Buffer.byteLength(payload)>maxBodyBytes)return send(res,413,{error:"Request too large"});}
+    const body=JSON.parse(payload);
+    if(!body||typeof body!=="object"||Array.isArray(body)||Object.keys(body).some(k=>!["email","password"].includes(k)))return send(res,400,{error:"Invalid body"});
+    if(route==="/api/auth/register"){
+      const account=await registerAccount(db,{email:body.email,password:body.password,openingCashCents:0});
+      return send(res,201,{userId:account.userId,accountId:account.accountId});
+    }
+    const login=await loginAccount(db,{email:body.email,password:body.password});
+    return send(res,200,login);
+   }catch(err){
+    if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
+    if(err.message==="Invalid credentials")return send(res,401,{error:"Invalid credentials"});
+    if(/^Invalid /.test(err.message))return send(res,400,{error:err.message});
+    if(err.code==="23505")return send(res,409,{error:"Account already exists"});
+    return send(res,500,{error:"Internal server error"});
+   }
+  }
   const auth=req.headers.authorization??"";
   if(!auth.startsWith("Bearer "))return send(res,401,{error:"Authentication required"});
   let session;
   try{session=await resolveSession(auth.slice(7));}catch{return send(res,401,{error:"Authentication failed"});}
   if(!session?.accountId)return send(res,401,{error:"Authentication required"});
+  if(route==="/api/account"){
+   try{return send(res,200,await getAccountSnapshot(db,session.accountId));}
+   catch{return send(res,500,{error:"Internal server error"});}
+  }
+  if(route==="/api/auth/logout"){
+   try{await logoutAccount(db,auth.slice(7));return send(res,204,{});}
+   catch{return send(res,500,{error:"Internal server error"});}
+  }
   const key=req.headers["idempotency-key"];
   if(typeof key!=="string"||key.length<8||key.length>128)return send(res,400,{error:"Invalid idempotency key"});
   let body="";
