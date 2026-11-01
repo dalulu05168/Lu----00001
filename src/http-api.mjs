@@ -15,7 +15,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    try{const bytes=await readFile(new URL("../web/"+file,import.meta.url));res.writeHead(200,{"content-type":file.endsWith(".mjs")?"text/javascript; charset=utf-8":file.endsWith(".css")?"text/css; charset=utf-8":"text/html; charset=utf-8","cache-control":"no-store"});res.end(bytes);return;}
    catch{return send(res,404,{error:"Not found"});}
   }
-  if(url.pathname==="/health"&&req.method==="GET")return send(res,200,{status:"ok",brokerConnected:false});
+  if(url.pathname==="/health"&&req.method==="GET")return send(res,200,{status:"alive",brokerConnected:false});
+  if(url.pathname==="/ready"&&req.method==="GET"){
+   try{await db.query("SELECT 1");return send(res,200,{status:"ready",database:"connected",brokerConnected:false});}
+   catch{return send(res,503,{status:"not_ready",database:"unavailable",brokerConnected:false});}
+  }
   const route=url.pathname;
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
