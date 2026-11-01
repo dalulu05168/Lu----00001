@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test",
     "dev:api": "node src/server.mjs",
-    "migrate": "node scripts/migrate.mjs"
+    "migrate": "node scripts/migrate.mjs",
+    "build": "node scripts/build-vercel.mjs"
   },
   "engines": {
     "node": ">=20"
