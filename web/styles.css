@@ -96,10 +96,10 @@ a{color:inherit;text-decoration:none}
 .chart-stage{position:relative;min-width:0;height:100%}
 .chart-grid{position:absolute;inset:4px 0 3px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
 .chart-grid span{width:100%;border-top:1px dashed #e9eaed}
-.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;background:linear-gradient(to bottom,#ffffff00,#ffffff22)}
+.chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;background:linear-gradient(to bottom,#ffffff00,#ffffff22);padding:12px}
 .chart-empty-graphic{height:28px;width:28px;display:grid;place-items:center;border:1px solid #e3e5e7;border-radius:50%;background:#fff;color:#9c9ea4;font-size:20px;font-weight:400}
-.chart-empty>span:nth-child(2){font-size:12px;color:#444444}
-.chart-empty small{font-size:10px;color:#666666}
+.chart-empty>span:nth-child(2){font-size:12px;color:#000000}
+.chart-empty small{font-size:10px;color:#555555;line-height:1.6;max-width:260px}
 .chart-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));padding:9px 0 0 39px;text-align:center;font-size:10px;color:#666666}
 .panel-footer{display:flex;justify-content:space-between;margin-top:14px;padding-top:10px;border-top:1px solid #f0f0f1;color:#666666;font-size:10px}
 .panel-footer span:last-child{color:#765f39}
@@ -111,19 +111,30 @@ a{color:inherit;text-decoration:none}
 .record-item{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:13px 3px;border-bottom:1px solid #eceef0;font-size:11px;color:#000000}
 .record-item strong{font-size:11px;font-weight:400}
 .record-item small{font-size:10px;color:#666666}
+.holding-row{min-height:58px;padding:9px 2px}
+.holding-identity{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.holding-market{display:grid;place-items:center;flex:none;width:31px;height:31px;border-radius:9px;background:#e6f2ea;border:1px solid #dcece1;color:#214f3b;font-weight:500;font-size:10px}
+.holding-company{display:flex;flex-direction:column;min-width:0;gap:3px}
+.holding-company strong{font-size:12px;font-weight:500;color:#000000;white-space:nowrap}
+.holding-name{font-size:10px;color:#555555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.holding-quantity{display:flex;align-items:baseline;justify-content:flex-end;gap:5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.holding-quantity-value{font-size:13px;font-weight:500;color:#000000}
+.holding-quantity-unit{font-size:10px;color:#555555}
 .holdings-note{margin-top:auto;padding-top:13px;color:#666666;font-size:10px;line-height:1.5}
 .secondary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:13px;margin-top:13px}
 .allocation-panel,.movers-panel,.intelligence-panel{min-height:272px;display:flex;flex-direction:column}
-.market-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;gap:9px;flex:1;padding-top:8px}
-.market-card{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;padding:0 0 8px;color:#333333;min-width:0}
-.market-card-top{order:2;display:flex;align-items:center;gap:4px;font-size:10px}
-.market-card-code{font-size:11px;color:#000000;font-weight:400}
-.market-card-globe{display:none}
-.market-card strong{order:3;font-size:10px;font-weight:400;color:#666666}
-.market-card-desc{display:none}
-.market-card-bottom{order:1;min-height:68px;width:100%;border-radius:8px 8px 2px 2px;background:#eef4f1;border:1px solid #e4ebe7;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;padding:5px 3px;color:#666666;font-size:9px;text-align:center}
-.market-card.active .market-card-bottom{background:#dceee4;border-color:#d4e6db}
-.market-card-bottom .tiny-dot{display:none}
+.market-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:9px;flex:1;padding-top:10px}
+.market-card{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0 8px;color:#000000;min-width:0;min-height:143px}
+.market-card:focus-visible{outline:2px solid #17674e;outline-offset:2px}
+.market-card:hover .market-card-bottom{border-color:#bed6c9}
+.market-card-ratio{font-size:14px;line-height:1.2;font-weight:500;color:#000000;font-variant-numeric:tabular-nums}
+.market-card-bottom{position:relative;height:76px;width:100%;border-radius:8px 8px 3px 3px;background:#f5f8f6;border:1px solid #e2ebe5;display:flex;align-items:flex-end;overflow:hidden}
+.market-card-bar{width:100%;display:block;background:#b6ddca;border-radius:6px 6px 0 0;min-height:0;transition:height .18s ease}
+.market-card.active .market-card-bar{background:#79bf9b}
+.market-card-top{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;font-size:10px;color:#000000;text-align:center}
+.market-card-code{font-size:11px;color:#000000;font-weight:500}
+.market-card-name{font-size:9px;color:#444444;white-space:nowrap}
+.market-card-detail{font-size:10px;color:#555555;text-align:center;line-height:1.3}
 .allocation-footer{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;padding:12px;border-radius:8px;background:#f7f8f8}
 .allocation-footer>div{display:flex;flex-direction:column;gap:4px;min-width:0}
 .allocation-footer>div+div{border-left:1px solid #e8e9ea;padding-left:12px}
