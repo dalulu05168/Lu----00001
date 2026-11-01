@@ -45,5 +45,23 @@ el("orderForm").addEventListener("submit",async event=>{
  }catch(error){el("feedback").textContent="订单未执行："+error.message;}
  finally{button.disabled=false;}
 });
+el("authForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ try{
+  const email=el("email").value,password=el("password").value;
+  if(event.submitter?.value==="register")await request("/auth/register",{method:"POST",body:JSON.stringify({email,password})});
+  const session=await request("/auth/login",{method:"POST",body:JSON.stringify({email,password})});
+  token=session.token;sessionStorage.setItem("gsp_token",token);
+  el("password").value="";
+  el("authFeedback").textContent="已登录";
+  await refreshAccount();
+ }catch(error){el("authFeedback").textContent=error.message;}
+});
+el("logout").addEventListener("click",async()=>{
+ try{if(token)await request("/auth/logout",{method:"POST"});}catch(error){el("authFeedback").textContent=error.message;return;}
+ token=null;sessionStorage.removeItem("gsp_token");
+ account={cashCents:0,positions:{},orders:[]};render();
+ el("authFeedback").textContent="已退出";
+});
 render();
 refreshAccount();
