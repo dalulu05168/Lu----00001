@@ -1,6 +1,6 @@
 const MARKETS=["US","HK","CN","MY"];
 let token=sessionStorage.getItem("gsp_token");
-let account={cashCents:0,positions:{},orders:[]};
+let account=null;
 const instruments=[
  {market:"US",symbol:"AAPL",name:"Apple Inc."},{market:"US",symbol:"MSFT",name:"Microsoft"},
  {market:"HK",symbol:"0700",name:"Tencent Holdings"},{market:"HK",symbol:"9988",name:"Alibaba Group"},
@@ -14,9 +14,9 @@ function render(){
  el("markets").replaceChildren(...MARKETS.map(m=>{const b=document.createElement("button");b.className="market"+(market===m?" active":"");b.textContent=m;b.onclick=()=>{market=m;selected=instruments.find(i=>i.market===m);render()};return b}));
  const q=el("search").value.trim().toLowerCase();
  el("symbols").replaceChildren(...instruments.filter(i=>i.market===market&&(i.symbol.toLowerCase().includes(q)||i.name.toLowerCase().includes(q))).map(i=>{const b=document.createElement("button");b.className="symbol"+(selected.symbol===i.symbol?" active":"");b.textContent=i.symbol;const s=document.createElement("small");s.textContent=i.name;b.append(s);b.onclick=()=>{selected=i;render()};return b}));
- el("marketLabel").textContent=selected.market+" MARKET";el("symbolTitle").textContent=selected.symbol;el("symbolName").textContent=selected.name;el("quotePrice").textContent="—";el("cash").textContent=token?money(account.cashCents):"—";
- const p=Object.entries(account.positions).filter(([,v])=>v>0);el("positions").replaceChildren(...(p.length?p.map(([k,v])=>{const d=document.createElement("div");d.textContent=k+" · "+v+" 股";return d}):[document.createTextNode("暂无持仓")]));
- el("orders").replaceChildren(...(account.orders.length?[...account.orders].reverse().map(o=>{const d=document.createElement("div");d.textContent=o.market+" "+o.symbol+" · "+(o.side==="BUY"?"买入":"卖出")+" "+o.quantity+" 股 · 内部记录";return d}):[document.createTextNode("暂无订单")]));
+ el("marketLabel").textContent=selected.market+" MARKET";el("symbolTitle").textContent=selected.symbol;el("symbolName").textContent=selected.name;el("quotePrice").textContent="—";el("cash").textContent=account?money(account.cashCents):"—";
+ const p=Object.entries(account?.positions??{}).filter(([,v])=>v>0);el("positions").replaceChildren(...(p.length?p.map(([k,v])=>{const d=document.createElement("div");d.textContent=k+" · "+v+" 股";return d}):[document.createTextNode("暂无持仓")]));
+ el("orders").replaceChildren(...(account?.orders.length?[...account.orders].map(o=>{const d=document.createElement("div");d.textContent=o.market+" "+o.symbol+" · "+(o.side==="BUY"?"买入":"卖出")+" "+o.quantity+" 股 · 内部记录";return d}):[document.createTextNode("暂无订单")]));
  el("orderForm").querySelector("button[type=submit]").disabled=!token;
 }
 el("search").addEventListener("input",render);
@@ -27,12 +27,12 @@ async function request(path,options={}){
  return result;
 }
 async function refreshAccount(){
- if(!token)return;
+ if(!token){account=null;render();return;}
  try{
   const snapshot=await request("/account");
   account={cashCents:snapshot.account.cashCents,positions:Object.fromEntries(snapshot.positions.map(p=>[p.market+":"+p.symbol,Number(p.quantity)])),orders:snapshot.orders.map(o=>({...o,execution:"INTERNAL_ONLY"}))};
   render();
- }catch(error){el("feedback").textContent="账户同步失败："+error.message;}
+ }catch(error){account=null;render();el("feedback").textContent="账户同步失败："+error.message;}
 }
 el("orderForm").addEventListener("submit",async event=>{
  event.preventDefault();
@@ -61,7 +61,7 @@ el("authForm").addEventListener("submit",async event=>{
 el("logout").addEventListener("click",async()=>{
  try{if(token)await request("/auth/logout",{method:"POST"});}catch(error){el("authFeedback").textContent=error.message;return;}
  token=null;sessionStorage.removeItem("gsp_token");
- account={cashCents:0,positions:{},orders:[]};render();
+ account=null;render();
  el("authFeedback").textContent="已退出";
 });
 render();
