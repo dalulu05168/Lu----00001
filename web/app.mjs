@@ -1,0 +1,21 @@
+import { createAccount, applyOrder, MARKETS } from "../src/ledger.mjs";
+const instruments=[
+ {market:"US",symbol:"AAPL",name:"Apple Inc."},{market:"US",symbol:"MSFT",name:"Microsoft"},
+ {market:"HK",symbol:"0700",name:"Tencent Holdings"},{market:"HK",symbol:"9988",name:"Alibaba Group"},
+ {market:"CN",symbol:"600519",name:"贵州茅台"},{market:"CN",symbol:"000001",name:"平安银行"},
+ {market:"MY",symbol:"1155",name:"Maybank"},{market:"MY",symbol:"1023",name:"CIMB Group"}
+];
+let market="US",selected=instruments[0],account=createAccount();
+const el=id=>document.getElementById(id);
+const money=n=>(n/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+function render(){
+ el("markets").replaceChildren(...MARKETS.map(m=>{const b=document.createElement("button");b.className="market"+(market===m?" active":"");b.textContent=m;b.onclick=()=>{market=m;selected=instruments.find(i=>i.market===m);render()};return b}));
+ const q=el("search").value.trim().toLowerCase();
+ el("symbols").replaceChildren(...instruments.filter(i=>i.market===market&&(i.symbol.toLowerCase().includes(q)||i.name.toLowerCase().includes(q))).map(i=>{const b=document.createElement("button");b.className="symbol"+(selected.symbol===i.symbol?" active":"");b.textContent=i.symbol;const s=document.createElement("small");s.textContent=i.name;b.append(s);b.onclick=()=>{selected=i;render()};return b}));
+ el("marketLabel").textContent=selected.market+" MARKET";el("symbolTitle").textContent=selected.symbol;el("symbolName").textContent=selected.name;el("quotePrice").textContent="—";el("cash").textContent=money(account.cashCents);
+ const p=Object.entries(account.positions).filter(([,v])=>v>0);el("positions").replaceChildren(...(p.length?p.map(([k,v])=>{const d=document.createElement("div");d.textContent=k+" · "+v+" 股";return d}):[document.createTextNode("暂无持仓")]));
+ el("orders").replaceChildren(...(account.orders.length?[...account.orders].reverse().map(o=>{const d=document.createElement("div");d.textContent=o.market+" "+o.symbol+" · "+(o.side==="BUY"?"买入":"卖出")+" "+o.quantity+" 股 · 内部记录";return d}):[document.createTextNode("暂无订单")]));
+}
+el("search").addEventListener("input",render);
+el("orderForm").addEventListener("submit",e=>{e.preventDefault();try{account=applyOrder(account,{side:el("side").value,market:selected.market,symbol:selected.symbol,quantity:Number(el("quantity").value),priceCents:Number(el("priceCents").value)});el("feedback").textContent="订单已记录于当前页面内存；刷新页面将清空。";render()}catch(err){el("feedback").textContent=err.message}});
+render();
