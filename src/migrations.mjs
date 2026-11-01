@@ -2,7 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 const MIGRATION_NAME = /^\d+_[a-z0-9_]+\.sql$/;
-const WRAPPER = /^\s*BEGIN\s*;([\s\S]*)COMMIT\s*;\s*$/i;
+const WRAPPER = /^(?:\s|--[^\r\n]*(?:\r?\n|$))*BEGIN\s*;([\s\S]*?)COMMIT\s*;\s*$/i;
 
 /**
  * Runs each migration and its history marker in the same transaction.
