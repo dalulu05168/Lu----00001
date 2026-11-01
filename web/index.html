@@ -1,9 +1,144 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Global Stock Platform | 交易终端</title><link rel="stylesheet" href="./styles.css"></head>
-<body><header><div class="brand">GSP <span>GLOBAL MARKETS</span></div><div class="status">行情服务未连接</div></header>
-<div class="authbar"><form id="authForm"><input id="email" type="email" placeholder="邮箱" required><input id="password" type="password" placeholder="密码（至少12位）" required><button type="submit" value="login">登录</button><button type="submit" value="register">注册并登录</button></form><button type="button" id="logout">退出登录</button><span id="authFeedback" role="status"></span></div><main><aside><h2>市场</h2><nav id="markets"></nav><h2>股票搜索</h2><input id="search" placeholder="输入代码或名称" aria-label="搜索股票"><div id="symbols"></div></aside>
-<section class="workspace"><div class="headline"><div><div class="eyebrow" id="marketLabel"></div><h1 id="symbolTitle"></h1><p id="symbolName"></p></div><div class="quote"><strong id="quotePrice"></strong><small>行情价格待接入</small></div></div>
-<div class="chart"><div class="chart-label">价格图表</div><div class="chart-empty">行情服务尚未接入，暂不展示价格走势</div></div>
-<div class="panels"><section class="panel"><h2>内部订单</h2><p class="notice">订单仅在本平台内部留痕，不会发送至证券交易所或券商；账户余额和持仓不代表真实证券资产或可提现资金。</p><form id="orderForm"><label>方向<select id="side"><option value="BUY">买入</option><option value="SELL">卖出</option></select></label><label>数量<input id="quantity" type="number" min="1" step="1" value="1" required></label><p class="subtle">价格由服务器验证，行情未连接时禁止提交订单。</p><button type="submit">提交内部订单</button></form><p id="feedback" role="status"></p></section>
-<section class="panel"><h2>账户概览</h2><div class="balance">USD <strong id="cash"></strong></div><p class="subtle">内部账面余额，不可提现</p><h3>持仓</h3><div id="positions"></div></section></div>
-<section class="panel orders"><h2>订单记录</h2><div id="orders"></div></section></section></main><script type="module" src="./app.mjs"></script></body></html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080e19">
+  <meta name="description" content="Global Stock Platform — 四地市场信息、账户与内部订单工作台。">
+  <title>Global Stock Platform | 全球交易终端</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" aria-label="Global Stock Platform">
+      <div class="brand-mark">G<span>·</span></div>
+      <div class="brand-text"><strong>GSP</strong><small>GLOBAL STOCK PLATFORM</small></div>
+    </div>
+    <nav class="topnav" aria-label="主导航">
+      <a href="#markets-section">市场概览</a>
+      <a href="#terminal-section">行情终端</a>
+      <a href="#account-section">资产与订单</a>
+    </nav>
+    <div class="top-actions">
+      <span class="status-chip" id="connectionStatus"><span class="status-dot"></span><span id="connectionText">连接检测中</span></span>
+      <span class="clock" id="clock" aria-label="当前时间">—</span>
+    </div>
+  </header>
+
+  <div class="announcement">
+    <span class="announcement-kicker">MARKET ACCESS</span>
+    <span>覆盖美国、香港、中国内地、马来西亚四地市场</span>
+    <span class="announcement-note"><span class="tiny-dot"></span> 行情服务尚未连接，价格与走势暂不提供</span>
+  </div>
+
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="市场与股票导航">
+      <div class="sidebar-section-title"><span>MARKETS / 市场</span><span class="muted">04</span></div>
+      <nav class="market-nav" id="markets" aria-label="选择市场"></nav>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title"><span>WATCHLIST / 自选列表</span><span class="muted">参考标的</span></div>
+      <label for="search" class="sr-only">搜索股票代码或名称</label>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg>
+        <input id="search" type="search" autocomplete="off" placeholder="搜索代码 / 名称">
+      </div>
+      <div id="symbols" class="symbol-list"></div>
+      <div class="sidebar-bottom">
+        <div class="sidebar-bottom-icon">i</div>
+        <p>股票列表仅供导航。未取得授权报价时，不提供价格或涨跌幅。</p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section class="welcome-panel" aria-labelledby="welcomeTitle">
+        <div class="welcome-copy">
+          <span class="section-overline light">GLOBAL EQUITY WORKSPACE</span>
+          <h1 id="welcomeTitle">洞察全球市场，<br><span>尽在一个工作台。</span></h1>
+          <p>四地市场入口、账户信息与内部订单记录，集中管理。行情来源及服务状态始终清晰可见。</p>
+          <a class="welcome-link" href="#terminal-section">进入行情终端 <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="welcome-graphic" aria-hidden="true">
+          <div class="graphic-orbit orbit-1"></div>
+          <div class="graphic-orbit orbit-2"></div>
+          <div class="graphic-orbit orbit-3"></div>
+          <div class="graphic-center">G<span>·</span></div>
+          <div class="graphic-tag tag-us">US</div>
+          <div class="graphic-tag tag-hk">HK</div>
+          <div class="graphic-tag tag-cn">CN</div>
+          <div class="graphic-tag tag-my">MY</div>
+        </div>
+      </section>
+
+      <section class="market-overview" id="markets-section" aria-labelledby="marketsTitle">
+        <div class="section-heading"><div><span class="section-overline">GLOBAL MARKETS</span><h2 id="marketsTitle">四地市场概览</h2></div><span class="section-hint">报价状态依实际数据源显示</span></div>
+        <div class="market-cards" id="marketCards"></div>
+      </section>
+
+      <section class="terminal-panel panel" id="terminal-section" aria-labelledby="terminalTitle">
+        <div class="terminal-heading">
+          <div>
+            <div class="instrument-market"><span class="market-indicator"></span><span id="marketLabel">US MARKET</span><span class="terminal-divider">/</span> EQUITY</div>
+            <h2 id="terminalTitle"><span id="symbolTitle">AAPL</span><span class="instrument-name" id="symbolName">Apple Inc.</span></h2>
+          </div>
+          <div class="quote-block">
+            <span class="quote-caption">LAST PRICE / 最新价格</span>
+            <strong id="quotePrice">—</strong>
+            <span class="quote-pending"><span class="tiny-dot"></span> 等待授权行情接入</span>
+          </div>
+        </div>
+        <div class="chart-toolbar"><span>PRICE CHART / 价格走势</span><span class="chart-legend"><span class="legend-line"></span> 仅展示实际行情</span></div>
+        <div class="chart" aria-label="价格走势区域">
+          <div class="chart-lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <div class="chart-empty">
+            <div class="chart-empty-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="5" width="40" height="38" rx="8" stroke="currentColor" stroke-width="1.5"></rect><path d="m12 30 9-8 7 5 8-11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 37h24" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+            </div>
+            <strong>行情数据尚未接入</strong>
+            <span>尚无来自授权供应商的价格与历史行情，暂不绘制走势。</span>
+          </div>
+        </div>
+        <div class="terminal-footer"><span>数据来源：<strong>未连接</strong></span><span>最近更新：<strong>—</strong></span><span class="terminal-footer-right">MARKET DATA PENDING</span></div>
+      </section>
+
+      <section class="account-grid" id="account-section" aria-label="账户与交易">
+        <div class="panel account-panel">
+          <div class="panel-heading"><div><span class="section-overline">ACCOUNT OVERVIEW</span><h2>账户总览</h2></div><span class="account-state" id="accountStatus">未登录</span></div>
+          <div class="balance-wrap"><span>账面可用余额 · USD</span><div class="balance-line"><strong id="cash">—</strong><small>USD</small></div></div>
+          <div class="account-stats"><div><span>持仓标的</span><strong id="positionCount">—</strong></div><div><span>内部订单</span><strong id="orderCount">—</strong></div></div>
+          <div class="account-disclosure">账户资金与持仓仅是平台内部账面记录，不代表真实证券资产或可提现资金。</div>
+          <div class="auth-panel" id="authPanel">
+            <div class="auth-label">账户登录 <span>登录后读取服务器数据</span></div>
+            <form id="authForm" autocomplete="on">
+              <label class="form-field"><span>电子邮箱</span><input id="email" type="email" placeholder="your@email.com" autocomplete="email" required></label>
+              <label class="form-field"><span>账户密码</span><input id="password" type="password" placeholder="不少于 12 位字符" autocomplete="current-password" minlength="12" required></label>
+              <div class="auth-buttons"><button type="submit" value="login" class="primary-button">登录账户</button><button type="submit" value="register" class="secondary-button">注册账户</button></div>
+            </form>
+          </div>
+          <button type="button" id="logout" class="secondary-button logout-button" hidden>退出账户</button>
+          <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>
+        </div>
+        <div class="panel order-panel">
+          <div class="panel-heading"><div><span class="section-overline">ORDER ENTRY</span><h2>内部订单</h2></div><span class="order-mode">INTERNAL ONLY</span></div>
+          <div class="order-security"><span class="security-symbol">!</span><p>此功能只记录平台内部订单，不连接券商交易执行系统。可信报价未接入前，禁止提交订单。</p></div>
+          <form id="orderForm">
+            <div class="order-fields">
+              <label class="form-field"><span>订单方向</span><select id="side"><option value="BUY">买入 BUY</option><option value="SELL">卖出 SELL</option></select></label>
+              <label class="form-field"><span>股票数量</span><input id="quantity" type="number" min="1" step="1" value="1" required></label>
+            </div>
+            <div class="order-details"><div><span>目标标的</span><strong id="orderSymbol">US · AAPL</strong></div><div><span>报价状态</span><strong class="pending" id="orderQuoteStatus">未连接</strong></div></div>
+            <button type="submit" class="primary-button order-submit" disabled>提交内部订单</button>
+          </form>
+          <p class="form-feedback" id="feedback" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="panel record-panel" aria-labelledby="recordsTitle">
+        <div class="panel-heading"><div><span class="section-overline">ACCOUNT ACTIVITY</span><h2 id="recordsTitle">持仓与订单记录</h2></div><span class="section-hint">来自已登录账户</span></div>
+        <div class="record-grid"><div><h3>当前持仓</h3><div class="record-list" id="positions">暂无持仓</div></div><div><h3>最近订单</h3><div class="record-list" id="orders">暂无订单</div></div></div>
+      </section>
+      <footer class="app-footer"><span>© Global Stock Platform</span><span>市场信息与内部记录系统 · 不提供真实证券交易执行</span></footer>
+    </main>
+  </div>
+  <script type="module" src="/app.mjs"></script>
+</body>
+</html>
