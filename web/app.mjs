@@ -17,7 +17,7 @@ function render(){
  el("marketLabel").textContent=selected.market+" MARKET";el("symbolTitle").textContent=selected.symbol;el("symbolName").textContent=selected.name;el("quotePrice").textContent="—";el("cash").textContent=account?money(account.cashCents):"—";
  const p=Object.entries(account?.positions??{}).filter(([,v])=>v>0);el("positions").replaceChildren(...(p.length?p.map(([k,v])=>{const d=document.createElement("div");d.textContent=k+" · "+v+" 股";return d}):[document.createTextNode("暂无持仓")]));
  el("orders").replaceChildren(...(account?.orders.length?[...account.orders].map(o=>{const d=document.createElement("div");d.textContent=o.market+" "+o.symbol+" · "+(o.side==="BUY"?"买入":"卖出")+" "+o.quantity+" 股 · 内部记录";return d}):[document.createTextNode("暂无订单")]));
- el("orderForm").querySelector("button[type=submit]").disabled=!token;
+ el("orderForm").querySelector("button[type=submit]").disabled=!token||!account;
 }
 el("search").addEventListener("input",render);
 async function request(path,options={}){
@@ -36,7 +36,7 @@ async function refreshAccount(){
 }
 el("orderForm").addEventListener("submit",async event=>{
  event.preventDefault();
- if(!token){el("feedback").textContent="请先登录账户";return;}
+ if(!token||!account){el("feedback").textContent="请先登录并同步账户";return;}
  const button=el("orderForm").querySelector("button[type=submit]");
  button.disabled=true;
  try{
@@ -44,7 +44,7 @@ el("orderForm").addEventListener("submit",async event=>{
   el("feedback").textContent="内部订单已由服务器记录";
   await refreshAccount();
  }catch(error){el("feedback").textContent="订单未执行："+error.message;}
- finally{button.disabled=false;}
+ finally{button.disabled=!token||!account;}
 });
 el("authForm").addEventListener("submit",async event=>{
  event.preventDefault();
