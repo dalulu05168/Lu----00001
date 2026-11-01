@@ -45,3 +45,15 @@ test("without trusted provider, order request returns 503",async()=>withServer(a
 test("auth endpoints reject GET method",async()=>withServer(async base=>{
  const res=await fetch(base+"/api/auth/login");assert.equal(res.status,405);
 }));
+
+test("serves terminal from the same origin",async()=>withServer(async base=>{
+ const page=await fetch(base+"/");
+ assert.equal(page.status,200);
+ assert.match(await page.text(),/Global Stock Platform/);
+ const script=await fetch(base+"/app.mjs");
+ assert.equal(script.status,200);
+ assert.match(await script.text(),/refreshAccount/);
+}));
+test("rejects inaccessible static paths",async()=>withServer(async base=>{
+ const res=await fetch(base+"/private.env");assert.equal(res.status,404);
+}));
