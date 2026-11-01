@@ -5,6 +5,19 @@ import { placeInternalOrder } from "./order-service.mjs";
 import {registerAccount,loginAccount,logoutAccount,getAccountSnapshot} from "./account-service.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
+async function readBody(req,maxBodyBytes){
+ if(req.body!==undefined){
+  const payload=typeof req.body==="string"?req.body:Buffer.isBuffer(req.body)?req.body.toString("utf8"):JSON.stringify(req.body);
+  if(Buffer.byteLength(payload)>maxBodyBytes){const error=new Error("Request too large");error.statusCode=413;throw error;}
+  return payload;
+ }
+ let payload="";
+ for await(const chunk of req){
+  payload+=chunk;
+  if(Buffer.byteLength(payload)>maxBodyBytes){const error=new Error("Request too large");error.statusCode=413;throw error;}
+ }
+ return payload;
+}
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
 export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
@@ -42,6 +55,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
     const login=await loginAccount(db,{email:body.email,password:body.password});
     return send(res,200,login);
    }catch(err){
+    if(err.statusCode===413)return send(res,413,{error:"Request too large"});
     if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
     if(err.message==="Invalid credentials")return send(res,401,{error:"Invalid credentials"});
     if(/^Invalid /.test(err.message))return send(res,400,{error:err.message});
@@ -64,9 +78,8 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   }
   const key=req.headers["idempotency-key"];
   if(typeof key!=="string"||key.length<8||key.length>128)return send(res,400,{error:"Invalid idempotency key"});
-  let body="";
   try{
-   for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>maxBodyBytes){send(res,413,{error:"Request too large"});req.destroy();return;}}
+   const body=await readBody(req,maxBodyBytes);
    const data=JSON.parse(body);
    if(!data||typeof data!=="object"||Array.isArray(data))return send(res,400,{error:"Invalid body"});
    const allowed=["side","market","symbol","quantity"];
@@ -87,6 +100,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    },createId());
    return send(res,result.replayed?200:201,result);
   }catch(err){
+   if(err.statusCode===413)return send(res,413,{error:"Request too large"});
    if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
    if(/quote|pricing|entitlement|instrument|FX rate/i.test(err.message??""))return send(res,503,{error:"Verified market pricing unavailable"});
    const status=errorStatus(err.message??"");
