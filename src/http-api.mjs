@@ -43,9 +43,8 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/auth/logout"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(isAuthRoute){
-   let payload="";
    try{
-    for await(const chunk of req){payload+=chunk;if(Buffer.byteLength(payload)>maxBodyBytes)return send(res,413,{error:"Request too large"});}
+    const payload=await readBody(req,maxBodyBytes);
     const body=JSON.parse(payload);
     if(!body||typeof body!=="object"||Array.isArray(body)||Object.keys(body).some(k=>!["email","password"].includes(k)))return send(res,400,{error:"Invalid body"});
     if(route==="/api/auth/register"){
