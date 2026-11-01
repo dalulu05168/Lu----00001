@@ -1,8 +1,10 @@
-name: Ledger tests
+name: Platform checks
 on:
   push:
     branches: [main, 'dev/**']
   pull_request:
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,5 +12,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - run: npm test
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate application JavaScript
+        run: |
+          node --check web/app.mjs
+          node --check api/'[...path].mjs'
+          node --check src/http-api.mjs
+      - name: Run tests
+        run: npm test
+      - name: Build static frontend
+        run: npm run build
+      - name: Verify built entrypoints
+        run: |
+          test -s public/index.html
+          test -s public/app.mjs
+          test -s public/styles.css
+          grep -q 'marketCards' public/index.html
+          grep -q 'refreshAccount' public/app.mjs
