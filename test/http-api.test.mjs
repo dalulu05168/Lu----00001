@@ -57,3 +57,18 @@ test("serves terminal from the same origin",async()=>withServer(async base=>{
 test("rejects inaccessible static paths",async()=>withServer(async base=>{
  const res=await fetch(base+"/private.env");assert.equal(res.status,404);
 }));
+
+test("readiness endpoint checks database connection",async()=>{
+ let healthy=true;
+ const db={query:async()=>{if(!healthy)throw new Error("db offline");return {rows:[{ok:1}]};},connect:async()=>({query:async(sql)=>({rows:sql.startsWith("SELECT cash_cents")?[{cash_cents:100000}]:[]}),release(){}})};
+ const api=createApi({db,resolveSession:async()=>null});
+ await new Promise(resolve=>api.listen(0,"127.0.0.1",resolve));
+ const base="http://127.0.0.1:"+api.address().port;
+ try{
+  assert.equal((await fetch(base+"/ready")).status,200);
+  healthy=false;
+  const response=await fetch(base+"/ready");
+  assert.equal(response.status,503);
+  assert.equal((await response.json()).database,"unavailable");
+ }finally{await new Promise(resolve=>api.close(resolve));}
+});
