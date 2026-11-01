@@ -24,3 +24,15 @@ test("rejects unverified pricing even with valid session",async()=>withServer(as
  assert.equal(res.status,503);
  assert.equal((await res.json()).error,"Verified market pricing unavailable");
 }));
+
+test("registration rejects client-defined opening funds",async()=>withServer(async base=>{
+ const res=await fetch(base+"/api/auth/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:"user@example.com",password:"secure password",openingCashCents:100000})});
+ assert.equal(res.status,400);
+}));
+test("account endpoint requires authenticated session",async()=>withServer(async base=>{
+ const res=await fetch(base+"/api/account");assert.equal(res.status,401);
+}));
+test("registration rejects invalid email before database writes",async()=>withServer(async base=>{
+ const res=await fetch(base+"/api/auth/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:"invalid",password:"secure password"})});
+ assert.equal(res.status,400);
+}));
