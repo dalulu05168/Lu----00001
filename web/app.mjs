@@ -256,6 +256,10 @@ el("authForm").addEventListener("submit",async event => {
     render();
   }
 });
+el("railLogout").addEventListener("click",() => {
+  if (token) el("logout").click();
+  else el("account-section").scrollIntoView({behavior:"smooth",block:"start"});
+});
 el("logout").addEventListener("click",async () => {
   if (!token) return;
   el("logout").disabled = true;
