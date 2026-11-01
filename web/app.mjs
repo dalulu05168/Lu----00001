@@ -1,3 +1,4 @@
+import { summarizeMarketHoldings } from "./market-allocation.mjs";
 const MARKETS = [
   {code:"US",label:"美国市场",exchange:"NYSE / NASDAQ",currency:"USD",icon:"US",sub:"United States"},
   {code:"HK",label:"香港市场",exchange:"HKEX",currency:"HKD",icon:"HK",sub:"Hong Kong"},
@@ -40,6 +41,7 @@ function makeEmpty(label) {
   return node;
 }
 function renderMarkets() {
+  const allocation = summarizeMarketHoldings(account?.positions ?? null);
   const marketButtons = MARKETS.map(item => {
     const button = document.createElement("button");
     button.type = "button";
@@ -59,19 +61,23 @@ function renderMarkets() {
   });
   el("markets").replaceChildren(...marketButtons);
   const cards = MARKETS.map(item => {
+    const count = allocation.markets[item.code];
     const button = document.createElement("button");
     button.type = "button";
     button.className = "market-card" + (market === item.code ? " active" : "");
-    const top = document.createElement("div");
-    top.className = "market-card-top";
-    top.append(textNode(item.code,"market-card-code"),textNode("◈","market-card-globe"));
-    const title = document.createElement("strong");
-    title.textContent = item.label;
-    const sub = textNode(item.exchange + " · " + item.currency,"market-card-desc");
-    const bottom = document.createElement("div");
-    bottom.className = "market-card-bottom";
-    bottom.append(textNode("","tiny-dot"),textNode("行情未接入"));
-    button.append(top,title,sub,bottom);
+    button.setAttribute("aria-label",item.label + "，" + (allocation.available ? count.count + " 只持仓标的，占 " + count.percent + "%" : "登录后显示持仓统计"));
+    const ratio = textNode(allocation.available ? count.percent + "%" : "—","market-card-ratio");
+    const barBox = document.createElement("span");
+    barBox.className = "market-card-bottom";
+    const bar = document.createElement("span");
+    bar.className = "market-card-bar";
+    bar.style.height = allocation.available ? count.percent + "%" : "0%";
+    barBox.append(bar);
+    const name = document.createElement("span");
+    name.className = "market-card-top";
+    name.append(textNode(item.code,"market-card-code"),textNode(item.label,"market-card-name"));
+    const detail = textNode(allocation.available ? count.count + " 只标的" : "登录后显示","market-card-detail");
+    button.append(ratio,barBox,name,detail);
     button.addEventListener("click",() => {
       pickMarket(item.code);
       el("terminal-section").scrollIntoView({behavior:"smooth",block:"start"});
@@ -80,6 +86,7 @@ function renderMarkets() {
   });
   el("marketCards").replaceChildren(...cards);
 }
+
 function pickMarket(code) {
   if (!MARKETS.some(item => item.code === code)) return;
   market = code;
@@ -118,20 +125,34 @@ function renderSymbols() {
   el("symbols").replaceChildren(...buttons);
 }
 function renderRecords() {
-  const positions = Array.isArray(account?.positions) ? account.positions : [];
+  const positions = Array.isArray(account?.positions) ? account.positions.filter(item =>
+    item && MARKETS.some(m => m.code === item.market) && typeof item.symbol === "string" &&
+    item.symbol.trim() && Number.isFinite(Number(item.quantity)) && Number(item.quantity) > 0
+  ) : [];
   const orders = Array.isArray(account?.orders) ? account.orders : [];
   el("positionCount").textContent = account ? String(positions.length) : "—";
   el("orderCount").textContent = account ? String(orders.length) : "—";
   const posRows = positions.map(item => {
     const node = document.createElement("div");
-    node.className = "record-item";
-    const left = textNode(item.market + " · " + item.symbol);
-    const right = document.createElement("strong");
-    right.textContent = String(item.quantity) + " 股";
+    node.className = "record-item holding-row";
+    const left = document.createElement("div");
+    left.className = "holding-identity";
+    const icon = textNode(item.market, "holding-market");
+    const stock = document.createElement("div");
+    stock.className = "holding-company";
+    const code = document.createElement("strong");
+    code.textContent = item.symbol;
+    const name = textNode(INSTRUMENTS.find(s=>s.market === item.market && s.symbol === item.symbol)?.name || item.market + " MARKET","holding-name");
+    stock.append(code,name);
+    left.append(icon,stock);
+    const right = document.createElement("div");
+    right.className = "holding-quantity";
+    const quantity = Number(item.quantity);
+    right.append(textNode(Number.isSafeInteger(quantity) ? new Intl.NumberFormat("en-US").format(quantity) : String(item.quantity),"holding-quantity-value"),textNode("股","holding-quantity-unit"));
     node.append(left,right);
     return node;
   });
-  el("positions").replaceChildren(...(posRows.length ? posRows : [makeEmpty(account ? "暂无持仓" : "登录后查看当前持仓")]));
+  el("positions").replaceChildren(...(posRows.length ? posRows : [makeEmpty(account ? "暂无持仓记录" : "登录后查看当前持仓")]));
   const orderRows = orders.slice(0,8).map(item => {
     const node = document.createElement("div");
     node.className = "record-item";
@@ -144,6 +165,7 @@ function renderRecords() {
   });
   el("orders").replaceChildren(...(orderRows.length ? orderRows : [makeEmpty(account ? "暂无内部订单记录" : "登录后查看订单记录")]));
 }
+
 function render() {
   renderMarkets();
   renderSymbols();
