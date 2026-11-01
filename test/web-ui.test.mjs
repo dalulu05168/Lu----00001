@@ -1,0 +1,66 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { JSDOM } from "jsdom";
+
+test("trading terminal renders, switches markets, and handles account session without invented prices", async () => {
+  const html = await readFile(new URL("../web/index.html", import.meta.url), "utf8");
+  const dom = new JSDOM(html, { url: "https://platform.example/" });
+  const old = { document: globalThis.document, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
+  const calls = [];
+  const json = (status, body) => new Response(status === 204 ? null : JSON.stringify(body), {
+    status, headers: { "content-type": "application/json" }
+  });
+  try {
+    globalThis.document = dom.window.document;
+    globalThis.sessionStorage = dom.window.sessionStorage;
+    globalThis.fetch = async (url, options = {}) => {
+      calls.push({ url, method: options.method || "GET", body: options.body });
+      if (url === "/api/health") return json(200, { status: "alive", brokerConnected: false, pricingConnected: false });
+      if (url === "/api/auth/login") return json(200, { token: "test-session-token" });
+      if (url === "/api/account") return json(200, {
+        account: { id: "account-1", cashCents: 125000, currency: "USD" },
+        positions: [{ market: "US", symbol: "AAPL", quantity: "2" }],
+        orders: []
+      });
+      if (url === "/api/auth/logout") return json(204);
+      throw new Error("Unexpected URL: " + url);
+    };
+    await import("../web/app.mjs?dom-check");
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const el = id => dom.window.document.getElementById(id);
+    assert.equal(el("markets").querySelectorAll("button").length, 4);
+    assert.equal(el("marketCards").querySelectorAll("button").length, 4);
+    assert.equal(el("quotePrice").textContent, "—");
+    assert.equal(el("cash").textContent, "—");
+    assert.equal(el("orderForm").querySelector('button[type="submit"]').disabled, true);
+    el("markets").querySelectorAll("button")[1].click();
+    assert.equal(el("symbolTitle").textContent, "0700");
+    el("symbols").querySelectorAll("button")[1].click();
+    assert.equal(el("symbolTitle").textContent, "9988");
+    assert.equal(el("orderSymbol").textContent, "HK · 9988");
+    el("email").value = "user@example.com";
+    el("password").value = "a-long-test-password";
+    const login = el("authForm").querySelector('button[value="login"]');
+    el("authForm").dispatchEvent(new dom.window.SubmitEvent("submit", {
+      bubbles: true, cancelable: true, submitter: login
+    }));
+    await new Promise(resolve => setTimeout(resolve, 25));
+    assert.equal(el("cash").textContent, "1,250.00");
+    assert.equal(el("positionCount").textContent, "1");
+    assert.equal(el("accountStatus").textContent, "已连接");
+    assert.equal(el("quotePrice").textContent, "—");
+    assert.equal(el("orderForm").querySelector('button[type="submit"]').disabled, true);
+    assert.equal(calls.some(call => call.url === "/api/orders"), false);
+    el("logout").click();
+    await new Promise(resolve => setTimeout(resolve, 25));
+    assert.equal(el("accountStatus").textContent, "未登录");
+    assert.equal(el("cash").textContent, "—");
+    assert.equal(dom.window.sessionStorage.getItem("gsp_token"), null);
+  } finally {
+    globalThis.document = old.document;
+    globalThis.sessionStorage = old.sessionStorage;
+    globalThis.fetch = old.fetch;
+    dom.window.close();
+  }
+});
