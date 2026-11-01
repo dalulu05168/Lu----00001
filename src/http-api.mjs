@@ -84,6 +84,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    return send(res,result.replayed?200:201,result);
   }catch(err){
    if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
+   if(/quote|pricing|entitlement|instrument|FX rate/i.test(err.message??""))return send(res,503,{error:"Verified market pricing unavailable"});
    const status=errorStatus(err.message??"");
    return send(res,status,{error:status===500?"Internal server error":err.message});
   }
