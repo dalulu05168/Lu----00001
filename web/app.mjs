@@ -14,9 +14,10 @@ function render(){
  el("markets").replaceChildren(...MARKETS.map(m=>{const b=document.createElement("button");b.className="market"+(market===m?" active":"");b.textContent=m;b.onclick=()=>{market=m;selected=instruments.find(i=>i.market===m);render()};return b}));
  const q=el("search").value.trim().toLowerCase();
  el("symbols").replaceChildren(...instruments.filter(i=>i.market===market&&(i.symbol.toLowerCase().includes(q)||i.name.toLowerCase().includes(q))).map(i=>{const b=document.createElement("button");b.className="symbol"+(selected.symbol===i.symbol?" active":"");b.textContent=i.symbol;const s=document.createElement("small");s.textContent=i.name;b.append(s);b.onclick=()=>{selected=i;render()};return b}));
- el("marketLabel").textContent=selected.market+" MARKET";el("symbolTitle").textContent=selected.symbol;el("symbolName").textContent=selected.name;el("quotePrice").textContent="—";el("cash").textContent=money(account.cashCents);
+ el("marketLabel").textContent=selected.market+" MARKET";el("symbolTitle").textContent=selected.symbol;el("symbolName").textContent=selected.name;el("quotePrice").textContent="—";el("cash").textContent=token?money(account.cashCents):"—";
  const p=Object.entries(account.positions).filter(([,v])=>v>0);el("positions").replaceChildren(...(p.length?p.map(([k,v])=>{const d=document.createElement("div");d.textContent=k+" · "+v+" 股";return d}):[document.createTextNode("暂无持仓")]));
  el("orders").replaceChildren(...(account.orders.length?[...account.orders].reverse().map(o=>{const d=document.createElement("div");d.textContent=o.market+" "+o.symbol+" · "+(o.side==="BUY"?"买入":"卖出")+" "+o.quantity+" 股 · 内部记录";return d}):[document.createTextNode("暂无订单")]));
+ el("orderForm").querySelector("button[type=submit]").disabled=!token;
 }
 el("search").addEventListener("input",render);
 async function request(path,options={}){
