@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
+import { createServer } from "node:http";
+import serverlessHandler from "../api/[...path].mjs";
 import { createApi } from "../src/http-api.mjs";
 import { createSessionResolver } from "../src/auth.mjs";
 import { placeInternalOrder } from "../src/order-service.mjs";
@@ -132,5 +134,44 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
   } finally {
     await new Promise(resolve => app.close(resolve));
     await db.end();
+  }
+});
+
+run("Vercel serverless API adapter routes to real PostgreSQL", async () => {
+  const app = createServer(serverlessHandler);
+  await new Promise(resolve => app.listen(0, "127.0.0.1", resolve));
+  const base = "http://127.0.0.1:" + app.address().port;
+  try {
+    const alive = await fetch(base + "/api/health");
+    assert.equal(alive.status, 200);
+    assert.equal((await alive.json()).status, "alive");
+    const ready = await fetch(base + "/api/ready");
+    assert.equal(ready.status, 200);
+    assert.equal((await ready.json()).database, "connected");
+    assert.equal((await fetch(base + "/api/account")).status, 401);
+
+    const email = "serverless-" + randomUUID().slice(0, 12) + "@example.test";
+    const password = "long-serverless-test-password";
+    const register = await fetch(base + "/api/auth/register", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    assert.equal(register.status, 201);
+    const record = await register.json();
+    assert.ok(record.accountId);
+    const login = await fetch(base + "/api/auth/login", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    assert.equal(login.status, 200);
+    const { token } = await login.json();
+    assert.ok(token);
+    const account = await fetch(base + "/api/account", {
+      headers: { authorization: "Bearer " + token }
+    });
+    assert.equal(account.status, 200);
+    assert.equal((await account.json()).account.id, record.accountId);
+  } finally {
+    await new Promise(resolve => app.close(resolve));
   }
 });
