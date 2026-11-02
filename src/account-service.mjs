@@ -1,7 +1,7 @@
 import {randomUUID} from "node:crypto";
 import {hashPassword,verifyPassword,createSession,revokeSession} from "./auth.mjs";
 const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export async function registerAccount(db,{email,password,openingCashCents=0}){
+export async function registerAccount(db,{email,password,openingCashCents=0,inviteCode}){
  if(typeof email!=="string"||email.length>254||!emailPattern.test(email))throw new Error("Invalid email");
  if(!Number.isSafeInteger(openingCashCents)||openingCashCents<0||openingCashCents>100_000_000_00)throw new Error("Invalid opening balance");
  const passwordHash=await hashPassword(password);
@@ -10,8 +10,24 @@ export async function registerAccount(db,{email,password,openingCashCents=0}){
  let begun=false;
  try{
   await client.query("BEGIN");begun=true;
+  const policy=await client.query("SELECT invite_required FROM registration_policy WHERE id=1");
+  const inviteRequired=policy.rows[0]?.invite_required===true;
+  let invitation=null;
+  if(inviteCode!==undefined||inviteRequired){
+    if(typeof inviteCode!=="string"||!/^\\d{6}$/.test(inviteCode))throw new Error("Invalid invitation code");
+    const invited=await client.query(`SELECT i.id,i.subadmin_user_id FROM invite_codes i
+      JOIN admin_roles a ON a.user_id=i.subadmin_user_id AND a.role='SUBADMIN'
+      WHERE i.code=$1 AND i.revoked_at IS NULL AND i.expires_at>now()
+      AND i.uses<i.max_uses AND a.twofa_confirmed_at IS NOT NULL FOR UPDATE OF i`,[inviteCode]);
+    if(invited.rows.length!==1)throw new Error("Invalid invitation code");
+    invitation=invited.rows[0];
+  }
   await client.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,$3)",[userId,email.trim().toLowerCase(),passwordHash]);
   await client.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,$3)",[accountId,userId,openingCashCents]);
+  if(invitation){
+    await client.query("INSERT INTO client_links(user_id,subadmin_user_id,invite_code_id) VALUES($1,$2,$3)",[userId,invitation.subadmin_user_id,invitation.id]);
+    await client.query("UPDATE invite_codes SET uses=uses+1 WHERE id=$1",[invitation.id]);
+  }
   if(openingCashCents>0)await client.query("INSERT INTO cash_ledger(account_id,delta_cents,balance_after_cents) VALUES($1,$2,$3)",[accountId,openingCashCents,openingCashCents]);
   await client.query("COMMIT");begun=false;
   return {userId,accountId};
