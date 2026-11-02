@@ -39,6 +39,10 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("markets").querySelectorAll("button").length, 4);
     assert.equal(el("marketCards").querySelectorAll("button").length, 4);
     assert.equal(el("quotePrice").textContent, "—");
+    assert.equal(el("performanceTitle").textContent,"Stock Chart / 股票走势");
+    assert.equal(JSON.parse(el("stockChart").querySelector("script").textContent).symbol,"NASDAQ:AAPL");
+    assert.match(el("stockChart").querySelector(".tradingview-widget-copyright").textContent,/TradingView/);
+    assert.equal(el("chartSourceLink").href,"https://www.tradingview.com/symbols/NASDAQ-AAPL/");
     assert.equal(el("connectionText").textContent, "账户已连接 · 行情待接入");
     assert.equal(el("cash").textContent, "—");
     assert.equal(el("accountSummary").hidden, true);
@@ -48,6 +52,9 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("symbolTitle").textContent, "0700");
     el("symbols").querySelectorAll("button")[1].click();
     assert.equal(el("symbolTitle").textContent, "9988");
+    assert.equal(JSON.parse(el("stockChart").querySelector("script").textContent).symbol,"HKEX:9988");
+    assert.equal(el("chartSourceLink").href,"https://www.tradingview.com/symbols/HKEX-9988/");
+    assert.equal(el("quotePrice").textContent,"—");
     assert.equal(el("orderSymbol").textContent, "HK · 9988");
     el("email").value = "user@example.com";
     el("password").value = "a-long-test-password";
