@@ -537,3 +537,12 @@ body{min-width:320px}
   .account-facts{grid-template-columns:1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+
+/* User acceptance: no bold text anywhere in the client-facing trading platform. */
+html, body, body *, body *::before, body *::after {
+  font-weight: 400 !important;
+  text-rendering: optimizeLegibility;
+}
+svg { shape-rendering: geometricPrecision; }
+.chart-stage, .chart svg, .chart canvas { image-rendering: auto; }
