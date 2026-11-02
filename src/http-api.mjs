@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { placeInternalOrder } from "./order-service.mjs";
 import {registerAccount,loginAccount,logoutAccount,getAccountSnapshot} from "./account-service.mjs";
+import {listWatchlist,addWatchlistItem,removeWatchlistItem} from "./watchlist-service.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
 async function readBody(req,maxBodyBytes){
@@ -38,10 +39,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/auth/logout"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/watchlist"&&!["GET","POST","DELETE"].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/auth/logout"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(isAuthRoute){
    try{
@@ -71,6 +73,22 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   if(route==="/api/account"){
    try{return send(res,200,await getAccountSnapshot(db,session.accountId));}
    catch{return send(res,500,{error:"Internal server error"});}
+  }
+  if(route==="/api/watchlist"){
+    try {
+      if(req.method==="GET")return send(res,200,{items:await listWatchlist(db,session.accountId)});
+      const body=JSON.parse(await readBody(req,maxBodyBytes));
+      const item=req.method==="POST"
+        ? await addWatchlistItem(db,session.accountId,body)
+        : await removeWatchlistItem(db,session.accountId,body);
+      return send(res,200,{item});
+    } catch(err) {
+      if(err.statusCode===413)return send(res,413,{error:"Request too large"});
+      if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
+      if(/^Invalid watchlist/.test(err.message??""))return send(res,400,{error:err.message});
+      if(err.message==="Watchlist limit reached")return send(res,409,{error:err.message});
+      return send(res,500,{error:"Internal server error"});
+    }
   }
   if(route==="/api/auth/logout"){
    try{await logoutAccount(db,auth.slice(7));return send(res,204,{});}
