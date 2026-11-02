@@ -16,10 +16,10 @@ test("session tokens are random and hashed before storage",()=>{
 });
 test("session resolver reads only authenticated account from database",async()=>{
  const calls=[];
- const db={query:async(sql,params)=>{calls.push({sql,params});return {rows:[{account_id:"account-1"}]};}};
+ const db={query:async(sql,params)=>{calls.push({sql,params});return {rows:[{account_id:"account-1",user_id:"user-1"}]};}};
  const resolver=createSessionResolver(db);
  const token=generateSessionToken();
- assert.deepEqual(await resolver(token),{accountId:"account-1"});
+ assert.deepEqual(await resolver(token),{accountId:"account-1",userId:"user-1",adminVerified:false});
  assert.equal(calls[0].params[0],sessionTokenHash(token));
  assert.match(calls[0].sql,/revoked_at IS NULL/);
 });
