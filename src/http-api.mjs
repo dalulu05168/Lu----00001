@@ -1,4 +1,5 @@
 import { isDatabaseReady } from "./readiness.mjs";
+import {handleAdminApi} from "./admin-http.mjs";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -36,6 +37,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    catch{return send(res,503,{status:"not_ready",database:"unavailable",brokerConnected:false});}
   }
   const route=url.pathname;
+  if(await handleAdminApi(req,res,route,db,resolveSession))return;
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
@@ -49,9 +51,9 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    try{
     const payload=await readBody(req,maxBodyBytes);
     const body=JSON.parse(payload);
-    if(!body||typeof body!=="object"||Array.isArray(body)||Object.keys(body).some(k=>!["email","password"].includes(k)))return send(res,400,{error:"Invalid body"});
+    if(!body||typeof body!=="object"||Array.isArray(body)||Object.keys(body).some(k=>!["email","password","inviteCode"].includes(k)))return send(res,400,{error:"Invalid body"});
     if(route==="/api/auth/register"){
-      const account=await registerAccount(db,{email:body.email,password:body.password,openingCashCents:0});
+      const account=await registerAccount(db,{email:body.email,password:body.password,openingCashCents:0,inviteCode:body.inviteCode});
       return send(res,201,{userId:account.userId,accountId:account.accountId});
     }
     const login=await loginAccount(db,{email:body.email,password:body.password});
