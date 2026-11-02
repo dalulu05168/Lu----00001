@@ -446,7 +446,10 @@ el("authForm").addEventListener("submit",async event => {
     const email = el("email").value.trim();
     const password = el("password").value;
     if (event.submitter?.value === "register") {
-      await request("/auth/register",{method:"POST",body:{email,password}});
+      const inviteCode=el("inviteCode").value.trim();
+      await request("/auth/register",{method:"POST",body:{
+        email,password,...(inviteCode?{inviteCode}:{})
+      }});
     }
     const session = await request("/auth/login",{method:"POST",body:{email,password}});
     if (!session.token) throw new Error("登录接口未返回有效会话");
