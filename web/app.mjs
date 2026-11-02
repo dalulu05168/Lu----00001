@@ -24,6 +24,8 @@ let pricingConnected = false;
 let authBusy = false;
 let accountRefreshing = false;
 let lastSyncedAt = null;
+let watchlist = [];
+let watchlistBusy = false;
 
 const money = cents => {
   const value = Number(cents);
@@ -125,6 +127,31 @@ function renderSymbols() {
     return button;
   });
   el("symbols").replaceChildren(...buttons);
+  renderWatchlistControl();
+}
+function renderWatchlistControl() {
+  const button=el("watchlistToggle");
+  if(!button)return;
+  const saved=watchlist.some(item=>item.market===selected.market&&item.symbol===selected.symbol);
+  button.textContent=saved?"★ 已加入自选":"☆ 加入自选";
+  button.disabled=!token||watchlistBusy;
+  button.setAttribute("aria-pressed",String(saved));
+  el("watchlistFeedback").textContent=token
+    ? watchlistBusy?"正在同步自选…":"自选列表保存于当前账户"
+    : "登录后可保存自选股票";
+}
+async function refreshWatchlist() {
+  if(!token) {watchlist=[];renderWatchlistControl();return;}
+  const current=token;
+  try {
+    const data=await request("/watchlist");
+    if(current!==token)return;
+    if(!Array.isArray(data?.items))throw new Error("自选数据格式异常");
+    watchlist=data.items;
+  }catch(error) {
+    if(current!==token)return;
+    el("watchlistFeedback").textContent="自选列表同步失败："+error.message;
+  }finally{renderWatchlistControl();}
 }
 function renderRecords() {
   const positions = Array.isArray(account?.positions) ? account.positions.filter(item =>
@@ -199,6 +226,7 @@ function render() {
   el("logout").hidden = !token;
   el("orderForm").querySelector('button[type="submit"]').disabled = !token || !account || !pricingConnected;
   renderRecords();
+  renderWatchlistControl();
 }
 async function request(path,options = {}) {
   let result;
@@ -236,6 +264,7 @@ async function refreshAccount() {
     }
     account = data;
     lastSyncedAt = new Date();
+    await refreshWatchlist();
     el("authFeedback").textContent = "账户数据已同步";
   } catch(error) {
     if (requestedToken !== token) return;
@@ -290,6 +319,19 @@ function updateClock() {
   }).format(new Date()) + " MYT";
 }
 el("search").addEventListener("input",renderSymbols);
+el("watchlistToggle").addEventListener("click",async()=>{
+  if(!token||watchlistBusy)return;
+  watchlistBusy=true;
+  renderWatchlistControl();
+  const item={market:selected.market,symbol:selected.symbol};
+  const exists=watchlist.some(x=>x.market===item.market&&x.symbol===item.symbol);
+  try {
+    await request("/watchlist",{method:exists?"DELETE":"POST",body:item});
+    await refreshWatchlist();
+    el("watchlistFeedback").textContent=exists?"已从自选移除":"已保存到自选";
+  }catch(error){el("watchlistFeedback").textContent=error.message;}
+  finally{watchlistBusy=false;renderWatchlistControl();}
+});
 el("refreshAccountButton").addEventListener("click",() => { if(token) refreshAccount(); });
 el("authForm").addEventListener("submit",async event => {
   event.preventDefault();
@@ -331,6 +373,7 @@ el("logout").addEventListener("click",async () => {
     token = null;
     account = null;
     lastSyncedAt = null;
+    watchlist = [];
     el("authFeedback").textContent = "已退出账户";
     render();
   } catch(error) {
