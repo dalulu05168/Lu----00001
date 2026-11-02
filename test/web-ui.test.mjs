@@ -3,6 +3,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
 
+test("public and admin UI do not expose simulation or test labels",async()=>{
+  for(const file of ["index.html","app.mjs","admin.html","admin.mjs"]){
+    const source=await readFile(new URL("../web/"+file,import.meta.url),"utf8");
+    assert.doesNotMatch(source,/模拟|虚拟|测试|simulation|mock|sandbox|demo/i,file);
+  }
+});
+
 test("trading terminal renders, switches markets, and handles account session without invented prices", async () => {
   const html = await readFile(new URL("../web/index.html", import.meta.url), "utf8");
   assert.doesNotMatch(html, /账户仅记录内部账面数据，不能代表真实证券或可提现资产。/);
