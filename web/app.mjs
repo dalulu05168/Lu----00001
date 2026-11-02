@@ -1,5 +1,4 @@
 import { summarizeMarketHoldings } from "./market-allocation.mjs";
-import { mountStockChart, tradingViewSymbolUrl } from "./stock-chart.mjs";
 const MARKETS = [
   {code:"US",label:"美国市场",exchange:"NYSE / NASDAQ",currency:"USD",icon:"US",sub:"United States"},
   {code:"HK",label:"香港市场",exchange:"HKEX",currency:"HKD",icon:"HK",sub:"Hong Kong"},
@@ -203,10 +202,8 @@ function renderWatchlistControl() {
   button.disabled=!token||watchlistBusy;
   button.setAttribute("aria-pressed",String(saved));
   const feedback=el("watchlistFeedback");
-  if(!token) feedback.textContent="登录后可保存自选股票";
+  if(!token) feedback.textContent="";
   else if(watchlistBusy) feedback.textContent="正在同步自选…";
-  else if(!feedback.textContent||feedback.textContent==="登录后可保存自选股票")
-    feedback.textContent="自选列表保存于当前账户";
   renderSavedWatchlist();
 }
 async function refreshWatchlist() {
@@ -312,10 +309,6 @@ function render() {
   el("symbolTitle").textContent = selected.symbol;
   el("symbolName").textContent = selected.name;
   el("quotePrice").textContent = "—";
-  const providerSymbol = mountStockChart(el("stockChart"), selected);
-  const chartLink = el("chartSourceLink");
-  chartLink.href = providerSymbol ? tradingViewSymbolUrl(providerSymbol) : "https://www.tradingview.com/widget/";
-  chartLink.textContent = providerSymbol ? "在数据源查看 " + providerSymbol : "查看可用市场";
   el("orderSymbol").textContent = selected.market + " · " + selected.symbol;
   el("orderQuoteStatus").textContent = pricingConnected ? "已连接" : "未连接";
   el("cash").textContent = account ? money(account.account.cashCents) : "—";
