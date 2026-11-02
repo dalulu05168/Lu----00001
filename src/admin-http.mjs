@@ -42,7 +42,15 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
   try{
     if(route==="/api/admin/login"){
       const data=await input(req);
-      return response(res,200,await adminLogin(db,data)),true;
+      response(res,200,await adminLogin(db,data));return true;
+    }
+    if(route==="/api/admin/bootstrap"){
+      const data=await input(req);
+      response(res,201,await bootstrapMaster(db,data));return true;
+    }
+    if(route==="/api/admin/activate"){
+      const data=await input(req);
+      response(res,200,await confirmAdminTotp(db,data));return true;
     }
     const authorization=req.headers.authorization??"";
     if(!authorization.startsWith("Bearer ")){
@@ -50,15 +58,6 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const session=await resolveSession(authorization.slice(7));
     if(!session?.userId){response(res,401,{error:"Authentication required"});return true;}
-    if(route==="/api/admin/bootstrap"){
-      const body=await input(req);
-      const result=await bootstrapMaster(db,session.userId,body?.setupKey);
-      response(res,201,result);return true;
-    }
-    if(route==="/api/admin/activate"){
-      const body=await input(req);
-      response(res,200,await confirmAdminTotp(db,session.userId,body?.otp));return true;
-    }
     if(route==="/api/catalog"){
       const data=await db.query(`SELECT id,item_type,market,symbol,display_name,discount_bps
         FROM listings WHERE status='PUBLISHED' ORDER BY created_at DESC LIMIT 100`);
