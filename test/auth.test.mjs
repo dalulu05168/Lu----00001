@@ -16,7 +16,7 @@ test("session tokens are random and hashed before storage",()=>{
 });
 test("session resolver reads only authenticated account from database",async()=>{
  const calls=[];
- const db={query:async(sql,params)=>{calls.push({sql,params});return {rows:[{account_id:"account-1",user_id:"user-1"}]};}};
+ const db={query:async(sql,params)=>{calls.push({sql,params});return {rows:[{account_id:"account-1",user_id:"user-1",admin_verified_at:null}]};}};
  const resolver=createSessionResolver(db);
  const token=generateSessionToken();
  assert.deepEqual(await resolver(token),{accountId:"account-1",userId:"user-1",adminVerified:false});
