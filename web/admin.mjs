@@ -79,10 +79,13 @@ function setMirrorScreen(){
   if(!mirrorSnapshot){view.append(plainNode("p","请选择客户以读取账户快照","muted"));return;}
   const snap=mirrorSnapshot;
   const formats={
+    market:()=>[["当前行情","未经授权的数据源尚未接入"],["自选股票",String(snap.watchlist?.length??0)+" 只"],["K 线图","暂无已核验行情，不展示虚构走势"]],
+    trade:()=>[["委托入口","不可操作"],["证券实时价格","未接入"],["券商连接状态","未连接"],["已有内部订单",String(snap.orders?.length??0)+" 笔"]],
     assets:()=>[["账户编号",snap.account?.id],["账面币种",snap.account?.currency],["持仓记录",snap.positions?.length??0],["内部历史订单",snap.orders?.length??0],["自选标的",snap.watchlist?.length??0]],
-    positions:()=>snap.positions?.map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")])??[],
-    orders:()=>snap.orders?.map(o=>[(o.side==="BUY"?"买入":"卖出")+" · "+o.market+":"+o.symbol,"数量 "+o.quantity+" · "+(Number(o.amount_usd_cents)/100).toFixed(2)+" USD"])??[],
-    watchlist:()=>snap.watchlist?.map(w=>[w.market+" · "+w.symbol,"已保存"])??[]
+    positions:()=>snap.positions?.map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")+" 股（内部记录）"])??[],
+    orders:()=>snap.orders?.map(o=>[(o.side==="BUY"?"买入":"卖出")+" · "+o.market+":"+o.symbol,
+      "数量 "+o.quantity+" · 内部金额 "+cashFmt(o.amount_usd_cents)+" USD"+(o.created_at?" · "+new Date(o.created_at).toLocaleDateString("zh-CN"):"")])??[],
+    watchlist:()=>snap.watchlist?.map(w=>[w.market+" · "+w.symbol,"已保存（无实时价格）"])??[]
   };
   const rows=formats[mirrorActiveTab]?.()??[];
   if(!rows.length){view.append(plainNode("p","该客户暂无对应记录","muted"));return;}
@@ -128,6 +131,33 @@ document.querySelectorAll("[data-mirror-tab]").forEach(button=>{
 });
 el("refreshMirror").addEventListener("click",()=>{if(selectedMirrorClientId)selectMirrorClient(selectedMirrorClientId)});
 el("refreshMirrorClients").addEventListener("click",refreshClients);
+
+
+// Read-only administrative mirror access history. Server handles actor-level isolation.
+async function refreshMirrorAudit(){
+  const feedback=el("mirrorAuditStatus"),target=el("mirrorAuditList");
+  feedback.textContent="正在读取审计记录";
+  target.replaceChildren();
+  try{
+    const {items}=await api("/admin/mirror-audit");
+    if(!Array.isArray(items))throw Error("无效的审计数据");
+    if(!items.length){
+      target.append(plainNode("p","暂无镜像访问记录","muted"));
+    }else{
+      for(const rec of items){
+        const card=document.createElement("div");
+        card.className="admin-list-row mirror-audit-row";
+        const text=document.createElement("div");
+        text.append(plainNode("div",rec.clientEmail),
+                    plainNode("small","查看人员："+rec.actorEmail+" · "+new Date(rec.viewedAt).toLocaleString("zh-CN")));
+        card.append(text);
+        target.append(card);
+      }
+    }
+    feedback.textContent="已加载 "+items.length+" 条访问记录（最多 80 条）";
+  }catch(e){feedback.textContent=e.message;}
+}
+el("refreshMirrorAudit").addEventListener("click",refreshMirrorAudit);
 
 async function refreshListings(){
   try{
@@ -260,6 +290,7 @@ el("adminLogout").addEventListener("click",()=>{
 });
 /** Independent client-side navigation: authorization is always enforced by /api/admin/*. */
 function activateAdminPane(page) {
+  if(page==="audit")void refreshMirrorAudit();
   const target=document.querySelector('[data-pane="'+page+'"]');
   if(!target)return;
   const nav=document.querySelector('[data-admin-page="'+page+'"]');

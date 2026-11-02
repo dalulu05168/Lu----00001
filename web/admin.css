@@ -86,3 +86,10 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 .mirror-disclosure{border-top:1px solid #293b53;padding:13px 16px!important;margin:0;font-size:10px!important;color:#a7bbd4!important}
 @media(max-width:1000px){.mirror-layout{grid-template-columns:1fr}.mirror-client-panel{max-height:350px}.mirror-device{max-width:500px}}
 @media(max-width:500px){.mirror-customer{flex-wrap:wrap}.mirror-open{margin:8px 0 0}.mirror-device{border-radius:14px}.mirror-account,.mirror-balance{padding:13px 14px}.mirror-screen{min-height:170px}}
+
+/* Additional client-screen tabs and auditable mirror reads remain legible at phone sizes. */
+.mirror-tabs{overflow-x:auto;justify-content:flex-start;scrollbar-width:thin}
+.mirror-tabs button{min-width:62px;flex:1 0 auto}
+.mirror-audit-row{padding:13px 0}
+.mirror-audit-row small{color:#97adc7}
+@media(max-width:520px){.mirror-tabs button{min-width:57px;font-size:11px}}

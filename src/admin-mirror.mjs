@@ -39,3 +39,17 @@ export async function getClientAppMirror(db,actor,clientId){
     disclosure:"Database snapshot of internal account records only; not a live device screen, licensed market feed, or brokerage position."
   };
 }
+
+/** Inspect mirror reads without exposing session tokens, passwords or unrelated accounts. */
+export async function listClientMirrorAudit(db,actor){
+  if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))invalid("Administrator 2FA session required",403);
+  const r=await db.query(`SELECT l.id,l.viewed_at AS "viewedAt",
+      l.actor_user_id AS "actorUserId",l.client_user_id AS "clientUserId",
+      c.email AS "clientEmail",a.email AS "actorEmail"
+    FROM admin_mirror_access_log l
+    JOIN app_users c ON c.id=l.client_user_id
+    JOIN app_users a ON a.id=l.actor_user_id
+    WHERE ($1::text='MASTER' OR l.actor_user_id=$2::uuid)
+    ORDER BY l.viewed_at DESC,l.id DESC LIMIT 80`,[actor.role,actor.userId]);
+  return r.rows;
+}

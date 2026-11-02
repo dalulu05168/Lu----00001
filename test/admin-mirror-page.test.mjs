@@ -19,6 +19,7 @@ test("master can open a scoped client App mirror with account records and clear 
       if(url==="/api/admin/login")return reply(200,{token:"admin-test-token",role:"MASTER"});
       if(url==="/api/admin/me")return reply(200,{role:"MASTER",userId:"admin-id"});
       if(url==="/api/admin/clients")return reply(200,{items:[{id:clientId,email:"customer@example.test",subadmin_user_id:"sub-id"}]});
+      if(url==="/api/admin/mirror-audit")return reply(200,{items:[{clientEmail:"customer@example.test",actorEmail:"master@example.test",viewedAt:"2026-11-03T00:00:00Z"}]});
       if(url==="/api/admin/subaccounts")return reply(200,{items:[]});
       if(url==="/api/admin/listings")return reply(200,{items:[]});
       if(url==="/api/admin/mirror?clientId="+clientId)return reply(200,{
@@ -46,6 +47,10 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("mirrorEmail").textContent,"customer@example.test");
     assert.equal(el("mirrorCash").textContent,"129.00");
     assert.match(el("mirrorStatus").textContent,/已记录访问审计/);
+    dom.window.document.querySelector('[data-mirror-tab="market"]').click();
+    assert.match(el("mirrorAppScreen").textContent,/未接入/);
+    dom.window.document.querySelector('[data-mirror-tab="trade"]').click();
+    assert.match(el("mirrorAppScreen").textContent,/不可操作/);
     dom.window.document.querySelector('[data-mirror-tab="positions"]').click();
     assert.match(el("mirrorAppScreen").textContent,/AAPL/);
     dom.window.document.querySelector('[data-mirror-tab="orders"]').click();
@@ -53,6 +58,10 @@ test("master can open a scoped client App mirror with account records and clear 
     dom.window.document.querySelector('[data-mirror-tab="watchlist"]').click();
     assert.match(el("mirrorAppScreen").textContent,/9988/);
     assert.ok(requests.some(x=>x.url.includes("/api/admin/mirror?clientId=")&&x.options.headers.authorization==="Bearer admin-test-token"));
+    dom.window.document.querySelector('[data-admin-page="audit"]').click();
+    await pause(45);
+    assert.match(el("mirrorAuditList").textContent,/customer@example.test/);
+    assert.match(el("mirrorAuditStatus").textContent,/1 条/);
     el("adminLogout").click();
     assert.equal(el("adminWorkspace").hidden,true);
     assert.equal(el("mirrorCash").textContent,"—");

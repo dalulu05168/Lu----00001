@@ -98,6 +98,8 @@
               <div class="mirror-account"><span>当前客户</span><output id="mirrorEmail">尚未选择</output><small id="mirrorUpdated">—</small></div>
               <div class="mirror-balance"><span>账户内部账面资金</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
               <div class="mirror-tabs" role="tablist" aria-label="客户 App 页面">
+                <button type="button" role="tab" data-mirror-tab="market" aria-selected="false">行情</button>
+                <button type="button" role="tab" data-mirror-tab="trade" aria-selected="false">交易</button>
                 <button type="button" role="tab" data-mirror-tab="assets" aria-selected="true">资产</button>
                 <button type="button" role="tab" data-mirror-tab="positions" aria-selected="false">持仓</button>
                 <button type="button" role="tab" data-mirror-tab="orders" aria-selected="false">订单</button>
@@ -140,7 +142,13 @@
       </section>
       <section class="admin-pane" data-pane="audit" hidden>
         <div class="pane-title"><span>AUDIT & REPORTS</span><h2>审计与报表</h2></div>
-        <div class="panel unavailable" role="status"><h3>审计报表尚未接入</h3><p>当前没有可供核验的完整管理员操作审计接口。审计数据需要服务端记录和权限验证，不能用未经验证的静态历史代替。</p></div>
+        <section class="panel">
+          <div class="heading"><h3>客户 App 镜像访问记录</h3><button type="button" class="outline" id="refreshMirrorAudit">刷新审计</button></div>
+          <p class="muted">记录来自服务端，不允许在前端修改或删除。仅显示已成功获取客户镜像的访问，不代表所有后台操作日志。</p>
+          <p id="mirrorAuditStatus" role="status" class="feedback"></p>
+          <div id="mirrorAuditList" aria-live="polite"></div>
+        </section>
+        <div class="panel unavailable"><h3>其他审计与报表</h3><p>全量管理员行为审计和资金风险报表尚未接入，不能与客户镜像访问日志混为一谈。</p></div>
       </section>
     </div>
   </div>

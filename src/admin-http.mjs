@@ -1,4 +1,4 @@
-import {getClientAppMirror} from "./admin-mirror.mjs";
+import {getClientAppMirror,listClientMirrorAudit} from "./admin-mirror.mjs";
 import {
   roleFor,bootstrapMaster,confirmAdminTotp,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -37,7 +37,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/activate":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
-    "/api/admin/mirror":["GET"],
+    "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
@@ -81,6 +81,9 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     if(route==="/api/admin/mirror"){
       const url=new URL(req.url??"/","http://localhost");
       response(res,200,await getClientAppMirror(db,actor,url.searchParams.get("clientId")));return true;
+    }
+    if(route==="/api/admin/mirror-audit"){
+      response(res,200,{items:await listClientMirrorAudit(db,actor)});return true;
     }
     if(route==="/api/admin/clients"){
       response(res,200,{items:await listClients(db,actor)});return true;

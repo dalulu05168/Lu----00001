@@ -325,6 +325,16 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.equal((await req("/api/admin/mirror?clientId="+attached.data.userId,{token:otherLogin.data.token})).status,404);
     const audit=await db.query("SELECT actor_user_id,client_user_id FROM admin_mirror_access_log WHERE client_user_id=$1",[attached.data.userId]);
     assert.equal(audit.rows.length,2);
+    const masterAudit=await req("/api/admin/mirror-audit",{token:masterToken});
+    assert.equal(masterAudit.status,200);
+    assert.ok(masterAudit.data.items.some(x=>x.clientUserId===attached.data.userId));
+    assert.ok(masterAudit.data.items.some(x=>x.actorUserId===sub.data.userId));
+    const subAudit=await req("/api/admin/mirror-audit",{token:subAdmin.data.token});
+    assert.equal(subAudit.status,200);
+    assert.ok(subAudit.data.items.every(x=>x.actorUserId===sub.data.userId));
+    assert.equal((await req("/api/admin/mirror-audit",{token:customerAppToken})).status,403);
+    assert.equal((await req("/api/admin/mirror-audit")).status,401);
+    assert.equal((await req("/api/admin/mirror-audit",{method:"POST",token:masterToken})).status,405);
     const unchangedClient=await req("/api/account",{token:customerAppToken});
     assert.equal(unchangedClient.data.account.cashCents,0);
 
