@@ -65,7 +65,7 @@ async function showDashboard(){
   try{
     const me=await api("/admin/me");
     role=me.role;
-    setText("adminRole",role==="MASTER"?"主账户 / MASTER":"子管理员 / SUBADMIN");
+    setText("adminRole",role==="MASTER"?"主账户":"子账户");
     document.querySelectorAll("[data-required-role]").forEach(node=>node.hidden=node.dataset.requiredRole!==role);
     activateAdminPane("dashboard");
     el("adminWorkspace").hidden=false;
