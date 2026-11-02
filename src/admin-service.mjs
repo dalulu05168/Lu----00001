@@ -12,15 +12,13 @@ function getEmail(value) {
   if(typeof value!=="string"||value.length>254||!EMAIL.test(value))invalid("Invalid email");
   return value.trim().toLowerCase();
 }
-function safeListing(value,withPassword=true){
+function safeListing(value){
   if(!value||typeof value!=="object"||Array.isArray(value))invalid("Invalid listing");
-  const {itemType,market,symbol,name,discountPercent,purchasePassword,status="DRAFT"}=value;
+  const {itemType,market,symbol,name,status="DRAFT"}=value;
   if(!TYPES.has(itemType)||!MARKETS.has(market)||typeof symbol!=="string"||!SYMBOL.test(symbol)||
      typeof name!=="string"||!name.trim()||name.length>120||
-     !Number.isInteger(discountPercent)||discountPercent<0||discountPercent>100||
      !["DRAFT","PUBLISHED"].includes(status))invalid("Invalid listing fields");
-  if(withPassword&&(typeof purchasePassword!=="string"||purchasePassword.length<12))invalid("Invalid purchase password");
-  return {itemType,market,symbol,name:name.trim(),discountBps:discountPercent*100,status,purchasePassword};
+  return {itemType,market,symbol,name:name.trim(),status};
 }
 
 export async function roleFor(db,session) {
@@ -145,29 +143,26 @@ export async function listClients(db,actor){
 export async function createListing(db,actor,data){
   if(actor?.role!=="MASTER")invalid("Only master can publish listings");
   const item=safeListing(data);
-  const hash=await hashPassword(item.purchasePassword),id=randomUUID();
+  // Legacy non-null purchase_password_hash is retained in the database schema,
+  // but no purchase flow reads it. Store an unreachable random hash, not a user credential.
+  const hash=await hashPassword(randomUUID()),id=randomUUID();
   await db.query(`INSERT INTO listings(id,item_type,market,symbol,display_name,discount_bps,purchase_password_hash,status,created_by)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`,[id,item.itemType,item.market,item.symbol,item.name,item.discountBps,hash,item.status,actor.userId]);
-  return {id,itemType:item.itemType,market:item.market,symbol:item.symbol,name:item.name,
-    discountPercent:item.discountBps/100,status:item.status,simulationOnly:true};
+    VALUES($1,$2,$3,$4,$5,0,$6,$7,$8)`,[id,item.itemType,item.market,item.symbol,item.name,hash,item.status,actor.userId]);
+  return {id,itemType:item.itemType,market:item.market,symbol:item.symbol,name:item.name,status:item.status};
 }
 export async function listListings(db,actor){
   if(!actor)return [];
   const r=await db.query(`SELECT id,item_type,market,symbol,display_name,discount_bps,status,created_at
     FROM listings ORDER BY created_at DESC LIMIT 300`);
   return r.rows.map(x=>({id:x.id,itemType:x.item_type,market:x.market,symbol:x.symbol,
-    name:x.display_name,discountPercent:x.discount_bps/100,status:x.status,simulationOnly:true}));
+    name:x.display_name,status:x.status}));
 }
-export async function updateListing(db,actor,{id,discountPercent,status,purchasePassword}){
+export async function updateListing(db,actor,{id,status}){
   if(actor?.role!=="MASTER")invalid("Only master can edit listings");
   if(typeof id!=="string"||!/^[0-9a-f-]{36}$/.test(id)||
-     !Number.isInteger(discountPercent)||discountPercent<0||discountPercent>100||
      !["DRAFT","PUBLISHED"].includes(status))invalid("Invalid listing update");
-  let hash=null;
-  if(purchasePassword!==undefined)hash=await hashPassword(purchasePassword);
-  const r=await db.query(`UPDATE listings SET discount_bps=$2,status=$3,
-    purchase_password_hash=COALESCE($4,purchase_password_hash),updated_at=now()
-    WHERE id=$1 RETURNING id`,[id,discountPercent*100,status,hash]);
+  const r=await db.query(`UPDATE listings SET status=$2,updated_at=now()
+    WHERE id=$1 RETURNING id`,[id,status]);
   if(r.rows.length!==1)invalid("Listing not found");
-  return {id,discountPercent,status,simulationOnly:true};
+  return {id,status};
 }
