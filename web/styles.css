@@ -277,6 +277,7 @@ body{min-width:320px}
 .sidebar{background:#191b1e;border-right:1px solid #30343a;align-items:stretch;padding:24px 15px 18px;height:100vh}
 .sidebar-logo{display:flex;align-items:center;gap:11px;width:auto;height:auto;padding:0 8px 22px;background:transparent;border-radius:0;color:var(--text)}
 .brand-mark{width:35px;height:35px;display:grid;place-items:center;flex:none;border-radius:9px;background:#2b2f34;border:1px solid #42474e;color:#f2f4f5;font-size:17px;font-weight:500}
+.brand-mark svg{width:21px;height:21px;display:block}
 .brand-copy{display:flex;flex-direction:column;gap:3px;letter-spacing:.1em}
 .brand-copy strong{font-size:10px;font-weight:500;color:#f2f4f5}
 .brand-copy small{font-size:8px;letter-spacing:.24em;color:#858b92}
