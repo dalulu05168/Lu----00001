@@ -15,16 +15,20 @@
 </form><p id="loginFeedback" class="feedback" role="status"></p>
 </section>
 <section class="panel" id="bootstrapPanel">
-<h2>首次配置主账户</h2>
-<p class="muted">仅已登录的客户账户所有人、持有独立初始化凭证者可申请成为主账户。请先在前台登录本人账户。</p>
+<h2>首次开通主账户</h2>
+<p class="muted">首次开通不需要先进入客户前台。填写指定的主账户邮箱、为后台单独设置密码，并提供项目所有者保管的初始化凭证。仅系统首次开通时可用。</p>
 <form id="bootstrapForm" class="field-grid">
-<label>一次性主账户初始化凭证<input id="bootstrapKey" type="password" autocomplete="off" required></label>
-<button type="submit">初始化主账户并获取 2FA 配置信息</button>
+<label>主账户邮箱<input id="bootstrapEmail" type="email" value="chennan05168@gmail.com" autocomplete="username" required></label>
+<label>设置后台密码（至少12位）<input id="bootstrapPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+<label>项目初始化凭证<input id="bootstrapKey" type="password" autocomplete="off" required></label>
+<button type="submit">创建主账户并获取 2FA 密钥</button>
 </form><p id="bootstrapFeedback" class="feedback" role="status"></p>
 <div id="bootstrapResult" class="sensitive" hidden></div>
 <form id="activateForm" class="field-grid">
-<label>绑定验证器后输入 6 位验证码<input id="activateOtp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
-<button type="submit">确认 2FA 绑定</button>
+<label>主账户或子账户邮箱<input id="activateEmail" type="email" value="chennan05168@gmail.com" autocomplete="username" required></label>
+<label>后台登录密码<input id="activatePassword" type="password" autocomplete="current-password" required></label>
+<label>验证器 6 位动态验证码<input id="activateOtp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
+<button type="submit">确认 2FA，启用后台登录</button>
 </form><p id="activateFeedback" class="feedback" role="status"></p>
 </section>
 <section id="adminWorkspace" hidden>
