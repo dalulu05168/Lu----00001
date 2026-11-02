@@ -31,7 +31,9 @@ test('real admin layout preserves secure flows and separates capabilities',()=>{
   const js=readFileSync(new URL('../web/admin.mjs',import.meta.url),'utf8');
   const css=readFileSync(new URL('../web/admin.css',import.meta.url),'utf8');
   for(const id of ['adminLoginForm','bootstrapForm','activateForm','subadminForm','listingForm','adminWorkspace'])assert.match(admin,new RegExp('id="'+id+'"'));
-  for(const role of ['MASTER','SUBADMIN'])assert.match(js,new RegExp(role));
+  assert.match(js,/role===["']MASTER["']/);
+  assert.match(admin,/MASTER \/ SUBADMIN/);
+  assert.match(js,/data-required-role/);
   for(const page of ['dashboard','clients','catalog','approvals','treasury','risk','audit'])assert.match(admin,new RegExp('data-pane="'+page+'"'));
   assert.match(admin,/后端没有资金申请/);
   assert.match(css,/font-weight:400!important/);
