@@ -32,6 +32,9 @@ let watchlistFetchSequence = 0;
 let catalog = [];
 let catalogLoaded = false;
 let catalogBusy = false;
+let transactionPage = 1;
+let transactionPageSize = 10;
+
 
 const money = cents => {
   const value = Number(cents);
@@ -341,6 +344,179 @@ function renderRecords() {
   el("orders").replaceChildren(...(orderRows.length ? orderRows : [makeEmpty(account ? "暂无订单记录" : "登录后查看订单记录")]));
 }
 
+
+const TRANSACTION_RANGE_LABELS = Object.freeze({
+  all:"All time", "7d":"Last 7 days", "30d":"Last 30 days", "90d":"Last 90 days"
+});
+function transactionName(item) {
+  return INSTRUMENTS.find(stock => stock.market === item.market && stock.symbol === item.symbol)?.name || "名称未登记";
+}
+function transactionPrice(item) {
+  const marketInfo = MARKETS.find(entry => entry.code === item.market);
+  const cents = Number(item.price_cents);
+  if (!marketInfo || !Number.isSafeInteger(cents) || cents < 0) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style:"currency", currency:marketInfo.currency, minimumFractionDigits:2, maximumFractionDigits:2
+  }).format(cents / 100);
+}
+function transactionAmount(item) {
+  const cents = Number(item.amount_usd_cents);
+  return Number.isSafeInteger(cents) && cents >= 0 ? "$" + money(cents) : "—";
+}
+function transactionTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone:"Asia/Kuala_Lumpur", month:"short", day:"2-digit",
+    hour:"2-digit", minute:"2-digit", hour12:false
+  }).format(date);
+}
+function filteredTransactions() {
+  const orders = Array.isArray(account?.orders) ? account.orders : [];
+  const query = el("transactionSearch").value.trim().toLocaleLowerCase();
+  const range = el("transactionRange").value;
+  const days = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 0;
+  const cutoff = days ? Date.now() - days * 24 * 60 * 60 * 1000 : 0;
+  return orders.filter(item => {
+    if (!item || typeof item !== "object") return false;
+    if (query) {
+      const haystack = [item.market,item.symbol,transactionName(item),item.side].join(" ").toLocaleLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+    if (days) {
+      const timestamp = item.created_at ? new Date(item.created_at).getTime() : NaN;
+      if (!Number.isFinite(timestamp) || timestamp < cutoff || timestamp > Date.now()) return false;
+    }
+    return true;
+  });
+}
+function csvCell(value) {
+  const text = String(value ?? "");
+  return /[",\r\n]/.test(text) ? '"' + text.replace(/"/g,'""') + '"' : text;
+}
+function exportTransactionHistory() {
+  const orders = filteredTransactions();
+  if (!account || !orders.length) return;
+  const rows = [
+    ["Market","Symbol","Name","Side","Price","Price Currency","Quantity","Total USD","Record Status","Time"],
+    ...orders.map(item => {
+      const marketInfo = MARKETS.find(entry => entry.code === item.market);
+      return [
+        item.market,item.symbol,transactionName(item),item.side,
+        transactionPrice(item),marketInfo?.currency ?? "",
+        item.quantity,transactionAmount(item),"INTERNAL",item.created_at ?? ""
+      ];
+    })
+  ];
+  const csv = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "transactions-" + new Date().toISOString().slice(0,10) + ".csv";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+function renderTransactionHistory() {
+  const allOrders = Array.isArray(account?.orders) ? account.orders : [];
+  let volumeCents = 0;
+  let volumeCount = 0;
+  let volumeSafe = true;
+  for (const item of allOrders) {
+    const cents = Number(item?.amount_usd_cents);
+    if (!Number.isSafeInteger(cents) || cents < 0) continue;
+    if (!Number.isSafeInteger(volumeCents + cents)) { volumeSafe = false; break; }
+    volumeCents += cents;
+    volumeCount++;
+  }
+  el("transactionVolume").textContent = account && volumeCount && volumeSafe ? "$" + money(volumeCents) : "—";
+  el("transactionVolumeNote").textContent = !account
+    ? "登录后查看真实账户记录"
+    : volumeCount && volumeSafe
+      ? volumeCount + " 笔有效金额 · USD 等值"
+      : allOrders.length ? "订单金额字段不可用" : "暂无交易记录";
+  el("realizedPnl").textContent = "—";
+  el("realizedPnlNote").textContent = "缺少逐笔成本匹配数据，暂不计算";
+  el("internalRecordCount").textContent = account ? String(allOrders.length) : "—";
+  el("brokerExecutionStatus").textContent = "未连接";
+
+  const range = el("transactionRange").value;
+  el("transactionRangeLabel").textContent = TRANSACTION_RANGE_LABELS[range] ?? "All time";
+  const filtered = filteredTransactions();
+  const pageCount = Math.max(1,Math.ceil(filtered.length / transactionPageSize));
+  transactionPage = Math.min(Math.max(1,transactionPage),pageCount);
+  const start = (transactionPage - 1) * transactionPageSize;
+  const visible = filtered.slice(start,start + transactionPageSize);
+  const body = el("transactionRows");
+  if (!account) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 8;
+    cell.className = "transaction-empty";
+    cell.textContent = "登录后查看账户交易记录";
+    row.append(cell);
+    body.replaceChildren(row);
+  } else if (!allOrders.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 8;
+    cell.className = "transaction-empty";
+    cell.textContent = "暂无交易记录";
+    row.append(cell);
+    body.replaceChildren(row);
+  } else if (!visible.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 8;
+    cell.className = "transaction-empty";
+    cell.textContent = "没有符合筛选条件的记录";
+    row.append(cell);
+    body.replaceChildren(row);
+  } else {
+    const rows = visible.map(item => {
+      const row = document.createElement("tr");
+      row.dataset.transactionRow = "true";
+      const symbol = document.createElement("td");
+      symbol.className = "transaction-symbol-cell";
+      symbol.append(textNode(item.symbol || "—","transaction-symbol-code"),textNode(item.market || "—","transaction-market-code"));
+      const name = document.createElement("td");
+      name.className = "transaction-name-cell";
+      name.textContent = transactionName(item);
+      const side = document.createElement("td");
+      const sideLabel = textNode(item.side === "BUY" ? "↑ Buy" : item.side === "SELL" ? "↓ Sell" : "—",
+        item.side === "BUY" ? "transaction-side side-buy" : item.side === "SELL" ? "transaction-side side-sell" : "transaction-side");
+      side.append(sideLabel);
+      const price = document.createElement("td");
+      price.textContent = transactionPrice(item);
+      const quantity = document.createElement("td");
+      const qty = Number(item.quantity);
+      quantity.textContent = Number.isSafeInteger(qty) && qty >= 0 ? qty.toLocaleString("en-US") : "—";
+      const amount = document.createElement("td");
+      amount.className = "transaction-amount-cell";
+      amount.textContent = transactionAmount(item);
+      const status = document.createElement("td");
+      status.append(textNode("INTERNAL","record-status internal-status"));
+      const time = document.createElement("td");
+      time.className = "transaction-time-cell";
+      time.textContent = transactionTime(item.created_at);
+      row.append(symbol,name,side,price,quantity,amount,status,time);
+      return row;
+    });
+    body.replaceChildren(...rows);
+  }
+  const total = filtered.length;
+  const first = total ? start + 1 : 0;
+  const last = Math.min(start + transactionPageSize,total);
+  el("transactionPageSummary").textContent = account ? "Showing " + first + "–" + last + " of " + total : "登录后查看";
+  el("transactionPageNumber").textContent = transactionPage + " / " + pageCount;
+  el("transactionPrev").disabled = !account || transactionPage <= 1;
+  el("transactionNext").disabled = !account || transactionPage >= pageCount;
+  el("exportHistoryButton").disabled = !account || filtered.length === 0;
+}
+
 function render() {
   renderMarkets();
   renderSymbols();
@@ -372,6 +548,7 @@ function render() {
   el("logout").hidden = !token;
   el("orderForm").querySelector('button[type="submit"]').disabled = !token || !account || !pricingConnected;
   renderRecords();
+  renderTransactionHistory();
   renderWatchlistControl();
 }
 async function request(path,options = {}) {
@@ -468,6 +645,35 @@ function updateClock() {
     timeZone:"Asia/Kuala_Lumpur",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false
   }).format(new Date()) + " MYT";
 }
+el("transactionSearch").addEventListener("input",() => {
+  transactionPage = 1;
+  renderTransactionHistory();
+});
+el("transactionRange").addEventListener("change",() => {
+  transactionPage = 1;
+  renderTransactionHistory();
+});
+el("transactionPageSize").addEventListener("change",() => {
+  const size = Number(el("transactionPageSize").value);
+  transactionPageSize = [10,25,50].includes(size) ? size : 10;
+  transactionPage = 1;
+  renderTransactionHistory();
+});
+el("transactionPrev").addEventListener("click",() => {
+  transactionPage = Math.max(1,transactionPage - 1);
+  renderTransactionHistory();
+});
+el("transactionNext").addEventListener("click",() => {
+  transactionPage++;
+  renderTransactionHistory();
+});
+el("exportHistoryButton").addEventListener("click",exportTransactionHistory);
+document.querySelectorAll(".sidebar-link[href^='#']").forEach(link => {
+  link.addEventListener("click",() => {
+    document.querySelectorAll(".sidebar-link").forEach(item => item.classList.remove("active"));
+    link.classList.add("active");
+  });
+});
 el("search").addEventListener("input",renderSymbols);
 el("watchlistToggle").addEventListener("click",()=>{
   const item={market:selected.market,symbol:selected.symbol};
