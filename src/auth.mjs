@@ -34,10 +34,10 @@ export function createSessionResolver(db){
  return async function resolveSession(token){
   let tokenHash;
   try{tokenHash=sessionTokenHash(token);}catch{return null;}
-  const r=await db.query(`SELECT s.account_id,s.user_id FROM user_sessions s
+  const r=await db.query(`SELECT s.account_id,s.user_id,s.admin_verified_at FROM user_sessions s
    JOIN accounts a ON a.id=s.account_id AND a.user_id=s.user_id
    WHERE s.token_hash=$1 AND s.expires_at>now() AND s.revoked_at IS NULL`,[tokenHash]);
-  return r.rows.length===1?{accountId:r.rows[0].account_id,userId:r.rows[0].user_id,adminVerified:false}:null;
+  return r.rows.length===1?{accountId:r.rows[0].account_id,userId:r.rows[0].user_id,adminVerified:Boolean(r.rows[0].admin_verified_at)}:null;
  };
 }
 export async function revokeSession(db,token){
