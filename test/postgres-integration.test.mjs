@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { currentOtp } from "../src/totp.mjs";
 import { Pool } from "pg";
 import { createServer } from "node:http";
 import serverlessHandler from "../api/[...path].mjs";
@@ -200,5 +201,103 @@ run("Vercel serverless API adapter routes to real PostgreSQL", async () => {
     assert.equal((await account.json()).account.id, record.accountId);
   } finally {
     await new Promise(resolve => app.close(resolve));
+  }
+});
+
+run("PostgreSQL: master TOTP, scoped subadmin invitations and simulation listing permissions", async () => {
+  const previousKey=process.env.ADMIN_TOTP_ENCRYPTION_KEY;
+  const previousProof=process.env.ADMIN_BOOTSTRAP_SECRET;
+  process.env.ADMIN_TOTP_ENCRYPTION_KEY="a".repeat(64);
+  process.env.ADMIN_BOOTSTRAP_SECRET="b".repeat(64);
+  const db=new Pool({connectionString,max:4});
+  const app=createApi({db,resolveSession:createSessionResolver(db)});
+  await new Promise(done=>app.listen(0,"127.0.0.1",done));
+  const base="http://127.0.0.1:"+app.address().port;
+  async function req(path,{method="GET",token,body}={}){
+    const res=await fetch(base+path,{method,headers:{
+      ...(token?{authorization:"Bearer "+token}:{}),
+      ...(body?{"content-type":"application/json"}:{})
+    },...(body?{body:JSON.stringify(body)}:{})});
+    return {status:res.status,data:res.status===204?{}:await res.json()};
+  }
+  try {
+    const email="master-"+randomUUID().slice(0,8)+"@example.test";
+    const password="testing-master-pass-2026";
+    const register=await req("/api/auth/register",{method:"POST",body:{email,password}});
+    assert.equal(register.status,201);
+    const logged=await req("/api/auth/login",{method:"POST",body:{email,password}});
+    assert.equal(logged.status,200);
+    const clientToken=logged.data.token;
+    const denied=await req("/api/admin/me",{token:clientToken});
+    assert.equal(denied.status,403);
+    const setup=await req("/api/admin/bootstrap",{method:"POST",token:clientToken,body:{setupKey:"b".repeat(64)}});
+    assert.equal(setup.status,201);
+    assert.match(setup.data.totpSecret,/^[A-Z2-7]{32}$/);
+    const otp=currentOtp(setup.data.totpSecret);
+    const activated=await req("/api/admin/activate",{method:"POST",token:clientToken,body:{otp}});
+    assert.equal(activated.status,200);
+    const secondMaster=await req("/api/admin/bootstrap",{method:"POST",token:clientToken,body:{setupKey:"b".repeat(64)}});
+    assert.equal(secondMaster.status,400);
+    const admin=await req("/api/admin/login",{method:"POST",body:{email,password,otp}});
+    assert.equal(admin.status,200);
+    assert.equal(admin.data.role,"MASTER");
+    const masterToken=admin.data.token;
+    assert.equal((await req("/api/admin/me",{token:masterToken})).data.role,"MASTER");
+    const subEmail="sub-"+randomUUID().slice(0,8)+"@example.test";
+    const subPassword="testing-subadmin-pass-2026";
+    const sub=await req("/api/admin/subaccounts",{method:"POST",token:masterToken,body:{email:subEmail,password:subPassword}});
+    assert.equal(sub.status,201);
+    assert.match(sub.data.inviteCode,/^[0-9]{6}$/);
+    assert.match(sub.data.totpSecret,/^[A-Z2-7]{32}$/);
+    const subLogin=await req("/api/auth/login",{method:"POST",body:{email:subEmail,password:subPassword}});
+    assert.equal(subLogin.status,200);
+    const subOtp=currentOtp(sub.data.totpSecret);
+    const subActivate=await req("/api/admin/activate",{method:"POST",token:subLogin.data.token,body:{otp:subOtp}});
+    assert.equal(subActivate.status,200);
+    const attachedEmail="client-"+randomUUID().slice(0,8)+"@example.test";
+    const attached=await req("/api/auth/register",{method:"POST",body:{
+      email:attachedEmail,password:"testing-client-pass-2026",inviteCode:sub.data.inviteCode
+    }});
+    assert.equal(attached.status,201);
+    const linkage=await db.query("SELECT subadmin_user_id FROM client_links WHERE user_id=$1",[attached.data.userId]);
+    assert.equal(linkage.rows[0].subadmin_user_id,sub.data.userId);
+    const invalidInvite=await req("/api/auth/register",{method:"POST",body:{
+      email:"unknown-"+randomUUID().slice(0,8)+"@example.test",
+      password:"testing-client-pass-2026",inviteCode:"not-code"
+    }});
+    assert.equal(invalidInvite.status,400);
+    const subAdmin=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword,otp:subOtp}});
+    assert.equal(subAdmin.status,200);
+    const subListings=await req("/api/admin/listings",{method:"POST",token:subAdmin.data.token,body:{
+      itemType:"STOCK",market:"US",symbol:"AAPL",name:"Mock stock",
+      discountPercent:12,purchasePassword:"demo-password-2026",status:"DRAFT"
+    }});
+    assert.equal(subListings.status,403);
+    const masterListing=await req("/api/admin/listings",{method:"POST",token:masterToken,body:{
+      itemType:"IPO",market:"US",symbol:"TESTIPO",name:"Simulation IPO",
+      discountPercent:12,purchasePassword:"demo-password-2026",status:"PUBLISHED"
+    }});
+    assert.equal(masterListing.status,201);
+    assert.equal(masterListing.data.discountPercent,12);
+    const exposed=await req("/api/admin/listings",{token:masterToken});
+    assert.equal(exposed.status,200);
+    assert.equal(JSON.stringify(exposed.data).includes("demo-password-2026"),false);
+    const clientLogin=await req("/api/auth/login",{method:"POST",body:{
+      email:attachedEmail,password:"testing-client-pass-2026"
+    }});
+    assert.equal(clientLogin.status,200);
+    const catalog=await req("/api/catalog",{token:clientLogin.data.token});
+    assert.equal(catalog.status,200);
+    assert.ok(catalog.data.items.some(item=>item.symbol==="TESTIPO"));
+    assert.equal(JSON.stringify(catalog.data).includes("purchase_password"),false);
+    const subclients=await req("/api/admin/clients",{token:subAdmin.data.token});
+    assert.ok(subclients.data.items.some(item=>item.email===attachedEmail));
+  }finally{
+    await new Promise(done=>app.close(done));
+    await db.end();
+    if(previousKey===undefined)delete process.env.ADMIN_TOTP_ENCRYPTION_KEY;
+    else process.env.ADMIN_TOTP_ENCRYPTION_KEY=previousKey;
+    if(previousProof===undefined)delete process.env.ADMIN_BOOTSTRAP_SECRET;
+    else process.env.ADMIN_BOOTSTRAP_SECRET=previousProof;
   }
 });
