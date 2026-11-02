@@ -135,11 +135,20 @@ export async function listSubadmins(db,actor){
   return [];
 }
 export async function listClients(db,actor){
-  const params=actor.role==="MASTER" ? [] : [actor.userId];
-  const where=actor.role==="MASTER" ? "" : "WHERE c.subadmin_user_id=$1";
-  const r=await db.query(`SELECT u.id,u.email,c.subadmin_user_id,c.created_at FROM client_links c
-    JOIN app_users u ON u.id=c.user_id ${where} ORDER BY c.created_at DESC LIMIT 500`,params);
-  return r.rows;
+  if(actor.role==="MASTER"){
+    const r=await db.query(`SELECT u.id,u.email,c.subadmin_user_id,COALESCE(c.created_at,u.created_at) AS created_at
+      FROM app_users u LEFT JOIN client_links c ON c.user_id=u.id
+      WHERE NOT EXISTS (SELECT 1 FROM admin_roles a WHERE a.user_id=u.id)
+      ORDER BY COALESCE(c.created_at,u.created_at) DESC LIMIT 500`);
+    return r.rows;
+  }
+  if(actor.role==="SUBADMIN"){
+    const r=await db.query(`SELECT u.id,u.email,c.subadmin_user_id,c.created_at
+      FROM client_links c JOIN app_users u ON u.id=c.user_id
+      WHERE c.subadmin_user_id=$1 ORDER BY c.created_at DESC LIMIT 500`,[actor.userId]);
+    return r.rows;
+  }
+  return [];
 }
 export async function createListing(db,actor,data){
   if(actor?.role!=="MASTER")invalid("Only master can publish listings");
