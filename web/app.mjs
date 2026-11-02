@@ -353,14 +353,18 @@ function transactionName(item) {
 }
 function transactionPrice(item) {
   const marketInfo = MARKETS.find(entry => entry.code === item.market);
-  const cents = Number(item.price_cents);
-  if (!marketInfo || !Number.isSafeInteger(cents) || cents < 0) return "—";
+  const rawCents = item?.price_cents;
+  if (!marketInfo || rawCents === null || rawCents === undefined || rawCents === "") return "—";
+  const cents = Number(rawCents);
+  if (!Number.isSafeInteger(cents) || cents < 0) return "—";
   return new Intl.NumberFormat("en-US", {
     style:"currency", currency:marketInfo.currency, minimumFractionDigits:2, maximumFractionDigits:2
   }).format(cents / 100);
 }
 function transactionAmount(item) {
-  const cents = Number(item.amount_usd_cents);
+  const rawCents = item?.amount_usd_cents;
+  if (rawCents === null || rawCents === undefined || rawCents === "") return "—";
+  const cents = Number(rawCents);
   return Number.isSafeInteger(cents) && cents >= 0 ? "$" + money(cents) : "—";
 }
 function transactionTime(value) {
@@ -426,7 +430,9 @@ function renderTransactionHistory() {
   let volumeCount = 0;
   let volumeSafe = true;
   for (const item of allOrders) {
-    const cents = Number(item?.amount_usd_cents);
+    const rawCents = item?.amount_usd_cents;
+    if (rawCents === null || rawCents === undefined || rawCents === "") continue;
+    const cents = Number(rawCents);
     if (!Number.isSafeInteger(cents) || cents < 0) continue;
     if (!Number.isSafeInteger(volumeCents + cents)) { volumeSafe = false; break; }
     volumeCents += cents;
