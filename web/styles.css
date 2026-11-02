@@ -242,3 +242,13 @@ a{color:inherit;text-decoration:none}
 .saved-watchlist-open:hover,.saved-watchlist-remove:hover{background:#f6f7f8}
 .saved-watchlist-remove{color:#555555}
 .saved-watchlist-feedback{min-height:12px;margin:6px 0 0;color:#555555;font-size:10px}
+
+
+.catalog-panel{margin-top:13px}
+.catalog-list{display:grid;gap:0}
+.catalog-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #edf0f2;padding:12px 4px;min-width:0}
+.catalog-info{display:flex;flex-direction:column;gap:5px;min-width:0}
+.catalog-info strong{color:#000;font-size:12px;font-weight:500}
+.catalog-info small{color:#555;font-size:10px}
+.catalog-discount{white-space:nowrap;color:#000;background:#f6f8f7;border-radius:6px;padding:7px 9px;font-size:11px}
+.catalog-list .record-empty{padding:12px 4px;text-align:left}
