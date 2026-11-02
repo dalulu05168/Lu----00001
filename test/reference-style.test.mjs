@@ -15,6 +15,7 @@ test("dashboard follows the supplied dark charcoal transactions visual direction
   assert.ok(weights.every(weight => weight <= 500), "UI should not add 600+ bold weights");
   assert.match(html, /id="transactions-section"/);
   assert.match(html, /id="transactionRows"/);
+  assert.match(html, /class="brand-mark"[^>]*><svg/, "the existing platform mark must be retained");
   assert.match(html, /class="metrics"/);
   assert.match(html, /class="primary-grid"/);
   assert.match(html, /class="secondary-grid"/);
