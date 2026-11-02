@@ -34,6 +34,12 @@ test("official widget is configured with the selected stock, attribution and no 
     assert.equal(settings.theme,"light");
     assert.equal(settings.interval,"D");
     assert.equal(settings.allow_symbol_change,false);
+    assert.equal(host.querySelector(".tradingview-widget-container__widget").children.length,0);
+    assert.equal(host.querySelector(".stock-chart-loading").parentElement.className,"tradingview-widget-container");
+    first.dispatchEvent(new dom.window.Event("error"));
+    assert.match(host.querySelector(".stock-chart-loading").textContent,/加载失败/);
+    first.dispatchEvent(new dom.window.Event("load"));
+    assert.equal(host.querySelector(".stock-chart-loading"),null);
     assert.match(host.querySelector(".tradingview-widget-copyright a").textContent,/TradingView|NASDAQ:AAPL/);
     assert.equal(host.querySelector(".tradingview-widget-copyright a").href,"https://www.tradingview.com/symbols/NASDAQ-AAPL/");
     assert.equal(mountStockChart(host,{market:"US",symbol:"AAPL"}),"NASDAQ:AAPL");
