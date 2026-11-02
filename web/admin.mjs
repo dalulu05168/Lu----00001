@@ -91,24 +91,7 @@ el("adminLoginForm").addEventListener("submit",async event=>{
     sessionStorage.setItem("gsp_admin_token",adminToken);
     el("adminPassword").value="";el("adminOtp").value="";
     setText("loginFeedback","管理员验证成功");
-    await 
-/** Independent client-side navigation: authorization is always enforced by /api/admin/*. */
-function activateAdminPane(page) {
-  const target=document.querySelector('[data-pane="'+page+'"]');
-  if(!target)return;
-  const nav=document.querySelector('[data-admin-page="'+page+'"]');
-  if(nav?.hidden)return;
-  document.querySelectorAll(".admin-pane").forEach(pane=>pane.hidden=pane!==target);
-  document.querySelectorAll("[data-admin-page]").forEach(button=>{
-    if(button===nav)button.setAttribute("aria-current","page");
-    else button.removeAttribute("aria-current");
-  });
-}
-document.querySelectorAll("[data-admin-page]").forEach(button=>{
-  button.addEventListener("click",()=>activateAdminPane(button.dataset.adminPage));
-});
-
-showDashboard();
+    await showDashboard();
   }catch(error){setText("loginFeedback",error.message)}
   finally{button.disabled=false;}
 });
@@ -193,4 +176,20 @@ el("adminLogout").addEventListener("click",()=>{
   el("adminWorkspace").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=false;
   setText("loginFeedback","已退出管理界面；服务器端会话将在到期时失效。");
 });
+/** Independent client-side navigation: authorization is always enforced by /api/admin/*. */
+function activateAdminPane(page) {
+  const target=document.querySelector('[data-pane="'+page+'"]');
+  if(!target)return;
+  const nav=document.querySelector('[data-admin-page="'+page+'"]');
+  if(nav?.hidden)return;
+  document.querySelectorAll(".admin-pane").forEach(pane=>pane.hidden=pane!==target);
+  document.querySelectorAll("[data-admin-page]").forEach(button=>{
+    if(button===nav)button.setAttribute("aria-current","page");
+    else button.removeAttribute("aria-current");
+  });
+}
+document.querySelectorAll("[data-admin-page]").forEach(button=>{
+  button.addEventListener("click",()=>activateAdminPane(button.dataset.adminPage));
+});
+
 showDashboard();
