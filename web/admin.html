@@ -33,23 +33,21 @@
 </section>
 <section id="adminWorkspace" hidden>
 <div class="panel"><div class="heading"><h2>后台概览</h2><button id="adminLogout" type="button" class="outline">退出后台</button></div>
-<p>当前权限：<strong id="adminRole">—</strong></p><p class="muted">商品配置仅供内部模拟测试，不代表真实证券发行或交易。</p></div>
+<p>当前权限：<strong id="adminRole">—</strong></p><p class="muted">证券资料由管理员维护；此页面只管理目录，不执行证券交易或资金支付。</p></div>
 <section class="panel" id="subadminArea"><div class="heading"><h2>子账户管理</h2><button type="button" id="refreshSubadmins" class="outline">刷新</button></div>
 <form id="subadminForm" class="field-grid"><label>子账户邮箱<input id="subadminEmail" type="email" required></label>
 <label>初始密码（至少12位）<input id="subadminPassword" type="password" minlength="12" required></label>
 <button type="submit">创建子账户和邀请码</button></form>
 <div id="subadminProvisioning" class="sensitive" hidden></div><div id="subadmins"></div><p id="subadminFeedback" class="feedback" role="status"></p></section>
 <section class="panel"><div class="heading"><h2>客户归属</h2><button type="button" class="outline" id="refreshClients">刷新</button></div><div id="clients"></div></section>
-<section class="panel" id="catalogArea"><div class="heading"><h2>模拟商品上架</h2><button type="button" class="outline" id="refreshListings">刷新</button></div>
+<section class="panel" id="catalogArea"><div class="heading"><h2>证券资料管理</h2><button type="button" class="outline" id="refreshListings">刷新</button></div>
 <form id="listingForm" class="field-grid">
-<label>类型<select id="listingType"><option value="STOCK">股票</option><option value="FUND">基金</option><option value="IPO">IPO（测试）</option></select></label>
+<label>类型<select id="listingType"><option value="STOCK">股票</option><option value="FUND">基金</option><option value="IPO">IPO</option></select></label>
 <label>市场<select id="listingMarket"><option value="US">美国</option><option value="HK">香港</option><option value="CN">中国内地</option><option value="MY">马来西亚</option></select></label>
-<label>股票或商品代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
+<label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
 <label>名称<input id="listingName" maxlength="120" required></label>
-<label>折扣比例（0–100%）<input id="listingDiscount" type="number" min="0" max="100" step="1" value="0" required></label>
-<label>购买验证密码<input id="listingPassword" type="password" minlength="12" required></label>
-<label>状态<select id="listingStatus"><option value="DRAFT">草稿</option><option value="PUBLISHED">发布（模拟）</option></select></label>
-<button type="submit">保存模拟商品</button></form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p></section>
+<label>状态<select id="listingStatus"><option value="DRAFT">草稿</option><option value="PUBLISHED">已发布</option></select></label>
+<button type="submit">保存证券资料</button></form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p></section>
 </section>
 </main><script type="module" src="/admin.mjs"></script>
 </body></html>
