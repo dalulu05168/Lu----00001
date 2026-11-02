@@ -268,8 +268,8 @@ function renderCatalog() {
   button.hidden=!token;
   button.disabled=catalogBusy;
   const list=el("catalogItems");
-  if(!token){list.replaceChildren(makeEmpty("登录后查看商品目录"));return;}
-  if(!catalogLoaded){list.replaceChildren(makeEmpty(catalogBusy?"正在读取商品目录…":"目录尚未同步"));return;}
+  if(!token){list.replaceChildren(makeEmpty("登录后查看证券资料"));return;}
+  if(!catalogLoaded){list.replaceChildren(makeEmpty(catalogBusy?"正在读取证券资料…":"证券资料尚未同步"));return;}
   if(!catalog.length){list.replaceChildren(makeEmpty("暂无已发布的证券资料"));return;}
   const cards=catalog.filter(x=>x&&typeof x==="object").map(item=>{
     const row=document.createElement("article");
@@ -290,7 +290,7 @@ async function refreshCatalog() {
   try {
     const data=await request("/catalog");
     if(current!==token)return;
-    if(!Array.isArray(data?.items))throw Error("商品目录格式异常");
+    if(!Array.isArray(data?.items))throw Error("证券资料目录格式异常");
     catalog=data.items;catalogLoaded=true;
     el("catalogFeedback").textContent="";
   }catch(error){
@@ -338,7 +338,7 @@ function renderRecords() {
     node.append(left,right);
     return node;
   });
-  el("orders").replaceChildren(...(orderRows.length ? orderRows : [makeEmpty(account ? "暂无内部订单记录" : "登录后查看订单记录")]));
+  el("orders").replaceChildren(...(orderRows.length ? orderRows : [makeEmpty(account ? "暂无订单记录" : "登录后查看订单记录")]));
 }
 
 function render() {
@@ -544,14 +544,14 @@ el("orderForm").addEventListener("submit",async event => {
   }
   const button = el("orderForm").querySelector('button[type="submit"]');
   button.disabled = true;
-  el("feedback").textContent = "正在提交内部订单...";
+  el("feedback").textContent = "正在提交订单记录...";
   try {
     const result = await request("/orders",{
       method:"POST",
       headers:{"idempotency-key":crypto.randomUUID()},
       body:{side:el("side").value,market:selected.market,symbol:selected.symbol,quantity:Number(el("quantity").value)}
     });
-    el("feedback").textContent = result.replayed ? "已查询到原内部订单" : "内部订单已由服务器记录";
+    el("feedback").textContent = result.replayed ? "已查询到原订单记录" : "订单已记录于平台";
     await refreshAccount();
   } catch(error) {
     el("feedback").textContent = error.message;
