@@ -53,7 +53,7 @@ async function refreshListings(){
     const data=await api("/admin/listings");
     displayItems("listings",data.items||[],x=>[
       x.itemType+" · "+x.market+":"+x.symbol+" · "+x.name,
-      "折扣 "+x.discountPercent+"% · "+(x.status==="PUBLISHED"?"已发布（模拟）":"草稿")+" · "+x.id
+      (x.status==="PUBLISHED"?"已发布":"草稿")+" · "+x.id
     ]);
   }catch(e){setText("listingFeedback",e.message)}
 }
@@ -156,11 +156,9 @@ el("listingForm").addEventListener("submit",async event=>{
     const result=await api("/admin/listings",{method:"POST",body:{
       itemType:el("listingType").value,market:el("listingMarket").value,
       symbol:el("listingSymbol").value.toUpperCase().trim(),
-      name:el("listingName").value.trim(),discountPercent:Number(el("listingDiscount").value),
-      purchasePassword:el("listingPassword").value,status:el("listingStatus").value
+      name:el("listingName").value.trim(),status:el("listingStatus").value
     }});
-    el("listingPassword").value="";
-    setText("listingFeedback","已保存 "+result.symbol+" · "+result.status+"（仅内部模拟商品）");
+    setText("listingFeedback","已保存证券资料 "+result.symbol+" · "+(result.status==="PUBLISHED"?"已发布":"草稿"));
     await refreshListings();
   }catch(error){setText("listingFeedback",error.message)}
   finally{button.disabled=false;}
