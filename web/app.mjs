@@ -270,19 +270,17 @@ function renderCatalog() {
   const list=el("catalogItems");
   if(!token){list.replaceChildren(makeEmpty("登录后查看商品目录"));return;}
   if(!catalogLoaded){list.replaceChildren(makeEmpty(catalogBusy?"正在读取商品目录…":"目录尚未同步"));return;}
-  if(!catalog.length){list.replaceChildren(makeEmpty("暂无发布的模拟商品"));return;}
+  if(!catalog.length){list.replaceChildren(makeEmpty("暂无已发布的证券资料"));return;}
   const cards=catalog.filter(x=>x&&typeof x==="object").map(item=>{
     const row=document.createElement("article");
     row.className="catalog-row";
     const info=document.createElement("div");info.className="catalog-info";
     const title=document.createElement("strong");
-    title.textContent=(item.itemType==="STOCK"?"股票":item.itemType==="FUND"?"基金":"IPO测试")+" · "+item.name;
+    title.textContent=(item.itemType==="STOCK"?"股票":item.itemType==="FUND"?"基金":"IPO")+" · "+item.name;
     const desc=document.createElement("small");
-    desc.textContent=item.market+":"+item.symbol+" · 仅供模拟展示";
+    desc.textContent=item.market+":"+item.symbol+" · 证券资料";
     info.append(title,desc);
-    const discount=document.createElement("span");discount.className="catalog-discount";
-    discount.textContent="折扣 "+String(item.discountPercent)+"%";
-    row.append(info,discount);return row;
+    row.append(info);return row;
   });
   list.replaceChildren(...cards);
 }
