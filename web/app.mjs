@@ -29,6 +29,9 @@ let watchlistBusy = false;
 let watchlistLoaded = false;
 let watchlistFetching = false;
 let watchlistFetchSequence = 0;
+let catalog = [];
+let catalogLoaded = false;
+let catalogBusy = false;
 
 const money = cents => {
   const value = Number(cents);
@@ -131,6 +134,7 @@ function renderSymbols() {
   });
   el("symbols").replaceChildren(...buttons);
   renderWatchlistControl();
+  renderCatalog();
 }
 function renderSavedWatchlist() {
   const list=el("savedWatchlist");
@@ -259,6 +263,44 @@ async function changeWatchlistItem(item, remove) {
     renderWatchlistControl();
   }
 }
+function renderCatalog() {
+  const button=el("refreshCatalogButton");
+  button.hidden=!token;
+  button.disabled=catalogBusy;
+  const list=el("catalogItems");
+  if(!token){list.replaceChildren(makeEmpty("登录后查看商品目录"));return;}
+  if(!catalogLoaded){list.replaceChildren(makeEmpty(catalogBusy?"正在读取商品目录…":"目录尚未同步"));return;}
+  if(!catalog.length){list.replaceChildren(makeEmpty("暂无发布的模拟商品"));return;}
+  const cards=catalog.filter(x=>x&&typeof x==="object").map(item=>{
+    const row=document.createElement("article");
+    row.className="catalog-row";
+    const info=document.createElement("div");info.className="catalog-info";
+    const title=document.createElement("strong");
+    title.textContent=(item.itemType==="STOCK"?"股票":item.itemType==="FUND"?"基金":"IPO测试")+" · "+item.name;
+    const desc=document.createElement("small");
+    desc.textContent=item.market+":"+item.symbol+" · 仅供模拟展示";
+    info.append(title,desc);
+    const discount=document.createElement("span");discount.className="catalog-discount";
+    discount.textContent="折扣 "+String(item.discountPercent)+"%";
+    row.append(info,discount);return row;
+  });
+  list.replaceChildren(...cards);
+}
+async function refreshCatalog() {
+  if(!token){catalog=[];catalogLoaded=false;renderCatalog();return;}
+  const current=token;catalogBusy=true;renderCatalog();
+  try {
+    const data=await request("/catalog");
+    if(current!==token)return;
+    if(!Array.isArray(data?.items))throw Error("商品目录格式异常");
+    catalog=data.items;catalogLoaded=true;
+    el("catalogFeedback").textContent="";
+  }catch(error){
+    if(current!==token)return;
+    catalogLoaded=false;
+    el("catalogFeedback").textContent=error.message;
+  }finally{catalogBusy=false;renderCatalog();}
+}
 function renderRecords() {
   const positions = Array.isArray(account?.positions) ? account.positions.filter(item =>
     item && MARKETS.some(m => m.code === item.market) && typeof item.symbol === "string" &&
@@ -371,6 +413,7 @@ async function refreshAccount() {
     account = data;
     lastSyncedAt = new Date();
     await refreshWatchlist();
+    await refreshCatalog();
     el("authFeedback").textContent = "账户数据已同步";
   } catch(error) {
     if (requestedToken !== token) return;
@@ -434,6 +477,7 @@ el("watchlistToggle").addEventListener("click",()=>{
   changeWatchlistItem(item,exists);
 });
 el("refreshWatchlistButton").addEventListener("click",()=>{if(token&&!watchlistBusy)refreshWatchlist();});
+el("refreshCatalogButton").addEventListener("click",()=>{if(token&&!catalogBusy)refreshCatalog();});
 el("refreshAccountButton").addEventListener("click",() => { if(token) refreshAccount(); });
 el("authForm").addEventListener("submit",async event => {
   event.preventDefault();
@@ -481,6 +525,8 @@ el("logout").addEventListener("click",async () => {
     watchlist = [];
     watchlistLoaded = false;
     watchlistFetchSequence++;
+    catalog=[];
+    catalogLoaded=false;
     el("savedWatchlistFeedback").textContent="";
     el("authFeedback").textContent = "已退出账户";
     render();
