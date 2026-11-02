@@ -25,7 +25,8 @@ test("2FA values are encrypted and bootstrap proofs must match",()=>{
     const secret=newTotpSecret(),ciphertext=protectTotp(secret);
     assert.equal(ciphertext.includes(secret),false);
     assert.equal(unprotectTotp(ciphertext),secret);
-    assert.throws(()=>unprotectTotp(ciphertext.replace(/.$/,"x")));
+    const tampered=ciphertext.split(".");tampered[1]="AAAAAAAAAAAAAAAAAAAAAA";
+    assert.throws(()=>unprotectTotp(tampered.join(".")));
     assert.equal(matchBootstrapKey("b".repeat(64)),true);
     assert.equal(matchBootstrapKey("c".repeat(64)),false);
   }finally{
