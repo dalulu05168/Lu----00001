@@ -5,6 +5,7 @@ const ORIGIN = "https://trade.maacropierce.com";
 const isGitHubCI = process.env.GITHUB_ACTIONS === "true";
 const targets = [
   ["/", 200, "GET"],
+  ["/stock-chart.mjs", 200, "GET"],
   ["/api/health", 200, "GET"],
   ["/api/ready", 200, "GET"],
   ["/api/auth/register", 400, "POST"],
