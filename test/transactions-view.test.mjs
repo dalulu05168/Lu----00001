@@ -106,9 +106,16 @@ test("dark transactions workspace renders real account orders with filtering, pa
     el("exportHistoryButton").click();
     assert.ok(exportedBlob instanceof Blob);
     assert.match(downloadedName,/transactions-.*\.csv/);
-    const csv = await exportedBlob.text();
-    assert.match(csv,/MSFT/);
-    assert.match(csv,/INTERNAL/);
+    const filteredCsv = await exportedBlob.text();
+    assert.match(filteredCsv,/MSFT/);
+    assert.match(filteredCsv,/INTERNAL/);
+    el("transactionSearch").value = "";
+    el("transactionSearch").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+    el("transactionRange").value = "all";
+    el("transactionRange").dispatchEvent(new dom.window.Event("change",{bubbles:true}));
+    el("exportHistoryButton").click();
+    const allCsv = await exportedBlob.text();
+    assert.ok(allCsv.includes('"AAPL, ""TEST"""'),"CSV must quote commas and embedded double quotes");
   } finally {
     globalThis.document = old.document;
     globalThis.sessionStorage = old.sessionStorage;
