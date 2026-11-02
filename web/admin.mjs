@@ -47,9 +47,88 @@ async function refreshClients(){
   try{
     const data=await api("/admin/clients");
     el("adminClientCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
-    displayItems("clients",data.items||[],x=>[x.email,"归属子账户："+x.subadmin_user_id]);
+    renderClientDirectory(data.items||[]);
   }catch(e){setText("clients",e.message)}
 }
+
+let mirrorClients=[],selectedMirrorClientId=null,mirrorSnapshot=null,mirrorActiveTab="assets",mirrorSerial=0;
+const cashFmt=cents=>(Number(cents??0)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+function plainNode(tag,text,cls=""){
+  const n=document.createElement(tag);n.textContent=String(text??"—");
+  if(cls)n.className=cls;return n;
+}
+function renderClientDirectory(items){
+  mirrorClients=Array.isArray(items)?items:[];
+  const list=el("clients"),quick=el("mirrorClientList");
+  for(const target of [list,quick]){
+    target.replaceChildren();
+    if(!mirrorClients.length){target.append(plainNode("p","暂无有权限查看的客户","muted"));continue;}
+    for(const c of mirrorClients){
+      const row=document.createElement("div");row.className="admin-list-row mirror-customer";
+      const meta=document.createElement("div");
+      meta.append(plainNode("div",c.email),plainNode("small",c.subadmin_user_id?"已有子账户归属":"直接注册客户"));
+      const button=document.createElement("button");button.type="button";button.className="outline mirror-open";
+      button.textContent="查看 App 镜像";
+      button.addEventListener("click",()=>selectMirrorClient(c.id));
+      row.append(meta,button);target.append(row);
+    }
+  }
+}
+function setMirrorScreen(){
+  const view=el("mirrorAppScreen");view.replaceChildren();
+  if(!mirrorSnapshot){view.append(plainNode("p","请选择客户以读取账户快照","muted"));return;}
+  const snap=mirrorSnapshot;
+  const formats={
+    assets:()=>[["账户编号",snap.account?.id],["账面币种",snap.account?.currency],["持仓记录",snap.positions?.length??0],["内部历史订单",snap.orders?.length??0],["自选标的",snap.watchlist?.length??0]],
+    positions:()=>snap.positions?.map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")])??[],
+    orders:()=>snap.orders?.map(o=>[(o.side==="BUY"?"买入":"卖出")+" · "+o.market+":"+o.symbol,"数量 "+o.quantity+" · "+(Number(o.amount_usd_cents)/100).toFixed(2)+" USD"])??[],
+    watchlist:()=>snap.watchlist?.map(w=>[w.market+" · "+w.symbol,"已保存"])??[]
+  };
+  const rows=formats[mirrorActiveTab]?.()??[];
+  if(!rows.length){view.append(plainNode("p","该客户暂无对应记录","muted"));return;}
+  const wrapper=document.createElement("div");wrapper.className="mirror-records";
+  for(const [name,value] of rows){
+    const line=document.createElement("div");line.className="mirror-record";
+    line.append(plainNode("span",name),plainNode("span",value));wrapper.append(line);
+  }
+  view.append(wrapper);
+}
+async function selectMirrorClient(clientId){
+  const match=mirrorClients.find(x=>x.id===clientId);
+  if(!match)return;
+  selectedMirrorClientId=clientId;mirrorSnapshot=null;
+  activateAdminPane("mirror");
+  const mySerial=++mirrorSerial,usedToken=adminToken;
+  el("mirrorEmail").textContent=match.email;el("mirrorCash").textContent="—";
+  el("mirrorCurrency").textContent="—";el("mirrorUpdated").textContent="—";
+  el("mirrorStatus").textContent="正在读取已授权的客户账户数据";
+  el("refreshMirror").disabled=true;setMirrorScreen();
+  try{
+    const data=await api("/admin/mirror?clientId="+encodeURIComponent(clientId));
+    if(mySerial!==mirrorSerial||adminToken!==usedToken||selectedMirrorClientId!==clientId)return;
+    if(data.mode!=="READ_ONLY")throw Error("镜像模式不安全");
+    mirrorSnapshot=data;
+    el("mirrorEmail").textContent=data.client.email;
+    el("mirrorCash").textContent=cashFmt(data.account.cashCents);
+    el("mirrorCurrency").textContent=data.account.currency;
+    el("mirrorUpdated").textContent="快照读取时间："+new Date(data.checkedAt).toLocaleString("zh-CN");
+    el("mirrorStatus").textContent="只读 · 已记录访问审计";
+    el("refreshMirror").disabled=false;setMirrorScreen();
+  }catch(error){
+    if(mySerial!==mirrorSerial||adminToken!==usedToken)return;
+    el("mirrorStatus").textContent=error.message;setMirrorScreen();
+  }
+}
+document.querySelectorAll("[data-mirror-tab]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    mirrorActiveTab=button.dataset.mirrorTab;
+    document.querySelectorAll("[data-mirror-tab]").forEach(b=>b.setAttribute("aria-selected",b===button?"true":"false"));
+    setMirrorScreen();
+  });
+});
+el("refreshMirror").addEventListener("click",()=>{if(selectedMirrorClientId)selectMirrorClient(selectedMirrorClientId)});
+el("refreshMirrorClients").addEventListener("click",refreshClients);
+
 async function refreshListings(){
   try{
     const data=await api("/admin/listings");
@@ -173,6 +252,9 @@ el("refreshClients").addEventListener("click",refreshClients);
 el("refreshListings").addEventListener("click",refreshListings);
 el("adminLogout").addEventListener("click",()=>{
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
+  mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];
+  el("mirrorEmail").textContent="尚未选择";el("mirrorCash").textContent="—";setMirrorScreen();
+  el("mirrorClientList").replaceChildren();
   el("adminWorkspace").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=false;
   setText("loginFeedback","已退出管理界面；服务器端会话将在到期时失效。");
 });

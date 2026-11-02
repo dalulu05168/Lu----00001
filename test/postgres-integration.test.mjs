@@ -296,6 +296,38 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.equal(JSON.stringify(catalog.data).includes("purchase_password"),false);
     const subclients=await req("/api/admin/clients",{token:subAdmin.data.token});
     assert.ok(subclients.data.items.some(item=>item.email===attachedEmail));
+
+    // Role-scoped customer App mirror: no impersonation, no write endpoints.
+    const customerAppToken=clientLogin.data.token;
+    assert.equal((await req("/api/admin/mirror?clientId="+attached.data.userId)).status,401);
+    assert.equal((await req("/api/admin/mirror?clientId="+attached.data.userId,{token:customerAppToken})).status,403);
+    assert.equal((await req("/api/admin/mirror?clientId=bad-id",{token:masterToken})).status,400);
+    assert.equal((await req("/api/admin/mirror?clientId="+sub.data.userId,{token:masterToken})).status,404);
+    const mirrorFromMaster=await req("/api/admin/mirror?clientId="+attached.data.userId,{token:masterToken});
+    assert.equal(mirrorFromMaster.status,200);
+    assert.equal(mirrorFromMaster.data.mode,"READ_ONLY");
+    assert.equal(mirrorFromMaster.data.client.email,attachedEmail);
+    assert.equal(mirrorFromMaster.data.account.id,attached.data.accountId);
+    assert.deepEqual(mirrorFromMaster.data.positions,[]);
+    assert.deepEqual(mirrorFromMaster.data.orders,[]);
+    assert.deepEqual(mirrorFromMaster.data.watchlist,[]);
+    assert.equal("password" in mirrorFromMaster.data,false);
+    assert.equal("token" in mirrorFromMaster.data,false);
+    const mirrorFromOwnSub=await req("/api/admin/mirror?clientId="+attached.data.userId,{token:subAdmin.data.token});
+    assert.equal(mirrorFromOwnSub.status,200);
+    const otherEmail="other-sub-"+randomUUID().slice(0,8)+"@example.test";
+    const otherSub=await req("/api/admin/subaccounts",{method:"POST",token:masterToken,body:{email:otherEmail,password:subPassword}});
+    assert.equal(otherSub.status,201);
+    const otherOtp=currentOtp(otherSub.data.totpSecret);
+    assert.equal((await req("/api/admin/activate",{method:"POST",body:{email:otherEmail,password:subPassword,otp:otherOtp}})).status,200);
+    const otherLogin=await req("/api/admin/login",{method:"POST",body:{email:otherEmail,password:subPassword,otp:otherOtp}});
+    assert.equal(otherLogin.status,200);
+    assert.equal((await req("/api/admin/mirror?clientId="+attached.data.userId,{token:otherLogin.data.token})).status,404);
+    const audit=await db.query("SELECT actor_user_id,client_user_id FROM admin_mirror_access_log WHERE client_user_id=$1",[attached.data.userId]);
+    assert.equal(audit.rows.length,2);
+    const unchangedClient=await req("/api/account",{token:customerAppToken});
+    assert.equal(unchangedClient.data.account.cashCents,0);
+
   }finally{
     await new Promise(done=>app.close(done));
     await db.end();

@@ -60,3 +60,29 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 [hidden]{display:none!important}
 @media(max-width:950px){.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-shell{grid-template-columns:190px minmax(0,1fr)}.admin-main{padding:12px}}
 @media(max-width:650px){.workspace{padding:10px}.topbar{padding:14px}.admin-shell{display:block}.admin-nav{border-right:0;border-bottom:1px solid var(--border);padding:12px}.admin-nav nav{display:flex!important;overflow:auto;gap:6px;padding-bottom:8px}.admin-nav nav button{flex:none;white-space:nowrap}.nav-identity{margin-bottom:4px}.admin-main{padding:12px;min-height:340px}.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-card{padding:11px;min-height:100px}.summary-card output{font-size:19px}.field-grid{grid-template-columns:1fr}.info-line{flex-direction:column;gap:4px}}
+
+/* Administrative customer application mirror — crisp typography and no fabricated balances. */
+.mirror-layout{display:grid;grid-template-columns:minmax(220px,.9fr) minmax(340px,1.1fr);gap:16px;align-items:start}
+.mirror-customer{align-items:center}
+.mirror-open{flex:none;margin-left:auto}
+.mirror-client-panel{max-height:690px;overflow:auto}
+.mirror-phone{display:grid;place-items:start center;min-width:0}
+.mirror-device{width:100%;max-width:490px;border:1px solid #415772;border-radius:24px;overflow:hidden;background:#0b1526;box-shadow:0 15px 55px #02081140}
+.mirror-top,.mirror-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:17px;border-bottom:1px solid #2d405a;font-size:11px;letter-spacing:.02em}
+.mirror-bottom{border-top:1px solid #2d405a;border-bottom:0}
+.mirror-read-only{color:#e7c483;border:1px solid #927347;padding:3px 7px;border-radius:5px}
+.mirror-account,.mirror-balance{display:flex;flex-direction:column;gap:8px;padding:20px 19px 12px}
+.mirror-account span,.mirror-balance span{font-size:11px;color:#849bb8}
+.mirror-account output{font-size:15px;overflow-wrap:anywhere}
+.mirror-account small,.mirror-balance small{font-size:10px;color:#8095af}
+.mirror-balance output{font-size:30px;font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace}
+.mirror-tabs{display:flex;justify-content:space-around;gap:2px;padding:6px 9px;border-top:1px solid #293b53;border-bottom:1px solid #293b53}
+.mirror-tabs button{flex:1;padding:11px 3px;border:0;background:transparent;font-size:12px;color:#a5b6d0;white-space:nowrap}
+.mirror-tabs button[aria-selected="true"]{border-bottom:2px solid #56a7e7;color:#eef6ff}
+.mirror-screen{min-height:220px;padding:15px;overflow-x:auto;font-size:12px}
+.mirror-record{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #27384d;overflow-wrap:anywhere}
+.mirror-record>span:first-child{color:#92a6c0}
+.mirror-record>span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.mirror-disclosure{border-top:1px solid #293b53;padding:13px 16px!important;margin:0;font-size:10px!important;color:#a7bbd4!important}
+@media(max-width:1000px){.mirror-layout{grid-template-columns:1fr}.mirror-client-panel{max-height:350px}.mirror-device{max-width:500px}}
+@media(max-width:500px){.mirror-customer{flex-wrap:wrap}.mirror-open{margin:8px 0 0}.mirror-device{border-radius:14px}.mirror-account,.mirror-balance{padding:13px 14px}.mirror-screen{min-height:170px}}

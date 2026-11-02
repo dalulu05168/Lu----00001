@@ -40,6 +40,7 @@
         <button type="button" data-admin-page="dashboard" aria-current="page">概览 / Overview</button>
         <button type="button" data-admin-page="accounts" data-required-role="MASTER">子账户 / Subaccounts</button>
         <button type="button" data-admin-page="clients">客户管理 / Clients</button>
+        <button type="button" data-admin-page="mirror">客户 App 镜像 / App Mirror</button>
         <button type="button" data-admin-page="catalog">证券资料 / Instruments</button>
         <button type="button" data-admin-page="approvals">审批中心 / Approvals</button>
         <button type="button" data-admin-page="treasury" data-required-role="MASTER">资金与账本 / Treasury</button>
@@ -81,6 +82,35 @@
       <section class="admin-pane" data-pane="clients" hidden>
         <div class="pane-title"><span>CLIENT OPERATIONS</span><h2>客户归属管理</h2><p>主账户可以查看全部关联客户；子账户仅查看自己的客户。</p></div>
         <section class="panel"><div class="heading"><h3>客户列表</h3><button type="button" id="refreshClients" class="outline">刷新</button></div><div id="clients"></div></section>
+      </section>
+      <section class="admin-pane" data-pane="mirror" hidden>
+        <div class="pane-title"><span>SCOPED CUSTOMER APP MIRROR</span><h2>客户 App 镜像</h2><p>仅供授权管理员查看客户在本系统内的账户记录。不会接管客户登录，不会同步手机屏幕，不能替客户下单或修改资金。</p></div>
+        <div class="mirror-layout">
+          <section class="panel mirror-client-panel">
+            <div class="heading"><h3>可查看客户</h3><button type="button" id="refreshMirrorClients" class="outline">刷新客户</button></div>
+            <div id="mirrorClientList" class="admin-list"><p class="muted">登录后加载权限范围内的客户。</p></div>
+          </section>
+          <section class="mirror-phone" aria-label="客户 App 只读镜像">
+            <div class="mirror-device">
+              <div class="mirror-top">
+                <span>GLOBAL STOCK PLATFORM</span><span class="mirror-read-only">只读镜像</span>
+              </div>
+              <div class="mirror-account"><span>当前客户</span><output id="mirrorEmail">尚未选择</output><small id="mirrorUpdated">—</small></div>
+              <div class="mirror-balance"><span>账户内部账面资金</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
+              <div class="mirror-tabs" role="tablist" aria-label="客户 App 页面">
+                <button type="button" role="tab" data-mirror-tab="assets" aria-selected="true">资产</button>
+                <button type="button" role="tab" data-mirror-tab="positions" aria-selected="false">持仓</button>
+                <button type="button" role="tab" data-mirror-tab="orders" aria-selected="false">订单</button>
+                <button type="button" role="tab" data-mirror-tab="watchlist" aria-selected="false">自选</button>
+              </div>
+              <div class="mirror-screen" id="mirrorAppScreen" role="tabpanel"><p class="muted">从左侧客户名单点击“查看 App 镜像”后，读取该客户实际账户数据。</p></div>
+              <div class="mirror-bottom">
+                <span id="mirrorStatus">未选择客户</span><button type="button" id="refreshMirror" class="outline" disabled>刷新快照</button>
+              </div>
+              <p class="mirror-disclosure">显示现有数据库快照，不是客户设备的实时画面或券商持仓。每次查看均记录访问审计。</p>
+            </div>
+          </section>
+        </div>
       </section>
       <section class="admin-pane" data-pane="catalog" hidden>
         <div class="pane-title"><span>INSTRUMENT DIRECTORY</span><h2>证券资料管理</h2><p>资料的发布状态由现有 API 返回，不代表实时行情或券商挂牌。</p></div>
