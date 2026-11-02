@@ -169,6 +169,15 @@
         </div>
       </section>
 
+      <section class="panel catalog-panel" id="catalog-section" aria-labelledby="catalogTitle">
+        <div class="panel-heading">
+          <h2 id="catalogTitle">Product Catalog · 商品目录</h2>
+          <button class="secondary-button" id="refreshCatalogButton" type="button" hidden>刷新目录</button>
+        </div>
+        <p class="panel-caption">内部模拟展示 · 股票、基金及IPO测试条目，不接受真实购买或资金支付。</p>
+        <div id="catalogItems" class="catalog-list" aria-live="polite">登录后查看商品目录</div>
+        <p id="catalogFeedback" class="form-feedback" role="status" aria-live="polite"></p>
+      </section>
       <section class="panel activity-panel" id="records-section">
         <div class="panel-heading"><h2>Order History</h2><span class="view-label">ACCOUNT ACTIVITY</span></div>
         <div id="orders" class="record-list">登录后查看内部订单</div>
