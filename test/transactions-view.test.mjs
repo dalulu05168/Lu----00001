@@ -26,15 +26,15 @@ test("dark transactions workspace renders real account orders with filtering, pa
     anchorClick:dom.window.HTMLAnchorElement.prototype.click
   };
   const now = Date.now();
-  const orders = Array.from({length:12}, (_, index) => ({
+  const orders = Array.from({length:13}, (_, index) => ({
     id:"order-" + (index + 1),
     market:"US",
-    symbol:index === 1 ? "MSFT" : "AAPL",
+    symbol:index === 1 ? "MSFT" : index === 12 ? 'AAPL, "TEST"' : "AAPL",
     side:index % 2 ? "SELL" : "BUY",
     quantity:String(index + 1),
-    price_cents:"10000",
-    amount_usd_cents:String((index + 1) * 10000),
-    created_at:new Date(now - (index === 0 ? 20 : index) * 60 * 60 * 24 * 1000).toISOString()
+    price_cents:index === 12 ? null : "10000",
+    amount_usd_cents:index === 12 ? null : String((index + 1) * 10000),
+    created_at:index === 12 ? "bad-date" : new Date(now - (index === 0 ? 20 : index) * 60 * 60 * 24 * 1000).toISOString()
   }));
   let exportedBlob = null;
   let downloadedName = "";
@@ -78,15 +78,20 @@ test("dark transactions workspace renders real account orders with filtering, pa
 
     assert.equal(el("transactionVolume").textContent,"$7,800.00");
     assert.equal(el("realizedPnl").textContent,"—");
-    assert.equal(el("internalRecordCount").textContent,"12");
+    assert.equal(el("internalRecordCount").textContent,"13");
+    assert.match(el("transactionVolumeNote").textContent,/12 笔有效金额/);
     assert.match(el("brokerExecutionStatus").textContent,/未连接/);
     assert.equal(el("transactionRows").querySelectorAll("tr[data-transaction-row]").length,10);
     assert.match(el("transactionRows").textContent,/INTERNAL/);
-    assert.match(el("transactionPageSummary").textContent,/12/);
+    assert.match(el("transactionPageSummary").textContent,/13/);
     assert.equal(el("exportHistoryButton").disabled,false);
 
     el("transactionNext").click();
-    assert.equal(el("transactionRows").querySelectorAll("tr[data-transaction-row]").length,2);
+    assert.equal(el("transactionRows").querySelectorAll("tr[data-transaction-row]").length,3);
+    const malformedRow = el("transactionRows").querySelectorAll("tr[data-transaction-row]")[2];
+    assert.equal(malformedRow.children[3].textContent,"—");
+    assert.equal(malformedRow.children[5].textContent,"—");
+    assert.equal(malformedRow.children[7].textContent,"—");
 
     el("transactionSearch").value = "MSFT";
     el("transactionSearch").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
