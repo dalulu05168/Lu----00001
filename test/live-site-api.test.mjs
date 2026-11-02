@@ -16,6 +16,8 @@ const targets = [
   ["/api/auth/logout", 401, "POST"],
   ["/api/account", 401, "GET"],
   ["/api/admin/me", 401, "GET"],
+  ["/api/admin/subaccounts", 401, "GET"],
+  ["/api/admin/login", 400, "POST"],
   ["/api/catalog", 401, "GET"],
   ["/api/watchlist", 401, "GET"],
   ["/api/orders", 401, "POST"]
