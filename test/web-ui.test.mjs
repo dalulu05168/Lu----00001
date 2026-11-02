@@ -31,6 +31,7 @@ test("trading terminal renders, switches markets, and handles account session wi
         if(method==="DELETE"&&index>=0)savedItems.splice(index,1);
         return json(200,{item});
       }
+      if (url === "/api/catalog") return json(200,{items:[{id:"test",itemType:"IPO",market:"US",symbol:"TESTIPO",name:"Simulation IPO",discountPercent:12,simulationOnly:true}]});
       if (url === "/api/account") return json(200, {
         account: { id: "account-1", cashCents: 125000, currency: "USD" },
         positions: [{ market: "US", symbol: "AAPL", quantity: "2" }],
@@ -102,6 +103,9 @@ test("trading terminal renders, switches markets, and handles account session wi
     el("watchlistToggle").click();
     await new Promise(resolve=>setTimeout(resolve,35));
     assert.equal(el("savedWatchlistCount").textContent,"1");
+    assert.equal(el("catalogItems").querySelectorAll(".catalog-row").length,1);
+    assert.match(el("catalogItems").textContent,/Simulation IPO/);
+    assert.match(el("catalogItems").textContent,/折扣 12%/);
     assert.equal(el("accountSummary").hidden, false);
     assert.equal(el("accountIdLabel").textContent, "account-1");
     assert.equal(el("accountCashValue").textContent, "1,250.00");
@@ -121,6 +125,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("accountStatus").textContent, "未登录");
     assert.equal(el("cash").textContent, "—");
     assert.equal(el("watchlistToggle").disabled, true);
+    assert.equal(el("catalogItems").querySelectorAll(".catalog-row").length,0);
     assert.equal(el("savedWatchlist").querySelectorAll(".saved-watchlist-row").length,0);
     assert.equal(el("savedWatchlistCount").textContent,"—");
     assert.equal(el("refreshWatchlistButton").hidden,true);
