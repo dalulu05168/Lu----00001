@@ -67,6 +67,33 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     assert.equal(a0.value.account.cashCents, 0);
     assert.equal(b0.value.account.cashCents, 0);
     assert.notEqual(a0.value.account.id, b0.value.account.id);
+
+    // A saved watchlist must be persisted and never exposed to another account.
+    const initiallyEmpty = await request("/api/watchlist", {token:tokenA});
+    assert.equal(initiallyEmpty.status,200);
+    assert.deepEqual(initiallyEmpty.value.items,[]);
+    const saved = await request("/api/watchlist", {
+      method:"POST",token:tokenA,body:{market:"HK",symbol:"9988"}
+    });
+    assert.equal(saved.status,200);
+    const savedA = await request("/api/watchlist", {token:tokenA});
+    assert.deepEqual(savedA.value.items.map(item=>item.market+":"+item.symbol),["HK:9988"]);
+    const isolatedB = await request("/api/watchlist", {token:tokenB});
+    assert.deepEqual(isolatedB.value.items,[]);
+    const persisted = await db.query(
+      "SELECT market,symbol FROM watchlist_items WHERE account_id=$1",[registerA.value.accountId]
+    );
+    assert.equal(persisted.rows.length,1);
+    assert.equal(persisted.rows[0].symbol,"9988");
+    const badInstrument = await request("/api/watchlist", {
+      method:"POST",token:tokenA,body:{market:"HK",symbol:"<script>"}
+    });
+    assert.equal(badInstrument.status,400);
+    const removeSaved = await request("/api/watchlist", {
+      method:"DELETE",token:tokenA,body:{market:"HK",symbol:"9988"}
+    });
+    assert.equal(removeSaved.status,200);
+    assert.deepEqual((await request("/api/watchlist",{token:tokenA})).value.items,[]);
     const protectedOrder = await request("/api/orders", {
       method: "POST", token: tokenA, body: { side: "BUY", market: "US", symbol: "AAPL", quantity: 1 }
     });
