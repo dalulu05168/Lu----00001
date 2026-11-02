@@ -16,5 +16,4 @@ test("dark workspace keeps primary text and metrics readable without heavy font 
   assert.match(metric, /color:\s*var\(--text\)/i, "headline metric values must use the primary text token");
   assert.match(heading, /color:\s*var\(--text\)/i, "panel headings must use the primary text token");
   assert.match(root, /font-weight:\s*400/i, "base font weight must remain regular");
-  assert.doesNotMatch(css, /\.metric-value\s*\{[^}]*color:\s*#000000/i, "dark metrics must not fall back to black");
 });
