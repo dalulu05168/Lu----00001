@@ -14,7 +14,7 @@ export async function registerAccount(db,{email,password,openingCashCents=0,invi
   const inviteRequired=policy.rows[0]?.invite_required===true;
   let invitation=null;
   if(inviteCode!==undefined||inviteRequired){
-    if(typeof inviteCode!=="string"||!/^\\d{6}$/.test(inviteCode))throw new Error("Invalid invitation code");
+    if(typeof inviteCode!=="string"||!/^\d{6}$/.test(inviteCode))throw new Error("Invalid invitation code");
     const invited=await client.query(`SELECT i.id,i.subadmin_user_id FROM invite_codes i
       JOIN admin_roles a ON a.user_id=i.subadmin_user_id AND a.role='SUBADMIN'
       WHERE i.code=$1 AND i.revoked_at IS NULL AND i.expires_at>now()
