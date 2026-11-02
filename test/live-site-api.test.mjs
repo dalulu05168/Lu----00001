@@ -7,7 +7,11 @@ const targets = [
   ["/", 200, "GET"],
   ["/api/health", 200, "GET"],
   ["/api/ready", 200, "GET"],
-  ["/api/auth/register", 400, "POST"]
+  ["/api/auth/register", 400, "POST"],
+  ["/api/auth/login", 400, "POST"],
+  ["/api/auth/logout", 401, "POST"],
+  ["/api/account", 401, "GET"],
+  ["/api/orders", 401, "POST"]
 ];
 
 for (const [path, expected, method] of targets) {
