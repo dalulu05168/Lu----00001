@@ -27,6 +27,9 @@ let accountRefreshing = false;
 let lastSyncedAt = null;
 let watchlist = [];
 let watchlistBusy = false;
+let watchlistLoaded = false;
+let watchlistFetching = false;
+let watchlistFetchSequence = 0;
 
 const money = cents => {
   const value = Number(cents);
@@ -130,29 +133,134 @@ function renderSymbols() {
   el("symbols").replaceChildren(...buttons);
   renderWatchlistControl();
 }
+function renderSavedWatchlist() {
+  const list=el("savedWatchlist");
+  const refreshButton=el("refreshWatchlistButton");
+  refreshButton.hidden=!token;
+  refreshButton.disabled=!token||watchlistBusy||watchlistFetching;
+  el("savedWatchlistCount").textContent=token&&watchlistLoaded ? String(watchlist.length) : "—";
+  if(!token) {
+    list.replaceChildren(makeEmpty("登录后查看已收藏股票"));
+    return;
+  }
+  if(!watchlistLoaded) {
+    list.replaceChildren(makeEmpty(watchlistFetching ? "正在读取自选列表…" : "自选列表尚未同步，可点击刷新重试"));
+    return;
+  }
+  if(!watchlist.length) {
+    list.replaceChildren(makeEmpty("暂无自选股票 · 点击图表上方的加入自选"));
+    return;
+  }
+  const rows=watchlist.filter(item=>item&&MARKETS.some(m=>m.code===item.market)&&typeof item.symbol==="string").map(item=>{
+    const row=document.createElement("div");
+    row.className="saved-watchlist-row";
+    const identity=document.createElement("div");
+    identity.className="saved-watchlist-identity";
+    identity.append(textNode(item.market,"saved-watchlist-market"));
+    const description=document.createElement("span");
+    description.className="saved-watchlist-description";
+    const symbol=document.createElement("strong");
+    symbol.textContent=item.symbol;
+    const label=document.createElement("small");
+    label.textContent=INSTRUMENTS.find(s=>s.market===item.market&&s.symbol===item.symbol)?.name || "自选代码（未验证行情）";
+    description.append(symbol,label);
+    identity.append(description);
+    const actions=document.createElement("div");
+    actions.className="saved-watchlist-actions";
+    const view=document.createElement("button");
+    view.type="button";
+    view.className="saved-watchlist-open";
+    view.textContent="查看";
+    view.setAttribute("aria-label","查看 "+item.market+" "+item.symbol+" 走势图");
+    view.addEventListener("click",()=>selectWatchlistInstrument(item));
+    const remove=document.createElement("button");
+    remove.type="button";
+    remove.className="saved-watchlist-remove";
+    remove.textContent="移除";
+    remove.disabled=watchlistBusy;
+    remove.setAttribute("aria-label","移除自选 "+item.market+" "+item.symbol);
+    remove.addEventListener("click",()=>changeWatchlistItem(item,true));
+    actions.append(view,remove);
+    row.append(identity,actions);
+    return row;
+  });
+  list.replaceChildren(...rows);
+}
+function selectWatchlistInstrument(item) {
+  if(!MARKETS.some(m=>m.code===item.market)||typeof item.symbol!=="string")return;
+  market=item.market;
+  selected=INSTRUMENTS.find(s=>s.market===item.market&&s.symbol===item.symbol) ||
+    {market:item.market,symbol:item.symbol,name:"自选代码（未验证行情）"};
+  el("search").value="";
+  el("watchlistFeedback").textContent="自选列表保存于当前账户";
+  render();
+  el("terminal-section").scrollIntoView?.({behavior:"smooth",block:"start"});
+}
 function renderWatchlistControl() {
   const button=el("watchlistToggle");
-  if(!button)return;
   const saved=watchlist.some(item=>item.market===selected.market&&item.symbol===selected.symbol);
   button.textContent=saved?"★ 已加入自选":"☆ 加入自选";
   button.disabled=!token||watchlistBusy;
   button.setAttribute("aria-pressed",String(saved));
-  el("watchlistFeedback").textContent=token
-    ? watchlistBusy?"正在同步自选…":"自选列表保存于当前账户"
-    : "登录后可保存自选股票";
+  const feedback=el("watchlistFeedback");
+  if(!token) feedback.textContent="登录后可保存自选股票";
+  else if(watchlistBusy) feedback.textContent="正在同步自选…";
+  else if(!feedback.textContent||feedback.textContent==="登录后可保存自选股票")
+    feedback.textContent="自选列表保存于当前账户";
+  renderSavedWatchlist();
 }
 async function refreshWatchlist() {
-  if(!token) {watchlist=[];renderWatchlistControl();return;}
-  const current=token;
+  if(!token){
+    watchlist=[];
+    watchlistLoaded=false;
+    watchlistFetching=false;
+    watchlistFetchSequence++;
+    renderWatchlistControl();
+    return;
+  }
+  const current=token,sequence=++watchlistFetchSequence;
+  watchlistFetching=true;
+  renderWatchlistControl();
   try {
     const data=await request("/watchlist");
-    if(current!==token)return;
+    if(current!==token||sequence!==watchlistFetchSequence)return;
     if(!Array.isArray(data?.items))throw new Error("自选数据格式异常");
     watchlist=data.items;
+    watchlistLoaded=true;
+    el("savedWatchlistFeedback").textContent="";
   }catch(error) {
+    if(current!==token||sequence!==watchlistFetchSequence)return;
+    watchlistLoaded=false;
+    el("savedWatchlistFeedback").textContent="自选列表同步失败："+error.message;
+  }finally{
+    if(sequence===watchlistFetchSequence){
+      watchlistFetching=false;
+      renderWatchlistControl();
+    }
+  }
+}
+async function changeWatchlistItem(item, remove) {
+  if(!token||watchlistBusy||!MARKETS.some(m=>m.code===item.market))return;
+  const current=token;
+  watchlistBusy=true;
+  renderWatchlistControl();
+  try {
+    await request("/watchlist",{method:remove?"DELETE":"POST",body:{market:item.market,symbol:item.symbol}});
     if(current!==token)return;
-    el("watchlistFeedback").textContent="自选列表同步失败："+error.message;
-  }finally{renderWatchlistControl();}
+    await refreshWatchlist();
+    if(current!==token)return;
+    const notice=remove?"已从自选移除":"已保存到自选";
+    el("savedWatchlistFeedback").textContent=notice;
+    el("watchlistFeedback").textContent=notice;
+  }catch(error){
+    if(current===token){
+      el("savedWatchlistFeedback").textContent=error.message;
+      el("watchlistFeedback").textContent=error.message;
+    }
+  }finally {
+    watchlistBusy=false;
+    renderWatchlistControl();
+  }
 }
 function renderRecords() {
   const positions = Array.isArray(account?.positions) ? account.positions.filter(item =>
@@ -278,6 +386,9 @@ async function refreshAccount() {
     el("authFeedback").textContent = error.message;
     if (/认证失败|会话已失效/.test(error.message)) {
       token = null;
+      watchlist = [];
+      watchlistLoaded = false;
+      watchlistFetchSequence++;
       sessionStorage.removeItem("gsp_token");
     }
   } finally {
@@ -324,19 +435,12 @@ function updateClock() {
   }).format(new Date()) + " MYT";
 }
 el("search").addEventListener("input",renderSymbols);
-el("watchlistToggle").addEventListener("click",async()=>{
-  if(!token||watchlistBusy)return;
-  watchlistBusy=true;
-  renderWatchlistControl();
+el("watchlistToggle").addEventListener("click",()=>{
   const item={market:selected.market,symbol:selected.symbol};
   const exists=watchlist.some(x=>x.market===item.market&&x.symbol===item.symbol);
-  try {
-    await request("/watchlist",{method:exists?"DELETE":"POST",body:item});
-    await refreshWatchlist();
-    el("watchlistFeedback").textContent=exists?"已从自选移除":"已保存到自选";
-  }catch(error){el("watchlistFeedback").textContent=error.message;}
-  finally{watchlistBusy=false;renderWatchlistControl();}
+  changeWatchlistItem(item,exists);
 });
+el("refreshWatchlistButton").addEventListener("click",()=>{if(token&&!watchlistBusy)refreshWatchlist();});
 el("refreshAccountButton").addEventListener("click",() => { if(token) refreshAccount(); });
 el("authForm").addEventListener("submit",async event => {
   event.preventDefault();
@@ -379,6 +483,9 @@ el("logout").addEventListener("click",async () => {
     account = null;
     lastSyncedAt = null;
     watchlist = [];
+    watchlistLoaded = false;
+    watchlistFetchSequence++;
+    el("savedWatchlistFeedback").textContent="";
     el("authFeedback").textContent = "已退出账户";
     render();
   } catch(error) {
