@@ -207,8 +207,11 @@ run("Vercel serverless API adapter routes to real PostgreSQL", async () => {
 run("PostgreSQL: master TOTP, scoped subadmin invitations and simulation listing permissions", async () => {
   const previousKey=process.env.ADMIN_TOTP_ENCRYPTION_KEY;
   const previousProof=process.env.ADMIN_BOOTSTRAP_SECRET;
+  const previousMasterEmail=process.env.ADMIN_MASTER_EMAIL;
   process.env.ADMIN_TOTP_ENCRYPTION_KEY="a".repeat(64);
   process.env.ADMIN_BOOTSTRAP_SECRET="b".repeat(64);
+  const masterEmail="master-"+randomUUID().slice(0,8)+"@example.test";
+  process.env.ADMIN_MASTER_EMAIL=masterEmail;
   const db=new Pool({connectionString,max:4});
   const app=createApi({db,resolveSession:createSessionResolver(db)});
   await new Promise(done=>app.listen(0,"127.0.0.1",done));
@@ -221,22 +224,23 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and simulation listing
     return {status:res.status,data:res.status===204?{}:await res.json()};
   }
   try {
-    const email="master-"+randomUUID().slice(0,8)+"@example.test";
+    const email=masterEmail;
     const password="testing-master-pass-2026";
-    const register=await req("/api/auth/register",{method:"POST",body:{email,password}});
-    assert.equal(register.status,201);
-    const logged=await req("/api/auth/login",{method:"POST",body:{email,password}});
-    assert.equal(logged.status,200);
-    const clientToken=logged.data.token;
-    const denied=await req("/api/admin/me",{token:clientToken});
-    assert.equal(denied.status,403);
-    const setup=await req("/api/admin/bootstrap",{method:"POST",token:clientToken,body:{setupKey:"b".repeat(64)}});
+    const missing=await req("/api/admin/me");
+    assert.equal(missing.status,401);
+    const bootstrapDenied=await req("/api/admin/bootstrap",{method:"POST",body:{
+      email:"other@example.test",password,setupKey:"b".repeat(64)
+    }});
+    assert.equal(bootstrapDenied.status,400);
+    const setup=await req("/api/admin/bootstrap",{method:"POST",body:{
+      email,password,setupKey:"b".repeat(64)
+    }});
     assert.equal(setup.status,201);
     assert.match(setup.data.totpSecret,/^[A-Z2-7]{32}$/);
     const otp=currentOtp(setup.data.totpSecret);
-    const activated=await req("/api/admin/activate",{method:"POST",token:clientToken,body:{otp}});
+    const activated=await req("/api/admin/activate",{method:"POST",body:{email,password,otp}});
     assert.equal(activated.status,200);
-    const secondMaster=await req("/api/admin/bootstrap",{method:"POST",token:clientToken,body:{setupKey:"b".repeat(64)}});
+    const secondMaster=await req("/api/admin/bootstrap",{method:"POST",body:{email,password,setupKey:"b".repeat(64)}});
     assert.equal(secondMaster.status,400);
     const admin=await req("/api/admin/login",{method:"POST",body:{email,password,otp}});
     assert.equal(admin.status,200);
@@ -249,10 +253,8 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and simulation listing
     assert.equal(sub.status,201);
     assert.match(sub.data.inviteCode,/^[0-9]{6}$/);
     assert.match(sub.data.totpSecret,/^[A-Z2-7]{32}$/);
-    const subLogin=await req("/api/auth/login",{method:"POST",body:{email:subEmail,password:subPassword}});
-    assert.equal(subLogin.status,200);
     const subOtp=currentOtp(sub.data.totpSecret);
-    const subActivate=await req("/api/admin/activate",{method:"POST",token:subLogin.data.token,body:{otp:subOtp}});
+    const subActivate=await req("/api/admin/activate",{method:"POST",body:{email:subEmail,password:subPassword,otp:subOtp}});
     assert.equal(subActivate.status,200);
     const attachedEmail="client-"+randomUUID().slice(0,8)+"@example.test";
     const attached=await req("/api/auth/register",{method:"POST",body:{
@@ -299,5 +301,7 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and simulation listing
     else process.env.ADMIN_TOTP_ENCRYPTION_KEY=previousKey;
     if(previousProof===undefined)delete process.env.ADMIN_BOOTSTRAP_SECRET;
     else process.env.ADMIN_BOOTSTRAP_SECRET=previousProof;
+    if(previousMasterEmail===undefined)delete process.env.ADMIN_MASTER_EMAIL;
+    else process.env.ADMIN_MASTER_EMAIL=previousMasterEmail;
   }
 });
