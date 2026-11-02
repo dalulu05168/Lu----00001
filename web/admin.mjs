@@ -36,6 +36,7 @@ function displayItems(id,rows,format){
 async function refreshSubadmins(){
   try{
     const data=await api("/admin/subaccounts");
+    el("adminSubadminCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
     displayItems("subadmins",data.items||[],x=>[
       x.email+" · "+(x.twofa_confirmed_at?"已启用2FA":"待启用2FA"),
       "邀请码 "+(x.code||"—")+" · 已用 "+x.uses+"/"+x.max_uses+" · 到期 "+(x.expires_at?new Date(x.expires_at).toLocaleDateString("zh-CN"):"—")
@@ -45,12 +46,14 @@ async function refreshSubadmins(){
 async function refreshClients(){
   try{
     const data=await api("/admin/clients");
+    el("adminClientCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
     displayItems("clients",data.items||[],x=>[x.email,"归属子账户："+x.subadmin_user_id]);
   }catch(e){setText("clients",e.message)}
 }
 async function refreshListings(){
   try{
     const data=await api("/admin/listings");
+    el("adminListingCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
     displayItems("listings",data.items||[],x=>[
       x.itemType+" · "+x.market+":"+x.symbol+" · "+x.name,
       (x.status==="PUBLISHED"?"已发布":"草稿")+" · "+x.id
@@ -62,7 +65,9 @@ async function showDashboard(){
   try{
     const me=await api("/admin/me");
     role=me.role;
-    setText("adminRole",role==="MASTER"?"主账户":"子账户");
+    setText("adminRole",role==="MASTER"?"主账户 / MASTER":"子管理员 / SUBADMIN");
+    document.querySelectorAll("[data-required-role]").forEach(node=>node.hidden=node.dataset.requiredRole!==role);
+    activateAdminPane("dashboard");
     el("adminWorkspace").hidden=false;
     el("admin-login").hidden=true;
     el("bootstrapPanel").hidden=true;
@@ -86,7 +91,24 @@ el("adminLoginForm").addEventListener("submit",async event=>{
     sessionStorage.setItem("gsp_admin_token",adminToken);
     el("adminPassword").value="";el("adminOtp").value="";
     setText("loginFeedback","管理员验证成功");
-    await showDashboard();
+    await 
+/** Independent client-side navigation: authorization is always enforced by /api/admin/*. */
+function activateAdminPane(page) {
+  const target=document.querySelector('[data-pane="'+page+'"]');
+  if(!target)return;
+  const nav=document.querySelector('[data-admin-page="'+page+'"]');
+  if(nav?.hidden)return;
+  document.querySelectorAll(".admin-pane").forEach(pane=>pane.hidden=pane!==target);
+  document.querySelectorAll("[data-admin-page]").forEach(button=>{
+    if(button===nav)button.setAttribute("aria-current","page");
+    else button.removeAttribute("aria-current");
+  });
+}
+document.querySelectorAll("[data-admin-page]").forEach(button=>{
+  button.addEventListener("click",()=>activateAdminPane(button.dataset.adminPage));
+});
+
+showDashboard();
   }catch(error){setText("loginFeedback",error.message)}
   finally{button.disabled=false;}
 });

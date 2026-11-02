@@ -31,23 +31,89 @@
 <button type="submit">确认 2FA，启用后台登录</button>
 </form><p id="activateFeedback" class="feedback" role="status"></p>
 </section>
-<section id="adminWorkspace" hidden>
-<div class="panel"><div class="heading"><h2>后台概览</h2><button id="adminLogout" type="button" class="outline">退出后台</button></div>
-<p>当前权限：<strong id="adminRole">—</strong></p><p class="muted">证券资料由管理员维护；此页面只管理目录，不执行证券交易或资金支付。</p></div>
-<section class="panel" id="subadminArea"><div class="heading"><h2>子账户管理</h2><button type="button" id="refreshSubadmins" class="outline">刷新</button></div>
-<form id="subadminForm" class="field-grid"><label>子账户邮箱<input id="subadminEmail" type="email" required></label>
-<label>初始密码（至少12位）<input id="subadminPassword" type="password" minlength="12" required></label>
-<button type="submit">创建子账户和邀请码</button></form>
-<div id="subadminProvisioning" class="sensitive" hidden></div><div id="subadmins"></div><p id="subadminFeedback" class="feedback" role="status"></p></section>
-<section class="panel"><div class="heading"><h2>客户归属</h2><button type="button" class="outline" id="refreshClients">刷新</button></div><div id="clients"></div></section>
-<section class="panel" id="catalogArea"><div class="heading"><h2>证券资料管理</h2><button type="button" class="outline" id="refreshListings">刷新</button></div>
-<form id="listingForm" class="field-grid">
-<label>类型<select id="listingType"><option value="STOCK">股票</option><option value="FUND">基金</option><option value="IPO">IPO</option></select></label>
-<label>市场<select id="listingMarket"><option value="US">美国</option><option value="HK">香港</option><option value="CN">中国内地</option><option value="MY">马来西亚</option></select></label>
-<label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
-<label>名称<input id="listingName" maxlength="120" required></label>
-<label>状态<select id="listingStatus"><option value="DRAFT">草稿</option><option value="PUBLISHED">已发布</option></select></label>
-<button type="submit">保存证券资料</button></form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p></section>
+<section id="adminWorkspace" hidden aria-label="管理工作台">
+  <div class="admin-shell">
+    <aside class="admin-nav" aria-label="管理导航">
+      <div class="nav-heading">管理工作台</div>
+      <div class="nav-identity"><span id="adminRole">—</span><span class="server-status">受保护会话 / 2FA</span></div>
+      <nav id="adminPages">
+        <button type="button" data-admin-page="dashboard" aria-current="page">概览 / Overview</button>
+        <button type="button" data-admin-page="accounts" data-required-role="MASTER">子账户 / Subaccounts</button>
+        <button type="button" data-admin-page="clients">客户管理 / Clients</button>
+        <button type="button" data-admin-page="catalog">证券资料 / Instruments</button>
+        <button type="button" data-admin-page="approvals">审批中心 / Approvals</button>
+        <button type="button" data-admin-page="treasury" data-required-role="MASTER">资金与账本 / Treasury</button>
+        <button type="button" data-admin-page="risk" data-required-role="MASTER">风险与权限 / Risk</button>
+        <button type="button" data-admin-page="audit" data-required-role="MASTER">审计与报表 / Audit</button>
+      </nav>
+      <button type="button" id="adminLogout" class="outline logout">退出管理后台</button>
+    </aside>
+    <div class="admin-main">
+      <section class="admin-pane" data-pane="dashboard" aria-label="真实数据概览">
+        <div class="pane-title"><span>管理中心 / OVERVIEW</span><h2>全局管理概览</h2><p>数据来自管理员权限范围内的现有 API；不显示模拟余额、流水或盈利。</p></div>
+        <div class="summary-grid">
+          <div class="summary-card"><span>客户账户 / Clients</span><output id="adminClientCount">—</output><small>真实客户归属列表</small></div>
+          <div class="summary-card"><span>子管理员 / Subaccounts</span><output id="adminSubadminCount">—</output><small>仅限权限范围</small></div>
+          <div class="summary-card"><span>证券目录 / Listings</span><output id="adminListingCount">—</output><small>现有资料记录</small></div>
+          <div class="summary-card"><span>券商交易 / Broker</span><output class="pending">未接入</output><small>不可执行真实交易</small></div>
+        </div>
+        <div class="panel">
+          <h3>系统与业务边界</h3>
+          <div class="info-line"><span>登录保护</span><span>管理员密码 + TOTP 双因素认证</span></div>
+          <div class="info-line"><span>角色控制</span><span>后端 MASTER / SUBADMIN 独立校验</span></div>
+          <div class="info-line"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
+          <div class="info-line"><span>资金审批 / 出入金</span><span class="pending">尚未接入业务接口</span></div>
+        </div>
+      </section>
+      <section class="admin-pane" data-pane="accounts" hidden>
+        <div class="pane-title"><span>COMMAND CENTER</span><h2>子账户管理</h2><p>仅主账户可创建子管理员；初始化密钥仅展示一次。</p></div>
+        <section class="panel" id="subadminArea">
+          <div class="heading"><h3>子账户及邀请码</h3><button type="button" id="refreshSubadmins" class="outline">刷新</button></div>
+          <form id="subadminForm" class="field-grid">
+            <label>子账户邮箱<input id="subadminEmail" type="email" required autocomplete="off"></label>
+            <label>初始密码（至少12位）<input id="subadminPassword" type="password" minlength="12" required autocomplete="new-password"></label>
+            <button type="submit">创建子账户和邀请码</button>
+          </form>
+          <div id="subadminProvisioning" class="sensitive" hidden></div><div id="subadmins"></div>
+          <p id="subadminFeedback" class="feedback" role="status"></p>
+        </section>
+      </section>
+      <section class="admin-pane" data-pane="clients" hidden>
+        <div class="pane-title"><span>CLIENT OPERATIONS</span><h2>客户归属管理</h2><p>主账户可以查看全部关联客户；子账户仅查看自己的客户。</p></div>
+        <section class="panel"><div class="heading"><h3>客户列表</h3><button type="button" id="refreshClients" class="outline">刷新</button></div><div id="clients"></div></section>
+      </section>
+      <section class="admin-pane" data-pane="catalog" hidden>
+        <div class="pane-title"><span>INSTRUMENT DIRECTORY</span><h2>证券资料管理</h2><p>资料的发布状态由现有 API 返回，不代表实时行情或券商挂牌。</p></div>
+        <section class="panel" id="catalogArea">
+          <div class="heading"><h3>证券目录</h3><button type="button" id="refreshListings" class="outline">刷新</button></div>
+          <form id="listingForm" class="field-grid">
+            <label>类型<select id="listingType"><option value="STOCK">股票</option><option value="FUND">基金</option><option value="IPO">IPO</option></select></label>
+            <label>市场<select id="listingMarket"><option value="US">美国</option><option value="HK">香港</option><option value="CN">中国内地</option><option value="MY">马来西亚</option></select></label>
+            <label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
+            <label>名称<input id="listingName" maxlength="120" required></label>
+            <label>状态<select id="listingStatus"><option value="DRAFT">草稿</option><option value="PUBLISHED">已发布</option></select></label>
+            <button type="submit">保存证券资料</button>
+          </form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p>
+        </section>
+      </section>
+      <section class="admin-pane" data-pane="approvals" hidden>
+        <div class="pane-title"><span>APPROVAL CENTER</span><h2>审批中心</h2></div>
+        <div class="panel unavailable" role="status"><h3>审批操作尚未启用</h3><p>当前后端没有资金申请、提现审核或审批状态变更接口。不能使用假按钮执行或声称审批成功。此模块需要单独建立权限、审计和资金流水验证。</p></div>
+      </section>
+      <section class="admin-pane" data-pane="treasury" hidden>
+        <div class="pane-title"><span>TREASURY & LEDGER</span><h2>资金与账本</h2></div>
+        <div class="panel unavailable" role="status"><h3>资金管理尚未启用</h3><p>现有内部现金账本不等于可用出入金系统。真实资金操作、审批和对账链路尚未完成，页面不显示任何虚构余额。</p></div>
+      </section>
+      <section class="admin-pane" data-pane="risk" hidden>
+        <div class="pane-title"><span>RISK & PERMISSIONS</span><h2>风险与权限</h2></div>
+        <div class="panel unavailable" role="status"><h3>部分能力待开发</h3><p>MASTER / SUBADMIN 访问范围及 2FA 已由后端校验。交易限额、合规审查和权限变更管理尚无完整接口，不显示虚构状态。</p></div>
+      </section>
+      <section class="admin-pane" data-pane="audit" hidden>
+        <div class="pane-title"><span>AUDIT & REPORTS</span><h2>审计与报表</h2></div>
+        <div class="panel unavailable" role="status"><h3>审计报表尚未接入</h3><p>当前没有可供核验的完整管理员操作审计接口。审计数据需要服务端记录和权限验证，不能用前端模拟历史代替。</p></div>
+      </section>
+    </div>
+  </div>
 </section>
 </main><script type="module" src="/admin.mjs"></script>
 </body></html>

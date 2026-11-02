@@ -22,7 +22,18 @@ test('crosshair and high-resolution chart mechanics retained',()=>{
   assert.match(html,/shape-rendering: geometricPrecision/);
 });
 test('embedded Javascript is syntactically valid',()=>{
-  const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)];
+  const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
   assert.ok(scripts.length>0);
   for(const [,src] of scripts)if(src.trim())new Script(src);
+});
+test('real admin layout preserves secure flows and separates capabilities',()=>{
+  const admin=readFileSync(new URL('../web/admin.html',import.meta.url),'utf8');
+  const js=readFileSync(new URL('../web/admin.mjs',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../web/admin.css',import.meta.url),'utf8');
+  for(const id of ['adminLoginForm','bootstrapForm','activateForm','subadminForm','listingForm','adminWorkspace'])assert.match(admin,new RegExp('id="'+id+'"'));
+  for(const role of ['MASTER','SUBADMIN'])assert.match(js,new RegExp(role));
+  for(const page of ['dashboard','clients','catalog','approvals','treasury','risk','audit'])assert.match(admin,new RegExp('data-pane="'+page+'"'));
+  assert.match(admin,/后端没有资金申请/);
+  assert.match(css,/font-weight:400!important/);
+  new Script(js.replace(/^const el.*$/m,'const el=id=>document.getElementById(id);')); // syntax smoke
 });
