@@ -45,7 +45,8 @@ test("master can publish a directory entry without purchase or discount fields",
   assert.equal("simulationOnly" in result,false);
   assert.equal("discountPercent" in result,false);
   assert.equal(queries.length,1);
-  assert.equal(queries[0].params[5],0);
+  assert.match(queries[0].sql,/VALUES\(\$1,\$2,\$3,\$4,\$5,0,\$6,\$7,\$8\)/);
+  assert.equal(typeof queries[0].params[5],"string");
 });
 test("subaccounts cannot publish stock fund or IPO listings",async()=>{
   for(const type of ["STOCK","FUND","IPO"]){
