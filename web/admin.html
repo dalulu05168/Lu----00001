@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>管理控制台 | Global Stock Platform</title><link rel="stylesheet" href="/admin.css"></head>
+<body>
+<header class="topbar"><div><small>GLOBAL STOCK PLATFORM</small><h1>管理控制台</h1></div><a href="/">返回客户前台</a></header>
+<main class="workspace">
+<section class="panel" id="admin-login">
+<h2>管理员登录</h2><p class="muted">管理员使用独立的双因素验证；客户会话不具备后台权限。</p>
+<form id="adminLoginForm" class="field-grid">
+<label>管理员邮箱<input id="adminEmail" type="email" required autocomplete="username"></label>
+<label>密码<input id="adminPassword" type="password" required autocomplete="current-password"></label>
+<label>6 位动态验证码<input id="adminOtp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
+<button type="submit">验证并进入后台</button>
+</form><p id="loginFeedback" class="feedback" role="status"></p>
+</section>
+<section class="panel" id="bootstrapPanel">
+<h2>首次开通主账户</h2>
+<p class="muted">首次开通不需要先进入客户前台。填写指定的主账户邮箱、为后台单独设置密码，并提供项目所有者保管的初始化凭证。仅系统首次开通时可用。</p>
+<form id="bootstrapForm" class="field-grid">
+<label>主账户邮箱<input id="bootstrapEmail" type="email" value="chennan05168@gmail.com" autocomplete="username" required></label>
+<label>设置后台密码（至少12位）<input id="bootstrapPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+<label>项目初始化凭证<input id="bootstrapKey" type="password" autocomplete="off" required></label>
+<button type="submit">创建主账户并获取 2FA 密钥</button>
+</form><p id="bootstrapFeedback" class="feedback" role="status"></p>
+<div id="bootstrapResult" class="sensitive" hidden></div>
+<form id="activateForm" class="field-grid">
+<label>主账户或子账户邮箱<input id="activateEmail" type="email" value="chennan05168@gmail.com" autocomplete="username" required></label>
+<label>后台登录密码<input id="activatePassword" type="password" autocomplete="current-password" required></label>
+<label>验证器 6 位动态验证码<input id="activateOtp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
+<button type="submit">确认 2FA，启用后台登录</button>
+</form><p id="activateFeedback" class="feedback" role="status"></p>
+</section>
+<section id="adminWorkspace" hidden>
+<div class="panel"><div class="heading"><h2>后台概览</h2><button id="adminLogout" type="button" class="outline">退出后台</button></div>
+<p>当前权限：<strong id="adminRole">—</strong></p><p class="muted">证券资料由管理员维护；此页面只管理目录，不执行证券交易或资金支付。</p></div>
+<section class="panel" id="subadminArea"><div class="heading"><h2>子账户管理</h2><button type="button" id="refreshSubadmins" class="outline">刷新</button></div>
+<form id="subadminForm" class="field-grid"><label>子账户邮箱<input id="subadminEmail" type="email" required></label>
+<label>初始密码（至少12位）<input id="subadminPassword" type="password" minlength="12" required></label>
+<button type="submit">创建子账户和邀请码</button></form>
+<div id="subadminProvisioning" class="sensitive" hidden></div><div id="subadmins"></div><p id="subadminFeedback" class="feedback" role="status"></p></section>
+<section class="panel"><div class="heading"><h2>客户归属</h2><button type="button" class="outline" id="refreshClients">刷新</button></div><div id="clients"></div></section>
+<section class="panel" id="catalogArea"><div class="heading"><h2>证券资料管理</h2><button type="button" class="outline" id="refreshListings">刷新</button></div>
+<form id="listingForm" class="field-grid">
+<label>类型<select id="listingType"><option value="STOCK">股票</option><option value="FUND">基金</option><option value="IPO">IPO</option></select></label>
+<label>市场<select id="listingMarket"><option value="US">美国</option><option value="HK">香港</option><option value="CN">中国内地</option><option value="MY">马来西亚</option></select></label>
+<label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
+<label>名称<input id="listingName" maxlength="120" required></label>
+<label>状态<select id="listingStatus"><option value="DRAFT">草稿</option><option value="PUBLISHED">已发布</option></select></label>
+<button type="submit">保存证券资料</button></form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p></section>
+</section>
+</main><script type="module" src="/admin.mjs"></script>
+</body></html>
