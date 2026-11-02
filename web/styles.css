@@ -208,3 +208,15 @@ a{color:inherit;text-decoration:none}
 .watchlist-toggle:disabled{opacity:.55;cursor:not-allowed}
 .watchlist-feedback{margin:8px 0 2px;color:#555555;font-size:10px;min-height:14px}
 @media(max-width:760px){.instrument-selector{flex-wrap:wrap}.watchlist-toggle{margin-left:0}}
+
+
+/* Vendor-hosted market data chart. Do not style inside the TradingView iframe. */
+.chart.chart--external{display:block;position:relative;height:294px;min-height:240px;border:1px solid #e8eaec;border-radius:9px;overflow:hidden;background:#fff}
+.chart--external .tradingview-widget-container{width:100%;height:100%;display:flex;flex-direction:column;min-width:0}
+.chart--external .tradingview-widget-container__widget{height:calc(100% - 25px);min-height:0;flex:1}
+.chart--external .tradingview-widget-copyright{height:25px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font-size:10px;color:#555555;background:#fff}
+.chart--external .tradingview-widget-copyright a{color:#000000;text-decoration:underline;text-underline-offset:2px;margin-right:3px}
+.stock-chart-empty,.stock-chart-loading{display:flex;align-items:center;justify-content:center;height:100%;padding:12px;text-align:center;font-size:11px;line-height:1.5;color:#555555}
+.chart-source{margin:7px 0 0;font-size:10px;color:#555555;line-height:1.5}
+.chart-source a{color:#000000;text-decoration:underline;text-underline-offset:2px;margin:0 3px}
+@media(max-width:760px){.chart.chart--external{height:274px}}
