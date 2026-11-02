@@ -36,6 +36,17 @@ test("2FA values are encrypted and bootstrap proofs must match",()=>{
     else process.env.ADMIN_BOOTSTRAP_SECRET=previousProof;
   }
 });
+test("master can publish a directory entry without purchase or discount fields",async()=>{
+  const queries=[];
+  const result=await createListing({query:async(sql,params)=>{queries.push({sql,params});return {rows:[]};}},
+    {role:"MASTER",userId:randomUUID()},
+    {itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",status:"PUBLISHED"});
+  assert.equal(result.status,"PUBLISHED");
+  assert.equal("simulationOnly" in result,false);
+  assert.equal("discountPercent" in result,false);
+  assert.equal(queries.length,1);
+  assert.equal(queries[0].params[5],0);
+});
 test("subaccounts cannot publish stock fund or IPO listings",async()=>{
   for(const type of ["STOCK","FUND","IPO"]){
     await assert.rejects(createListing({}, {role:"SUBADMIN",userId:randomUUID()}, {
