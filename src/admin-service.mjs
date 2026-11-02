@@ -152,7 +152,7 @@ export async function createListing(db,actor,data){
 }
 export async function listListings(db,actor){
   if(!actor)return [];
-  const r=await db.query(`SELECT id,item_type,market,symbol,display_name,discount_bps,status,created_at
+  const r=await db.query(`SELECT id,item_type,market,symbol,display_name,status,created_at
     FROM listings ORDER BY created_at DESC LIMIT 300`);
   return r.rows.map(x=>({id:x.id,itemType:x.item_type,market:x.market,symbol:x.symbol,
     name:x.display_name,status:x.status}));
