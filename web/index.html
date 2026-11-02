@@ -113,6 +113,14 @@
           <p class="panel-caption">参考股票列表 · 涨跌幅待授权行情接入</p>
           <label class="search-box" for="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search symbol / company" autocomplete="off"></label>
           <div id="symbols" class="symbol-list" aria-live="polite"></div>
+          <div class="saved-watchlist-section" id="saved-watchlist-section">
+            <div class="saved-watchlist-heading">
+              <h3>我的自选 <span id="savedWatchlistCount">—</span></h3>
+              <button type="button" class="saved-watchlist-refresh" id="refreshWatchlistButton" hidden>刷新</button>
+            </div>
+            <div id="savedWatchlist" class="saved-watchlist-list" aria-live="polite">登录后查看已收藏股票</div>
+            <p class="saved-watchlist-feedback" id="savedWatchlistFeedback" role="status" aria-live="polite"></p>
+          </div>
           <div class="movers-footer">涨跌幅需连接授权行情后显示</div>
         </section>
         <section class="panel intelligence-panel" id="intelligence-section" aria-labelledby="intelligenceTitle">
