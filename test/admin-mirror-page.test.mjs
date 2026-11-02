@@ -1,0 +1,66 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
+import {JSDOM} from "jsdom";
+
+const pause=ms=>new Promise(done=>setTimeout(done,ms));
+test("master can open a scoped client App mirror with account records and clear on logout",async()=>{
+  const html=await readFile(new URL("../web/admin.html",import.meta.url),"utf8");
+  const dom=new JSDOM(html,{url:"https://example.test/admin.html"});
+  const old={document:globalThis.document,sessionStorage:globalThis.sessionStorage,fetch:globalThis.fetch};
+  const clientId="11111111-1111-4111-8111-111111111111";
+  const requests=[];
+  const reply=(status,data)=>new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json"}});
+  try{
+    globalThis.document=dom.window.document;
+    globalThis.sessionStorage=dom.window.sessionStorage;
+    globalThis.fetch=async (url,options={})=>{
+      requests.push({url,options});
+      if(url==="/api/admin/login")return reply(200,{token:"admin-test-token",role:"MASTER"});
+      if(url==="/api/admin/me")return reply(200,{role:"MASTER",userId:"admin-id"});
+      if(url==="/api/admin/clients")return reply(200,{items:[{id:clientId,email:"customer@example.test",subadmin_user_id:"sub-id"}]});
+      if(url==="/api/admin/subaccounts")return reply(200,{items:[]});
+      if(url==="/api/admin/listings")return reply(200,{items:[]});
+      if(url==="/api/admin/mirror?clientId="+clientId)return reply(200,{
+        mode:"READ_ONLY",checkedAt:"2026-11-03T00:00:00Z",
+        client:{id:clientId,email:"customer@example.test"},
+        account:{id:"acct-id",currency:"USD",cashCents:12900},
+        positions:[{market:"US",symbol:"AAPL",quantity:"2"}],
+        orders:[{id:"o1",market:"US",symbol:"AAPL",side:"BUY",quantity:"2",amount_usd_cents:10900}],
+        watchlist:[{market:"HK",symbol:"9988"}]
+      });
+      throw Error("Unexpected mocked URL: "+url);
+    };
+    await import("../web/admin.mjs?mirror-e2e");
+    const el=id=>dom.window.document.getElementById(id);
+    el("adminEmail").value="master@example.test";
+    el("adminPassword").value="password-12345";
+    el("adminOtp").value="123456";
+    el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+    await pause(55);
+    assert.equal(el("adminWorkspace").hidden,false);
+    assert.equal(el("mirrorClientList").querySelectorAll(".mirror-open").length,1);
+    el("mirrorClientList").querySelector(".mirror-open").click();
+    await pause(55);
+    assert.equal(dom.window.document.querySelector('[data-pane="mirror"]').hidden,false);
+    assert.equal(el("mirrorEmail").textContent,"customer@example.test");
+    assert.equal(el("mirrorCash").textContent,"129.00");
+    assert.match(el("mirrorStatus").textContent,/已记录访问审计/);
+    dom.window.document.querySelector('[data-mirror-tab="positions"]').click();
+    assert.match(el("mirrorAppScreen").textContent,/AAPL/);
+    dom.window.document.querySelector('[data-mirror-tab="orders"]').click();
+    assert.match(el("mirrorAppScreen").textContent,/买入/);
+    dom.window.document.querySelector('[data-mirror-tab="watchlist"]').click();
+    assert.match(el("mirrorAppScreen").textContent,/9988/);
+    assert.ok(requests.some(x=>x.url.includes("/api/admin/mirror?clientId=")&&x.options.headers.authorization==="Bearer admin-test-token"));
+    el("adminLogout").click();
+    assert.equal(el("adminWorkspace").hidden,true);
+    assert.equal(el("mirrorCash").textContent,"—");
+    assert.equal(el("mirrorClientList").childElementCount,0);
+  }finally{
+    globalThis.document=old.document;
+    globalThis.sessionStorage=old.sessionStorage;
+    globalThis.fetch=old.fetch;
+    dom.window.close();
+  }
+});
