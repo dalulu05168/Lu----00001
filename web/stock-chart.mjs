@@ -43,7 +43,8 @@ export function mountStockChart(host, instrument) {
   const loading = doc.createElement("p");
   loading.className = "stock-chart-loading";
   loading.textContent = "正在加载第三方走势图…若不可用，可使用下方来源链接查看";
-  chart.append(loading);
+  // Keep the loading hint outside the iframe mount node: vendor scripts may
+  // append an iframe instead of replacing existing children.
   const attribution = doc.createElement("div");
   attribution.className = "tradingview-widget-copyright";
   const link = doc.createElement("a");
@@ -75,8 +76,12 @@ export function mountStockChart(host, instrument) {
     withdateranges: true,
     calendar: false
   });
+  script.addEventListener("load", () => loading.remove(), {once:true});
+  script.addEventListener("error", () => {
+    loading.textContent = "图表加载失败，请使用下方数据源链接查看";
+  }, {once:true});
   // Retain the official widget container/branding; the script creates an iframe.
-  wrapper.append(chart, attribution, script);
+  wrapper.append(chart, loading, attribution, script);
   host.replaceChildren(wrapper);
   return symbol;
 }
