@@ -138,6 +138,7 @@
           <div class="auth-panel" id="authPanel"><form id="authForm" autocomplete="on">
             <label class="form-field"><span>Email</span><input id="email" type="email" placeholder="you@example.com" autocomplete="email" required></label>
             <label class="form-field"><span>Password</span><input id="password" type="password" placeholder="至少 12 个字符" minlength="12" autocomplete="current-password" required></label>
+            <label class="form-field"><span>邀请码（注册时填写）</span><input id="inviteCode" type="text" placeholder="6 位数字" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off"></label>
             <div class="auth-buttons"><button class="primary-button" type="submit" value="login">登录</button><button class="secondary-button" type="submit" value="register">注册</button></div>
           </form></div>
           <section class="account-summary" id="accountSummary" hidden aria-label="当前账户记录">
