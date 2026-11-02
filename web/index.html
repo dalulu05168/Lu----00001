@@ -134,6 +134,19 @@
             <label class="form-field"><span>Password</span><input id="password" type="password" placeholder="至少 12 个字符" minlength="12" autocomplete="current-password" required></label>
             <div class="auth-buttons"><button class="primary-button" type="submit" value="login">登录</button><button class="secondary-button" type="submit" value="register">注册</button></div>
           </form></div>
+          <section class="account-summary" id="accountSummary" hidden aria-label="当前账户记录">
+            <div class="account-summary-heading">
+              <div><span class="account-overline">YOUR ACCOUNT</span><strong>账户已登录</strong></div>
+              <button type="button" class="secondary-button" id="refreshAccountButton" hidden>刷新数据</button>
+            </div>
+            <dl class="account-facts">
+              <div><dt>账户编号</dt><dd id="accountIdLabel">—</dd></div>
+              <div><dt>账面币种</dt><dd id="accountCurrency">—</dd></div>
+              <div><dt>现金余额</dt><dd><span id="accountCashValue">—</span> <small>USD</small></dd></div>
+            </dl>
+            <p class="account-sync" id="accountSyncedAt">尚未同步</p>
+            <p class="account-disclosure">仅显示本账户数据库记录。未连接授权行情，不代表可提现资金或证券所有权。</p>
+          </section>
           <button class="secondary-button logout-button" type="button" id="logout" hidden>退出账户</button>
           <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>
         </div>
