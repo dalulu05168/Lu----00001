@@ -14,6 +14,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     status, headers: { "content-type": "application/json" }
   });
   try {
+    const savedItems = [];
     globalThis.document = dom.window.document;
     globalThis.sessionStorage = dom.window.sessionStorage;
     globalThis.fetch = async (url, options = {}) => {
@@ -21,10 +22,15 @@ test("trading terminal renders, switches markets, and handles account session wi
       if (url === "/api/health") return json(200, { status: "alive", brokerConnected: false, pricingConnected: false });
       if (url === "/api/ready") return json(200, { status: "ready", database: "connected" });
       if (url === "/api/auth/login") return json(200, { token: "test-session-token" });
-      if (url === "/api/watchlist" && (options.method || "GET") === "GET")
-        return json(200,{items: calls.some(call=>call.method==="POST"&&call.url==="/api/watchlist")?[{market:"HK",symbol:"9988"}]:[]});
-      if (url === "/api/watchlist" && options.method === "POST")
-        return json(200,{item:JSON.parse(options.body)});
+      if (url === "/api/watchlist") {
+        const method=options.method||"GET";
+        if(method==="GET")return json(200,{items:savedItems.map(item=>({...item}))});
+        const item=JSON.parse(options.body);
+        const index=savedItems.findIndex(x=>x.market===item.market&&x.symbol===item.symbol);
+        if(method==="POST"&&index<0)savedItems.push(item);
+        if(method==="DELETE"&&index>=0)savedItems.splice(index,1);
+        return json(200,{item});
+      }
       if (url === "/api/account") return json(200, {
         account: { id: "account-1", cashCents: 125000, currency: "USD" },
         positions: [{ market: "US", symbol: "AAPL", quantity: "2" }],
@@ -77,6 +83,25 @@ test("trading terminal renders, switches markets, and handles account session wi
     await new Promise(resolve=>setTimeout(resolve,35));
     assert.equal(calls.some(call=>call.method==="POST"&&call.url==="/api/watchlist"),true);
     assert.match(el("watchlistToggle").textContent,/已加入自选/);
+    assert.equal(el("savedWatchlistCount").textContent,"1");
+    assert.equal(el("savedWatchlist").querySelectorAll(".saved-watchlist-row").length,1);
+    assert.match(el("savedWatchlist").textContent,/9988/);
+    el("markets").querySelectorAll("button")[0].click();
+    assert.equal(el("symbolTitle").textContent,"AAPL");
+    el("savedWatchlist").querySelector(".saved-watchlist-open").click();
+    assert.equal(el("symbolTitle").textContent,"9988");
+    assert.equal(JSON.parse(el("stockChart").querySelector("script").textContent).symbol,"HKEX:9988");
+    el("refreshWatchlistButton").click();
+    await new Promise(resolve=>setTimeout(resolve,20));
+    assert.equal(el("savedWatchlistCount").textContent,"1");
+    el("savedWatchlist").querySelector(".saved-watchlist-remove").click();
+    await new Promise(resolve=>setTimeout(resolve,35));
+    assert.equal(calls.some(call=>call.method==="DELETE"&&call.url==="/api/watchlist"),true);
+    assert.equal(el("savedWatchlistCount").textContent,"0");
+    assert.equal(el("savedWatchlist").querySelectorAll(".saved-watchlist-row").length,0);
+    el("watchlistToggle").click();
+    await new Promise(resolve=>setTimeout(resolve,35));
+    assert.equal(el("savedWatchlistCount").textContent,"1");
     assert.equal(el("accountSummary").hidden, false);
     assert.equal(el("accountIdLabel").textContent, "account-1");
     assert.equal(el("accountCashValue").textContent, "1,250.00");
@@ -96,6 +121,9 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("accountStatus").textContent, "未登录");
     assert.equal(el("cash").textContent, "—");
     assert.equal(el("watchlistToggle").disabled, true);
+    assert.equal(el("savedWatchlist").querySelectorAll(".saved-watchlist-row").length,0);
+    assert.equal(el("savedWatchlistCount").textContent,"—");
+    assert.equal(el("refreshWatchlistButton").hidden,true);
     assert.equal(el("accountSummary").hidden, true);
     assert.equal(el("refreshAccountButton").hidden, true);
     assert.equal(dom.window.sessionStorage.getItem("gsp_token"), null);
