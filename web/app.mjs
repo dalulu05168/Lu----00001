@@ -22,6 +22,8 @@ let account = null;
 let token = sessionStorage.getItem("gsp_token");
 let pricingConnected = false;
 let authBusy = false;
+let accountRefreshing = false;
+let lastSyncedAt = null;
 
 const money = cents => {
   const value = Number(cents);
@@ -180,6 +182,20 @@ function render() {
   el("accountStatus").textContent = !token ? "未登录" : account ? "已连接" : "待同步";
   el("accountStatus").classList.toggle("ready",Boolean(account));
   el("authPanel").hidden = Boolean(token);
+  el("accountSummary").hidden = !account;
+  el("refreshAccountButton").hidden = !token;
+  el("refreshAccountButton").disabled = accountRefreshing;
+  el("refreshAccountButton").textContent = accountRefreshing ? "同步中…" : "刷新数据";
+  el("accountIdLabel").textContent = account?.account?.id
+    ? (account.account.id.length > 16 ? "••••" + account.account.id.slice(-8) : account.account.id)
+    : "—";
+  el("accountCashValue").textContent = account ? money(account.account.cashCents) : "—";
+  el("accountCurrency").textContent = account?.account?.currency ?? "—";
+  el("accountSyncedAt").textContent = lastSyncedAt && account
+    ? "上次同步：" + new Intl.DateTimeFormat("zh-CN",{
+        timeZone:"Asia/Kuala_Lumpur",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false
+      }).format(lastSyncedAt) + " MYT"
+    : "尚未同步";
   el("logout").hidden = !token;
   el("orderForm").querySelector('button[type="submit"]').disabled = !token || !account || !pricingConnected;
   renderRecords();
@@ -207,24 +223,35 @@ async function request(path,options = {}) {
   return result;
 }
 async function refreshAccount() {
-  if (!token) {account = null;render();return;}
+  if (!token) { account = null; lastSyncedAt = null; render(); return; }
+  if (accountRefreshing) return;
+  accountRefreshing = true;
+  const requestedToken = token;
+  render();
   try {
     const data = await request("/account");
+    if (requestedToken !== token) return;
     if (!data?.account || !Array.isArray(data.positions) || !Array.isArray(data.orders)) {
       throw new Error("账户数据格式不正确");
     }
     account = data;
+    lastSyncedAt = new Date();
     el("authFeedback").textContent = "账户数据已同步";
   } catch(error) {
+    if (requestedToken !== token) return;
     account = null;
+    lastSyncedAt = null;
     el("authFeedback").textContent = error.message;
     if (/认证失败|会话已失效/.test(error.message)) {
       token = null;
       sessionStorage.removeItem("gsp_token");
     }
+  } finally {
+    accountRefreshing = false;
+    render();
   }
-  render();
 }
+
 async function updateConnection() {
   const status = el("connectionStatus");
   const label = el("connectionText");
@@ -263,6 +290,7 @@ function updateClock() {
   }).format(new Date()) + " MYT";
 }
 el("search").addEventListener("input",renderSymbols);
+el("refreshAccountButton").addEventListener("click",() => { if(token) refreshAccount(); });
 el("authForm").addEventListener("submit",async event => {
   event.preventDefault();
   if (authBusy) return;
@@ -302,6 +330,7 @@ el("logout").addEventListener("click",async () => {
     sessionStorage.removeItem("gsp_token");
     token = null;
     account = null;
+    lastSyncedAt = null;
     el("authFeedback").textContent = "已退出账户";
     render();
   } catch(error) {
