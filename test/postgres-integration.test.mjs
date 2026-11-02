@@ -204,7 +204,7 @@ run("Vercel serverless API adapter routes to real PostgreSQL", async () => {
   }
 });
 
-run("PostgreSQL: master TOTP, scoped subadmin invitations and simulation listing permissions", async () => {
+run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directory permissions", async () => {
   const previousKey=process.env.ADMIN_TOTP_ENCRYPTION_KEY;
   const previousProof=process.env.ADMIN_BOOTSTRAP_SECRET;
   const previousMasterEmail=process.env.ADMIN_MASTER_EMAIL;
@@ -271,16 +271,16 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and simulation listing
     const subAdmin=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword,otp:subOtp}});
     assert.equal(subAdmin.status,200);
     const subListings=await req("/api/admin/listings",{method:"POST",token:subAdmin.data.token,body:{
-      itemType:"STOCK",market:"US",symbol:"AAPL",name:"Mock stock",
-      discountPercent:12,purchasePassword:"demo-password-2026",status:"DRAFT"
+      itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",status:"DRAFT"
     }});
     assert.equal(subListings.status,403);
     const masterListing=await req("/api/admin/listings",{method:"POST",token:masterToken,body:{
-      itemType:"IPO",market:"US",symbol:"TESTIPO",name:"Simulation IPO",
-      discountPercent:12,purchasePassword:"demo-password-2026",status:"PUBLISHED"
+      itemType:"IPO",market:"US",symbol:"IPO123",name:"IPO资料",status:"PUBLISHED"
     }});
     assert.equal(masterListing.status,201);
-    assert.equal(masterListing.data.discountPercent,12);
+    assert.equal(masterListing.data.status,"PUBLISHED");
+    assert.equal("simulationOnly" in masterListing.data,false);
+    assert.equal("discountPercent" in masterListing.data,false);
     const exposed=await req("/api/admin/listings",{token:masterToken});
     assert.equal(exposed.status,200);
     assert.equal(JSON.stringify(exposed.data).includes("demo-password-2026"),false);
@@ -290,7 +290,9 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and simulation listing
     assert.equal(clientLogin.status,200);
     const catalog=await req("/api/catalog",{token:clientLogin.data.token});
     assert.equal(catalog.status,200);
-    assert.ok(catalog.data.items.some(item=>item.symbol==="TESTIPO"));
+    assert.ok(catalog.data.items.some(item=>item.symbol==="IPO123"));
+    assert.equal(JSON.stringify(catalog.data).includes("simulationOnly"),false);
+    assert.equal(JSON.stringify(catalog.data).includes("discountPercent"),false);
     assert.equal(JSON.stringify(catalog.data).includes("purchase_password"),false);
     const subclients=await req("/api/admin/clients",{token:subAdmin.data.token});
     assert.ok(subclients.data.items.some(item=>item.email===attachedEmail));
