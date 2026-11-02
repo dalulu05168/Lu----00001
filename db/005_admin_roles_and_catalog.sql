@@ -44,18 +44,24 @@ CREATE TABLE listings (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX listings_status_idx ON listings(status,created_at DESC);
+CREATE TABLE registration_policy (
+ id integer PRIMARY KEY CHECK (id=1),
+ invite_required boolean NOT NULL DEFAULT false
+);
+INSERT INTO registration_policy(id,invite_required) VALUES (1,false);
 ALTER TABLE admin_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invite_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE client_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE admin_roles,invite_codes,client_links,listings FROM PUBLIC;
+ALTER TABLE registration_policy ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE admin_roles,invite_codes,client_links,listings,registration_policy FROM PUBLIC;
 DO $$
 BEGIN
  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
-   EXECUTE 'REVOKE ALL ON TABLE admin_roles,invite_codes,client_links,listings FROM anon';
+   EXECUTE 'REVOKE ALL ON TABLE admin_roles,invite_codes,client_links,listings,registration_policy FROM anon';
  END IF;
  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN
-   EXECUTE 'REVOKE ALL ON TABLE admin_roles,invite_codes,client_links,listings FROM authenticated';
+   EXECUTE 'REVOKE ALL ON TABLE admin_roles,invite_codes,client_links,listings,registration_policy FROM authenticated';
  END IF;
 END $$;
 COMMIT;
