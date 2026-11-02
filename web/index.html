@@ -76,18 +76,17 @@
 
       <div class="primary-grid">
         <section class="panel performance-panel" id="terminal-section" aria-labelledby="performanceTitle">
-          <div class="panel-heading"><h2 id="performanceTitle">Performance vs Benchmarks</h2><span class="panel-info" title="未接入授权历史行情">ⓘ</span></div>
-          <div class="benchmark-legend"><span><i class="legend-swatch solid"></i> Portfolio</span><span><i class="legend-swatch dashed"></i> Benchmark</span><small>数据源尚未连接</small></div>
+          <div class="panel-heading"><h2 id="performanceTitle">Stock Chart / 股票走势</h2><span class="view-label">Third-party chart</span></div>
+          <p class="panel-caption">图表由 TradingView 独立提供；部分交易所行情可能延迟或受限制。</p>
           <div class="instrument-selector">
             <span id="marketLabel">US MARKET</span><span class="instrument-separator">·</span><span id="symbolTitle">AAPL</span><span class="instrument-name" id="symbolName">Apple Inc.</span>
             <span class="instrument-price" id="quotePrice">—</span>
             <button class="secondary-button watchlist-toggle" id="watchlistToggle" type="button" disabled aria-pressed="false">☆ 加入自选</button>
           </div>
-          <div class="chart chart--unavailable" aria-label="组合表现走势（目前没有授权的历史行情，未绘制图线）">
-            <div class="chart-yaxis" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
-            <div class="chart-stage"><div class="chart-grid" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="chart-empty"><span class="chart-empty-graphic">⌁</span><span>暂无可用的历史行情</span><small>仅展示取得授权并验证来源的真实数据</small></div></div>
+          <div class="chart chart--external" id="stockChart" role="region" aria-label="由 TradingView 提供的第三方股票历史走势图">
+            <div class="stock-chart-empty">正在准备股票走势图…</div>
           </div>
-          <div class="chart-months" aria-hidden="true"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div>
+          <p class="chart-source">外部数据源：TradingView · 若第三方图表不可用，可<a href="https://www.tradingview.com/symbols/NASDAQ-AAPL/" target="_blank" rel="noopener noreferrer" id="chartSourceLink">在数据源查看</a>。</p>
           <p id="watchlistFeedback" class="watchlist-feedback" role="status" aria-live="polite"></p>
           <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
         </section>
