@@ -1,16 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import {readFile} from "node:fs/promises";
 
-test("light dashboard uses pure black for primary text without changing font weights", async () => {
+test("dark workspace keeps primary text and metrics readable without heavy font weights", async () => {
   const css = await readFile(new URL("../web/styles.css", import.meta.url), "utf8");
-  const root = css.match(/:root\s*\{([^}]*)\}/)?.[1] ?? "";
-  const metric = css.match(/\.metric-value\s*\{([^}]*)\}/)?.[1] ?? "";
-  const heading = css.match(/\.panel-heading h2\s*\{([^}]*)\}/)?.[1] ?? "";
-  assert.match(root, /(?:^|;)\s*color:\s*#000000\s*(?:;|$)/i, "base text color must be pure black");
-  assert.match(root, /--text:\s*#000000\s*(?:;|$)/i, "primary text token must be pure black");
-  assert.match(metric, /color:\s*#000000\s*(?:;|$)/i, "headline metric values must be pure black");
-  assert.match(heading, /color:\s*#000000\s*(?:;|$)/i, "panel headings must be pure black");
+  const roots = [...css.matchAll(/:root\s*\{([^}]*)\}/g)];
+  const metrics = [...css.matchAll(/\.metric-value\s*\{([^}]*)\}/g)];
+  const headings = [...css.matchAll(/\.panel-heading h2\s*\{([^}]*)\}/g)];
+  const root = roots.at(-1)?.[1] ?? "";
+  const metric = metrics.at(-1)?.[1] ?? "";
+  const heading = headings.at(-1)?.[1] ?? "";
+  assert.match(root, /color-scheme:\s*dark/i, "dark color scheme must be enabled");
+  assert.match(root, /--text:\s*#f2f4f5/i, "primary text token must be light");
+  assert.match(root, /--muted:\s*#92979e/i, "secondary text token must remain distinct");
+  assert.match(metric, /color:\s*var\(--text\)/i, "headline metric values must use the primary text token");
+  assert.match(heading, /color:\s*var\(--text\)/i, "panel headings must use the primary text token");
   assert.match(root, /font-weight:\s*400/i, "base font weight must remain regular");
-  assert.match(metric, /font-weight:\s*400/i, "metric font weight must remain unchanged");
+  assert.doesNotMatch(css, /\.metric-value\s*\{[^}]*color:\s*#000000/i, "dark metrics must not fall back to black");
 });
