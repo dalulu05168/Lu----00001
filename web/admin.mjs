@@ -1,7 +1,7 @@
 const el=id=>document.getElementById(id);
 let adminToken=sessionStorage.getItem("gsp_admin_token");
 let role=null;
-const clientToken=()=>sessionStorage.getItem("gsp_token");
+
 const setText=(id,value)=>{el(id).textContent=value};
 async function api(path,{method="GET",body,token=adminToken}={}){
   let res,answer;
@@ -94,8 +94,13 @@ el("bootstrapForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const button=event.currentTarget.querySelector("button");button.disabled=true;
   try{
-    const result=await api("/admin/bootstrap",{method:"POST",token:clientToken(),body:{setupKey:el("bootstrapKey").value}});
+    const result=await api("/admin/bootstrap",{method:"POST",token:null,body:{
+      email:el("bootstrapEmail").value.trim(),
+      password:el("bootstrapPassword").value,
+      setupKey:el("bootstrapKey").value
+    }});
     el("bootstrapKey").value="";
+    el("bootstrapPassword").value="";
     const box=el("bootstrapResult");box.hidden=false;box.replaceChildren();
     const title=document.createElement("strong");title.textContent="仅首次显示：请立即保存至验证器，并勿发送给他人";
     const text=document.createElement("code");text.textContent=result.totpSecret;
@@ -109,9 +114,14 @@ el("activateForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const button=event.currentTarget.querySelector("button");button.disabled=true;
   try{
-    const result=await api("/admin/activate",{method:"POST",token:clientToken(),body:{otp:el("activateOtp").value}});
+    const result=await api("/admin/activate",{method:"POST",token:null,body:{
+      email:el("activateEmail").value.trim(),
+      password:el("activatePassword").value,
+      otp:el("activateOtp").value
+    }});
     setText("activateFeedback",result.activated?"2FA绑定成功；现在可使用上方管理员登录。":"未启用");
     el("activateOtp").value="";
+    el("activatePassword").value="";
     el("bootstrapResult").hidden=true;el("bootstrapResult").replaceChildren();
   }catch(error){setText("activateFeedback",error.message)}
   finally{button.disabled=false;}
