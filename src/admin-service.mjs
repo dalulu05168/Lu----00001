@@ -31,32 +31,49 @@ export async function roleFor(db,session) {
     userId:r.rows[0].user_id,role:r.rows[0].role,parentUserId:r.rows[0].parent_user_id
   }:null;
 }
-export async function bootstrapMaster(db,userId,bootstrapKey){
-  if(!matchBootstrapKey(bootstrapKey))invalid("Invalid setup proof");
+export async function bootstrapMaster(db,{email,password,setupKey}){
+  const authorizedEmail=process.env.ADMIN_MASTER_EMAIL?.trim().toLowerCase();
+  if(!authorizedEmail)invalid("Master setup is not configured");
+  const normalized=getEmail(email);
+  if(normalized!==authorizedEmail)invalid("Master account is not authorized");
+  if(!matchBootstrapKey(setupKey))invalid("Invalid setup proof");
+  const passwordHash=await hashPassword(password);
   const secret=generateTotpSecret(),protectedSecret=protectTotp(secret);
+  const userId=randomUUID(),accountId=randomUUID();
   const client=await db.connect();
   let begun=false;
   try{
     await client.query("BEGIN");begun=true;
-    // Single-master partial unique index prevents concurrent initializations.
+    // A unique partial index enforces one master even for simultaneous requests.
     const exists=await client.query("SELECT user_id FROM admin_roles WHERE role='MASTER' FOR UPDATE");
     if(exists.rows.length)invalid("Master already provisioned");
-    const valid=await client.query("SELECT id FROM app_users WHERE id=$1",[userId]);
-    if(valid.rows.length!==1)invalid("Account not found");
+    const occupied=await client.query("SELECT id FROM app_users WHERE email=$1 FOR UPDATE",[normalized]);
+    if(occupied.rows.length)invalid("Master email is already registered");
+    await client.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,$3)",[userId,normalized,passwordHash]);
+    await client.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,0)",[accountId,userId]);
     await client.query("INSERT INTO admin_roles(user_id,role,totp_secret_ciphertext) VALUES($1,'MASTER',$2)",[userId,protectedSecret]);
     await client.query("COMMIT");begun=false;
-    return {role:"MASTER",totpSecret:secret,setupUri:"otpauth://totp/GlobalStockPlatform:Master?secret="+secret+"&issuer=GlobalStockPlatform"};
+    return {role:"MASTER",totpSecret:secret,
+      setupUri:"otpauth://totp/GlobalStockPlatform:"+encodeURIComponent(normalized)+
+        "?secret="+secret+"&issuer=GlobalStockPlatform"};
   }catch(error){if(begun)await client.query("ROLLBACK");throw error;}
   finally{client.release();}
 }
-export async function confirmAdminTotp(db,userId,otp){
-  const r=await db.query("SELECT role,totp_secret_ciphertext,twofa_confirmed_at FROM admin_roles WHERE user_id=$1",[userId]);
+export async function confirmAdminTotp(db,{email,password,otp}){
+  if(typeof password!=="string"||typeof otp!=="string")invalid("Invalid enrollment credentials");
+  const normalized=getEmail(email);
+  const r=await db.query(`SELECT a.user_id,a.role,a.totp_secret_ciphertext,
+    a.twofa_confirmed_at,u.password_hash
+    FROM admin_roles a JOIN app_users u ON u.id=a.user_id WHERE u.email=$1`,[normalized]);
   if(r.rows.length!==1||r.rows[0].twofa_confirmed_at)invalid("Admin enrollment unavailable");
-  if(!checkOtp(unprotectTotp(r.rows[0].totp_secret_ciphertext),otp))invalid("Invalid one-time code");
-  await db.query("UPDATE admin_roles SET twofa_confirmed_at=now() WHERE user_id=$1 AND twofa_confirmed_at IS NULL",[userId]);
-  if(r.rows[0].role==="MASTER"){
-    await db.query("UPDATE registration_policy SET invite_required=true WHERE id=1");
+  if(!(await verifyPassword(password,r.rows[0].password_hash)) ||
+      !checkOtp(unprotectTotp(r.rows[0].totp_secret_ciphertext),otp)){
+    const error=new Error("Invalid enrollment credentials");error.statusCode=401;throw error;
   }
+  await db.query("UPDATE admin_roles SET twofa_confirmed_at=now() WHERE user_id=$1 AND twofa_confirmed_at IS NULL",[r.rows[0].user_id]);
+  // Do not block new customer registrations until a subadmin invite is ready.
+  if(r.rows[0].role==="SUBADMIN")
+    await db.query("UPDATE registration_policy SET invite_required=true WHERE id=1");
   return {activated:true,role:r.rows[0].role};
 }
 export async function adminLogin(db,{email,password,otp}){
