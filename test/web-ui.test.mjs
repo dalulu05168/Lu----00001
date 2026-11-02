@@ -21,6 +21,10 @@ test("trading terminal renders, switches markets, and handles account session wi
       if (url === "/api/health") return json(200, { status: "alive", brokerConnected: false, pricingConnected: false });
       if (url === "/api/ready") return json(200, { status: "ready", database: "connected" });
       if (url === "/api/auth/login") return json(200, { token: "test-session-token" });
+      if (url === "/api/watchlist" && (options.method || "GET") === "GET")
+        return json(200,{items: calls.some(call=>call.method==="POST"&&call.url==="/api/watchlist")?[{market:"HK",symbol:"9988"}]:[]});
+      if (url === "/api/watchlist" && options.method === "POST")
+        return json(200,{item:JSON.parse(options.body)});
       if (url === "/api/account") return json(200, {
         account: { id: "account-1", cashCents: 125000, currency: "USD" },
         positions: [{ market: "US", symbol: "AAPL", quantity: "2" }],
@@ -60,6 +64,12 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("positions").querySelectorAll(".holding-company").length, 1);
     assert.equal(el("positions").querySelector(".holding-name").textContent, "Apple Inc.");
     assert.equal(el("accountStatus").textContent, "已连接");
+    assert.equal(el("watchlistToggle").disabled, false);
+    assert.match(el("watchlistToggle").textContent, /加入自选/);
+    el("watchlistToggle").click();
+    await new Promise(resolve=>setTimeout(resolve,35));
+    assert.equal(calls.some(call=>call.method==="POST"&&call.url==="/api/watchlist"),true);
+    assert.match(el("watchlistToggle").textContent,/已加入自选/);
     assert.equal(el("accountSummary").hidden, false);
     assert.equal(el("accountIdLabel").textContent, "account-1");
     assert.equal(el("accountCashValue").textContent, "1,250.00");
@@ -78,6 +88,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     await new Promise(resolve => setTimeout(resolve, 25));
     assert.equal(el("accountStatus").textContent, "未登录");
     assert.equal(el("cash").textContent, "—");
+    assert.equal(el("watchlistToggle").disabled, true);
     assert.equal(el("accountSummary").hidden, true);
     assert.equal(el("refreshAccountButton").hidden, true);
     assert.equal(dom.window.sessionStorage.getItem("gsp_token"), null);
