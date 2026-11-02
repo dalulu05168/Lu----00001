@@ -132,7 +132,7 @@
         </section>
       </div>
 
-      <section class="account-grid" id="account-section" aria-label="账户与内部订单">
+      <section class="account-grid" id="account-section" aria-label="账户与订单记录">
         <div class="panel account-panel">
           <div class="panel-heading"><h2>Account Overview</h2><span class="view-label">ACCOUNT</span></div>
           <div class="auth-panel" id="authPanel"><form id="authForm" autocomplete="on">
@@ -158,12 +158,12 @@
         </div>
         <div class="panel order-panel">
           <div class="panel-heading"><h2>Order Entry</h2><span class="view-label">INTERNAL ONLY</span></div>
-          <p class="panel-caption">内部订单不会发送至券商或交易所；可信报价未接入前禁止提交。</p>
+          <p class="panel-caption">本平台仅记录账户活动，不向券商或交易所发送买卖指令；授权行情未接入前，下单功能保持关闭。</p>
           <form id="orderForm">
             <div class="order-fields"><label class="form-field"><span>Side</span><select id="side"><option value="BUY">买入 BUY</option><option value="SELL">卖出 SELL</option></select></label>
               <label class="form-field"><span>Quantity</span><input id="quantity" type="number" min="1" step="1" value="1" required></label></div>
             <div class="order-details"><span>Selected instrument</span><span id="orderSymbol">US · AAPL</span></div>
-            <button class="primary-button order-submit" type="submit" disabled>提交内部订单</button>
+            <button class="primary-button order-submit" type="submit" disabled>下单功能未开放</button>
           </form>
           <p class="form-feedback" id="feedback" role="status" aria-live="polite"></p>
         </div>
@@ -175,12 +175,12 @@
           <button class="secondary-button" id="refreshCatalogButton" type="button" hidden>刷新目录</button>
         </div>
         <p class="panel-caption">证券资料目录 · 股票、基金及 IPO 相关信息；本平台不提供证券买入或资金支付服务。</p>
-        <div id="catalogItems" class="catalog-list" aria-live="polite">登录后查看商品目录</div>
+        <div id="catalogItems" class="catalog-list" aria-live="polite">登录后查看证券资料</div>
         <p id="catalogFeedback" class="form-feedback" role="status" aria-live="polite"></p>
       </section>
       <section class="panel activity-panel" id="records-section">
         <div class="panel-heading"><h2>Order History</h2><span class="view-label">ACCOUNT ACTIVITY</span></div>
-        <div id="orders" class="record-list">登录后查看内部订单</div>
+        <div id="orders" class="record-list">登录后查看订单记录</div>
       </section>
 
       <footer class="app-footer"><span>Global Stock Platform</span><span>仅供市场信息与内部账户记录使用 · 无券商交易执行功能</span></footer>
