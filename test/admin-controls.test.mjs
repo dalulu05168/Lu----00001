@@ -4,7 +4,7 @@ import {randomUUID} from "node:crypto";
 import {createApi} from "../src/http-api.mjs";
 import {newTotpSecret,currentOtp,checkOtp} from "../src/totp.mjs";
 import {protectTotp,unprotectTotp,matchBootstrapKey} from "../src/admin-secrets.mjs";
-import {createListing} from "../src/admin-service.mjs";
+import {createListing,updateListing} from "../src/admin-service.mjs";
 
 test("administrator 2FA is six digits and refuses invalid or expired codes",()=>{
   const secret=newTotpSecret(),instant=Date.UTC(2026,10,2,12,0,0);
@@ -47,6 +47,18 @@ test("master can publish a directory entry without purchase or discount fields",
   assert.equal(queries.length,1);
   assert.match(queries[0].sql,/VALUES\(\$1,\$2,\$3,\$4,\$5,0,\$6,\$7,\$8\)/);
   assert.equal(typeof queries[0].params[5],"string");
+});
+test("securities directory rejects legacy purchase and discount fields",async()=>{
+  const actor={role:"MASTER",userId:randomUUID()};
+  await assert.rejects(createListing({},actor,{
+    itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",discountPercent:12
+  }),/Unexpected listing fields/);
+  await assert.rejects(createListing({},actor,{
+    itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",purchasePassword:"long-password-123"
+  }),/Unexpected listing fields/);
+  await assert.rejects(updateListing({},actor,{
+    id:randomUUID(),status:"PUBLISHED",purchasePassword:"long-password-123"
+  }),/Invalid listing update/);
 });
 test("subaccounts cannot publish stock fund or IPO listings",async()=>{
   for(const type of ["STOCK","FUND","IPO"]){
