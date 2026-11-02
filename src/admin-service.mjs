@@ -1,6 +1,6 @@
 import {randomUUID,randomInt} from "node:crypto";
 import {hashPassword,verifyPassword,createSession} from "./auth.mjs";
-import {generateTotpSecret,currentOtp,checkOtp} from "./totp.mjs";
+import {newTotpSecret as generateTotpSecret,currentOtp,checkOtp} from "./totp.mjs";
 import {protectTotp,unprotectTotp,matchBootstrapKey} from "./admin-secrets.mjs";
 
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
