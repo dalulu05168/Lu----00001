@@ -5,6 +5,8 @@ import { JSDOM } from "jsdom";
 
 test("trading terminal renders, switches markets, and handles account session without invented prices", async () => {
   const html = await readFile(new URL("../web/index.html", import.meta.url), "utf8");
+  assert.doesNotMatch(html, /账户仅记录内部账面数据，不能代表真实证券或可提现资产。/);
+  assert.doesNotMatch(html, /仅显示本账户数据库记录。未连接授权行情，不代表可提现资金或证券所有权。/);
   const dom = new JSDOM(html, { url: "https://platform.example/" });
   const old = { document: globalThis.document, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
   const calls = [];
