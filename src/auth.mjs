@@ -24,18 +24,20 @@ export function sessionTokenHash(token){
 export async function createSession(db,{userId,accountId,expiresAt,adminVerified=false}){
  if(!userId||!accountId||!(expiresAt instanceof Date)||expiresAt<=new Date())throw new Error("Invalid session");
  const token=generateSessionToken();
- await db.query("INSERT INTO user_sessions(token_hash,user_id,account_id,expires_at,admin_verified_at) VALUES($1,$2,$3,$4,$5)",
-  [sessionTokenHash(token),userId,accountId,expiresAt,adminVerified?new Date():null]);
+ await db.query(adminVerified
+    ? "INSERT INTO user_sessions(token_hash,user_id,account_id,expires_at,admin_verified_at) VALUES($1,$2,$3,$4,now())"
+    : "INSERT INTO user_sessions(token_hash,user_id,account_id,expires_at) VALUES($1,$2,$3,$4)",
+  [sessionTokenHash(token),userId,accountId,expiresAt]);
  return token;
 }
 export function createSessionResolver(db){
  return async function resolveSession(token){
   let tokenHash;
   try{tokenHash=sessionTokenHash(token);}catch{return null;}
-  const r=await db.query(`SELECT s.account_id,s.user_id,s.admin_verified_at FROM user_sessions s
+  const r=await db.query(`SELECT s.account_id,s.user_id FROM user_sessions s
    JOIN accounts a ON a.id=s.account_id AND a.user_id=s.user_id
    WHERE s.token_hash=$1 AND s.expires_at>now() AND s.revoked_at IS NULL`,[tokenHash]);
-  return r.rows.length===1?{accountId:r.rows[0].account_id,userId:r.rows[0].user_id,adminVerified:Boolean(r.rows[0].admin_verified_at)}:null;
+  return r.rows.length===1?{accountId:r.rows[0].account_id,userId:r.rows[0].user_id,adminVerified:false}:null;
  };
 }
 export async function revokeSession(db,token){
