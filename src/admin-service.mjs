@@ -14,6 +14,7 @@ function getEmail(value) {
 }
 function safeListing(value){
   if(!value||typeof value!=="object"||Array.isArray(value))invalid("Invalid listing");
+  if(Object.keys(value).some(key=>!["itemType","market","symbol","name","status"].includes(key)))invalid("Unexpected listing fields");
   const {itemType,market,symbol,name,status="DRAFT"}=value;
   if(!TYPES.has(itemType)||!MARKETS.has(market)||typeof symbol!=="string"||!SYMBOL.test(symbol)||
      typeof name!=="string"||!name.trim()||name.length>120||
@@ -157,8 +158,11 @@ export async function listListings(db,actor){
   return r.rows.map(x=>({id:x.id,itemType:x.item_type,market:x.market,symbol:x.symbol,
     name:x.display_name,status:x.status}));
 }
-export async function updateListing(db,actor,{id,status}){
+export async function updateListing(db,actor,data){
   if(actor?.role!=="MASTER")invalid("Only master can edit listings");
+  if(!data||typeof data!=="object"||Array.isArray(data)||
+     Object.keys(data).some(key=>!["id","status"].includes(key)))invalid("Invalid listing update");
+  const {id,status}=data;
   if(typeof id!=="string"||!/^[0-9a-f-]{36}$/.test(id)||
      !["DRAFT","PUBLISHED"].includes(status))invalid("Invalid listing update");
   const r=await db.query(`UPDATE listings SET status=$2,updated_at=now()
