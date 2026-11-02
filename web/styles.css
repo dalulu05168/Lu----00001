@@ -217,6 +217,7 @@ a{color:inherit;text-decoration:none}
 .chart--external .tradingview-widget-copyright{height:25px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font-size:10px;color:#555555;background:#fff}
 .chart--external .tradingview-widget-copyright a{color:#000000;text-decoration:underline;text-underline-offset:2px;margin-right:3px}
 .stock-chart-empty,.stock-chart-loading{display:flex;align-items:center;justify-content:center;height:100%;padding:12px;text-align:center;font-size:11px;line-height:1.5;color:#555555}
+.chart--external .stock-chart-loading{position:absolute;inset:0 0 25px 0;height:auto;pointer-events:none;z-index:1;background:#fff}
 .chart-source{margin:7px 0 0;font-size:10px;color:#555555;line-height:1.5}
 .chart-source a{color:#000000;text-decoration:underline;text-underline-offset:2px;margin:0 3px}
 @media(max-width:760px){.chart.chart--external{height:274px}}
