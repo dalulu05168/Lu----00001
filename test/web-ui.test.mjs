@@ -35,6 +35,8 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("quotePrice").textContent, "—");
     assert.equal(el("connectionText").textContent, "账户已连接 · 行情待接入");
     assert.equal(el("cash").textContent, "—");
+    assert.equal(el("accountSummary").hidden, true);
+    assert.equal(el("refreshAccountButton").hidden, true);
     assert.equal(el("orderForm").querySelector('button[type="submit"]').disabled, true);
     el("markets").querySelectorAll("button")[1].click();
     assert.equal(el("symbolTitle").textContent, "0700");
@@ -56,6 +58,17 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("positions").querySelectorAll(".holding-company").length, 1);
     assert.equal(el("positions").querySelector(".holding-name").textContent, "Apple Inc.");
     assert.equal(el("accountStatus").textContent, "已连接");
+    assert.equal(el("accountSummary").hidden, false);
+    assert.equal(el("accountIdLabel").textContent, "account-1");
+    assert.equal(el("accountCashValue").textContent, "1,250.00");
+    assert.equal(el("accountCurrency").textContent, "USD");
+    assert.equal(el("accountSyncedAt").textContent.includes("同步"), true);
+    const accountCallCount = calls.filter(call => call.url === "/api/account").length;
+    el("refreshAccountButton").click();
+    await new Promise(resolve => setTimeout(resolve, 25));
+    assert.equal(calls.filter(call => call.url === "/api/account").length, accountCallCount + 1);
+    assert.equal(el("accountCashValue").textContent, "1,250.00");
+    assert.equal(el("accountSummary").hidden, false);
     assert.equal(el("quotePrice").textContent, "—");
     assert.equal(el("orderForm").querySelector('button[type="submit"]').disabled, true);
     assert.equal(calls.some(call => call.url === "/api/orders"), false);
@@ -63,6 +76,8 @@ test("trading terminal renders, switches markets, and handles account session wi
     await new Promise(resolve => setTimeout(resolve, 25));
     assert.equal(el("accountStatus").textContent, "未登录");
     assert.equal(el("cash").textContent, "—");
+    assert.equal(el("accountSummary").hidden, true);
+    assert.equal(el("refreshAccountButton").hidden, true);
     assert.equal(dom.window.sessionStorage.getItem("gsp_token"), null);
   } finally {
     globalThis.document = old.document;
