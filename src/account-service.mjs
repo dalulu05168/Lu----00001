@@ -10,17 +10,24 @@ export async function registerAccount(db,{email,password,openingCashCents=0,invi
  let begun=false;
  try{
   await client.query("BEGIN");begun=true;
-  const policy=await client.query("SELECT invite_required FROM registration_policy WHERE id=1");
-  const inviteRequired=policy.rows[0]?.invite_required===true;
+  // Invitation-only enrollment activates only after its schema is installed.
+  const policy=await client.query("SELECT to_regclass('public.registration_policy') AS table_name");
+  const inviteSchemaReady=Boolean(policy.rows[0]?.table_name);
   let invitation=null;
-  if(inviteCode!==undefined||inviteRequired){
-    if(typeof inviteCode!=="string"||!/^\d{6}$/.test(inviteCode))throw new Error("Invalid invitation code");
-    const invited=await client.query(`SELECT i.id,i.subadmin_user_id FROM invite_codes i
-      JOIN admin_roles a ON a.user_id=i.subadmin_user_id AND a.role='SUBADMIN'
-      WHERE i.code=$1 AND i.revoked_at IS NULL AND i.expires_at>now()
-      AND i.uses<i.max_uses AND a.twofa_confirmed_at IS NOT NULL FOR UPDATE OF i`,[inviteCode]);
-    if(invited.rows.length!==1)throw new Error("Invalid invitation code");
-    invitation=invited.rows[0];
+  if(inviteSchemaReady){
+    const policyResult=await client.query("SELECT invite_required FROM registration_policy WHERE id=1");
+    const inviteRequired=policyResult.rows[0]?.invite_required===true;
+    if(inviteCode!==undefined||inviteRequired){
+      if(typeof inviteCode!=="string"||!/^\d{6}$/.test(inviteCode))throw new Error("Invalid invitation code");
+      const invited=await client.query(`SELECT i.id,i.subadmin_user_id FROM invite_codes i
+        JOIN admin_roles a ON a.user_id=i.subadmin_user_id AND a.role='SUBADMIN'
+        WHERE i.code=$1 AND i.revoked_at IS NULL AND i.expires_at>now()
+        AND i.uses<i.max_uses AND a.twofa_confirmed_at IS NOT NULL FOR UPDATE OF i`,[inviteCode]);
+      if(invited.rows.length!==1)throw new Error("Invalid invitation code");
+      invitation=invited.rows[0];
+    }
+  } else if(inviteCode!==undefined) {
+    throw new Error("Invalid invitation code");
   }
   await client.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,$3)",[userId,email.trim().toLowerCase(),passwordHash]);
   await client.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,$3)",[accountId,userId,openingCashCents]);
