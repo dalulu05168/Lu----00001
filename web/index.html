@@ -81,12 +81,14 @@
           <div class="instrument-selector">
             <span id="marketLabel">US MARKET</span><span class="instrument-separator">·</span><span id="symbolTitle">AAPL</span><span class="instrument-name" id="symbolName">Apple Inc.</span>
             <span class="instrument-price" id="quotePrice">—</span>
+            <button class="secondary-button watchlist-toggle" id="watchlistToggle" type="button" disabled aria-pressed="false">☆ 加入自选</button>
           </div>
           <div class="chart chart--unavailable" aria-label="组合表现走势（目前没有授权的历史行情，未绘制图线）">
             <div class="chart-yaxis" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
             <div class="chart-stage"><div class="chart-grid" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="chart-empty"><span class="chart-empty-graphic">⌁</span><span>暂无可用的历史行情</span><small>仅展示取得授权并验证来源的真实数据</small></div></div>
           </div>
           <div class="chart-months" aria-hidden="true"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div>
+          <p id="watchlistFeedback" class="watchlist-feedback" role="status" aria-live="polite"></p>
           <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
         </section>
         <section class="panel holdings-panel" id="holdings-section" aria-labelledby="holdingsTitle">
