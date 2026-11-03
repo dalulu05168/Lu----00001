@@ -1,6 +1,16 @@
 const el=id=>document.getElementById(id);
 let adminToken=sessionStorage.getItem("gsp_admin_token");
 let role=null;
+let selectedAdminRole="MASTER";
+document.querySelectorAll("[data-role-choice]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    selectedAdminRole=button.dataset.roleChoice;
+    document.querySelectorAll("[data-role-choice]").forEach(x=>x.setAttribute("aria-pressed",String(x===button)));
+  });
+});
+el("showAdminSetup").addEventListener("click",()=>{el("admin-login").hidden=true;el("bootstrapPanel").hidden=false;});
+el("closeAdminSetup").addEventListener("click",()=>{el("bootstrapPanel").hidden=true;el("admin-login").hidden=false;});
+
 
 const setText=(id,value)=>{el(id).textContent=value};
 async function api(path,{method="GET",body,token=adminToken}={}){
@@ -38,7 +48,7 @@ async function refreshSubadmins(){
     const data=await api("/admin/subaccounts");
     el("adminSubadminCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
     displayItems("subadmins",data.items||[],x=>[
-      x.email+" · "+(x.twofa_confirmed_at?"已启用2FA":"待启用2FA"),
+      x.email+" · 子管理员",
       "邀请码 "+(x.code||"—")+" · 已用 "+x.uses+"/"+x.max_uses+" · 到期 "+(x.expires_at?new Date(x.expires_at).toLocaleDateString("zh-CN"):"—")
     ]);
   }catch(e){setText("subadminFeedback",e.message)}
@@ -201,6 +211,7 @@ async function showDashboard(){
     el("adminWorkspace").hidden=false;
     el("admin-login").hidden=true;
     el("bootstrapPanel").hidden=true;
+    el("adminTopbar").hidden=false;
     el("subadminForm").hidden=role!=="MASTER";
     el("listingForm").hidden=role!=="MASTER";
     await Promise.all([refreshSubadmins(),refreshClients(),refreshListings(),refreshMirrorStatus()]);
@@ -208,6 +219,8 @@ async function showDashboard(){
     sessionStorage.removeItem("gsp_admin_token");
     adminToken=null;
     el("adminWorkspace").hidden=true;
+    el("adminTopbar").hidden=true;
+    el("admin-login").hidden=false;
   }
 }
 el("adminLoginForm").addEventListener("submit",async event=>{
@@ -215,50 +228,40 @@ el("adminLoginForm").addEventListener("submit",async event=>{
   const button=event.currentTarget.querySelector("button");button.disabled=true;
   try{
     const result=await api("/admin/login",{method:"POST",token:null,body:{
-      email:el("adminEmail").value,password:el("adminPassword").value,otp:el("adminOtp").value
+      email:el("adminEmail").value,password:el("adminPassword").value
     }});
+    if(result.role!==selectedAdminRole){
+      void api("/admin/logout",{method:"POST",token:result.token}).catch(()=>{});
+      throw new Error("该账号不属于所选角色，请切换主账户或子账户");
+    }
     adminToken=result.token;
     sessionStorage.setItem("gsp_admin_token",adminToken);
-    el("adminPassword").value="";el("adminOtp").value="";
+    el("adminPassword").value="";
     setText("loginFeedback","管理员验证成功");
     await showDashboard();
   }catch(error){setText("loginFeedback",error.message)}
   finally{button.disabled=false;}
 });
 el("bootstrapForm").addEventListener("submit",async event=>{
-  event.preventDefault();
-  const button=event.currentTarget.querySelector("button");button.disabled=true;
+  event.preventDefault();const button=event.currentTarget.querySelector("button");button.disabled=true;
   try{
     const result=await api("/admin/bootstrap",{method:"POST",token:null,body:{
-      email:el("bootstrapEmail").value.trim(),
-      password:el("bootstrapPassword").value,
-      setupKey:el("bootstrapKey").value
+      email:el("bootstrapEmail").value.trim(),password:el("bootstrapPassword").value,setupKey:el("bootstrapKey").value
     }});
-    el("bootstrapKey").value="";
-    el("bootstrapPassword").value="";
-    const box=el("bootstrapResult");box.hidden=false;box.replaceChildren();
-    const title=document.createElement("strong");title.textContent="仅首次显示：请立即保存至验证器，并勿发送给他人";
-    const text=document.createElement("code");text.textContent=result.totpSecret;
-    const uri=document.createElement("code");uri.textContent=result.setupUri;
-    box.append(title,text,uri);
-    setText("bootstrapFeedback","已生成主账户2FA，请在验证器中添加并输入动态验证码确认。");
-  }catch(error){setText("bootstrapFeedback",error.message)}
+    el("bootstrapPassword").value="";el("bootstrapKey").value="";
+    setText("bootstrapFeedback",result.ready?"主账户创建成功。现在返回登录页面，使用刚设置的邮箱和密码登录。":"创建失败");
+  }catch(error){setText("bootstrapFeedback",error.message);}
   finally{button.disabled=false;}
 });
-el("activateForm").addEventListener("submit",async event=>{
-  event.preventDefault();
-  const button=event.currentTarget.querySelector("button");button.disabled=true;
+el("recoverForm").addEventListener("submit",async event=>{
+  event.preventDefault();const button=event.currentTarget.querySelector("button");button.disabled=true;
   try{
-    const result=await api("/admin/activate",{method:"POST",token:null,body:{
-      email:el("activateEmail").value.trim(),
-      password:el("activatePassword").value,
-      otp:el("activateOtp").value
+    const result=await api("/admin/recover-pending-master",{method:"POST",token:null,body:{
+      email:el("recoverEmail").value.trim(),password:el("recoverPassword").value,setupKey:el("recoverKey").value
     }});
-    setText("activateFeedback",result.activated?"2FA绑定成功；现在可使用上方管理员登录。":"未启用");
-    el("activateOtp").value="";
-    el("activatePassword").value="";
-    el("bootstrapResult").hidden=true;el("bootstrapResult").replaceChildren();
-  }catch(error){setText("activateFeedback",error.message)}
+    el("recoverPassword").value="";el("recoverKey").value="";
+    setText("recoverFeedback",result.ready?"密码已经更新。请返回登录页面，输入主账户邮箱与新密码。":"更新失败");
+  }catch(error){setText("recoverFeedback",error.message);}
   finally{button.disabled=false;}
 });
 el("subadminForm").addEventListener("submit",async event=>{
@@ -270,16 +273,10 @@ el("subadminForm").addEventListener("submit",async event=>{
     }});
     el("subadminPassword").value="";
     const box=el("subadminProvisioning");box.hidden=false;box.replaceChildren();
-    const heading=document.createElement("strong");heading.textContent="只显示一次：交付子账户管理员并要求启用2FA";
-    for(const [label,value] of [
-      ["子账户邮箱",data.email],["注册邀请码",data.inviteCode],
-      ["2FA 初始化密钥",data.totpSecret],["验证器设置URI",data.setupUri]
-    ]){
-      const small=document.createElement("small");small.textContent=label;
-      const code=document.createElement("code");code.textContent=value;
-      box.append(small,code);
-    }
-    setText("subadminFeedback","子账户已创建；邀请码在子账户完成2FA激活后可用于注册。");
+    const heading=document.createElement("p");heading.textContent="子账户已创建，请将邀请码交给对应管理员。";
+    const code=document.createElement("code");code.textContent="邀请码："+data.inviteCode;
+    box.append(heading,code);
+    setText("subadminFeedback","子管理员使用邮箱和所设置的密码直接登录。");
     await refreshSubadmins();
   }catch(error){setText("subadminFeedback",error.message)}
   finally{button.disabled=false;}
@@ -302,6 +299,8 @@ el("refreshSubadmins").addEventListener("click",refreshSubadmins);
 el("refreshClients").addEventListener("click",refreshClients);
 el("refreshListings").addEventListener("click",refreshListings);
 el("adminLogout").addEventListener("click",()=>{
+  const expiredToken=adminToken;
+  if(expiredToken)void api("/admin/logout",{method:"POST",token:expiredToken}).catch(()=>{});
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
   el("mirrorAvailability").textContent="未登录";
@@ -309,8 +308,8 @@ el("adminLogout").addEventListener("click",()=>{
   el("mirrorMatchCount").textContent="";
   el("mirrorEmail").textContent="尚未选择";el("mirrorCash").textContent="—";setMirrorScreen();
   el("mirrorClientList").replaceChildren();
-  el("adminWorkspace").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=false;
-  setText("loginFeedback","已退出管理界面；服务器端会话将在到期时失效。");
+  el("adminWorkspace").hidden=true;el("adminTopbar").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=true;
+  setText("loginFeedback","已退出管理后台。");
 });
 /** Independent client-side navigation: authorization is always enforced by /api/admin/*. */
 function activateAdminPane(page) {
