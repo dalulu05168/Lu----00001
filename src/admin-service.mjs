@@ -169,12 +169,31 @@ export async function listListings(db,actor){
 export async function updateListing(db,actor,data){
   if(actor?.role!=="MASTER")invalid("Only master can edit listings");
   if(!data||typeof data!=="object"||Array.isArray(data)||
-     Object.keys(data).some(key=>!["id","status"].includes(key)))invalid("Invalid listing update");
-  const {id,status}=data;
-  if(typeof id!=="string"||!/^[0-9a-f-]{36}$/.test(id)||
-     !["DRAFT","PUBLISHED"].includes(status))invalid("Invalid listing update");
-  const r=await db.query(`UPDATE listings SET status=$2,updated_at=now()
-    WHERE id=$1 RETURNING id`,[id,status]);
-  if(r.rows.length!==1)invalid("Listing not found");
-  return {id,status};
+    Object.keys(data).some(key=>!["id","itemType","market","symbol","name","status"].includes(key)))
+    invalid("Invalid listing update");
+  const {id,...changes}=data;
+  if(typeof id!=="string"||!/^[0-9a-f-]{36}$/.test(id)||Object.keys(changes).length===0)
+    invalid("Invalid listing update");
+  const allowedColumns={itemType:"item_type",market:"market",symbol:"symbol",name:"display_name",status:"status"};
+  const prepared={};
+  for(const [key,value] of Object.entries(changes)){
+    if(key==="itemType" && !TYPES.has(value))invalid("Invalid listing update");
+    if(key==="market" && !MARKETS.has(value))invalid("Invalid listing update");
+    if(key==="symbol" && (typeof value!=="string"||!SYMBOL.test(value)))invalid("Invalid listing update");
+    if(key==="name" && (typeof value!=="string"||!value.trim()||value.trim().length>120))
+      invalid("Invalid listing update");
+    if(key==="status" && !["DRAFT","PUBLISHED"].includes(value))invalid("Invalid listing update");
+    prepared[key]=key==="name"?value.trim():value;
+  }
+  // Published instrument metadata cannot change until the master withdraws it.
+  // This also prevents a concurrent publish from racing with a metadata edit.
+  const changesMetadata=Object.keys(prepared).some(key=>key!=="status");
+  const keys=Object.keys(prepared);
+  const updates=keys.map((key,index)=>allowedColumns[key]+"=$"+(index+2));
+  const params=[id,...keys.map(key=>prepared[key])];
+  const sql="UPDATE listings SET "+updates.join(",")+",updated_at=now() WHERE id=$1"+
+    (changesMetadata?" AND status='DRAFT'":"")+" RETURNING id";
+  const r=await db.query(sql,params);
+  if(r.rows.length!==1)invalid(changesMetadata?"Listing not found or not a draft":"Listing not found");
+  return {id,...prepared};
 }
