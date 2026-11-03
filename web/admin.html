@@ -70,14 +70,14 @@
           <div class="summary-card"><span>客户账户 / Clients</span><output id="adminClientCount">—</output><small>真实客户归属列表</small></div>
           <div class="summary-card"><span>子管理员 / Subaccounts</span><output id="adminSubadminCount">—</output><small>仅限权限范围</small></div>
           <div class="summary-card"><span>证券目录 / Listings</span><output id="adminListingCount">—</output><small>现有资料记录</small></div>
-          <div class="summary-card"><span>券商交易 / Broker</span><output class="pending">未接入</output><small>不可执行真实交易</small></div>
+          <div class="summary-card"><span>券商交易 / Broker</span><output class="pending">未接入</output></div>
         </div>
         <div class="panel">
           <h3>系统与业务边界</h3>
           <div class="info-line"><span>登录保护</span><span>管理员密码 + TOTP 双因素认证</span></div>
           <div class="info-line"><span>角色控制</span><span>后端 MASTER / SUBADMIN 独立校验</span></div>
           <div class="info-line"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
-          <div class="info-line"><span>资金审批 / 出入金</span><span class="pending">尚未接入业务接口</span></div>
+          <div class="info-line"><span>资金审批 / 出入金</span><span class="pending">暂未开放</span></div>
         </div>
       </section>
       <section class="admin-pane" data-pane="accounts" hidden>
@@ -98,7 +98,7 @@
         <section class="panel"><div class="heading"><h3>客户列表</h3><button type="button" id="refreshClients" class="outline">刷新</button></div><div id="clients"></div></section>
       </section>
       <section class="admin-pane" data-pane="mirror" hidden>
-        <div class="pane-title"><span>SCOPED CUSTOMER APP MIRROR</span><h2>客户 App 镜像</h2><p>仅供授权管理员查看客户在本系统内的账户记录。不会接管客户登录，不会同步手机屏幕，不能替客户下单或修改资金。</p></div>
+        <div class="pane-title"><span>SCOPED CUSTOMER APP MIRROR</span><h2>客户 App 镜像</h2><p>授权客户账户查看，数据只读</p></div>
         <div class="mirror-layout">
           <section class="panel mirror-client-panel">
             <div class="heading"><h3>可查看客户</h3><button type="button" id="refreshMirrorClients" class="outline">刷新客户</button></div>
@@ -114,7 +114,7 @@
                 <span>GLOBAL STOCK PLATFORM</span><span class="mirror-read-only">只读镜像</span>
               </div>
               <div class="mirror-account"><span>当前客户</span><output id="mirrorEmail">尚未选择</output><small id="mirrorUpdated">—</small></div>
-              <div class="mirror-balance"><span>账户内部账面资金</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
+              <div class="mirror-balance"><span>账户记录余额</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
               <div class="mirror-tabs" role="tablist" aria-label="客户 App 页面">
                 <button type="button" role="tab" data-mirror-tab="market" aria-selected="false">行情</button>
                 <button type="button" role="tab" data-mirror-tab="trade" aria-selected="false">交易</button>
@@ -127,13 +127,13 @@
               <div class="mirror-bottom">
                 <span id="mirrorStatus">未选择客户</span><button type="button" id="refreshMirror" class="outline" disabled>刷新快照</button>
               </div>
-              <p class="mirror-disclosure">显示现有数据库快照，不是客户设备的实时画面或券商持仓。每次查看均记录访问审计。</p>
+              <p class="mirror-disclosure">只读数据快照，访问已记录</p>
             </div>
           </section>
         </div>
       </section>
       <section class="admin-pane" data-pane="catalog" hidden>
-        <div class="pane-title"><span>INSTRUMENT DIRECTORY</span><h2>证券资料管理</h2><p>资料的发布状态由现有 API 返回，不代表实时行情或券商挂牌。</p></div>
+        <div class="pane-title"><span>INSTRUMENT DIRECTORY</span><h2>证券资料管理</h2><p>股票、基金与 IPO 资料</p></div>
         <section class="panel" id="catalogArea">
           <div class="heading"><h3>证券目录</h3><button type="button" id="refreshListings" class="outline">刷新</button></div>
           <form id="listingForm" class="field-grid">
@@ -152,7 +152,7 @@
       </section>
       <section class="admin-pane" data-pane="treasury" hidden>
         <div class="pane-title"><span>TREASURY & LEDGER</span><h2>资金与账本</h2></div>
-        <div class="panel unavailable" role="status"><h3>资金管理尚未启用</h3><p>现有内部现金账本不等于可用出入金系统。真实资金操作、审批和对账链路尚未完成，页面不显示任何虚构余额。</p></div>
+        <div class="panel unavailable" role="status"><h3>资金管理尚未启用</h3><p>资金管理功能暂不可用</p></div>
       </section>
       <section class="admin-pane" data-pane="risk" hidden>
         <div class="pane-title"><span>RISK & PERMISSIONS</span><h2>风险与权限</h2></div>
@@ -166,7 +166,7 @@
           <p id="mirrorAuditStatus" role="status" class="feedback"></p>
           <div id="mirrorAuditList" aria-live="polite"></div>
         </section>
-        <div class="panel unavailable"><h3>其他审计与报表</h3><p>全量管理员行为审计和资金风险报表尚未接入，不能与客户镜像访问日志混为一谈。</p></div>
+        <div class="panel unavailable"><h3>其他审计与报表</h3><p>其他报表功能暂未开放</p></div>
       </section>
     </div>
   </div>

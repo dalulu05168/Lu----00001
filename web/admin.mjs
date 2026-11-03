@@ -118,7 +118,7 @@ function setMirrorScreen(){
   view.append(wrapper);
 }
 async function selectMirrorClient(clientId){
-  if(!mirrorBackendReady){el("mirrorStatus").textContent="镜像审计尚未准备好，查看功能已停用";return;}
+  if(!mirrorBackendReady){el("mirrorStatus").textContent="镜像服务暂不可用";return;}
   const match=mirrorClients.find(x=>x.id===clientId);
   if(!match)return;
   selectedMirrorClientId=clientId;mirrorSnapshot=null;
@@ -187,10 +187,10 @@ async function refreshMirrorStatus(){
     mirrorBackendReady=response.mode==="READ_ONLY"&&response.ready===true;
     el("mirrorAvailability").textContent=mirrorBackendReady
       ?"镜像审计已就绪 · 仅供只读查看"
-      :"镜像暂不可用：访问审计表尚未配置，禁止读取客户数据";
+      :"镜像服务暂不可用";
   }catch(error){
     mirrorBackendReady=false;
-    el("mirrorAvailability").textContent="镜像状态无法验证，已停止读取客户数据：" + error.message;
+    el("mirrorAvailability").textContent="镜像状态检查失败：" + error.message;
   }
   renderClientDirectory(mirrorClients);
 }
