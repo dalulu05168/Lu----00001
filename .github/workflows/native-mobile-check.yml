@@ -3,8 +3,14 @@ on:
   push:
     branches:
       - dev/mobile-ios-android-20261104
+      - dev/mobile-store-readiness-20261104
     paths:
       - "mobile/**"
+      - "src/account-deletion-service.mjs"
+      - "src/http-api.mjs"
+      - "db/012_account_deletion_requests.sql"
+      - "web/account-deletion*"
+      - "test/account-deletion-api.test.mjs"
       - ".github/workflows/native-mobile-check.yml"
   workflow_dispatch:
 
@@ -27,3 +33,15 @@ jobs:
         run: npx expo export --platform android --output-dir dist-android
       - name: Bundle iOS JavaScript and assets
         run: npx expo export --platform ios --output-dir dist-ios
+
+  deletion-backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install API test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify account deletion API, authentication and public webpage
+        run: node --test test/account-deletion-api.test.mjs
