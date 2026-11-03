@@ -50,6 +50,9 @@ test("trading terminal renders, switches markets, and handles account session wi
     await import("../web/app.mjs?dom-check");
     await new Promise(resolve => setTimeout(resolve, 10));
     const el = id => dom.window.document.getElementById(id);
+    assert.equal(el("entryGate").hidden,false,"customer must see login first");
+    assert.equal(el("overview").hidden,true,"workspace must be inaccessible before login");
+    assert.match(el("entryGate").textContent,/NuvexaPro/);
     assert.equal(el("markets").querySelectorAll("button").length, 4);
     assert.equal(el("marketCards").querySelectorAll("button").length, 4);
     assert.equal(el("quotePrice").textContent, "—");
@@ -77,6 +80,8 @@ test("trading terminal renders, switches markets, and handles account session wi
       bubbles: true, cancelable: true, submitter: login
     }));
     await new Promise(resolve => setTimeout(resolve, 25));
+    assert.equal(el("entryGate").hidden,true,"signed-in user sees workspace");
+    assert.equal(el("overview").hidden,false,"workspace requires verified account");
     assert.equal(el("cash").textContent, "1,250.00");
     assert.equal(el("positionCount").textContent, "1");
     assert.equal(el("marketCards").querySelectorAll(".market-card-ratio")[0].textContent, "100%");
@@ -129,6 +134,8 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(calls.some(call => call.url === "/api/orders"), false);
     el("logout").click();
     await new Promise(resolve => setTimeout(resolve, 25));
+    assert.equal(el("entryGate").hidden,false,"logout restores mandatory login");
+    assert.equal(el("overview").hidden,true,"logout hides workspace");
     assert.equal(el("accountStatus").textContent, "未登录");
     assert.equal(el("cash").textContent, "—");
     assert.equal(el("watchlistToggle").disabled, true);
