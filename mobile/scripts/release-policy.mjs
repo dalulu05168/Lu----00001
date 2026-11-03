@@ -5,7 +5,7 @@ function https(value){
   try{
     const url=new URL(value);
     if(url.protocol!=="https:"||url.username||url.password||url.hash||
-       url.hostname==="localhost"||url.hostname.endsWith(".example")||url.hostname.endsWith(".local"))
+       url.hostname==="localhost"||url.hostname.endsWith(".example")||url.hostname.endsWith(".local")||url.hostname.endsWith(".invalid")||url.hostname.endsWith(".test"))
       return null;
     return url;
   }catch{return null;}
