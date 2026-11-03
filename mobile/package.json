@@ -9,7 +9,9 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.mjs",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "postinstall": "node scripts/prepare-assets.mjs",
+    "prepare-assets": "node scripts/prepare-assets.mjs"
   },
   "dependencies": {
     "expo": "~58.0.0",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
-    "typescript": "~6.0.0"
+    "typescript": "~6.0.0",
+    "sharp": "^0.34.0"
   }
 }
