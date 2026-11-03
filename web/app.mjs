@@ -616,6 +616,7 @@ async function refreshAccount() {
       watchlistLoaded = false;
       watchlistFetchSequence++;
       sessionStorage.removeItem("gsp_token");
+      serviceRequests=[];el("serviceRequestHistory").replaceChildren();
     }
   } finally {
     accountRefreshing = false;
@@ -723,6 +724,7 @@ el("entryForm").addEventListener("submit",async event=>{
     const session=await request("/auth/login",{method:"POST",body:{email,password}});
     if(!session?.token)throw new Error("登录未返回有效会话");
     token=session.token;
+    serviceRequests=[];el("serviceRequestHistory").replaceChildren();
     sessionStorage.setItem("gsp_token",token);
     el("entryPassword").value="";
     await refreshAccount();
@@ -755,6 +757,7 @@ el("authForm").addEventListener("submit",async event => {
     const session = await request("/auth/login",{method:"POST",body:{email,password}});
     if (!session.token) throw new Error("登录接口未返回有效会话");
     token = session.token;
+    serviceRequests=[];el("serviceRequestHistory").replaceChildren();
     sessionStorage.setItem("gsp_token",token);
     el("password").value = "";
     await refreshAccount();
@@ -822,8 +825,10 @@ function validateUsdCents(input){
 async function submitService(category,body,button){
  if(!token||!account){el("serviceRequestFeedback").textContent="请先登录并同步账户";return false;}
  if(serviceBusy)return false;serviceBusy=true;button.disabled=true;
+ const usedToken=token;
  try{
   const {item}=await request("/requests?category="+category,{method:"POST",body});
+  if(usedToken!==token)return false;
   el("serviceRequestFeedback").textContent="申请 "+String(item.id).slice(0,8)+" 已提交。尚无实际资金划转或第三方验证。";
   await refreshServiceRequests();
   return true;
