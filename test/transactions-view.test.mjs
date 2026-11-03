@@ -14,6 +14,11 @@ test("dark transactions workspace renders real account orders with filtering, pa
   assert.match(html, /id="transactions-section"/);
   assert.match(html, /id="transactionRows"/);
   assert.match(html, /id="exportHistoryButton"/);
+  assert.match(html,/class="terminal-top-search"/);
+  assert.equal((html.match(/id="transactionSearch"/g)||[]).length,1);
+  assert.doesNotMatch(html,/id="transactionRange"/);
+  assert.doesNotMatch(html,/>Transaction Activity</);
+
   assert.match(css, /color-scheme:\s*dark/i);
 
   const dom = new JSDOM(html, {url:"https://platform.example/"});
@@ -98,8 +103,6 @@ test("dark transactions workspace renders real account orders with filtering, pa
     assert.equal(el("transactionRows").querySelectorAll("tr[data-transaction-row]").length,1);
     assert.match(el("transactionRows").textContent,/MSFT/);
 
-    el("transactionRange").value = "7d";
-    el("transactionRange").dispatchEvent(new dom.window.Event("change",{bubbles:true}));
     assert.equal(el("transactionRows").querySelectorAll("tr[data-transaction-row]").length,1);
     assert.match(el("transactionPageSummary").textContent,/1/);
 
@@ -111,9 +114,7 @@ test("dark transactions workspace renders real account orders with filtering, pa
     assert.match(filteredCsv,/INTERNAL/);
     el("transactionSearch").value = "";
     el("transactionSearch").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
-    el("transactionRange").value = "all";
-    el("transactionRange").dispatchEvent(new dom.window.Event("change",{bubbles:true}));
-    el("exportHistoryButton").click();
+     el("exportHistoryButton").click();
     const allCsv = await exportedBlob.text();
     assert.ok(allCsv.includes('"AAPL, ""TEST"""'),"CSV must quote commas and embedded double quotes");
   } finally {

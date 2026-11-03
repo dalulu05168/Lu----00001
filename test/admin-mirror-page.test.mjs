@@ -53,6 +53,7 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("mirrorClientList").querySelectorAll(".mirror-open").length,1);
     el("mirrorClientList").querySelector(".mirror-open").click();
     await pause(55);
+    assert.equal(el("mirrorDialog").open,true);
     assert.equal(dom.window.document.querySelector('[data-pane="mirror"]').hidden,false);
     assert.equal(el("mirrorEmail").textContent,"customer@example.test");
     assert.equal(el("mirrorCash").textContent,"129.00");
@@ -72,6 +73,12 @@ test("master can open a scoped client App mirror with account records and clear 
     await pause(45);
     assert.match(el("mirrorAuditList").textContent,/customer@example.test/);
     assert.match(el("mirrorAuditStatus").textContent,/1 条/);
+    assert.equal(el("mirrorDialog").open,false);
+    el("mirrorClientList").querySelector(".mirror-open").click();
+    await pause(40);
+    assert.equal(el("mirrorDialog").open,true);
+    el("mirrorDialogClose").click();
+    assert.equal(el("mirrorDialog").open,false);
     el("adminLogout").click();
     assert.equal(el("adminWorkspace").hidden,true);
     assert.equal(el("mirrorCash").textContent,"—");
