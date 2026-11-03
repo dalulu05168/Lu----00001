@@ -36,8 +36,8 @@ test('real admin layout preserves secure flows and separates capabilities',()=>{
   assert.match(admin,/data-role-choice="SUBADMIN"/);
   assert.match(js,/data-required-role/);
   for(const page of ['dashboard','clients','catalog','approvals','treasury','risk','audit'])assert.match(admin,new RegExp('data-pane="'+page+'"'));
-  assert.match(admin,/后端没有资金申请/);
-  assert.doesNotMatch(admin,/adminOtp|activateForm|6 位动态验证码/);
+  assert.match(admin,/资金申请、提现审批等操作尚未开放/);
+  assert.doesNotMatch(admin,/后端没有资金申请|adminOtp|activateForm|6 位动态验证码|TOTP/);
   assert.match(css,/font-weight:400!important/);
   new Script(js.replace(/^const el.*$/m,'const el=id=>document.getElementById(id);')); // syntax smoke
 });
