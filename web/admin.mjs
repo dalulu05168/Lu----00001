@@ -82,6 +82,9 @@ function openClientDetail(clientId){
   if(selectedClientDetailId!==c.id){
     currentClientPolicy=null;el("clientPolicyReason").value="";
     el("clientPolicyPassword").value="";el("clientPolicyConfirm").checked=false;
+    clientWorkflowSerial++;clientHistoryCursor=null;clientHistoryLoaded=0;clientHistoryLoading=false;
+    el("clientWorkflowPanel").hidden=true;el("clientWorkflowHistory").replaceChildren();
+    el("clientWorkflowAudit").replaceChildren();el("clientWorkflowMore").hidden=true;
   }
   selectedClientDetailId=c.id;
   const target=el("clientDetailFields");target.replaceChildren(
