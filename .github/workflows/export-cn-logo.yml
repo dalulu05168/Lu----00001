@@ -1,0 +1,24 @@
+name: Export approved CN Capital logo data for website transfer
+on:
+  push:
+    branches: [deploy/cn-capital-render-static]
+    paths:
+      - .github/workflows/export-cn-logo.yml
+permissions:
+  contents: read
+jobs:
+  export-approved-brand:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Encode existing brand asset
+        run: |
+          python3 - <<'PY'
+          import base64
+          from pathlib import Path
+          img=Path("brand.png").read_bytes()
+          assert img.startswith(bytes.fromhex("89504e470d0a1a0a")), "Not PNG"
+          print("CN_LOGO_BASE64_BEGIN")
+          print(base64.b64encode(img).decode("ascii"))
+          print("CN_LOGO_BASE64_END")
+          PY
