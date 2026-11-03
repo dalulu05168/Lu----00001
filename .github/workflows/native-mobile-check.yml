@@ -1,0 +1,25 @@
+name: Native mobile verification
+on:
+  push:
+    branches:
+      - dev/mobile-ios-android-20261104
+    paths:
+      - "mobile/**"
+      - ".github/workflows/native-mobile-check.yml"
+  workflow_dispatch:
+
+jobs:
+  typecheck-and-api-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install native project dependencies
+        run: npm install --no-audit --no-fund
+      - name: Static typecheck and API unit tests
+        run: npm run check
