@@ -1,0 +1,33 @@
+name: App browser preview build
+on:
+  push:
+    branches: [deploy/mobile-web-preview-20261104]
+    paths: [mobile/**, Dockerfile, .github/workflows/mobile-web-preview.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies and generate icons
+        run: npm install --no-audit --no-fund
+      - name: Verify App TypeScript and unit tests
+        run: npm run check
+      - name: Export real shared native App to browser
+        run: npm run build:web
+      - name: Verify browser deliverables
+        run: test -s dist-web/index.html
+      - name: Keep preview bundle as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuvexapro-app-browser-preview
+          path: mobile/dist-web
+          if-no-files-found: error
