@@ -32,3 +32,11 @@
 @media(prefers-reduced-motion:reduce){.portal-aurora,.portal-content{animation:none!important}.portal-stars{opacity:.5}}
 
 .portal-name{font-weight:600;letter-spacing:-.035em}.portal-logo .cn-capital-mark{filter:drop-shadow(0 3px 10px rgba(212,171,99,.25))}
+
+/* Exact supplied CN Capital logo (optimized original PNG), displayed on a
+   soft neutral plate so the navy mark remains visible on graphite surfaces. */
+.portal-logo{width:144px;height:144px;padding:7px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;
+ background:linear-gradient(145deg,#f7f8f6,#d9e0e5);border:1px solid #bdc7d1;border-radius:17px;
+ box-shadow:0 18px 48px rgba(0,0,0,.32),0 0 0 1px rgba(229,194,129,.3)}
+.portal-logo .cn-capital-mark{width:100%;height:100%;object-fit:contain;filter:none;display:block}
+@media(max-width:580px){.portal-logo{width:118px;height:118px;padding:5px;border-radius:14px}}
