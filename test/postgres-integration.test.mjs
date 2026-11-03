@@ -32,7 +32,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql", "012_account_deletion_requests.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -67,6 +67,37 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     assert.equal(a0.value.account.cashCents, 0);
     assert.equal(b0.value.account.cashCents, 0);
     assert.notEqual(a0.value.account.id, b0.value.account.id);
+
+    // Real PostgreSQL: request is persisted, password-verified, idempotent and isolated.
+    const aPending=await request("/api/account/deletion-request",{token:tokenA});
+    const bPending=await request("/api/account/deletion-request",{token:tokenB});
+    assert.equal(aPending.status,200);
+    assert.equal(aPending.value.status,"NONE");
+    assert.equal(bPending.value.status,"NONE");
+    const deletionWrong=await request("/api/account/deletion-request",{
+      method:"POST",token:tokenA,body:{password:"not-the-password",confirmation:"DELETE MY ACCOUNT"}
+    });
+    assert.equal(deletionWrong.status,401);
+    const deletionA=await request("/api/account/deletion-request",{
+      method:"POST",token:tokenA,body:{password,confirmation:"DELETE MY ACCOUNT"}
+    });
+    assert.equal(deletionA.status,202);
+    assert.equal(deletionA.value.status,"REQUESTED");
+    assert.ok(deletionA.value.requestId);
+    const deletionRepeat=await request("/api/account/deletion-request",{
+      method:"POST",token:tokenA,body:{password,confirmation:"DELETE MY ACCOUNT"}
+    });
+    assert.equal(deletionRepeat.status,202);
+    assert.equal(deletionRepeat.value.requestId,deletionA.value.requestId);
+    assert.equal((await request("/api/account/deletion-request",{token:tokenA})).value.status,"REQUESTED");
+    assert.equal((await request("/api/account/deletion-request",{token:tokenB})).value.status,"NONE");
+    const deletionStored=await db.query(
+      "SELECT count(*)::int AS total FROM customer_account_deletion_requests WHERE client_user_id=$1",
+      [registerA.value.userId]
+    );
+    assert.equal(deletionStored.rows[0].total,1);
+    assert.equal((await request("/api/account",{token:tokenA})).status,200,
+      "a deletion request must not masquerade as a completed erasure");
 
     // A saved watchlist must be persisted and never exposed to another account.
     const initiallyEmpty = await request("/api/watchlist", {token:tokenA});
