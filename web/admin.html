@@ -142,7 +142,8 @@
             <label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
             <label>名称<input id="listingName" maxlength="120" required></label>
             <label>状态<select id="listingStatus"><option value="DRAFT">草稿</option><option value="PUBLISHED">已发布</option></select></label>
-            <button type="submit">保存证券资料</button>
+            <button id="listingSubmit" type="submit">保存证券资料</button>
+            <button id="listingCancelEdit" type="button" class="outline" hidden>取消编辑</button>
           </form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p>
         </section>
       </section>

@@ -114,6 +114,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    // Until a licensed read-only quote service and pricing policy are configured,
    // the HTTP endpoint is disabled instead of creating misleading orders.
    if(typeof resolveExecutionPrice!=="function")return send(res,503,{error:"Verified market pricing unavailable"});
+   // Platform publication is distinct from exchange listing and trading eligibility.
+   // IPO directory entries never become order-eligible merely by being published.
+   const eligible=await db.query(`SELECT id FROM listings WHERE market=$1 AND symbol=$2
+     AND status='PUBLISHED' AND item_type IN ('STOCK','FUND') LIMIT 1`,[data.market,data.symbol]);
+   if(!eligible.rows.length)return send(res,409,{error:"Security not available for orders"});
    const verified=await resolveExecutionPrice({market:data.market,symbol:data.symbol,side:data.side,quantity:data.quantity});
    if(!verified||!Number.isSafeInteger(verified.priceCents)||verified.priceCents<=0||
       !Number.isSafeInteger(verified.fxUsdMicros)||verified.fxUsdMicros<=0||
