@@ -77,7 +77,7 @@
           <div class="info-line"><span>登录保护</span><span>管理员账号密码登录</span></div>
           <div class="info-line"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
           <div class="info-line"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
-          <div class="info-line"><span>资金审批 / 出入金</span><span class="pending">暂未开放</span></div>
+          <div class="info-line"><span>资金申请审核</span><span>已接入申请状态管理；实际收付款未接通</span></div>
         </div>
       </section>
       <section class="admin-pane" data-pane="accounts" hidden>
@@ -126,11 +126,11 @@
               <div class="policy-audit"><h4>最近权限操作记录</h4><div id="clientPolicyAudit"></div></div>
               <p class="record-boundary">提现申请和贷款申请的权限，不代表资金已经划转或贷款已发放。“真实账户待接入”仅是账户分类，不启用真实交易。</p>
             </section>
-            <p class="record-boundary">身份认证、VIP、银行卡、提现限制、贷款资格和账户类型暂无已接通的管理接口；不展示虚构状态，不冒充已经执行的操作。后续受控管理操作需具备服务端授权、二次确认和审计。</p>
+            <p class="record-boundary">客户登录、VIP、提现申请、贷款申请资格及账户分类采用受控的管理策略，并记录审计；身份核验与银行卡登记仍为待第三方验证的工单，不代表已完成认证或绑定。</p>
           </section></section>
       </section>
       <section class="admin-pane" data-pane="mirror" hidden>
-        <div class="pane-title"><span>SCOPED CUSTOMER APP MIRROR</span><h2>客户 App 镜像</h2><p>授权客户账户查看，数据只读</p></div>
+        <div class="pane-title"><span>SCOPED CUSTOMER APP MIRROR</span><h2>客户 App 镜像</h2><p>账户快照只读；管理员修改入口独立授权并审计</p></div>
         <div class="mirror-layout">
           <section class="panel mirror-client-panel">
             <div class="heading"><h3>可查看客户</h3><button type="button" id="refreshMirrorClients" class="outline">刷新客户</button></div>
