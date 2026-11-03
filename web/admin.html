@@ -37,7 +37,7 @@
     <h3>已有主账户但无法登录</h3>
     <p class="muted">旧版未完成设置的主账户可以凭初始化凭证仅重置一次密码；已正常使用的账户不能通过此入口重置。</p>
     <form id="recoverForm" class="field-grid">
-      <label>主账户邮箱<input type="email" id="recoverEmail" value="chennan05168@gmail.com" autocomplete="username" required></label>
+      <label>主账户邮箱<input type="email" id="recoverEmail" autocomplete="username" required></label>
       <label>新登录密码（至少12位）<input type="password" id="recoverPassword" autocomplete="new-password" minlength="12" required></label>
       <label>项目初始化凭证<input type="password" id="recoverKey" autocomplete="off" required></label>
       <button type="submit">重置尚未完成设置的账户密码</button>
@@ -148,7 +148,7 @@
       </section>
       <section class="admin-pane" data-pane="approvals" hidden>
         <div class="pane-title"><span>APPROVAL CENTER</span><h2>审批中心</h2></div>
-        <div class="panel unavailable" role="status"><h3>审批操作尚未启用</h3><p>当前后端没有资金申请、提现审核或审批状态变更接口。不能使用假按钮执行或声称审批成功。此模块需要单独建立权限、审计和资金流水验证。</p></div>
+        <div class="panel unavailable" role="status"><h3>审批操作尚未启用</h3><p>资金申请、提现审批等操作尚未开放。</p></div>
       </section>
       <section class="admin-pane" data-pane="treasury" hidden>
         <div class="pane-title"><span>TREASURY & LEDGER</span><h2>资金与账本</h2></div>
@@ -162,7 +162,7 @@
         <div class="pane-title"><span>AUDIT & REPORTS</span><h2>审计与报表</h2></div>
         <section class="panel">
           <div class="heading"><h3>客户 App 镜像访问记录</h3><button type="button" class="outline" id="refreshMirrorAudit">刷新审计</button></div>
-          <p class="muted">记录来自服务端，不允许在前端修改或删除。仅显示已成功获取客户镜像的访问，不代表所有后台操作日志。</p>
+          <p class="muted">此处显示已记录的客户镜像访问情况。</p>
           <p id="mirrorAuditStatus" role="status" class="feedback"></p>
           <div id="mirrorAuditList" aria-live="polite"></div>
         </section>
