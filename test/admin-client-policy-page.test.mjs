@@ -34,6 +34,11 @@ test("master client detail reads current policy, re-confirms and logs changes; m
         {id:"case-kyc",clientId,category:"KYC",status:"AWAITING_EVIDENCE",createdAt:"2026-11-03T11:00:00Z"}
       ]});
       if(url==="/api/admin/workflow-requests?category=BANK_LINK&clientId="+clientId)return reply(200,{items:[]});
+      if(url==="/api/admin/workflow-audit?clientId="+clientId)return reply(200,{items:[{
+        id:19,category:"FUNDING",request_id:"case-a",actor_user_id:"operator-1",
+        old_status:"SUBMITTED",new_status:"UNDER_REVIEW",
+        reason:"Verified supporting information",event_at:"2026-11-03T12:00:00Z"
+      }]});
       if(url==="/api/admin/client-controls?clientId="+clientId)return reply(200,{policy:{...policy}});
       if(url==="/api/admin/client-control-audit?clientId="+clientId)return reply(200,{items:audits});
       if(url==="/api/admin/client-controls"&&options.method==="PATCH"){
@@ -65,6 +70,9 @@ test("master client detail reads current policy, re-confirms and logs changes; m
     assert.match(el("clientWorkflowHistory").textContent,/50\.00 USD/);
     assert.doesNotMatch(el("clientWorkflowHistory").textContent,/150\.00 USD/);
     assert.match(el("clientWorkflowStatus").textContent,/2 条/);
+    assert.match(el("clientWorkflowAudit").textContent,/已提交 → 审核中/);
+    assert.match(el("clientWorkflowAudit").textContent,/operator-1/);
+    assert.match(el("clientWorkflowAudit").textContent,/Verified supporting information/);
     assert.equal(el("clientPolicyForm").hidden,false);
     assert.match(el("clientPolicyReadout").textContent,/允许登录/);
     assert.match(el("clientPolicyReadout").textContent,/普通/);
@@ -94,6 +102,7 @@ test("master client detail reads current policy, re-confirms and logs changes; m
     assert.equal(el("clientPolicyArea").hidden,true);
     assert.equal(el("clientWorkflowPanel").hidden,true);
     assert.equal(el("clientWorkflowHistory").childElementCount,0);
+    assert.equal(el("clientWorkflowAudit").childElementCount,0);
     assert.equal(el("clientPolicyPassword").value,"");
   }finally{
     globalThis.document=old.document;globalThis.sessionStorage=old.sessionStorage;
