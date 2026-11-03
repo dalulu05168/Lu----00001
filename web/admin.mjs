@@ -449,7 +449,7 @@ function renderClientDirectory(items){
       row.append(meta);
       const button=document.createElement("button");button.type="button";button.className="outline mirror-open";
       button.textContent="查看 App 镜像";
-      button.disabled=!mirrorBackendReady;
+      button.disabled=false; // Client policy operations remain available if the read-only snapshot is offline.
       button.addEventListener("click",()=>selectMirrorClient(c.id));
       actions.append(button);row.append(actions);target.append(row);
     }
@@ -725,8 +725,8 @@ async function refreshMirrorStatus(){
     const response=await api("/admin/mirror-status");
     mirrorBackendReady=response.mode==="READ_ONLY"&&response.ready===true;
     el("mirrorAvailability").textContent=mirrorBackendReady
-      ?"镜像审计已就绪 · 仅供只读查看"
-      :"镜像服务暂不可用";
+      ?"账户快照与访问审计已就绪；权限管理操作独立授权"
+      :"账户快照暂不可用；仍可尝试通过受控后台管理接口操作";
   }catch(error){
     mirrorBackendReady=false;
     el("mirrorAvailability").textContent="镜像状态检查失败：" + error.message;
