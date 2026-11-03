@@ -11,7 +11,9 @@ test("client and admin screens use concise product labels rather than internal d
     "全量管理员行为审计和资金风险报表尚未接入",
     "不会同步手机屏幕","不是客户设备的实时画面或券商持仓"
   ])assert.equal((client+admin).includes(phrase),false,phrase);
-  assert.match(admin,/只读数据快照/);
+  assert.match(admin,/账户数据快照/);
+   assert.match(admin,/id="mirrorPolicyForm"/);
+   assert.match(admin,/id="mirrorReviewForm"/);
   assert.match(client,/交易服务暂不可用/);
   assert.match(client,/NuvexaPro/);
   assert.match(admin,/NuvexaPro/);

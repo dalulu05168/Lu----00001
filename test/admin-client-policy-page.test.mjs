@@ -113,10 +113,13 @@ test("master client detail reads current policy, re-confirms and logs changes; m
     assert.equal(el("clientPolicyTabPanel").hidden,true);
     el("clientDetailMirror").click();await pause(45);
     assert.equal(el("mirrorManageClient").disabled,false);
+    assert.equal(el("mirrorOperations").hidden,false);
+    assert.equal(dom.window.document.querySelector('[data-pane="mirror"]').hidden,false);
     el("mirrorManageClient").click();await pause(45);
+    assert.equal(el("mirrorControlsPanel").hidden,false);
+    assert.equal(el("mirrorControlRows").querySelectorAll(".mirror-control-row").length,5);
     assert.equal(el("clientDetail").hidden,false);
     assert.equal(el("clientListView").hidden,true);
-    assert.equal(el("clientOverviewPanel").hidden,false);
     assert.match(el("clientDetailFields").textContent,/customer@example.test/);
     el("adminLogout").click();
     assert.equal(el("clientDetail").hidden,true);
