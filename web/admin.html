@@ -52,7 +52,7 @@
       <div class="nav-identity"><span id="adminRole">—</span><span class="server-status">账户密码会话</span></div>
       <nav id="adminPages">
         <button type="button" data-admin-page="dashboard" aria-current="page">概览 / Overview</button>
-        <button type="button" data-admin-page="accounts" data-required-role="MASTER">子账户 / Subaccounts</button>
+        <button type="button" data-admin-page="accounts">子账户 / Subaccounts</button>
         <button type="button" data-admin-page="clients">客户管理 / Clients</button>
         <button type="button" data-admin-page="mirror">客户 App 镜像 / App Mirror</button>
         <button type="button" data-admin-page="catalog">证券资料 / Instruments</button>
@@ -81,7 +81,7 @@
         </div>
       </section>
       <section class="admin-pane" data-pane="accounts" hidden>
-        <div class="pane-title"><span>COMMAND CENTER</span><h2>子账户管理</h2><p>仅主账户可创建子管理员；初始化密钥仅展示一次。</p></div>
+        <div class="pane-title"><span>COMMAND CENTER</span><h2>子账户管理</h2><p>主账户可以创建和管理所属子账号；子账户仅可查看自己的资料、客户及申请统计。</p></div>
         <section class="panel" id="subadminArea">
           <div class="heading"><h3>子账户及邀请码</h3><button type="button" id="refreshSubadmins" class="outline">刷新</button></div>
           <form id="subadminForm" class="field-grid">
