@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { currentOtp } from "../src/totp.mjs";
 import { Pool } from "pg";
 import { createServer } from "node:http";
 import serverlessHandler from "../api/[...path].mjs";
@@ -33,7 +32,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -204,11 +203,9 @@ run("Vercel serverless API adapter routes to real PostgreSQL", async () => {
   }
 });
 
-run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directory permissions", async () => {
-  const previousKey=process.env.ADMIN_TOTP_ENCRYPTION_KEY;
+run("PostgreSQL: password-only master, scoped subadmin invitations and securities directory permissions", async () => {
   const previousProof=process.env.ADMIN_BOOTSTRAP_SECRET;
   const previousMasterEmail=process.env.ADMIN_MASTER_EMAIL;
-  process.env.ADMIN_TOTP_ENCRYPTION_KEY="a".repeat(64);
   process.env.ADMIN_BOOTSTRAP_SECRET="b".repeat(64);
   const masterEmail="master-"+randomUUID().slice(0,8)+"@example.test";
   process.env.ADMIN_MASTER_EMAIL=masterEmail;
@@ -236,26 +233,34 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
       email,password,setupKey:"b".repeat(64)
     }});
     assert.equal(setup.status,201);
-    assert.match(setup.data.totpSecret,/^[A-Z2-7]{32}$/);
-    const otp=currentOtp(setup.data.totpSecret);
-    const activated=await req("/api/admin/activate",{method:"POST",body:{email,password,otp}});
-    assert.equal(activated.status,200);
+    assert.equal(setup.data.ready,true);
+    assert.equal("totpSecret" in setup.data,false);
+    assert.equal((await req("/api/admin/activate",{method:"POST",body:{email,password}})).status,404);
+    // Simulate an older master migrated before completing setup.
+    await db.query("UPDATE admin_roles SET password_setup_pending=true WHERE user_id=(SELECT id FROM app_users WHERE email=$1)",[email]);
+    const deniedRecovery=await req("/api/admin/recover-pending-master",{method:"POST",body:{email,password:"replacement-master-password-2026",setupKey:"wrong"}});
+    assert.equal(deniedRecovery.status,400);
+    const recoveredPassword="replacement-master-password-2026";
+    const recovered=await req("/api/admin/recover-pending-master",{method:"POST",body:{email,password:recoveredPassword,setupKey:"b".repeat(64)}});
+    assert.equal(recovered.status,200);
+    assert.equal(recovered.data.ready,true);
+    assert.equal((await req("/api/admin/recover-pending-master",{method:"POST",body:{email,password:recoveredPassword,setupKey:"b".repeat(64)}})).status,400);
+    assert.equal((await req("/api/admin/login",{method:"POST",body:{email,password}})).status,401);
     const secondMaster=await req("/api/admin/bootstrap",{method:"POST",body:{email,password,setupKey:"b".repeat(64)}});
     assert.equal(secondMaster.status,400);
-    const admin=await req("/api/admin/login",{method:"POST",body:{email,password,otp}});
+    const admin=await req("/api/admin/login",{method:"POST",body:{email,password:recoveredPassword}});
     assert.equal(admin.status,200);
     assert.equal(admin.data.role,"MASTER");
     const masterToken=admin.data.token;
     assert.equal((await req("/api/admin/me",{token:masterToken})).data.role,"MASTER");
+    assert.equal((await req("/api/auth/login",{method:"POST",body:{email,password:recoveredPassword}})).status,401);
+    assert.equal((await req("/api/account",{token:masterToken})).status,403);
     const subEmail="sub-"+randomUUID().slice(0,8)+"@example.test";
     const subPassword="testing-subadmin-pass-2026";
     const sub=await req("/api/admin/subaccounts",{method:"POST",token:masterToken,body:{email:subEmail,password:subPassword}});
     assert.equal(sub.status,201);
     assert.match(sub.data.inviteCode,/^[0-9]{6}$/);
-    assert.match(sub.data.totpSecret,/^[A-Z2-7]{32}$/);
-    const subOtp=currentOtp(sub.data.totpSecret);
-    const subActivate=await req("/api/admin/activate",{method:"POST",body:{email:subEmail,password:subPassword,otp:subOtp}});
-    assert.equal(subActivate.status,200);
+    assert.equal("totpSecret" in sub.data,false);
     const attachedEmail="client-"+randomUUID().slice(0,8)+"@example.test";
     const attached=await req("/api/auth/register",{method:"POST",body:{
       email:attachedEmail,password:"testing-client-pass-2026",inviteCode:sub.data.inviteCode
@@ -268,7 +273,7 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
       password:"testing-client-pass-2026",inviteCode:"not-code"
     }});
     assert.equal(invalidInvite.status,400);
-    const subAdmin=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword,otp:subOtp}});
+    const subAdmin=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}});
     assert.equal(subAdmin.status,200);
     const subListings=await req("/api/admin/listings",{method:"POST",token:subAdmin.data.token,body:{
       itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",status:"DRAFT"
@@ -321,9 +326,7 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     const otherEmail="other-sub-"+randomUUID().slice(0,8)+"@example.test";
     const otherSub=await req("/api/admin/subaccounts",{method:"POST",token:masterToken,body:{email:otherEmail,password:subPassword}});
     assert.equal(otherSub.status,201);
-    const otherOtp=currentOtp(otherSub.data.totpSecret);
-    assert.equal((await req("/api/admin/activate",{method:"POST",body:{email:otherEmail,password:subPassword,otp:otherOtp}})).status,200);
-    const otherLogin=await req("/api/admin/login",{method:"POST",body:{email:otherEmail,password:subPassword,otp:otherOtp}});
+    const otherLogin=await req("/api/admin/login",{method:"POST",body:{email:otherEmail,password:subPassword}});
     assert.equal(otherLogin.status,200);
     assert.equal((await req("/api/admin/mirror?clientId="+attached.data.userId,{token:otherLogin.data.token})).status,404);
     const audit=await db.query("SELECT actor_user_id,client_user_id FROM admin_mirror_access_log WHERE client_user_id=$1",[attached.data.userId]);
@@ -346,8 +349,6 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
   }finally{
     await new Promise(done=>app.close(done));
     await db.end();
-    if(previousKey===undefined)delete process.env.ADMIN_TOTP_ENCRYPTION_KEY;
-    else process.env.ADMIN_TOTP_ENCRYPTION_KEY=previousKey;
     if(previousProof===undefined)delete process.env.ADMIN_BOOTSTRAP_SECRET;
     else process.env.ADMIN_BOOTSTRAP_SECRET=previousProof;
     if(previousMasterEmail===undefined)delete process.env.ADMIN_MASTER_EMAIL;
