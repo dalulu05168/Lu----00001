@@ -3,11 +3,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
 
-test("public and admin UI do not expose simulation or test labels",async()=>{
-  for(const file of ["index.html","app.mjs","admin.html","admin.mjs"]){
+test("public trading pages avoid synthetic claims while administrative account classifications are explicit",async()=>{
+  for(const file of ["index.html","app.mjs","admin.html"]){
     const source=await readFile(new URL("../web/"+file,import.meta.url),"utf8");
     assert.doesNotMatch(source,/模拟|虚拟|测试|simulation|mock|sandbox|demo/i,file);
   }
+  const admin=await readFile(new URL("../web/admin.mjs",import.meta.url),"utf8");
+  assert.match(admin,/模拟账户（无实盘）/);
+  assert.match(admin,/真实账户（待接券商）/);
+  assert.doesNotMatch(admin,/fixture only|mock_data|sandbox access/i);
 });
 
 test("trading terminal renders, switches markets, and handles account session without invented prices", async () => {
