@@ -391,6 +391,13 @@
       <section class="admin-pane" data-pane="risk" hidden>
         <div class="pane-title"><span>RISK & PERMISSIONS</span><h2>风险与权限</h2></div>
         <div class="panel unavailable" role="status"><h3>部分能力待开发</h3><p>交易限额、合规审查和权限调整功能暂未开放。</p></div>
+        <section class="panel" id="customerDeletionQueuePanel" aria-labelledby="customerDeletionQueueTitle">
+          <div class="heading"><h3 id="customerDeletionQueueTitle">客户账户注销申请（只读）</h3>
+            <button type="button" class="outline" id="refreshDeletionQueue">刷新申请</button></div>
+          <p class="muted">仅展示权限范围内的真实申请。申请已登记不代表账户已删除；运营方仍需完成核验、合法保留与实际删除。</p>
+          <p id="deletionQueueStatus" class="feedback" role="status" aria-live="polite">打开此页面后加载。</p>
+          <div id="deletionQueueItems" aria-live="polite"></div>
+        </section>
       </section>
       <section class="admin-pane" data-pane="audit" hidden>
         <div class="pane-title"><span>AUDIT & REPORTS</span><h2>审计与报表</h2></div>
