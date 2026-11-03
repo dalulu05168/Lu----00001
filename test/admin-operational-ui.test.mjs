@@ -1,0 +1,72 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
+import {JSDOM} from "jsdom";
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const CLIENT="11111111-1111-4111-8111-111111111111";
+const REQUEST="22222222-2222-4222-8222-222222222222";
+test("master reviews an authorized funding request and sees non-settlement dashboard",async()=>{
+ const html=await readFile(new URL("../web/admin.html",import.meta.url),"utf8");
+ const dom=new JSDOM(html,{url:"https://qa.example/admin.html"});
+ const old={document:globalThis.document,sessionStorage:globalThis.sessionStorage,fetch:globalThis.fetch};
+ const calls=[],cases=[{id:REQUEST,clientId:CLIENT,category:"FUNDING",kind:"DEPOSIT",amountCents:12000,
+  currency:"USD",status:"SUBMITTED",settlementStatus:"NOT_EXECUTED",createdAt:"2026-11-03T08:00:00Z"}];
+ const json=(status,body)=>new Response(status===204?null:JSON.stringify(body),{
+  status,headers:{"content-type":"application/json"}
+ });
+ try{
+  globalThis.document=dom.window.document;
+  globalThis.sessionStorage=dom.window.sessionStorage;
+  globalThis.fetch=async(url,options={})=>{
+   calls.push({url,options});
+   if(url==="/api/admin/login")return json(200,{token:"master-token",role:"MASTER"});
+   if(url==="/api/admin/me")return json(200,{role:"MASTER",userId:"master-id"});
+   if(url==="/api/admin/clients"||url==="/api/admin/subaccounts"||url==="/api/admin/listings")
+    return json(200,{items:[]});
+   if(url==="/api/admin/mirror-status")return json(200,{ready:true,mode:"READ_ONLY"});
+   if(url==="/api/admin/workflow-requests?category=FUNDING")return json(200,{items:cases});
+   if(url==="/api/admin/workflow-requests"&&options.method==="PATCH"){
+    const body=JSON.parse(options.body);
+    if(body.expectedStatus!==cases[0].status)return json(409,{error:"Version mismatch"});
+    cases[0]={...cases[0],status:body.status};
+    return json(200,{item:cases[0]});
+   }
+   if(url==="/api/admin/logout")return new Response(null,{status:204});
+   throw Error("Unexpected request "+url);
+  };
+  await import("../web/admin.mjs?workflow-review-ui-test");
+  const el=id=>dom.window.document.getElementById(id);
+  el("adminEmail").value="master@example.test";el("adminPassword").value="master-password-2026";
+  el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+  await pause(85);
+  dom.window.document.querySelector('[data-admin-page="approvals"]').click();
+  await pause(60);
+  assert.equal(el("workflowItems").querySelectorAll("button").length,1);
+  assert.match(el("workflowItems").textContent,/120\.00 USD/);
+  el("workflowItems").querySelector("button").click();
+  assert.equal(el("workflowReviewForm").hidden,false);
+  assert.equal(el("workflowDecision").value,"UNDER_REVIEW");
+  el("workflowReason").value="Checked the funding application and supporting internal records";
+  el("workflowConfirm").checked=true;
+  el("workflowReviewForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+  await pause(60);
+  assert.equal(cases[0].status,"UNDER_REVIEW");
+  const patch=calls.find(x=>x.url==="/api/admin/workflow-requests"&&x.options.method==="PATCH");
+  assert.equal(JSON.parse(patch.options.body).status,"UNDER_REVIEW");
+  assert.equal(el("workflowReviewForm").hidden,true);
+  dom.window.document.querySelector('[data-admin-page="treasury"]').click();
+  await pause(55);
+  assert.equal(el("depositRequestTotal").textContent,"1");
+  assert.equal(el("withdrawRequestTotal").textContent,"0");
+  assert.equal(el("pendingRequestTotal").textContent,"1");
+  assert.equal(el("approvedRequestTotal").textContent,"0");
+  assert.match(el("fundingSummaryStatus").textContent,/未接入/);
+  el("adminLogout").click();
+  assert.equal(el("fundingRequestRows").childElementCount,0);
+  assert.equal(el("workflowItems").childElementCount,0);
+  assert.equal(el("adminWorkspace").hidden,true);
+ }finally{
+  globalThis.document=old.document;globalThis.sessionStorage=old.sessionStorage;
+  globalThis.fetch=old.fetch;dom.window.close();
+ }
+});
