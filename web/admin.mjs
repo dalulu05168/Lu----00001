@@ -195,15 +195,70 @@ async function refreshMirrorStatus(){
   renderClientDirectory(mirrorClients);
 }
 el("mirrorClientSearch").addEventListener("input",()=>renderClientDirectory(mirrorClients));
+let editingListingId=null;
+function clearListingEditor(){
+  editingListingId=null;
+  el("listingForm").reset();
+  el("listingSubmit").textContent="保存证券资料";
+  el("listingCancelEdit").hidden=true;
+}
+function beginListingEdit(item){
+  if(role!=="MASTER")return;
+  if(item.status!=="DRAFT"){
+    setText("listingFeedback","请先撤回为草稿，再编辑证券资料。");return;
+  }
+  editingListingId=item.id;
+  el("listingType").value=item.itemType;
+  el("listingMarket").value=item.market;
+  el("listingSymbol").value=item.symbol;
+  el("listingName").value=item.name;
+  el("listingStatus").value=item.status;
+  el("listingSubmit").textContent="保存修改";
+  el("listingCancelEdit").hidden=false;
+  setText("listingFeedback","正在编辑 "+item.market+":"+item.symbol+"（草稿）");
+}
+function renderListingDirectory(items){
+  const container=document.createElement("div");container.className="admin-list";
+  const entries=Array.isArray(items)?items:[];
+  if(!entries.length)container.append(itemRow("暂无记录",""));
+  for(const item of entries){
+    const published=item.status==="PUBLISHED";
+    const row=itemRow(item.itemType+" · "+item.market+":"+item.symbol+" · "+item.name,
+      published?"已发布 · 客户目录可见":"草稿 · 客户目录不可见");
+    if(role==="MASTER"){
+      const actions=document.createElement("div");actions.className="listing-actions";
+      const edit=document.createElement("button");edit.type="button";edit.className="outline";
+      edit.textContent="编辑";edit.disabled=published;
+      edit.title=published?"请先撤回为草稿":"编辑证券资料";
+      edit.addEventListener("click",()=>beginListingEdit(item));
+      const toggle=document.createElement("button");toggle.type="button";toggle.className="outline";
+      toggle.textContent=published?"撤回":"发布";
+      toggle.addEventListener("click",async()=>{
+        toggle.disabled=true;edit.disabled=true;
+        try{
+          const status=published?"DRAFT":"PUBLISHED";
+          await api("/admin/listings",{method:"PATCH",body:{id:item.id,status}});
+          if(editingListingId===item.id)clearListingEditor();
+          setText("listingFeedback",(published?"已撤回 ":"已发布 ")+item.market+":"+item.symbol);
+          await refreshListings();
+        }catch(error){
+          setText("listingFeedback",error.message);
+          toggle.disabled=false;edit.disabled=published;
+        }
+      });
+      actions.append(edit,toggle);row.append(actions);
+    }
+    container.append(row);
+  }
+  el("listings").replaceChildren(container);
+}
 async function refreshListings(){
   try{
     const data=await api("/admin/listings");
-    el("adminListingCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
-    displayItems("listings",data.items||[],x=>[
-      x.itemType+" · "+x.market+":"+x.symbol+" · "+x.name,
-      (x.status==="PUBLISHED"?"已发布":"草稿")+" · "+x.id
-    ]);
-  }catch(e){setText("listingFeedback",e.message)}
+    const items=Array.isArray(data.items)?data.items:[];
+    el("adminListingCount").textContent=String(items.length);
+    renderListingDirectory(items);
+  }catch(error){setText("listingFeedback",error.message)}
 }
 async function showDashboard(){
   if(!adminToken){el("adminWorkspace").hidden=true;return;}
@@ -288,17 +343,25 @@ el("subadminForm").addEventListener("submit",async event=>{
 });
 el("listingForm").addEventListener("submit",async event=>{
   event.preventDefault();
-  const button=event.currentTarget.querySelector("button");button.disabled=true;
+  if(role!=="MASTER"){setText("listingFeedback","只有总管理员可以修改证券资料");return;}
+  const button=el("listingSubmit");button.disabled=true;
   try{
-    const result=await api("/admin/listings",{method:"POST",body:{
+    const body={
       itemType:el("listingType").value,market:el("listingMarket").value,
       symbol:el("listingSymbol").value.toUpperCase().trim(),
       name:el("listingName").value.trim(),status:el("listingStatus").value
-    }});
-    setText("listingFeedback","已保存证券资料 "+result.symbol+" · "+(result.status==="PUBLISHED"?"已发布":"草稿"));
+    };
+    const result=await api("/admin/listings",editingListingId
+      ?{method:"PATCH",body:{id:editingListingId,...body}}
+      :{method:"POST",body});
+    clearListingEditor();
+    setText("listingFeedback","已保存证券资料 "+body.symbol+" · "+(body.status==="PUBLISHED"?"已发布":"草稿"));
     await refreshListings();
   }catch(error){setText("listingFeedback",error.message)}
   finally{button.disabled=false;}
+});
+el("listingCancelEdit").addEventListener("click",()=>{
+  clearListingEditor();setText("listingFeedback","已取消编辑");
 });
 el("refreshSubadmins").addEventListener("click",refreshSubadmins);
 el("refreshClients").addEventListener("click",refreshClients);
