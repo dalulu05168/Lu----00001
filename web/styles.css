@@ -580,3 +580,22 @@ html,body,body *,body *::before,body *::after{font-weight:400!important}
 
 /* Visible CN Capital logo treatment; internal CSS class names stay compatible. */
 .cn-capital-mark{width:100%;height:100%;display:block;overflow:visible}.portal-name span{color:#e6bc72}.brand-mark .cn-capital-mark{width:100%;height:100%}.portal-logo .cn-capital-mark{width:100%;height:100%}
+
+/* CN Capital — persisted support and non-tradable commodity directory. */
+.customer-commodity-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px}
+.customer-commodity-card{display:grid;gap:8px;border:1px solid #36475a;background:linear-gradient(145deg,#1d2937,#171f29);border-radius:9px;padding:17px;min-width:0}
+.customer-commodity-card h3{margin:0;color:#edf3fa;font-size:13px;overflow-wrap:anywhere}
+.customer-commodity-card p{margin:0;color:#a4b3c5;font-size:11px}
+.customer-commodity-card strong{font-size:18px;color:#e8d0a0;font-weight:600}
+.customer-commodity-card small{color:#a1afc0;font-size:10px;line-height:1.6}
+.customer-support-messages{display:flex;flex-direction:column;gap:11px;max-height:380px;min-height:130px;overflow:auto;padding:15px 0}
+.customer-support-message{max-width:85%;min-width:0;padding:11px 14px;border-radius:10px;background:#222c39;border:1px solid #39485a}
+.customer-support-message.from-customer{align-self:flex-end;background:#283c51;border-color:#52708b}
+.customer-support-message.from-support{align-self:flex-start}
+.customer-support-message p{margin:0 0 8px;color:#f1f5f8;font-size:12px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.customer-support-message small{font-size:10px;color:#a6b8cc}
+#customerSupportForm{display:grid;gap:10px;padding:14px 0;border-top:1px solid #354455}
+#customerSupportForm label{font-size:12px;color:#b3c2d2}
+#customerSupportText{background:#17212b;border:1px solid #45576a;border-radius:7px;min-height:80px;min-width:0;width:100%;color:#f1f4f8;padding:12px;resize:vertical;font:inherit}
+#customerSupportForm button{justify-self:start;min-height:40px}
+@media(max-width:650px){.customer-commodity-grid{grid-template-columns:1fr}.customer-support-message{max-width:95%}}
