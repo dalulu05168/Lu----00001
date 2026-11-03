@@ -137,7 +137,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
         })});return true;
       }
       const url=new URL(req.url??"/","http://localhost");
-      response(res,200,{items:await listAdminRequests(db,actor,url.searchParams.get("category"))});return true;
+      response(res,200,{items:await listAdminRequests(db,actor,url.searchParams.get("category"),url.searchParams.get("clientId"))});return true;
     }
     if(route==="/api/admin/workflow-audit"){
       const url=new URL(req.url??"/","http://localhost");

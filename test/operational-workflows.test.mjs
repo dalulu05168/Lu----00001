@@ -39,6 +39,11 @@ test("client list reads only the authenticated user and admin dashboard filters 
  const db={query:async(s,p)=>{sql.push({s,p});return {rows:[]}}};
  assert.deepEqual(await listClientRequests(db,id,"FUNDING"),[]);
  assert.deepEqual(await listAdminRequests(db,actor,"FUNDING"),[]);
+ assert.deepEqual(await listAdminRequests(db,actor,"FUNDING",id),[]);
+ await assert.rejects(listAdminRequests(db,actor,"FUNDING","invalid"),e=>e.statusCode===400);
  assert.match(sql[0].s,/WHERE client_user_id=\$1/);assert.deepEqual(sql[0].p,[id]);
- assert.match(sql[1].s,/l.subadmin_user_id=\$2::uuid/);assert.deepEqual(sql[1].p,["SUBADMIN",actor.userId]);
+ assert.match(sql[1].s,/l.subadmin_user_id=\$2::uuid/);
+ assert.match(sql[1].s,/r.client_user_id=\$3::uuid/);
+ assert.deepEqual(sql[1].p,["SUBADMIN",actor.userId,null]);
+ assert.deepEqual(sql[2].p,["SUBADMIN",actor.userId,id]);
 });

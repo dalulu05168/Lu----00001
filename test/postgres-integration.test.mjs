@@ -327,6 +327,11 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(ownFunding.status,200);
     assert.equal(ownFunding.data.items.length,2);
     assert.equal(ownFunding.data.items.some(x=>x.id===deposit.data.item.id),true);
+    const scopedOwn=await req(adminWorkflow+"&clientId="+attached.data.userId,{token:subAdmin.data.token});
+    assert.equal(scopedOwn.status,200);
+    assert.equal(scopedOwn.data.items.length,2);
+    assert.equal((await req(adminWorkflow+"&clientId="+sub.data.userId,{token:subAdmin.data.token})).data.items.length,0);
+    assert.equal((await req(adminWorkflow+"&clientId=invalid",{token:subAdmin.data.token})).status,400);
     assert.equal((await req(adminWorkflow,{token:clientLogin.data.token})).status,403);
     assert.equal((await req(adminWorkflow)).status,401);
     const workflowChange=(token,category,id,expectedStatus,status)=>req("/api/admin/workflow-requests",{

@@ -335,7 +335,7 @@ async function refreshClientWorkflowHistory(clientId){
   try{
     const categories=["FUNDING","KYC","BANK_LINK"];
     const responses=await Promise.all(categories.map(category=>
-      api("/admin/workflow-requests?category="+category)));
+      api("/admin/workflow-requests?category="+category+"&clientId="+encodeURIComponent(clientId))));
     if(serial!==clientWorkflowSerial||selectedClientDetailId!==clientId||adminToken!==usedToken)return;
     const rows=responses.flatMap((result,index)=>
       (Array.isArray(result.items)?result.items:[])

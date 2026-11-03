@@ -64,11 +64,13 @@ export async function listClientRequests(db,userId,category){
  const q=await db.query("SELECT * FROM "+table+" WHERE client_user_id=$1 ORDER BY created_at DESC LIMIT 100",[userId]);
  return q.rows.map(row=>publicItem(category,row));
 }
-export async function listAdminRequests(db,actor,category){
+export async function listAdminRequests(db,actor,category,clientId=null){
  actorScope(actor);const table=requireCategory(category);
+ if(clientId!==null)requireUuid(clientId);
  const q=await db.query("SELECT r.* FROM "+table+" r LEFT JOIN client_links l ON l.user_id=r.client_user_id "+
   "WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid) "+
-  "ORDER BY r.created_at DESC,r.id DESC LIMIT 300",[actor.role,actor.userId]);
+  "AND ($3::uuid IS NULL OR r.client_user_id=$3::uuid) "+
+  "ORDER BY r.created_at DESC,r.id DESC LIMIT 300",[actor.role,actor.userId,clientId]);
  return q.rows.map(row=>publicItem(category,row));
 }
 function nextStatus(category,role,current,target){
