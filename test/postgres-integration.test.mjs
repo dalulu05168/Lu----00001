@@ -275,6 +275,40 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(invalidInvite.status,400);
     const subAdmin=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}});
     assert.equal(subAdmin.status,200);
+
+    const adminWorkflow="/api/admin/workflow-requests?category=FUNDING";
+    const ownFunding=await req(adminWorkflow,{token:subAdmin.data.token});
+    assert.equal(ownFunding.status,200);
+    assert.equal(ownFunding.data.items.length,2);
+    assert.equal(ownFunding.data.items.some(x=>x.id===deposit.data.item.id),true);
+    assert.equal((await req(adminWorkflow,{token:clientLogin.data.token})).status,403);
+    assert.equal((await req(adminWorkflow)).status,401);
+    const workflowChange=(token,category,id,expectedStatus,status)=>req("/api/admin/workflow-requests",{
+      method:"PATCH",token,body:{category,id,expectedStatus,status,reason:"Reviewed against documented internal request procedures"}
+    });
+    assert.equal((await workflowChange(subAdmin.data.token,"FUNDING",deposit.data.item.id,"SUBMITTED","APPROVED")).status,403);
+    const intake=await workflowChange(subAdmin.data.token,"FUNDING",deposit.data.item.id,"SUBMITTED","UNDER_REVIEW");
+    assert.equal(intake.status,200);
+    assert.equal(intake.data.item.status,"UNDER_REVIEW");
+    const approved=await workflowChange(masterToken,"FUNDING",deposit.data.item.id,"UNDER_REVIEW","APPROVED");
+    assert.equal(approved.status,200);
+    assert.equal(approved.data.item.settlementStatus,"NOT_EXECUTED");
+    assert.equal((await workflowChange(masterToken,"FUNDING",deposit.data.item.id,"SUBMITTED","APPROVED")).status,409);
+    const kycNeedsInfo=await workflowChange(subAdmin.data.token,"KYC",kycRequest.data.item.id,
+      "AWAITING_EVIDENCE","NEEDS_INFORMATION");
+    assert.equal(kycNeedsInfo.status,200);
+    assert.equal(kycNeedsInfo.data.item.identityVerified,false);
+    const bankNeedsInfo=await workflowChange(subAdmin.data.token,"BANK_LINK",bank.data.item.id,
+      "PENDING_VERIFICATION","NEEDS_INFORMATION");
+    assert.equal(bankNeedsInfo.status,200);
+    assert.equal(bankNeedsInfo.data.item.verified,false);
+    const auditTrail=await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{token:masterToken});
+    assert.equal(auditTrail.status,200);
+    assert.ok(auditTrail.data.items.some(e=>e.category==="FUNDING"&&e.new_status==="APPROVED"));
+    assert.equal((await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{token:clientLogin.data.token})).status,403);
+    assert.equal((await req("/api/admin/workflow-audit?clientId="+sub.data.userId,{token:masterToken})).status,404);
+    const balanceAfterReview=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
+    assert.equal(Number(balanceAfterReview.rows[0].cash_cents),0);
     const subListings=await req("/api/admin/listings",{method:"POST",token:subAdmin.data.token,body:{
       itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",status:"DRAFT"
     }});
@@ -293,6 +327,34 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
       email:attachedEmail,password:"testing-client-pass-2026"
     }});
     assert.equal(clientLogin.status,200);
+
+    // User-controlled requests are only pending administrative records; no money movement or KYC verification.
+    const ownReq=(category,body)=>req("/api/requests?category="+category,{
+      method:"POST",token:clientLogin.data.token,body
+    });
+    const deposit=await ownReq("FUNDING",{kind:"DEPOSIT",amountCents:12000});
+    assert.equal(deposit.status,201);
+    assert.equal(deposit.data.item.status,"SUBMITTED");
+    assert.equal(deposit.data.item.settlementStatus,"NOT_EXECUTED");
+    const withdrawal=await ownReq("FUNDING",{kind:"WITHDRAWAL",amountCents:2700});
+    assert.equal(withdrawal.status,201);
+    assert.equal(withdrawal.data.item.settlementStatus,"NOT_EXECUTED");
+    assert.equal((await ownReq("FUNDING",{kind:"WITHDRAWAL",amountCents:2.5})).status,400);
+    assert.equal((await ownReq("FUNDING",{kind:"DEPOSIT",amountCents:12000,claimedBalance:100000})).status,400);
+    const kycRequest=await ownReq("KYC",{});
+    assert.equal(kycRequest.status,201);
+    assert.equal(kycRequest.data.item.identityVerified,false);
+    assert.equal(kycRequest.data.item.documentsStored,false);
+    const bank=await ownReq("BANK_LINK",{bankLabel:"Example Bank",accountLast4:"4321"});
+    assert.equal(bank.status,201);
+    assert.equal(bank.data.item.verified,false);
+    assert.equal(bank.data.item.accountLast4,"4321");
+    assert.equal((await ownReq("BANK_LINK",{bankLabel:"Example Bank",accountLast4:"1234567890123456"})).status,400);
+    assert.equal((await req("/api/requests?category=FUNDING",{token:clientLogin.data.token})).data.items.length,2);
+    assert.equal((await req("/api/requests?category=FUNDING")).status,401);
+    assert.equal((await req("/api/requests?category=FUNDING",{token:masterToken})).status,403);
+    const fundsBeforeReview=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
+    assert.equal(Number(fundsBeforeReview.rows[0].cash_cents),0);
     const catalog=await req("/api/catalog",{token:clientLogin.data.token});
     assert.equal(catalog.status,200);
     assert.ok(catalog.data.items.some(item=>item.symbol==="IPO123"));
@@ -328,6 +390,11 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(otherSub.status,201);
     const otherLogin=await req("/api/admin/login",{method:"POST",body:{email:otherEmail,password:subPassword}});
     assert.equal(otherLogin.status,200);
+    assert.deepEqual((await req(adminWorkflow,{token:otherLogin.data.token})).data.items,[]);
+    assert.equal((await workflowChange(otherLogin.data.token,"FUNDING",withdrawal.data.item.id,
+      "SUBMITTED","UNDER_REVIEW")).status,404);
+    assert.equal((await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{
+      token:otherLogin.data.token})).status,404);
     assert.equal((await req("/api/admin/mirror?clientId="+attached.data.userId,{token:otherLogin.data.token})).status,404);
     const audit=await db.query("SELECT actor_user_id,client_user_id FROM admin_mirror_access_log WHERE client_user_id=$1",[attached.data.userId]);
     assert.equal(audit.rows.length,2);
@@ -384,6 +451,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const withdrawalsChanged=await change(masterToken,{field:"withdrawalRequestsAllowed",value:false,expectedVersion:3});
     assert.equal(withdrawalsChanged.status,200);
     assert.equal(withdrawalsChanged.data.policy.version,4);
+    assert.equal((await ownReq("FUNDING",{kind:"WITHDRAWAL",amountCents:10000})).status,403);
     assert.equal((await change(masterToken,{field:"accountClass",value:"REAL_CONNECTED",expectedVersion:4})).status,400);
     const changedAudit=await req(auditPath,{token:masterToken});
     assert.equal(changedAudit.status,200);
