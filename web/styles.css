@@ -599,3 +599,12 @@ html,body,body *,body *::before,body *::after{font-weight:400!important}
 #customerSupportText{background:#17212b;border:1px solid #45576a;border-radius:7px;min-height:80px;min-width:0;width:100%;color:#f1f4f8;padding:12px;resize:vertical;font:inherit}
 #customerSupportForm button{justify-self:start;min-height:40px}
 @media(max-width:650px){.customer-commodity-grid{grid-template-columns:1fr}.customer-support-message{max-width:95%}}
+
+/* Search belongs in the top operational toolbar, not above the trade ledger. */
+.terminal-top-search{display:flex;align-items:center;gap:8px;min-width:200px;max-width:265px;flex:1;
+ border:1px solid #36424e;background:#1b232d;border-radius:7px;padding:7px 11px;color:#9dabbc}
+.terminal-top-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#e7edf4;font:inherit;font-size:12px}
+.terminal-top-search input::placeholder{color:#8597ac}
+.transactions-section .transaction-metrics{margin-top:0}
+@media(max-width:940px){.terminal-top-search{min-width:160px;max-width:none;flex:1}}
+@media(max-width:650px){.top-actions{flex-wrap:wrap}.terminal-top-search{order:5;flex-basis:100%;width:100%;max-width:none}}

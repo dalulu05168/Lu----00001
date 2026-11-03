@@ -89,6 +89,8 @@
     <header class="topbar">
       <div class="page-heading"><span class="app-wordmark">CN CAPITAL · PRIVATE MARKET OPERATIONS</span><h1>Transactions</h1></div>
       <div class="top-actions">
+        <label class="terminal-top-search" for="transactionSearch"><span aria-hidden="true">⌕</span>
+          <input id="transactionSearch" type="search" placeholder="Search symbol or company" autocomplete="off" aria-label="搜索交易股票或公司"></label>
         <span class="status-chip" id="connectionStatus"><span class="status-dot"></span><span id="connectionText">连接检测中</span></span>
         <span class="clock" id="clock" aria-label="当前时间">—</span>
         <a href="#intelligence-section" class="header-action">Market Insights <span aria-hidden="true">↗</span></a>
@@ -99,22 +101,7 @@
 
     <div class="workspace">
       <section class="transactions-section" id="transactions-section" aria-labelledby="transactionsTitle">
-        <div class="transactions-header">
-          <div>
-            <h2 id="transactionsTitle">Transaction Activity</h2>
-            <p>查看交易活动与历史明细</p>
-          </div>
-          <div class="transaction-filters">
-            <label class="transaction-search" for="transactionSearch"><span aria-hidden="true">⌕</span><input id="transactionSearch" type="search" placeholder="Search symbol or company" autocomplete="off"></label>
-            <label class="sr-only" for="transactionRange">Date range</label>
-            <select id="transactionRange" class="transaction-range" aria-label="交易时间范围">
-              <option value="all">All time</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-            </select>
-          </div>
-        </div>
+        <h2 id="transactionsTitle" class="sr-only">交易明细</h2>
 
         <div class="transaction-metrics" aria-label="交易摘要">
           <article class="transaction-metric-card">

@@ -381,7 +381,7 @@ function transactionTime(value) {
 function filteredTransactions() {
   const orders = Array.isArray(account?.orders) ? account.orders : [];
   const query = el("transactionSearch").value.trim().toLocaleLowerCase();
-  const range = el("transactionRange").value;
+  const range = "all";
   const days = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 0;
   const cutoff = days ? Date.now() - days * 24 * 60 * 60 * 1000 : 0;
   return orders.filter(item => {
@@ -451,7 +451,7 @@ function renderTransactionHistory() {
   el("internalRecordCount").textContent = account ? String(allOrders.length) : "—";
   el("brokerExecutionStatus").textContent = "未连接";
 
-  const range = el("transactionRange").value;
+  const range = "all";
   el("transactionRangeLabel").textContent = TRANSACTION_RANGE_LABELS[range] ?? "All time";
   const filtered = filteredTransactions();
   const pageCount = Math.max(1,Math.ceil(filtered.length / transactionPageSize));
@@ -672,7 +672,7 @@ el("transactionSearch").addEventListener("input",() => {
   transactionPage = 1;
   renderTransactionHistory();
 });
-el("transactionRange").addEventListener("change",() => {
+el("transactionSearch").addEventListener("change",() => {
   transactionPage = 1;
   renderTransactionHistory();
 });

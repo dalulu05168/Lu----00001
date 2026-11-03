@@ -217,6 +217,13 @@
             <p id="mirrorMatchCount" class="muted" role="status"></p>
             <div id="mirrorClientList" class="admin-list"><p class="muted">登录后加载权限范围内的客户。</p></div>
           </section>
+          <dialog id="mirrorDialog" class="mirror-dialog" aria-label="CN Capital 客户手机镜像与管理操作">
+            <header class="mirror-modal-header">
+              <div><span>CN CAPITAL / CLIENT SESSION</span><h3>客户手机镜像</h3>
+                <p>账户数据来自客户授权范围内的服务端快照；管理员操作需要独立授权。</p></div>
+              <button id="mirrorDialogClose" class="outline" type="button" aria-label="关闭客户手机镜像">关闭 ✕</button>
+            </header>
+            <div class="mirror-dialog-layout">
           <section class="mirror-phone" aria-label="客户 App 数据快照">
             <div class="mirror-device">
               <div class="mirror-top">
@@ -282,6 +289,8 @@
             </section>
             <p class="mirror-disclosure">账户类型为内部分类。“真实账户待接入”不代表真实券商已连接。提现审核通过不代表资金已划转；贷款资格不代表已经放款。</p>
           </section>
+            </div>
+          </dialog>
         </div>
       </section>
       <section class="admin-pane" data-pane="catalog" hidden>

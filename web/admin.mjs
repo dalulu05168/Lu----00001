@@ -653,11 +653,28 @@ el("mirrorReviewForm").addEventListener("submit",async event=>{
  }finally{button.disabled=false;}
 });
 
+function openMirrorDialog(){
+ const dialog=el("mirrorDialog");
+ if(dialog.open)return;
+ if(typeof dialog.showModal==="function")dialog.showModal();
+ else dialog.setAttribute("open","");
+}
+function closeMirrorDialog(){
+ const dialog=el("mirrorDialog");
+ if(!dialog.open)return;
+ if(typeof dialog.close==="function")dialog.close();
+ else dialog.removeAttribute("open");
+}
+el("mirrorDialogClose").addEventListener("click",closeMirrorDialog);
+el("mirrorDialog").addEventListener("click",event=>{
+ if(event.target===el("mirrorDialog"))closeMirrorDialog();
+});
 async function selectMirrorClient(clientId){
   const match=mirrorClients.find(x=>x.id===clientId);
   if(!match)return;
   selectedMirrorClientId=clientId;mirrorSnapshot=null;
   activateAdminPane("mirror");
+  openMirrorDialog();
   clearMirrorOperations();
   el("mirrorOperations").hidden=false;
   el("mirrorOperationsCustomer").textContent=match.email;
@@ -1195,7 +1212,7 @@ el("adminLogout").addEventListener("click",()=>{
   if(expiredToken)void api("/admin/logout",{method:"POST",token:expiredToken}).catch(()=>{});
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
-  clearMirrorOperations();
+  clearMirrorOperations();closeMirrorDialog();
   subadminDirectory=[];closeClientDetail();closeSubadminDetail();
   caseSerial++;fundingSerial++;caseRows=[];clearCaseSelection();
   el("workflowItems").replaceChildren();el("fundingRequestRows").replaceChildren();
@@ -1221,6 +1238,7 @@ el("adminMobileNavToggle").addEventListener("click",()=>{
   setMobileNavExpanded(el("adminMobileNavToggle").getAttribute("aria-expanded")!=="true");
 });
 function activateAdminPane(page) {
+  if(page!=="mirror")closeMirrorDialog();
   if(page==="clients")closeClientDetail();
   if(page==="audit")void refreshMirrorAudit();
   if(page==="approvals")void refreshCaseList();
