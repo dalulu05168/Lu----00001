@@ -83,7 +83,8 @@ function openClientDetail(clientId){
     detailRow("客户邮箱",c.email),detailRow("客户编号",c.id),
     detailRow("归属子账号",c.subadmin_user_id||"未绑定子账号"),
     detailRow("关联时间",dateLabel(c.created_at)),
-    detailRow("VIP / KYC / 登录 / 提现 / 贷款 / 账户分类","尚无已接通管理数据")
+    detailRow("账户管理策略","请查看下方 VIP、登录、提现及贷款申请资格"),
+    detailRow("身份认证与银行卡","请在业务申请审核查看工单；第三方核验尚未接入")
   );
   el("clientDetail").hidden=false;
   void refreshClientPolicy(clientId);

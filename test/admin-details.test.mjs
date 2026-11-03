@@ -35,7 +35,7 @@ test("authorized client and subadmin directories open detail workspaces, mirror 
     el("clients").querySelector(".record-detail-open").click();
     assert.equal(el("clientDetail").hidden,false);
     assert.match(el("clientDetailFields").textContent,/client@example.test/);
-    assert.match(el("clientDetailFields").textContent,/尚无已接通管理数据/);
+    assert.match(el("clientDetailFields").textContent,/业务申请审核/);
     el("clientDetailMirror").click();await pause(50);
     assert.equal(el("mirrorEmail").textContent,"client@example.test");
     el("closeClientDetail").click();assert.equal(el("clientDetail").hidden,true);
