@@ -1,4 +1,4 @@
-import React,{useCallback,useEffect,useMemo,useState} from "react";
+import React,{useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {ActivityIndicator,Alert,KeyboardAvoidingView,Linking,Platform,Pressable,RefreshControl,SafeAreaView,ScrollView,Share,StatusBar,StyleSheet,Text,TextInput,View} from "react-native";
 import * as SecureStore from "expo-secure-store";
 import {accountSnapshot,ApiError,changeWatchlist,deletionStatus,login,logout,sendSupport,submitDeletionRequest,support,watchlist, type DeletionStatus,type Snapshot,type SupportMessage,type WatchItem} from "./src/api";
@@ -36,35 +36,48 @@ export default function App(){
   const [deletionPassword,setDeletionPassword]=useState("");
   const [deletionRequest,setDeletionRequest]=useState<DeletionStatus|null>(null);
   const [deletionBusy,setDeletionBusy]=useState(false);
+  const sessionRef=useRef<string|null>(null);
   useEffect(()=>{let active=true;SecureStore.getItemAsync(SESSION_KEY)
-    .then(value=>{if(active)setToken(value);})
+    .then(value=>{if(active){sessionRef.current=value;setToken(value);}})
     .catch(()=>{if(active)setError("安全存储不可用，请检查设备设置。");})
     .finally(()=>{if(active)setBooting(false);});
     return()=>{active=false;};
   },[]);
-  const revokeLocally=useCallback(async()=>{await SecureStore.deleteItemAsync(SESSION_KEY).catch(()=>{});setToken(null);setSnapshot(null);setItems([]);setSupportMessages([]);setDeletionRequest(null);setDeletionPassword("");setTab("overview");},[]);
+  const revokeLocally=useCallback(async()=>{
+    // Invalidate UI access synchronously before any pending network request can finish.
+    sessionRef.current=null;setToken(null);setSnapshot(null);setItems([]);
+    setSupportMessages([]);setDeletionRequest(null);setDeletionPassword("");setTab("overview");
+    try{await SecureStore.deleteItemAsync(SESSION_KEY);}
+    catch{setError("设备安全存储清理未能确认；请确认服务器会话已撤销。");}
+  },[]);
   const refresh=useCallback(async(currentToken:string)=>{
     setRefreshing(true);setError("");
     try {
       const data=await accountSnapshot(currentToken);
+      if(sessionRef.current!==currentToken)return;
       setSnapshot(data);
-      try{setItems(await watchlist(currentToken));}
-      catch(e){setError("账户已加载，自选列表读取失败："+readableError(e));}
+      try{
+        const list=await watchlist(currentToken);
+        if(sessionRef.current===currentToken)setItems(list);
+      }catch(e){if(sessionRef.current===currentToken)setError("账户已加载，自选列表读取失败："+readableError(e));}
     } catch(e){
+      if(sessionRef.current!==currentToken)return;
       if(e instanceof ApiError&&e.status===401)await revokeLocally();
       setError(readableError(e));
-    } finally{setRefreshing(false);}
+    } finally{if(sessionRef.current===currentToken)setRefreshing(false);}
   },[revokeLocally]);
   useEffect(()=>{if(token)void refresh(token);},[token,refresh]);
   const loadSupport=useCallback(async(currentToken:string)=>{
     setSupportBusy(true);
-    try{const data=await support(currentToken);setSupportMessages(data.messages);setSupportStatus(data.thread?.status||"未创建会话");}
-    catch(e){setError("客服消息读取失败："+readableError(e));}
-    finally{setSupportBusy(false);}
+    try{const data=await support(currentToken);
+      if(sessionRef.current===currentToken){setSupportMessages(data.messages);setSupportStatus(data.thread?.status||"未创建会话");}
+    }catch(e){if(sessionRef.current===currentToken)setError("客服消息读取失败："+readableError(e));}
+    finally{if(sessionRef.current===currentToken)setSupportBusy(false);}
   },[]);
   const refreshDeletionStatus=useCallback(async(currentToken:string)=>{
-    try{setDeletionRequest(await deletionStatus(currentToken));}
-    catch(e){setError("注销申请状态读取失败："+readableError(e));}
+    try{const result=await deletionStatus(currentToken);
+      if(sessionRef.current===currentToken)setDeletionRequest(result);
+    }catch(e){if(sessionRef.current===currentToken)setError("注销申请状态读取失败："+readableError(e));}
   },[]);
   useEffect(()=>{if(token&&tab==="account"){
     void loadSupport(token);
@@ -77,7 +90,7 @@ export default function App(){
       const session=await login(email,password);
       if(!session?.token)throw new Error("服务器没有返回有效会话。");
       await SecureStore.setItemAsync(SESSION_KEY,session.token);
-      setPassword("");setToken(session.token);
+      sessionRef.current=session.token;setPassword("");setToken(session.token);
     }catch(e){setError(readableError(e));}
     finally{setBusy(false);}
   }
@@ -85,28 +98,29 @@ export default function App(){
     const usedToken=token;
     if(!usedToken)return;
     setBusy(true);setError("");
+    await revokeLocally();
     try{await logout(usedToken);}
-    catch(e){setError("服务器退出请求未确认，本机登录凭证将被清除："+readableError(e));}
-    finally{await revokeLocally();setBusy(false);}
+    catch(e){setError("服务器会话撤销未能确认（本机会话已关闭）："+readableError(e));}
+    finally{setBusy(false);}
   }
   async function addItem(){
     const upper=symbol.trim().toUpperCase();
     if(!/^[A-Z0-9][A-Z0-9.-]{0,23}$/.test(upper)){setError("代码只允许大写英文字母、数字、点和连字符（1—24位）。");return;}
     if(!token)return;
     setBusy(true);setError("");
-    try{await changeWatchlist(token,{market,symbol:upper});setItems(await watchlist(token));setSymbol("");}
+    try{const ownToken=token;await changeWatchlist(ownToken,{market,symbol:upper});const list=await watchlist(ownToken);if(sessionRef.current===ownToken){setItems(list);setSymbol("");}}
     catch(e){setError(readableError(e));}finally{setBusy(false);}
   }
   async function removeItem(item:WatchItem){
     if(!token)return;
     setBusy(true);
-    try{await changeWatchlist(token,{market:item.market,symbol:item.symbol},true);setItems(await watchlist(token));}
+    try{const ownToken=token;await changeWatchlist(ownToken,{market:item.market,symbol:item.symbol},true);const list=await watchlist(ownToken);if(sessionRef.current===ownToken)setItems(list);}
     catch(e){setError(readableError(e));}finally{setBusy(false);}
   }
   async function postSupport(){
     if(!token||!message.trim()||message.trim().length>4000)return;
     setSupportBusy(true);setError("");
-    try{await sendSupport(token,message.trim());setMessage("");await loadSupport(token);}
+    try{const ownToken=token;await sendSupport(ownToken,message.trim());if(sessionRef.current===ownToken){setMessage("");await loadSupport(ownToken);}}
     catch(e){setError(readableError(e));}
     finally{setSupportBusy(false);}
   }
@@ -118,7 +132,8 @@ export default function App(){
     if(!token||deletionPassword.length<1){setError("请先输入当前账户密码以确认本人操作。");return;}
     setDeletionBusy(true);setError("");
     try{
-      const result=await submitDeletionRequest(token,deletionPassword);
+      const ownToken=token;const result=await submitDeletionRequest(ownToken,deletionPassword);
+      if(sessionRef.current!==ownToken)return;
       setDeletionRequest(result);setDeletionPassword("");
       Alert.alert("已提交注销申请","服务器已经登记申请，但账户与相关数据尚未确认删除。具体处理以后台核验结果为准。");
     }catch(e){setError(readableError(e));}
