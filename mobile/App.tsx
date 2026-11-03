@@ -1,7 +1,8 @@
 import React,{useCallback,useEffect,useMemo,useState} from "react";
-import {ActivityIndicator,Alert,KeyboardAvoidingView,Platform,Pressable,RefreshControl,SafeAreaView,ScrollView,Share,StatusBar,StyleSheet,Text,TextInput,View} from "react-native";
+import {ActivityIndicator,Alert,KeyboardAvoidingView,Linking,Platform,Pressable,RefreshControl,SafeAreaView,ScrollView,Share,StatusBar,StyleSheet,Text,TextInput,View} from "react-native";
 import * as SecureStore from "expo-secure-store";
-import {accountSnapshot,ApiError,changeWatchlist,login,logout,sendSupport,support,watchlist, type Snapshot,type SupportMessage,type WatchItem} from "./src/api";
+import {accountSnapshot,ApiError,changeWatchlist,deletionStatus,login,logout,sendSupport,submitDeletionRequest,support,watchlist, type DeletionStatus,type Snapshot,type SupportMessage,type WatchItem} from "./src/api";
+import {externalDeletionUrl,privacyPolicyUrl} from "./src/links";
 import {amount,dateLabel,orderCsv,shares} from "./src/format";
 
 type Tab="overview"|"positions"|"orders"|"watchlist"|"account";
@@ -32,13 +33,16 @@ export default function App(){
   const [query,setQuery]=useState(""),[market,setMarket]=useState("US"),[symbol,setSymbol]=useState("");
   const [supportMessages,setSupportMessages]=useState<SupportMessage[]>([]),[supportStatus,setSupportStatus]=useState(""),[message,setMessage]=useState("");
   const [supportBusy,setSupportBusy]=useState(false);
+  const [deletionPassword,setDeletionPassword]=useState("");
+  const [deletionRequest,setDeletionRequest]=useState<DeletionStatus|null>(null);
+  const [deletionBusy,setDeletionBusy]=useState(false);
   useEffect(()=>{let active=true;SecureStore.getItemAsync(SESSION_KEY)
     .then(value=>{if(active)setToken(value);})
     .catch(()=>{if(active)setError("安全存储不可用，请检查设备设置。");})
     .finally(()=>{if(active)setBooting(false);});
     return()=>{active=false;};
   },[]);
-  const revokeLocally=useCallback(async()=>{await SecureStore.deleteItemAsync(SESSION_KEY).catch(()=>{});setToken(null);setSnapshot(null);setItems([]);setSupportMessages([]);setTab("overview");},[]);
+  const revokeLocally=useCallback(async()=>{await SecureStore.deleteItemAsync(SESSION_KEY).catch(()=>{});setToken(null);setSnapshot(null);setItems([]);setSupportMessages([]);setDeletionRequest(null);setDeletionPassword("");setTab("overview");},[]);
   const refresh=useCallback(async(currentToken:string)=>{
     setRefreshing(true);setError("");
     try {
@@ -58,7 +62,14 @@ export default function App(){
     catch(e){setError("客服消息读取失败："+readableError(e));}
     finally{setSupportBusy(false);}
   },[]);
-  useEffect(()=>{if(token&&tab==="account")void loadSupport(token);},[token,tab,loadSupport]);
+  const refreshDeletionStatus=useCallback(async(currentToken:string)=>{
+    try{setDeletionRequest(await deletionStatus(currentToken));}
+    catch(e){setError("注销申请状态读取失败："+readableError(e));}
+  },[]);
+  useEffect(()=>{if(token&&tab==="account"){
+    void loadSupport(token);
+    void refreshDeletionStatus(token);
+  }},[token,tab,loadSupport,refreshDeletionStatus]);
   async function signIn(){
     if(!email.trim()||!password){setError("请输入账户邮箱及密码。");return;}
     setBusy(true);setError("");
@@ -99,6 +110,27 @@ export default function App(){
     catch(e){setError(readableError(e));}
     finally{setSupportBusy(false);}
   }
+  const openSafeLink=(url:string|null)=>{
+    if(!url){setError("此链接尚未配置有效的 HTTPS 地址，不可用于正式上架。");return;}
+    void Linking.openURL(url).catch(()=>setError("无法打开链接，请检查网络连接。"));
+  };
+  async function submitAccountDeletion(){
+    if(!token||deletionPassword.length<1){setError("请先输入当前账户密码以确认本人操作。");return;}
+    setDeletionBusy(true);setError("");
+    try{
+      const result=await submitDeletionRequest(token,deletionPassword);
+      setDeletionRequest(result);setDeletionPassword("");
+      Alert.alert("已提交注销申请","服务器已经登记申请，但账户与相关数据尚未确认删除。具体处理以后台核验结果为准。");
+    }catch(e){setError(readableError(e));}
+    finally{setDeletionBusy(false);}
+  }
+  function confirmAccountDeletion(){
+    if(!deletionPassword){setError("请输入当前账户密码。");return;}
+    Alert.alert("确认申请注销账户","这是正式的账户删除申请。部分财务或审计资料可能需要依法保留；申请提交不代表数据已删除。",[
+      {text:"取消",style:"cancel"},
+      {text:"继续提交",style:"destructive",onPress:()=>{void submitAccountDeletion();}}
+    ]);
+  }
   const filteredOrders=useMemo(()=>snapshot?.orders.filter(o=>(o.market+" "+o.symbol+" "+o.side).toLowerCase().includes(query.toLowerCase().trim()))||[],[snapshot,query]);
   if(booting)return <SafeAreaView style={styles.root}><StatusBar barStyle="light-content"/><View style={styles.center}><ActivityIndicator color={COLORS.blue}/><Hint>正在读取安全登录状态…</Hint></View></SafeAreaView>;
   return <SafeAreaView style={styles.root}><StatusBar barStyle="light-content"/>
@@ -117,6 +149,8 @@ export default function App(){
         </Panel>
         {error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}
         <Hint>本 App 仅查看内部账户及业务记录，不提供真实证券交易服务。</Hint>
+        <Button secondary label="隐私政策" onPress={()=>openSafeLink(privacyPolicyUrl())}/>
+        <Button secondary label="网页申请账户注销" onPress={()=>openSafeLink(externalDeletionUrl())}/>
       </ScrollView>
     </KeyboardAvoidingView>:<>
       <View style={styles.topbar}><View><Text style={styles.brand}>Nuvexa<Text style={styles.logoAccent}>Pro</Text></Text><Text style={styles.eyebrow}>CLIENT WORKSPACE</Text></View><Pressable accessibilityRole="button" onPress={()=>token&&void refresh(token)}><Text style={styles.refresh}>↻ 刷新</Text></Pressable></View>
@@ -155,8 +189,29 @@ export default function App(){
             <TextInput style={[styles.input,styles.multiline]} multiline numberOfLines={3} maxLength={4000} placeholder="给客服留言" placeholderTextColor="#7e8a9c" value={message} onChangeText={setMessage}/>
             <Button disabled={supportBusy||message.trim().length===0||supportStatus==="CLOSED"} label="发送消息" onPress={()=>void postSupport()}/>
           </Panel>
+          <Panel>
+            <Heading>隐私与账户资料</Heading>
+            <Hint>隐私政策和网页注销入口由经过验证的 HTTPS 服务提供，不会在链接中传递登录凭证。</Hint>
+            <Button secondary label="查看隐私政策" onPress={()=>openSafeLink(privacyPolicyUrl())}/>
+            <Button secondary label="打开网页注销申请" onPress={()=>openSafeLink(externalDeletionUrl())}/>
+          </Panel>
+          <Panel>
+            <Heading>申请删除账户</Heading>
+            <Hint>可在 App 内发起账户注销，也可在卸载 App 后使用网页入口。提交申请不等于已完成删除。</Hint>
+            <Hint>当前状态：{deletionRequest?.status==="NONE"?"尚未申请":deletionRequest?.status==="REQUESTED"?"已提交，待处理":deletionRequest?.status==="UNDER_REVIEW"?"后台核验中":deletionRequest?.status==="COMPLETED"?"系统记录已完成处理":deletionRequest?.status==="REJECTED"?"需重新联系后台":"正在查询"}</Hint>
+            {deletionRequest?.requestId?<Text selectable style={styles.accountId}>申请编号：{deletionRequest.requestId}</Text>:null}
+            {deletionRequest?.status!=="COMPLETED"?<>
+              <Text style={styles.label}>重新输入当前账户密码</Text>
+              <TextInput style={styles.input} secureTextEntry autoComplete="off" autoCapitalize="none"
+                placeholder="当前密码" placeholderTextColor="#7e8a9c" value={deletionPassword}
+                onChangeText={setDeletionPassword}/>
+              <Button secondary label={deletionBusy?"正在提交…":"确认申请删除账户"} disabled={deletionBusy||deletionPassword.length===0}
+                onPress={confirmAccountDeletion}/>
+            </>:null}
+            <Hint>实际删除范围及依法保留的记录，必须以正式隐私政策和最终处理结果为准。</Hint>
+          </Panel>
           <Panel><Heading>账户安全</Heading><Hint>会话令牌仅保存在手机的安全存储中，退出时会尝试撤销服务器会话。</Hint><Button secondary disabled={busy} label="退出登录" onPress={()=>void signOut()}/></Panel>
-          <Hint>正式上架前须补齐账号注销流程、隐私政策、审核测试账号及商店资料。</Hint>
+          <Hint>正式上架前仍需经运营主体核准隐私政策、数据保留规则、审核测试账户及商店资料。</Hint>
         </>:null}
         <View style={{height:24}}/>
       </ScrollView>
