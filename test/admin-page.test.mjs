@@ -28,11 +28,14 @@ test("master and subadmin login gates, password-only setup and role-based admin 
     assert.equal(el("adminTopbar").hidden,true);
     assert.equal(el("admin-login").hidden,false);
     assert.equal(el("bootstrapPanel").hidden,true);
-    assert.doesNotMatch(html,/6 位动态验证码|adminOtp|activateForm/);
+    assert.doesNotMatch(html,/6 位动态验证码|adminOtp|activateForm|TOTP/);
+    assert.equal(el("bootstrapEmail").value,"");
+    assert.equal(el("recoverEmail").value,"");
 
     el("showAdminSetup").click();
     assert.equal(el("admin-login").hidden,true);
     assert.equal(el("bootstrapPanel").hidden,false);
+    el("bootstrapEmail").value="chennan05168@gmail.com";
     el("bootstrapPassword").value="testing-master-password";
     el("bootstrapKey").value="owner-initialization-proof";
     el("bootstrapForm").dispatchEvent(new dom.window.Event("submit",{cancelable:true,bubbles:true}));
@@ -43,6 +46,7 @@ test("master and subadmin login gates, password-only setup and role-based admin 
     assert.deepEqual(Object.keys(setup.body).sort(),["email","password","setupKey"]);
     assert.match(el("bootstrapFeedback").textContent,/创建成功/);
 
+    el("recoverEmail").value="chennan05168@gmail.com";
     el("recoverPassword").value="replacement-admin-password";
     el("recoverKey").value="owner-initialization-proof";
     el("recoverForm").dispatchEvent(new dom.window.Event("submit",{cancelable:true,bubbles:true}));
