@@ -1,29 +1,21 @@
-# Independent QA preview only. DO NOT attach the original production database.
+# Separate static marketing preview; no access to the customer trading portal or QA database.
 services:
   - type: web
-    name: global-stock-qa-preview
-    runtime: node
-    region: singapore
-    plan: free
-    branch: dev/restore-four-role-platform-20261103
-    autoDeployTrigger: checksPass
-    buildCommand: npm install --omit=dev
-    startCommand: node src/server.mjs
-    healthCheckPath: /ready
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        sync: false
-      - key: ADMIN_MASTER_EMAIL
-        sync: false
-      - key: ADMIN_BOOTSTRAP_SECRET
-        generateValue: true
-
-# Future custom domains after QA rollout is approved:
-# domains:
-#   - nuvexapro.com
-#   - admin.nuvexapro.com
-# Intentionally not activated here. A Blueprint sync may add the domain,
-# change billing after the free custom-domain allowance, and affect live DNS.
-# Add in Render Settings > Custom Domains only after checking plan/quota.
+    runtime: static
+    name: cn-capital-site-preview
+    branch: deploy/cn-capital-render-static
+    buildCommand: node check.mjs && node --check main.js && node build-static.mjs
+    staticPublishPath: dist
+    autoDeployTrigger: commit
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+# Deliberately no custom domain. Deploy and verify preview first,
+# then bind about.nuvexapro.com only after DNS ownership and approvals.

@@ -1,0 +1,27 @@
+name: CN Capital marketing static preview
+on:
+  push:
+    branches: ["deploy/cn-capital-render-static"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node check.mjs
+      - run: node --check main.js
+      - run: node --check build-static.mjs
+      - run: node build-static.mjs
+      - name: Assert public bundle excludes client login and server
+        run: |
+          test -f dist/index.html
+          test -f dist/brand.png
+          test ! -e dist/server.mjs
+          test ! -e dist/render.yaml
+          ! grep -Eiq 'id="entryGate"|id="entryForm"|<form' dist/index.html
