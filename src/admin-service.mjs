@@ -1,9 +1,14 @@
-import {randomUUID,randomInt} from "node:crypto";
+import {randomUUID,randomInt,timingSafeEqual} from "node:crypto";
 import {hashPassword,verifyPassword,createSession} from "./auth.mjs";
-import {newTotpSecret as generateTotpSecret,currentOtp,checkOtp} from "./totp.mjs";
-import {protectTotp,unprotectTotp,matchBootstrapKey} from "./admin-secrets.mjs";
+
 
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function matchBootstrapKey(value){
+  const proof=process.env.ADMIN_BOOTSTRAP_SECRET;
+  if(typeof value!=="string"||typeof proof!=="string"||proof.length<32)return false;
+  const a=Buffer.from(value),b=Buffer.from(proof);
+  return a.length===b.length&&timingSafeEqual(a,b);
+}
 const SYMBOL=/^[A-Z0-9][A-Z0-9.-]{0,23}$/;
 const MARKETS=new Set(["US","HK","CN","MY"]);
 const TYPES=new Set(["STOCK","FUND","IPO"]);
@@ -25,82 +30,78 @@ function safeListing(value){
 export async function roleFor(db,session) {
   if(!session?.userId||session.adminVerified!==true)return null;
   const r=await db.query(`SELECT user_id,role,parent_user_id FROM admin_roles
-    WHERE user_id=$1 AND twofa_confirmed_at IS NOT NULL`,[session.userId]);
+    WHERE user_id=$1`,[session.userId]);
   return r.rows.length===1 ? {
     userId:r.rows[0].user_id,role:r.rows[0].role,parentUserId:r.rows[0].parent_user_id
   }:null;
 }
 export async function bootstrapMaster(db,{email,password,setupKey}){
-  const authorizedEmail=process.env.ADMIN_MASTER_EMAIL?.trim().toLowerCase();
-  if(!authorizedEmail)invalid("Master setup is not configured");
+  const allowed=process.env.ADMIN_MASTER_EMAIL?.trim().toLowerCase();
   const normalized=getEmail(email);
-  if(normalized!==authorizedEmail)invalid("Master account is not authorized");
-  if(!matchBootstrapKey(setupKey))invalid("Invalid setup proof");
-  const passwordHash=await hashPassword(password);
-  const secret=generateTotpSecret(),protectedSecret=protectTotp(secret);
-  const userId=randomUUID(),accountId=randomUUID();
-  const client=await db.connect();
-  let begun=false;
+  if(!allowed||normalized!==allowed||!matchBootstrapKey(setupKey))invalid("Invalid setup proof");
+  const passwordHash=await hashPassword(password),userId=randomUUID(),accountId=randomUUID();
+  const c=await db.connect();let tx=false;
   try{
-    await client.query("BEGIN");begun=true;
-    // A unique partial index enforces one master even for simultaneous requests.
-    const exists=await client.query("SELECT user_id FROM admin_roles WHERE role='MASTER' FOR UPDATE");
+    await c.query("BEGIN");tx=true;
+    const exists=await c.query("SELECT user_id FROM admin_roles WHERE role='MASTER' FOR UPDATE");
     if(exists.rows.length)invalid("Master already provisioned");
-    const occupied=await client.query("SELECT id FROM app_users WHERE email=$1 FOR UPDATE",[normalized]);
+    const occupied=await c.query("SELECT id FROM app_users WHERE email=$1 FOR UPDATE",[normalized]);
     if(occupied.rows.length)invalid("Master email is already registered");
-    await client.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,$3)",[userId,normalized,passwordHash]);
-    await client.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,0)",[accountId,userId]);
-    await client.query("INSERT INTO admin_roles(user_id,role,totp_secret_ciphertext) VALUES($1,'MASTER',$2)",[userId,protectedSecret]);
-    await client.query("COMMIT");begun=false;
-    return {role:"MASTER",totpSecret:secret,
-      setupUri:"otpauth://totp/GlobalStockPlatform:"+encodeURIComponent(normalized)+
-        "?secret="+secret+"&issuer=GlobalStockPlatform"};
-  }catch(error){if(begun)await client.query("ROLLBACK");throw error;}
-  finally{client.release();}
+    await c.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,$3)",[userId,normalized,passwordHash]);
+    await c.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,0)",[accountId,userId]);
+    await c.query("INSERT INTO admin_roles(user_id,role,password_setup_pending) VALUES($1,'MASTER',false)",[userId]);
+    await c.query("COMMIT");tx=false;
+    return {role:"MASTER",ready:true};
+  }catch(error){if(tx)await c.query("ROLLBACK");throw error;}
+  finally{c.release();}
 }
-export async function confirmAdminTotp(db,{email,password,otp}){
-  if(typeof password!=="string"||typeof otp!=="string")invalid("Invalid enrollment credentials");
+export async function recoverPendingMaster(db,{email,password,setupKey}){
   const normalized=getEmail(email);
-  const r=await db.query(`SELECT a.user_id,a.role,a.totp_secret_ciphertext,
-    a.twofa_confirmed_at,u.password_hash
-    FROM admin_roles a JOIN app_users u ON u.id=a.user_id WHERE u.email=$1`,[normalized]);
-  if(r.rows.length!==1||r.rows[0].twofa_confirmed_at)invalid("Admin enrollment unavailable");
-  if(!(await verifyPassword(password,r.rows[0].password_hash)) ||
-      !checkOtp(unprotectTotp(r.rows[0].totp_secret_ciphertext),otp)){
-    const error=new Error("Invalid enrollment credentials");error.statusCode=401;throw error;
-  }
-  await db.query("UPDATE admin_roles SET twofa_confirmed_at=now() WHERE user_id=$1 AND twofa_confirmed_at IS NULL",[r.rows[0].user_id]);
-  // Do not block new customer registrations until a subadmin invite is ready.
-  if(r.rows[0].role==="SUBADMIN")
-    await db.query("UPDATE registration_policy SET invite_required=true WHERE id=1");
-  return {activated:true,role:r.rows[0].role};
+  const allowed=process.env.ADMIN_MASTER_EMAIL?.trim().toLowerCase();
+  if(!allowed||normalized!==allowed||!matchBootstrapKey(setupKey))invalid("Invalid setup proof");
+  const hash=await hashPassword(password);
+  const c=await db.connect();let tx=false;
+  try{
+    await c.query("BEGIN");tx=true;
+    const r=await c.query(`SELECT a.user_id,a.password_setup_pending FROM admin_roles a
+      JOIN app_users u ON u.id=a.user_id WHERE a.role='MASTER' AND u.email=$1
+      FOR UPDATE OF a,u`,[normalized]);
+    if(r.rows.length!==1||r.rows[0].password_setup_pending!==true)
+      invalid("Account recovery unavailable");
+    const userId=r.rows[0].user_id;
+    await c.query("UPDATE app_users SET password_hash=$2 WHERE id=$1",[userId,hash]);
+    await c.query("UPDATE admin_roles SET password_setup_pending=false WHERE user_id=$1",[userId]);
+    await c.query("UPDATE user_sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL",[userId]);
+    await c.query("COMMIT");tx=false;
+    return {role:"MASTER",ready:true};
+  }catch(error){if(tx)await c.query("ROLLBACK");throw error;}
+  finally{c.release();}
 }
-export async function adminLogin(db,{email,password,otp}){
-  if(typeof password!=="string"||typeof otp!=="string")invalid("Invalid admin login");
-  const r=await db.query(`SELECT u.id,u.password_hash,a.id AS account_id,r.role,r.totp_secret_ciphertext
+export async function adminLogin(db,{email,password}){
+  if(typeof password!=="string")invalid("Invalid admin login");
+  const r=await db.query(`SELECT u.id,u.password_hash,a.id AS account_id,r.role
     FROM app_users u JOIN accounts a ON a.user_id=u.id
-    JOIN admin_roles r ON r.user_id=u.id AND r.twofa_confirmed_at IS NOT NULL
-    WHERE u.email=$1`,[getEmail(email)]);
-  if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash))||
-     !checkOtp(unprotectTotp(r.rows[0].totp_secret_ciphertext),otp)) {
+    JOIN admin_roles r ON r.user_id=u.id WHERE u.email=$1`,[getEmail(email)]);
+  if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash))){
     const error=new Error("Invalid admin credentials");error.statusCode=401;throw error;
   }
-  const row=r.rows[0],expiresAt=new Date(Date.now()+30*60*1000);
+  const row=r.rows[0];
+  await db.query("UPDATE admin_roles SET password_setup_pending=false WHERE user_id=$1 AND password_setup_pending=true",[row.id]);
+  const expiresAt=new Date(Date.now()+30*60*1000);
   const token=await createSession(db,{userId:row.id,accountId:row.account_id,expiresAt,adminVerified:true});
   return {token,role:row.role,expiresAt:expiresAt.toISOString()};
 }
 export async function createSubadmin(db,actor,{email,password}){
   if(actor?.role!=="MASTER")invalid("Only master can create subadmins");
   const normalized=getEmail(email),passwordHash=await hashPassword(password);
-  const secret=generateTotpSecret(),encrypted=protectTotp(secret);
   const userId=randomUUID(),accountId=randomUUID(),inviteId=randomUUID();
   const client=await db.connect();let begun=false;
   try{
     await client.query("BEGIN");begun=true;
     await client.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,$3)",[userId,normalized,passwordHash]);
     await client.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,0)",[accountId,userId]);
-    await client.query(`INSERT INTO admin_roles(user_id,role,parent_user_id,totp_secret_ciphertext)
-      VALUES($1,'SUBADMIN',$2,$3)`,[userId,actor.userId,encrypted]);
+    await client.query(`INSERT INTO admin_roles(user_id,role,parent_user_id,password_setup_pending)
+      VALUES($1,'SUBADMIN',$2,false)`,[userId,actor.userId]);
     // Randomized public enrollment code, never used as an authentication factor.
     let inviteCode;
     for(let tries=0;tries<10;tries++){
@@ -112,22 +113,20 @@ export async function createSubadmin(db,actor,{email,password}){
     await client.query(`INSERT INTO invite_codes(id,subadmin_user_id,code,expires_at,max_uses)
       VALUES($1,$2,$3,now()+interval '30 days',100)`,[inviteId,userId,inviteCode]);
     await client.query("COMMIT");begun=false;
-    return {userId,email:normalized,inviteCode,totpSecret:secret,
-      setupUri:"otpauth://totp/GlobalStockPlatform:"+encodeURIComponent(normalized)+
-        "?secret="+secret+"&issuer=GlobalStockPlatform"};
+    return {userId,email:normalized,inviteCode};
   }catch(error){if(begun)await client.query("ROLLBACK");throw error;}
   finally{client.release();}
 }
 export async function listSubadmins(db,actor){
   if(actor?.role==="MASTER"){
-    const r=await db.query(`SELECT a.user_id,u.email,a.twofa_confirmed_at,i.code,i.expires_at,i.uses,i.max_uses
+    const r=await db.query(`SELECT a.user_id,u.email,i.code,i.expires_at,i.uses,i.max_uses
       FROM admin_roles a JOIN app_users u ON u.id=a.user_id
       LEFT JOIN invite_codes i ON i.subadmin_user_id=a.user_id
       WHERE a.role='SUBADMIN' AND a.parent_user_id=$1 ORDER BY a.created_at DESC`,[actor.userId]);
     return r.rows;
   }
   if(actor?.role==="SUBADMIN"){
-    const r=await db.query(`SELECT a.user_id,u.email,a.twofa_confirmed_at,i.code,i.expires_at,i.uses,i.max_uses
+    const r=await db.query(`SELECT a.user_id,u.email,i.code,i.expires_at,i.uses,i.max_uses
       FROM admin_roles a JOIN app_users u ON u.id=a.user_id
       LEFT JOIN invite_codes i ON i.subadmin_user_id=a.user_id WHERE a.user_id=$1`,[actor.userId]);
     return r.rows;

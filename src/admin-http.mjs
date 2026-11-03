@@ -1,6 +1,6 @@
 import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} from "./admin-mirror.mjs";
 import {
-  roleFor,bootstrapMaster,confirmAdminTotp,adminLogin,createSubadmin,
+  roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
 } from "./admin-service.mjs";
 function response(res,status,value){
@@ -36,7 +36,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
   if(!route.startsWith("/api/admin/")&&route!=="/api/catalog")return false;
   const allowed={
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
-    "/api/admin/activate":["POST"],"/api/admin/me":["GET"],
+    "/api/admin/recover-pending-master":["POST"],"/api/admin/logout":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
@@ -52,9 +52,8 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
       const data=await input(req);
       response(res,201,await bootstrapMaster(db,data));return true;
     }
-    if(route==="/api/admin/activate"){
-      const data=await input(req);
-      response(res,200,await confirmAdminTotp(db,data));return true;
+    if(route==="/api/admin/recover-pending-master"){
+      response(res,200,await recoverPendingMaster(db,await input(req)));return true;
     }
     const authorization=req.headers.authorization??"";
     if(!authorization.startsWith("Bearer ")){
@@ -62,6 +61,11 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const session=await resolveSession(authorization.slice(7));
     if(!session?.userId){response(res,401,{error:"Authentication required"});return true;}
+    if(route==="/api/admin/logout"){
+      const {revokeSession}=await import("./auth.mjs");
+      await revokeSession(db,authorization.slice(7));
+      response(res,204,{});return true;
+    }
     if(route==="/api/catalog"){
       const data=await db.query(`SELECT id,item_type,market,symbol,display_name
         FROM listings WHERE status='PUBLISHED' ORDER BY created_at DESC LIMIT 100`);
@@ -70,7 +74,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
       }))});return true;
     }
     const actor=await roleFor(db,session);
-    if(!actor){response(res,403,{error:"Administrator 2FA session required"});return true;}
+    if(!actor){response(res,403,{error:"Administrator session required"});return true;}
     if(route==="/api/admin/me"){response(res,200,{role:actor.role,userId:actor.userId});return true;}
     if(route==="/api/admin/subaccounts"){
       if(req.method==="POST"){
