@@ -6,7 +6,7 @@ services:
     region: singapore
     plan: free
     branch: dev/restore-four-role-platform-20261103
-    autoDeployTrigger: 'off'
+    autoDeployTrigger: checksPass
     buildCommand: npm install --omit=dev
     startCommand: node src/server.mjs
     healthCheckPath: /ready

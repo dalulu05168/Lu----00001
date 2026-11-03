@@ -5,7 +5,7 @@ This is the **isolated review service** for `dev/restore-four-role-platform-2026
 ## Service
 - One Render **free** Node web service called `global-stock-qa-preview`.
 - Region: Singapore; Node server entry point: `src/server.mjs`.
-- Deployment target: this GitHub development branch only; automatic redeploys disabled.
+- Deployment target: this GitHub development branch only; automatic redeploys run only after linked GitHub checks pass.
 - Health check: `/ready`. Do not claim success merely because `/health` answers.
 - Client: `/` and administrator: `/admin.html` on the new `.onrender.com` preview host.
 - The application is an internal stock-record system, **not a broker**. Live orders are disabled without verified pricing.
@@ -71,3 +71,12 @@ Activation procedure (requires connected Render/Cloudflare write permissions):
 The configuration uses a single application/service, not two separately managed
 Render services. Separate deployments would require creating a second service and
 isolating admin API routing, not just adding two DNS names.
+
+
+## Deployment synchronization
+The Blueprint requests `autoDeployTrigger: checksPass` instead of `off`.
+Render must synchronize the Blueprint before new commits can trigger a deploy.
+GitHub Actions passing is NOT proof that Render is running that commit.
+If Blueprint sync does not apply automatically, use Render > Deploys > Manual Deploy
+> Clear build cache & deploy once to load the latest verified code. Do not modify
+old Vercel production routing or database connections.
