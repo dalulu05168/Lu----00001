@@ -48,14 +48,56 @@ function displayItems(id,rows,format){
   }
   node.replaceChildren(container);
 }
+let subadminDirectory=[],selectedSubadminId=null,selectedClientDetailId=null;
+const dateLabel=value=>value && !Number.isNaN(Date.parse(value))?new Date(value).toLocaleString("zh-CN"):"未提供";
+function detailRow(name,value){
+  const row=document.createElement("div");row.className="record-field";
+  row.append(plainNode("span",name),plainNode("strong",value??"未提供"));return row;
+}
+function closeClientDetail(){selectedClientDetailId=null;el("clientDetail").hidden=true;el("clientDetailFields").replaceChildren();}
+function closeSubadminDetail(){selectedSubadminId=null;el("subadminDetail").hidden=true;el("subadminDetailFields").replaceChildren();}
+function openClientDetail(clientId){
+  const c=mirrorClients.find(item=>item.id===clientId);
+  if(!c){closeClientDetail();return;}
+  selectedClientDetailId=c.id;
+  const target=el("clientDetailFields");target.replaceChildren(
+    detailRow("客户邮箱",c.email),detailRow("客户编号",c.id),
+    detailRow("归属子账号",c.subadmin_user_id||"未绑定子账号"),
+    detailRow("关联时间",dateLabel(c.created_at)),
+    detailRow("VIP / KYC / 登录 / 提现 / 贷款 / 账户分类","尚无已接通管理数据")
+  );
+  el("clientDetail").hidden=false;
+}
+function openSubadminDetail(userId){
+  const c=subadminDirectory.find(item=>item.user_id===userId);
+  if(!c){closeSubadminDetail();return;}
+  selectedSubadminId=c.user_id;
+  const target=el("subadminDetailFields");target.replaceChildren(
+    detailRow("管理员邮箱",c.email),detailRow("子账号编号",c.user_id),
+    detailRow("邀请码",c.code||"未提供"),
+    detailRow("邀请码使用次数",String(c.uses??0)+" / "+String(c.max_uses??"—")),
+    detailRow("邀请码到期",dateLabel(c.expires_at)),
+    detailRow("登录状态与操作权限","尚无已接通的账户策略数据")
+  );
+  el("subadminDetail").hidden=false;
+}
+function renderSubadminDirectory(items){
+  subadminDirectory=Array.isArray(items)?items:[];
+  const target=el("subadmins");target.replaceChildren();
+  if(!subadminDirectory.length){target.append(plainNode("p","暂无可查看的子账号","muted"));closeSubadminDetail();return;}
+  for(const c of subadminDirectory){
+    const row=itemRow(c.email+" · 子管理员","邀请码使用 "+(c.uses??0)+" / "+(c.max_uses??"—")+" · 到期 "+dateLabel(c.expires_at));
+    const action=document.createElement("button");action.className="outline";action.type="button";action.textContent="查看详情";
+    action.addEventListener("click",()=>openSubadminDetail(c.user_id));
+    row.append(action);target.append(row);
+  }
+  if(selectedSubadminId)openSubadminDetail(selectedSubadminId);
+}
 async function refreshSubadmins(){
   try{
     const data=await api("/admin/subaccounts");
     el("adminSubadminCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
-    displayItems("subadmins",data.items||[],x=>[
-      x.email+" · 子管理员",
-      "邀请码 "+(x.code||"—")+" · 已用 "+x.uses+"/"+x.max_uses+" · 到期 "+(x.expires_at?new Date(x.expires_at).toLocaleDateString("zh-CN"):"—")
-    ]);
+    renderSubadminDirectory(data.items);
   }catch(e){setText("subadminFeedback",e.message)}
 }
 async function refreshClients(){
@@ -87,13 +129,19 @@ function renderClientDirectory(items){
       const row=document.createElement("div");row.className="admin-list-row mirror-customer";
       const meta=document.createElement("div");
       meta.append(plainNode("div",c.email),plainNode("small",c.subadmin_user_id?"已有子账户归属":"直接注册客户"));
+      if(target===list){
+        const detail=document.createElement("button");detail.type="button";detail.className="outline record-detail-open";detail.textContent="查看详情";
+        detail.addEventListener("click",()=>openClientDetail(c.id));
+        row.append(meta,detail);
+      }else row.append(meta);
       const button=document.createElement("button");button.type="button";button.className="outline mirror-open";
       button.textContent="查看 App 镜像";
       button.disabled=!mirrorBackendReady;
       button.addEventListener("click",()=>selectMirrorClient(c.id));
-      row.append(meta,button);target.append(row);
+      row.append(button);target.append(row);
     }
   }
+  if(selectedClientDetailId)openClientDetail(selectedClientDetailId);
 }
 function setMirrorScreen(){
   const view=el("mirrorAppScreen");view.replaceChildren();
@@ -363,6 +411,11 @@ el("listingForm").addEventListener("submit",async event=>{
 el("listingCancelEdit").addEventListener("click",()=>{
   clearListingEditor();setText("listingFeedback","已取消编辑");
 });
+el("closeClientDetail").addEventListener("click",closeClientDetail);
+el("closeSubadminDetail").addEventListener("click",closeSubadminDetail);
+el("clientDetailMirror").addEventListener("click",()=>{
+  if(selectedClientDetailId)void selectMirrorClient(selectedClientDetailId);
+});
 el("refreshSubadmins").addEventListener("click",refreshSubadmins);
 el("refreshClients").addEventListener("click",refreshClients);
 el("refreshListings").addEventListener("click",refreshListings);
@@ -371,6 +424,7 @@ el("adminLogout").addEventListener("click",()=>{
   if(expiredToken)void api("/admin/logout",{method:"POST",token:expiredToken}).catch(()=>{});
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
+  subadminDirectory=[];closeClientDetail();closeSubadminDetail();
   el("mirrorAvailability").textContent="未登录";
   el("mirrorClientSearch").value="";
   el("mirrorMatchCount").textContent="";

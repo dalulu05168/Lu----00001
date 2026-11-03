@@ -90,12 +90,23 @@
             <button type="submit">创建子账户和邀请码</button>
           </form>
           <div id="subadminProvisioning" class="sensitive" hidden></div><div id="subadmins"></div>
+          <section id="subadminDetail" class="record-detail" hidden aria-label="子管理员详情">
+            <div class="heading"><h3>子管理员详情</h3><button type="button" id="closeSubadminDetail" class="outline">返回列表</button></div>
+            <div id="subadminDetailFields" class="record-fields"></div>
+            <p class="record-boundary">只展示权限范围内的账号资料。登录限制、权限调整与资金管理尚无已验收的服务端接口，不在本阶段模拟执行。</p>
+          </section>
           <p id="subadminFeedback" class="feedback" role="status"></p>
         </section>
       </section>
       <section class="admin-pane" data-pane="clients" hidden>
         <div class="pane-title"><span>CLIENT OPERATIONS</span><h2>客户归属管理</h2><p>主账户可以查看全部关联客户；子账户仅查看自己的客户。</p></div>
-        <section class="panel"><div class="heading"><h3>客户列表</h3><button type="button" id="refreshClients" class="outline">刷新</button></div><div id="clients"></div></section>
+        <section class="panel"><div class="heading"><h3>客户列表</h3><button type="button" id="refreshClients" class="outline">刷新</button></div><div id="clients"></div>
+          <section id="clientDetail" class="record-detail" hidden aria-label="客户完整详情">
+            <div class="heading"><h3>客户详情与业务入口</h3><button type="button" id="closeClientDetail" class="outline">返回列表</button></div>
+            <div id="clientDetailFields" class="record-fields"></div>
+            <div class="record-actions"><button type="button" id="clientDetailMirror" class="outline">进入客户 APP 镜像</button></div>
+            <p class="record-boundary">身份认证、VIP、银行卡、提现限制、贷款资格和账户类型暂无已接通的管理接口；不展示虚构状态，不冒充已经执行的操作。后续受控管理操作需具备服务端授权、二次确认和审计。</p>
+          </section></section>
       </section>
       <section class="admin-pane" data-pane="mirror" hidden>
         <div class="pane-title"><span>SCOPED CUSTOMER APP MIRROR</span><h2>客户 App 镜像</h2><p>授权客户账户查看，数据只读</p></div>
