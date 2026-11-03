@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400&family=Noto+Sans+SC:wght@400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
 :root{font-family:Inter,"Noto Sans SC",system-ui,sans-serif; color:#f0f2f4;background:#17191c;--bg:#17191c;--panel:#1e2023;--border:#363a3f;--fg:#f0f2f4;--dim:#92979e;--green:#20c88b;--amber:#e5b35e;font-synthesis:none;}
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;min-width:320px;background:#17191c;color:var(--fg)}

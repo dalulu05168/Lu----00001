@@ -48,17 +48,20 @@
 <section id="adminWorkspace" hidden aria-label="管理工作台">
   <div class="admin-shell">
     <aside class="admin-nav" aria-label="管理导航">
-      <div class="nav-heading">管理工作台</div>
+      <div class="nav-heading"><span class="nav-brand-mark" aria-hidden="true">N</span><span class="nav-brand-copy"><strong>NuvexaPro</strong><small>管理工作台 · SECURE OPERATIONS</small></span></div>
       <div class="nav-identity"><span id="adminRole">—</span><span class="server-status">账户密码会话</span></div>
       <button type="button" id="adminMobileNavToggle" class="outline" aria-controls="adminPages" aria-expanded="false">打开菜单</button>
       <nav id="adminPages">
+        <span class="admin-nav-group">WORKSPACE / 工作区</span>
         <button type="button" data-admin-page="dashboard" aria-current="page">概览 / Overview</button>
         <button type="button" data-admin-page="accounts">子账户 / Subaccounts</button>
+        <span class="admin-nav-group">CLIENT OPERATIONS / 客户业务</span>
         <button type="button" data-admin-page="clients">客户管理 / Clients</button>
         <button type="button" data-admin-page="mirror">客户 App 镜像 / App Mirror</button>
         <button type="button" data-admin-page="catalog">证券资料 / Instruments</button>
         <button type="button" data-admin-page="approvals">审批中心 / Approvals</button>
         <button type="button" data-admin-page="treasury">资金申请记录 / Treasury</button>
+        <span class="admin-nav-group">GOVERNANCE / 治理审计</span>
         <button type="button" data-admin-page="risk" data-required-role="MASTER">风险与权限 / Risk</button>
         <button type="button" data-admin-page="audit" data-required-role="MASTER">审计与报表 / Audit</button>
       </nav>
@@ -66,15 +69,26 @@
     </aside>
     <div class="admin-main">
       <section class="admin-pane" data-pane="dashboard" aria-label="真实数据概览">
-        <div class="pane-title"><span>管理中心 / OVERVIEW</span><h2>全局管理概览</h2><p>数据来自管理员权限范围内的现有 API；不显示无来源的余额、流水或盈利。</p></div>
+        <div class="pane-title dashboard-hero">
+          <div class="dashboard-hero-copy">
+            <span>COMMAND CENTER / OPERATIONS OVERVIEW</span>
+            <h2>全局运营总览</h2>
+            <p>一站式管理客户、子账户与业务申请。所有指标只展示当前权限下可核验的系统记录。</p>
+            <div class="dashboard-hero-actions">
+              <button type="button" class="dashboard-primary-action" data-dashboard-open="clients">进入客户管理</button>
+              <button type="button" class="dashboard-secondary-action" data-dashboard-open="mirror">打开 APP 管理镜像</button>
+            </div>
+          </div>
+          <div class="dashboard-hero-art" aria-hidden="true"><span>NX</span><small>CONTROL / 01</small></div>
+        </div>
         <div class="summary-grid">
           <div class="summary-card"><span>客户账户 / Clients</span><output id="adminClientCount">—</output><small>真实客户归属列表</small></div>
           <div class="summary-card"><span>子管理员 / Subaccounts</span><output id="adminSubadminCount">—</output><small>仅限权限范围</small></div>
           <div class="summary-card"><span>证券目录 / Listings</span><output id="adminListingCount">—</output><small>现有资料记录</small></div>
           <div class="summary-card"><span>券商交易 / Broker</span><output class="pending">未接入</output></div>
         </div>
-        <div class="panel">
-          <h3>系统与业务边界</h3>
+        <div class="panel operations-overview">
+          <div class="operations-overview-title"><div><span>PLATFORM STATUS / SCOPE</span><h3>系统运行与管理边界</h3></div><small>已核实的权限与接入范围</small></div>
           <div class="info-line"><span>登录保护</span><span>管理员账号密码登录</span></div>
           <div class="info-line"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
           <div class="info-line"><span>证券资料</span><span>仅主账户可新增和修改</span></div>

@@ -1066,5 +1066,8 @@ function activateAdminPane(page) {
 document.querySelectorAll("[data-admin-page]").forEach(button=>{
   button.addEventListener("click",()=>activateAdminPane(button.dataset.adminPage));
 });
+document.querySelectorAll("[data-dashboard-open]").forEach(button=>{
+  button.addEventListener("click",()=>activateAdminPane(button.dataset.dashboardOpen));
+});
 
 showDashboard();
