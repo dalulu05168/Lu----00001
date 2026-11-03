@@ -11,6 +11,10 @@ export type Snapshot = {
 export type WatchItem = {market:string; symbol:string; createdAt?:string};
 export type SupportMessage = {id:string; body:string; createdAt:string; senderUserId:string};
 export type SupportSnapshot = {thread:null | {id:string; status:string}; messages:SupportMessage[]};
+export type DeletionStatus = {
+  status:"NONE"|"REQUESTED"|"UNDER_REVIEW"|"COMPLETED"|"REJECTED";
+  requestId:string|null; requestedAt:string|null;
+};
 
 export class ApiError extends Error {
   readonly status:number;
@@ -80,4 +84,19 @@ export async function sendSupport(token:string,message:string):Promise<void> {
 }
 export async function logout(token:string):Promise<void> {
   await apiRequest("/auth/logout",{token,method:"POST"});
+}
+
+export async function deletionStatus(token:string):Promise<DeletionStatus>{
+  const data=await apiRequest<DeletionStatus>("/account/deletion-request",{token});
+  if(!data||!["NONE","REQUESTED","UNDER_REVIEW","COMPLETED","REJECTED"].includes(data.status))
+    throw new ApiError("账户注销状态格式不正确。",0);
+  return data;
+}
+export async function submitDeletionRequest(token:string,password:string):Promise<DeletionStatus>{
+  const data=await apiRequest<DeletionStatus>("/account/deletion-request",{
+    token,method:"POST",body:{password,confirmation:"DELETE MY ACCOUNT"}
+  });
+  if(!data||!["REQUESTED","UNDER_REVIEW","COMPLETED"].includes(data.status))
+    throw new ApiError("服务器没有确认注销申请。",0);
+  return data;
 }
