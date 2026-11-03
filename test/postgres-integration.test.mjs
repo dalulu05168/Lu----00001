@@ -276,39 +276,6 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const subAdmin=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}});
     assert.equal(subAdmin.status,200);
 
-    const adminWorkflow="/api/admin/workflow-requests?category=FUNDING";
-    const ownFunding=await req(adminWorkflow,{token:subAdmin.data.token});
-    assert.equal(ownFunding.status,200);
-    assert.equal(ownFunding.data.items.length,2);
-    assert.equal(ownFunding.data.items.some(x=>x.id===deposit.data.item.id),true);
-    assert.equal((await req(adminWorkflow,{token:clientLogin.data.token})).status,403);
-    assert.equal((await req(adminWorkflow)).status,401);
-    const workflowChange=(token,category,id,expectedStatus,status)=>req("/api/admin/workflow-requests",{
-      method:"PATCH",token,body:{category,id,expectedStatus,status,reason:"Reviewed against documented internal request procedures"}
-    });
-    assert.equal((await workflowChange(subAdmin.data.token,"FUNDING",deposit.data.item.id,"SUBMITTED","APPROVED")).status,403);
-    const intake=await workflowChange(subAdmin.data.token,"FUNDING",deposit.data.item.id,"SUBMITTED","UNDER_REVIEW");
-    assert.equal(intake.status,200);
-    assert.equal(intake.data.item.status,"UNDER_REVIEW");
-    const approved=await workflowChange(masterToken,"FUNDING",deposit.data.item.id,"UNDER_REVIEW","APPROVED");
-    assert.equal(approved.status,200);
-    assert.equal(approved.data.item.settlementStatus,"NOT_EXECUTED");
-    assert.equal((await workflowChange(masterToken,"FUNDING",deposit.data.item.id,"SUBMITTED","APPROVED")).status,409);
-    const kycNeedsInfo=await workflowChange(subAdmin.data.token,"KYC",kycRequest.data.item.id,
-      "AWAITING_EVIDENCE","NEEDS_INFORMATION");
-    assert.equal(kycNeedsInfo.status,200);
-    assert.equal(kycNeedsInfo.data.item.identityVerified,false);
-    const bankNeedsInfo=await workflowChange(subAdmin.data.token,"BANK_LINK",bank.data.item.id,
-      "PENDING_VERIFICATION","NEEDS_INFORMATION");
-    assert.equal(bankNeedsInfo.status,200);
-    assert.equal(bankNeedsInfo.data.item.verified,false);
-    const auditTrail=await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{token:masterToken});
-    assert.equal(auditTrail.status,200);
-    assert.ok(auditTrail.data.items.some(e=>e.category==="FUNDING"&&e.new_status==="APPROVED"));
-    assert.equal((await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{token:clientLogin.data.token})).status,403);
-    assert.equal((await req("/api/admin/workflow-audit?clientId="+sub.data.userId,{token:masterToken})).status,404);
-    const balanceAfterReview=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
-    assert.equal(Number(balanceAfterReview.rows[0].cash_cents),0);
     const subListings=await req("/api/admin/listings",{method:"POST",token:subAdmin.data.token,body:{
       itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",status:"DRAFT"
     }});
@@ -355,6 +322,40 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal((await req("/api/requests?category=FUNDING",{token:masterToken})).status,403);
     const fundsBeforeReview=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
     assert.equal(Number(fundsBeforeReview.rows[0].cash_cents),0);
+    const adminWorkflow="/api/admin/workflow-requests?category=FUNDING";
+    const ownFunding=await req(adminWorkflow,{token:subAdmin.data.token});
+    assert.equal(ownFunding.status,200);
+    assert.equal(ownFunding.data.items.length,2);
+    assert.equal(ownFunding.data.items.some(x=>x.id===deposit.data.item.id),true);
+    assert.equal((await req(adminWorkflow,{token:clientLogin.data.token})).status,403);
+    assert.equal((await req(adminWorkflow)).status,401);
+    const workflowChange=(token,category,id,expectedStatus,status)=>req("/api/admin/workflow-requests",{
+      method:"PATCH",token,body:{category,id,expectedStatus,status,reason:"Reviewed against documented internal request procedures"}
+    });
+    assert.equal((await workflowChange(subAdmin.data.token,"FUNDING",deposit.data.item.id,"SUBMITTED","APPROVED")).status,403);
+    const intake=await workflowChange(subAdmin.data.token,"FUNDING",deposit.data.item.id,"SUBMITTED","UNDER_REVIEW");
+    assert.equal(intake.status,200);
+    assert.equal(intake.data.item.status,"UNDER_REVIEW");
+    const approved=await workflowChange(masterToken,"FUNDING",deposit.data.item.id,"UNDER_REVIEW","APPROVED");
+    assert.equal(approved.status,200);
+    assert.equal(approved.data.item.settlementStatus,"NOT_EXECUTED");
+    assert.equal((await workflowChange(masterToken,"FUNDING",deposit.data.item.id,"SUBMITTED","APPROVED")).status,409);
+    const kycNeedsInfo=await workflowChange(subAdmin.data.token,"KYC",kycRequest.data.item.id,
+      "AWAITING_EVIDENCE","NEEDS_INFORMATION");
+    assert.equal(kycNeedsInfo.status,200);
+    assert.equal(kycNeedsInfo.data.item.identityVerified,false);
+    const bankNeedsInfo=await workflowChange(subAdmin.data.token,"BANK_LINK",bank.data.item.id,
+      "PENDING_VERIFICATION","NEEDS_INFORMATION");
+    assert.equal(bankNeedsInfo.status,200);
+    assert.equal(bankNeedsInfo.data.item.verified,false);
+    const auditTrail=await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{token:masterToken});
+    assert.equal(auditTrail.status,200);
+    assert.ok(auditTrail.data.items.some(e=>e.category==="FUNDING"&&e.new_status==="APPROVED"));
+    assert.equal((await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{token:clientLogin.data.token})).status,403);
+    assert.equal((await req("/api/admin/workflow-audit?clientId="+sub.data.userId,{token:masterToken})).status,404);
+    const balanceAfterReview=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
+    assert.equal(Number(balanceAfterReview.rows[0].cash_cents),0);
+
     const catalog=await req("/api/catalog",{token:clientLogin.data.token});
     assert.equal(catalog.status,200);
     assert.ok(catalog.data.items.some(item=>item.symbol==="IPO123"));
