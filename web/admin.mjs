@@ -49,7 +49,7 @@ function displayItems(id,rows,format){
   node.replaceChildren(container);
 }
 let subadminDirectory=[],selectedSubadminId=null,selectedClientDetailId=null;
-let currentClientPolicy=null,clientPolicySerial=0;
+let currentClientPolicy=null,clientPolicySerial=0,clientWorkflowSerial=0;
 let currentSubadminPolicy=null,subadminPolicySerial=0;
 const dateLabel=value=>value && !Number.isNaN(Date.parse(value))?new Date(value).toLocaleString("zh-CN"):"未提供";
 function detailRow(name,value){
@@ -57,8 +57,10 @@ function detailRow(name,value){
   row.append(plainNode("span",name),plainNode("strong",value??"未提供"));return row;
 }
 function closeClientDetail(){
-  selectedClientDetailId=null;currentClientPolicy=null;clientPolicySerial++;
+  selectedClientDetailId=null;currentClientPolicy=null;clientPolicySerial++;clientWorkflowSerial++;
   el("clientDetail").hidden=true;el("clientDetailFields").replaceChildren();
+  el("clientWorkflowPanel").hidden=true;el("clientWorkflowHistory").replaceChildren();
+  el("clientWorkflowStatus").textContent="";
   el("clientPolicyArea").hidden=true;el("clientPolicyForm").hidden=true;el("clientPolicyReadout").replaceChildren();
   el("clientPolicyAudit").replaceChildren();
   el("clientPolicyReason").value="";el("clientPolicyPassword").value="";el("clientPolicyConfirm").checked=false;
@@ -88,6 +90,7 @@ function openClientDetail(clientId){
   );
   el("clientDetail").hidden=false;
   void refreshClientPolicy(clientId);
+  void refreshClientWorkflowHistory(clientId);
 }
 function openSubadminDetail(userId){
   const c=subadminDirectory.find(item=>item.user_id===userId);
@@ -319,6 +322,40 @@ el("clientPolicyForm").addEventListener("submit",async event=>{
 el("mirrorManageClient").addEventListener("click",()=>{
   if(!selectedMirrorClientId)return;
   activateAdminPane("clients");openClientDetail(selectedMirrorClientId);
+});
+
+
+async function refreshClientWorkflowHistory(clientId){
+  if(!clientId||selectedClientDetailId!==clientId)return;
+  const serial=++clientWorkflowSerial,usedToken=adminToken;
+  const panel=el("clientWorkflowPanel");
+  panel.hidden=false;
+  el("clientWorkflowStatus").textContent="正在读取当前客户的申请记录";
+  el("clientWorkflowHistory").replaceChildren();
+  try{
+    const categories=["FUNDING","KYC","BANK_LINK"];
+    const responses=await Promise.all(categories.map(category=>
+      api("/admin/workflow-requests?category="+category)));
+    if(serial!==clientWorkflowSerial||selectedClientDetailId!==clientId||adminToken!==usedToken)return;
+    const rows=responses.flatMap((result,index)=>
+      (Array.isArray(result.items)?result.items:[])
+        .filter(item=>item.clientId===clientId)
+        .map(item=>({...item,category:categories[index]})));
+    rows.sort((a,b)=>String(b.createdAt??"").localeCompare(String(a.createdAt??"")));
+    const target=el("clientWorkflowHistory");target.replaceChildren();
+    if(!rows.length)target.append(plainNode("p","当前客户暂无近期申请","muted"));
+    else for(const item of rows.slice(0,60)){
+      const row=itemRow(caseSummary(item),"提交时间 "+dateLabel(item.createdAt)+" · "+item.category);
+      target.append(row);
+    }
+    el("clientWorkflowStatus").textContent="当前客户近期申请 "+rows.length+" 条；来源为授权范围内的业务记录。";
+  }catch(error){
+    if(serial!==clientWorkflowSerial||selectedClientDetailId!==clientId||adminToken!==usedToken)return;
+    el("clientWorkflowStatus").textContent="当前客户申请读取失败："+error.message;
+  }
+}
+el("refreshClientWorkflow").addEventListener("click",()=>{
+  if(selectedClientDetailId)void refreshClientWorkflowHistory(selectedClientDetailId);
 });
 
 function renderClientDirectory(items){
