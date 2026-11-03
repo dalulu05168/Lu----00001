@@ -608,3 +608,8 @@ html,body,body *,body *::before,body *::after{font-weight:400!important}
 .transactions-section .transaction-metrics{margin-top:0}
 @media(max-width:940px){.terminal-top-search{min-width:160px;max-width:none;flex:1}}
 @media(max-width:650px){.top-actions{flex-wrap:wrap}.terminal-top-search{order:5;flex-basis:100%;width:100%;max-width:none}}
+
+/* Original navy-gold PNG on a contrasting plate; do not redraw the user's mark. */
+.sidebar .brand-mark{width:44px;height:44px;padding:3px;background:linear-gradient(135deg,#f4f6f3,#dce2e7);
+ border:1px solid #b9c6cf;border-radius:9px;flex:none}
+.sidebar .brand-mark .cn-capital-mark{width:100%;height:100%;object-fit:contain;display:block}
