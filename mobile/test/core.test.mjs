@@ -39,7 +39,7 @@ test("authenticated API requests retain verified server boundary and Bearer toke
     globalThis.fetch=async(input,init)=>{
       calls.push({url:String(input),init});
       if(String(input).endsWith("/api/account"))return new Response(JSON.stringify({account:{id:"acct",cashCents:100,currency:"USD"},positions:[],orders:[],disclosure:"Internal records only"}),{status:200,headers:{"content-type":"application/json"}});
-      if(String(input).endsWith("/api/watchlist"))return new Response(JSON.stringify({items:[]}),{status:200,headers:{"content-type":"application/json"}});
+      if(String(input).endsWith("/api/watchlist"))return new Response(JSON.stringify(init?.method==="POST"?{item:{market:"US",symbol:"AAPL"}}:{items:[]}),{status:200,headers:{"content-type":"application/json"}});
       if(String(input).endsWith("/api/auth/login"))return new Response(JSON.stringify({token:"server-issued-token",expiresAt:"2026-11-05"}),{status:200,headers:{"content-type":"application/json"}});
       return new Response(JSON.stringify({error:"not found"}),{status:404,headers:{"content-type":"application/json"}});
     };
