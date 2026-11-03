@@ -1,0 +1,23 @@
+# Independent QA preview only. DO NOT attach the original production database.
+services:
+  - type: web
+    name: global-stock-qa-preview
+    runtime: node
+    region: singapore
+    plan: free
+    branch: dev/restore-four-role-platform-20261103
+    autoDeployTrigger: off
+    buildCommand: npm install --omit=dev
+    startCommand: node src/server.mjs
+    healthCheckPath: /ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_MASTER_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_SECRET
+        sync: false
+      - key: ADMIN_TOTP_ENCRYPTION_KEY
+        sync: false
