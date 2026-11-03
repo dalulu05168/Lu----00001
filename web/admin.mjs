@@ -415,6 +415,115 @@ function renderListingDirectory(items){
   }
   el("listings").replaceChildren(container);
 }
+
+/* Operational request reviewer. All visible results come from role-scoped API responses. */
+const CASE_NAMES={FUNDING:"充值／提现",KYC:"身份认证工单",BANK_LINK:"银行卡登记"};
+const CASE_STATUS={
+ SUBMITTED:"已提交",UNDER_REVIEW:"审核中",APPROVED:"审核通过（未执行资金划转）",REJECTED:"已拒绝",
+ AWAITING_EVIDENCE:"待补验证材料",NEEDS_INFORMATION:"需补充信息",
+ MANUALLY_REVIEWED:"人工已审阅（未实名认证）",PENDING_VERIFICATION:"待银行核实"
+};
+let caseRows=[],selectedCase=null,caseSerial=0,fundingSerial=0;
+function caseSummary(item){
+ const status=CASE_STATUS[item.status]??item.status;
+ if(item.category==="FUNDING"){
+  const dollars=Number(item.amountCents)/100;
+  const amount=Number.isFinite(dollars)?dollars.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}):"—";
+  return (item.kind==="DEPOSIT"?"充值申请":"提现申请")+" · "+amount+" USD · "+status;
+ }
+ if(item.category==="BANK_LINK")return (item.bankLabel??"银行")+" · 尾号 "+(item.accountLast4??"—")+" · "+status;
+ return (CASE_NAMES[item.category]??"工单")+" · "+status;
+}
+function caseOptions(item){
+ if(item.category==="FUNDING"){
+  if(item.status==="SUBMITTED")return [["UNDER_REVIEW","进入审核"]];
+  if(item.status==="UNDER_REVIEW"&&role==="MASTER")return [["APPROVED","审核通过（不执行付款）"],["REJECTED","拒绝申请"]];
+ }else if(item.category==="KYC"){
+  if(item.status==="AWAITING_EVIDENCE")return [["NEEDS_INFORMATION","要求补充资料"]];
+  if(item.status==="NEEDS_INFORMATION")return [["UNDER_REVIEW","开始人工审阅"]];
+  if(item.status==="UNDER_REVIEW"&&role==="MASTER")return [["MANUALLY_REVIEWED","人工已审阅（非实名认证）"],["REJECTED","拒绝工单"]];
+ }else if(item.category==="BANK_LINK"){
+  if(item.status==="PENDING_VERIFICATION")return role==="MASTER"
+   ?[["NEEDS_INFORMATION","要求补充资料"],["REJECTED","拒绝登记"]]
+   :[["NEEDS_INFORMATION","要求补充资料"]];
+ }
+ return [];
+}
+function clearCaseSelection(){
+ selectedCase=null;el("workflowReviewForm").hidden=true;
+ el("workflowDecision").replaceChildren();el("workflowReason").value="";el("workflowConfirm").checked=false;
+}
+function renderCaseList(){
+ const target=el("workflowItems");target.replaceChildren();
+ if(!caseRows.length){target.append(plainNode("p","当前权限下暂无此类申请","muted"));return;}
+ for(const item of caseRows){
+  const row=itemRow(caseSummary(item),"客户编号："+item.clientId+" · 提交："+dateLabel(item.createdAt));
+  row.classList.add("workflow-row");
+  const next=caseOptions(item);
+  if(next.length){
+   const action=document.createElement("button");action.type="button";action.className="outline";action.textContent="处理申请";
+   action.addEventListener("click",()=>{
+    selectedCase=item;el("workflowSelection").textContent=caseSummary(item)+" · "+item.clientId;
+    const select=el("workflowDecision");select.replaceChildren();
+    for(const [value,label] of next){
+     const option=document.createElement("option");option.value=value;option.textContent=label;select.append(option);
+    }
+    el("workflowReviewForm").hidden=false;
+   });
+   row.append(action);
+  }
+  target.append(row);
+ }
+}
+async function refreshCaseList(){
+ const cat=el("workflowCategory").value,serial=++caseSerial,usedToken=adminToken;
+ clearCaseSelection();el("workflowItems").replaceChildren();el("workflowStatus").textContent="正在读取申请";
+ try{
+  const data=await api("/admin/workflow-requests?category="+encodeURIComponent(cat));
+  if(serial!==caseSerial||adminToken!==usedToken)return;
+  caseRows=Array.isArray(data.items)?data.items:[];renderCaseList();
+  el("workflowStatus").textContent="共 "+caseRows.length+" 条申请。审核状态不会触发付款或身份验证。";
+ }catch(error){
+  if(serial!==caseSerial||adminToken!==usedToken)return;
+  caseRows=[];el("workflowStatus").textContent="读取失败："+error.message;
+ }
+}
+async function refreshFundingOverview(){
+ const serial=++fundingSerial,usedToken=adminToken;
+ el("fundingSummaryStatus").textContent="正在读取资金申请";
+ try{
+  const data=await api("/admin/workflow-requests?category=FUNDING");
+  if(serial!==fundingSerial||adminToken!==usedToken)return;
+  const rows=Array.isArray(data.items)?data.items:[];
+  const count=pred=>String(rows.filter(pred).length);
+  el("depositRequestTotal").textContent=count(x=>x.kind==="DEPOSIT");
+  el("withdrawRequestTotal").textContent=count(x=>x.kind==="WITHDRAWAL");
+  el("pendingRequestTotal").textContent=count(x=>x.status==="SUBMITTED"||x.status==="UNDER_REVIEW");
+  el("approvedRequestTotal").textContent=count(x=>x.status==="APPROVED");
+  const target=el("fundingRequestRows");target.replaceChildren();
+  for(const item of rows.slice(0,100))target.append(itemRow(caseSummary(item),"客户编号："+item.clientId+" · "+dateLabel(item.createdAt)));
+  if(!rows.length)target.append(plainNode("p","暂无资金申请","muted"));
+  el("fundingSummaryStatus").textContent="仅统计申请记录，实际资金划转尚未接入。";
+ }catch(error){if(serial===fundingSerial)el("fundingSummaryStatus").textContent="读取失败："+error.message;}
+}
+el("workflowCategory").addEventListener("change",()=>{void refreshCaseList()});
+el("workflowRefresh").addEventListener("click",()=>{void refreshCaseList()});
+el("refreshFundingSummary").addEventListener("click",()=>{void refreshFundingOverview()});
+el("workflowCancel").addEventListener("click",clearCaseSelection);
+el("workflowReviewForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ if(!selectedCase||!el("workflowConfirm").checked){el("workflowStatus").textContent="请先选择申请并确认";return;}
+ const body={category:selectedCase.category,id:selectedCase.id,expectedStatus:selectedCase.status,
+  status:el("workflowDecision").value,reason:el("workflowReason").value.trim()};
+ const button=el("workflowSubmit");button.disabled=true;
+ try{
+  await api("/admin/workflow-requests",{method:"PATCH",body});
+  clearCaseSelection();await refreshCaseList();
+  el("workflowStatus").textContent="审核记录已保存；未执行任何资金划转或第三方核验。";
+ }catch(error){el("workflowStatus").textContent="保存失败："+error.message;}
+ finally{button.disabled=false;}
+});
+
 async function refreshListings(){
   try{
     const data=await api("/admin/listings");
@@ -540,6 +649,8 @@ el("adminLogout").addEventListener("click",()=>{
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
   subadminDirectory=[];closeClientDetail();closeSubadminDetail();
+  caseSerial++;fundingSerial++;caseRows=[];clearCaseSelection();
+  el("workflowItems").replaceChildren();el("fundingRequestRows").replaceChildren();
   el("mirrorAvailability").textContent="未登录";
   el("mirrorClientSearch").value="";
   el("mirrorMatchCount").textContent="";
@@ -551,6 +662,8 @@ el("adminLogout").addEventListener("click",()=>{
 /** Independent client-side navigation: authorization is always enforced by /api/admin/*. */
 function activateAdminPane(page) {
   if(page==="audit")void refreshMirrorAudit();
+  if(page==="approvals")void refreshCaseList();
+  if(page==="treasury")void refreshFundingOverview();
   const target=document.querySelector('[data-pane="'+page+'"]');
   if(!target)return;
   const nav=document.querySelector('[data-admin-page="'+page+'"]');
