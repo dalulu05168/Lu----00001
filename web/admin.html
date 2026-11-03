@@ -191,7 +191,7 @@
         </section>
       </section>
       <section class="admin-pane" data-pane="mirror" hidden>
-        <div class="pane-title"><span>SCOPED CUSTOMER APP MIRROR</span><h2>客户 App 镜像</h2><p>账户快照只读；管理员修改入口独立授权并审计</p></div>
+        <div class="pane-title"><span>CLIENT APP OPERATIONS</span><h2>客户 App 管理镜像</h2><p>左侧选择客户、中间核对账户快照、右侧直接执行权限与申请审核操作；所有修改均由服务端授权并记录审计。</p></div>
         <div class="mirror-layout">
           <section class="panel mirror-client-panel">
             <div class="heading"><h3>可查看客户</h3><button type="button" id="refreshMirrorClients" class="outline">刷新客户</button></div>
@@ -201,10 +201,10 @@
             <p id="mirrorMatchCount" class="muted" role="status"></p>
             <div id="mirrorClientList" class="admin-list"><p class="muted">登录后加载权限范围内的客户。</p></div>
           </section>
-          <section class="mirror-phone" aria-label="客户 App 只读镜像">
+          <section class="mirror-phone" aria-label="客户 App 数据快照">
             <div class="mirror-device">
               <div class="mirror-top">
-                <span>GLOBAL STOCK PLATFORM</span><span class="mirror-read-only">只读镜像</span>
+                <span>GLOBAL STOCK PLATFORM</span><span class="mirror-read-only">账户数据快照</span>
               </div>
               <div class="mirror-account"><span>当前客户</span><output id="mirrorEmail">尚未选择</output><small id="mirrorUpdated">—</small></div>
               <div class="mirror-balance"><span>账户记录余额</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
@@ -218,10 +218,53 @@
               </div>
               <div class="mirror-screen" id="mirrorAppScreen" role="tabpanel"><p class="muted">从左侧客户名单点击“查看 App 镜像”后，读取该客户实际账户数据。</p></div>
               <div class="mirror-bottom">
-                <span id="mirrorStatus">未选择客户</span><button type="button" id="refreshMirror" class="outline" disabled>刷新快照</button><button type="button" id="mirrorManageClient" class="outline" disabled>后台管理操作</button>
+                <span id="mirrorStatus">未选择客户</span><button type="button" id="refreshMirror" class="outline" disabled>刷新快照</button><button type="button" id="mirrorManageClient" class="outline" disabled>账户操作</button>
               </div>
-              <p class="mirror-disclosure">只读数据快照，访问已记录</p>
+              <p class="mirror-disclosure">账户快照是只读数据；右侧管理员操作直接通过受控服务端接口执行并记录。</p>
             </div>
+          </section>
+          <section id="mirrorOperations" class="mirror-operations panel" hidden aria-label="所选客户的后台管理操作">
+            <div class="heading mirror-operations-head">
+              <div><span class="mirror-section-eyebrow">AUTHORIZED OPERATIONS</span>
+                <h3>客户账户管理</h3><p id="mirrorOperationsCustomer" class="muted"></p></div>
+              <button type="button" id="mirrorRefreshControls" class="outline">刷新管理数据</button>
+            </div>
+            <div class="mirror-operation-tabs" role="tablist" aria-label="管理操作类别">
+              <button type="button" data-mirror-operation-tab="controls" role="tab" aria-selected="true" aria-controls="mirrorControlsPanel">账户权限</button>
+              <button type="button" data-mirror-operation-tab="requests" role="tab" aria-selected="false" aria-controls="mirrorRequestsPanel">申请审核</button>
+            </div>
+            <section id="mirrorControlsPanel" data-mirror-operation-panel="controls" role="tabpanel">
+              <p id="mirrorControlStatus" class="muted" role="status" aria-live="polite">请选择客户以读取实时管理策略</p>
+              <div id="mirrorControlRows" class="mirror-control-rows"></div>
+              <form id="mirrorPolicyForm" class="mirror-policy-form" hidden>
+                <h4 id="mirrorPolicyHeading">修改管理策略</h4>
+                <label>修改为<select id="mirrorPolicyValue" required></select></label>
+                <label>操作原因（至少 12 字）<textarea id="mirrorPolicyReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
+                <label>重新输入主账号密码<input id="mirrorPolicyPassword" type="password" minlength="12" autocomplete="off" required></label>
+                <label class="mirror-confirm-row"><input id="mirrorPolicyConfirm" type="checkbox" required>确认修改选中客户，并记录变更审计</label>
+                <div class="mirror-policy-actions"><button id="mirrorPolicySave" type="submit">确认保存</button>
+                  <button id="mirrorPolicyCancel" type="button" class="outline">取消</button></div>
+              </form>
+              <div class="mirror-operations-audit"><h4>最近账户权限操作</h4><div id="mirrorPolicyAudit"></div></div>
+            </section>
+            <section id="mirrorRequestsPanel" data-mirror-operation-panel="requests" role="tabpanel" hidden>
+              <div class="mirror-operations-filter"><label>申请类型
+                <select id="mirrorRequestCategory">
+                  <option value="FUNDING">充值与提现</option><option value="KYC">身份核验工单</option>
+                  <option value="BANK_LINK">银行卡登记</option>
+                </select></label></div>
+              <p id="mirrorRequestStatus" class="muted" role="status" aria-live="polite">请选择申请类型</p>
+              <div id="mirrorRequestRows" class="mirror-request-rows"></div>
+              <form id="mirrorReviewForm" class="mirror-policy-form" hidden>
+                <h4 id="mirrorReviewHeading">处理业务申请</h4>
+                <label>处理状态<select id="mirrorReviewDecision" required></select></label>
+                <label>审核原因（至少 12 字）<textarea id="mirrorReviewReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
+                <label class="mirror-confirm-row"><input id="mirrorReviewConfirm" type="checkbox" required>确认仅修改审核状态，不执行真实付款或身份核验</label>
+                <div class="mirror-policy-actions"><button id="mirrorReviewSave" type="submit">保存审核记录</button>
+                  <button id="mirrorReviewCancel" type="button" class="outline">取消</button></div>
+              </form>
+            </section>
+            <p class="mirror-disclosure">账户类型为内部分类。“真实账户待接入”不代表真实券商已连接。提现审核通过不代表资金已划转；贷款资格不代表已经放款。</p>
           </section>
         </div>
       </section>
