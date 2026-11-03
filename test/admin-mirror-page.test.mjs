@@ -19,6 +19,7 @@ test("master can open a scoped client App mirror with account records and clear 
       if(url==="/api/admin/login")return reply(200,{token:"admin-test-token",role:"MASTER"});
       if(url==="/api/admin/me")return reply(200,{role:"MASTER",userId:"admin-id"});
       if(url==="/api/admin/clients")return reply(200,{items:[{id:clientId,email:"customer@example.test",subadmin_user_id:"sub-id"}]});
+      if(url==="/api/admin/mirror-status")return reply(200,{ready:true,mode:"READ_ONLY"});
       if(url==="/api/admin/mirror-audit")return reply(200,{items:[{clientEmail:"customer@example.test",actorEmail:"master@example.test",viewedAt:"2026-11-03T00:00:00Z"}]});
       if(url==="/api/admin/subaccounts")return reply(200,{items:[]});
       if(url==="/api/admin/listings")return reply(200,{items:[]});
@@ -40,6 +41,14 @@ test("master can open a scoped client App mirror with account records and clear 
     el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
     await pause(55);
     assert.equal(el("adminWorkspace").hidden,false);
+    assert.equal(el("mirrorClientList").querySelectorAll(".mirror-open").length,1);
+    assert.equal(el("mirrorClientList").querySelector(".mirror-open").disabled,false);
+    el("mirrorClientSearch").value="does-not-exist";
+    el("mirrorClientSearch").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+    assert.equal(el("mirrorClientList").querySelectorAll(".mirror-open").length,0);
+    assert.equal(el("clients").querySelectorAll(".mirror-open").length,1);
+    el("mirrorClientSearch").value="CUSTOMER@";
+    el("mirrorClientSearch").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
     assert.equal(el("mirrorClientList").querySelectorAll(".mirror-open").length,1);
     el("mirrorClientList").querySelector(".mirror-open").click();
     await pause(55);
@@ -66,6 +75,7 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("adminWorkspace").hidden,true);
     assert.equal(el("mirrorCash").textContent,"—");
     assert.equal(el("mirrorClientList").childElementCount,0);
+    assert.equal(el("mirrorClientSearch").value,"");
   }finally{
     globalThis.document=old.document;
     globalThis.sessionStorage=old.sessionStorage;

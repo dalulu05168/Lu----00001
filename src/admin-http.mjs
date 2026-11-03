@@ -1,4 +1,4 @@
-import {getClientAppMirror,listClientMirrorAudit} from "./admin-mirror.mjs";
+import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} from "./admin-mirror.mjs";
 import {
   roleFor,bootstrapMaster,confirmAdminTotp,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -28,6 +28,7 @@ function safeError(error){
   if(error?.statusCode===401)return {status:401,error:"Invalid admin credentials"};
   if(error?.statusCode===400)return {status:400,error:error.message};
   if(error?.statusCode===404)return {status:404,error:"Client not found"};
+  if(error?.statusCode===503)return {status:503,error:"Mirror audit schema not installed"};
   if(error?.code==="23505")return {status:409,error:"Record already exists"};
   return {status:500,error:"Internal server error"};
 }
@@ -37,7 +38,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/activate":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
-    "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],
+    "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
@@ -77,6 +78,9 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
         response(res,201,await createSubadmin(db,actor,await input(req)));return true;
       }
       response(res,200,{items:await listSubadmins(db,actor)});return true;
+    }
+    if(route==="/api/admin/mirror-status"){
+      response(res,200,await getClientMirrorSetupStatus(db,actor));return true;
     }
     if(route==="/api/admin/mirror"){
       const url=new URL(req.url??"/","http://localhost");

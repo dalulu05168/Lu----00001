@@ -298,6 +298,9 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.ok(subclients.data.items.some(item=>item.email===attachedEmail));
 
     // Role-scoped customer App mirror: no impersonation, no write endpoints.
+    const mirrorReadiness=await req("/api/admin/mirror-status",{token:masterToken});
+    assert.equal(mirrorReadiness.status,200);
+    assert.deepEqual(mirrorReadiness.data,{ready:true,mode:"READ_ONLY"});
     const customerAppToken=clientLogin.data.token;
     assert.equal((await req("/api/admin/mirror?clientId="+attached.data.userId)).status,401);
     assert.equal((await req("/api/admin/mirror?clientId="+attached.data.userId,{token:customerAppToken})).status,403);
@@ -334,6 +337,8 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.ok(subAudit.data.items.every(x=>x.actorUserId===sub.data.userId));
     assert.equal((await req("/api/admin/mirror-audit",{token:customerAppToken})).status,403);
     assert.equal((await req("/api/admin/mirror-audit")).status,401);
+    assert.equal((await req("/api/admin/mirror-status")).status,401);
+    assert.equal((await req("/api/admin/mirror-status",{token:customerAppToken})).status,403);
     assert.equal((await req("/api/admin/mirror-audit",{method:"POST",token:masterToken})).status,405);
     const unchangedClient=await req("/api/account",{token:customerAppToken});
     assert.equal(unchangedClient.data.account.cashCents,0);

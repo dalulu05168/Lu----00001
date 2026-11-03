@@ -52,6 +52,7 @@ async function refreshClients(){
 }
 
 let mirrorClients=[],selectedMirrorClientId=null,mirrorSnapshot=null,mirrorActiveTab="assets",mirrorSerial=0;
+let mirrorBackendReady=false;
 const cashFmt=cents=>(Number(cents??0)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 function plainNode(tag,text,cls=""){
   const n=document.createElement(tag);n.textContent=String(text??"—");
@@ -60,15 +61,20 @@ function plainNode(tag,text,cls=""){
 function renderClientDirectory(items){
   mirrorClients=Array.isArray(items)?items:[];
   const list=el("clients"),quick=el("mirrorClientList");
+  const term=el("mirrorClientSearch").value.trim().toLocaleLowerCase();
+  const visible=mirrorClients.filter(c=>String(c.email).toLocaleLowerCase().includes(term));
+  el("mirrorMatchCount").textContent="匹配 "+visible.length+" / "+mirrorClients.length+" 位客户";
   for(const target of [list,quick]){
     target.replaceChildren();
-    if(!mirrorClients.length){target.append(plainNode("p","暂无有权限查看的客户","muted"));continue;}
-    for(const c of mirrorClients){
+    const entries=target===quick?visible:mirrorClients;
+    if(!entries.length){target.append(plainNode("p",term?"没有匹配的客户":"暂无有权限查看的客户","muted"));continue;}
+    for(const c of entries){
       const row=document.createElement("div");row.className="admin-list-row mirror-customer";
       const meta=document.createElement("div");
       meta.append(plainNode("div",c.email),plainNode("small",c.subadmin_user_id?"已有子账户归属":"直接注册客户"));
       const button=document.createElement("button");button.type="button";button.className="outline mirror-open";
       button.textContent="查看 App 镜像";
+      button.disabled=!mirrorBackendReady;
       button.addEventListener("click",()=>selectMirrorClient(c.id));
       row.append(meta,button);target.append(row);
     }
@@ -97,6 +103,7 @@ function setMirrorScreen(){
   view.append(wrapper);
 }
 async function selectMirrorClient(clientId){
+  if(!mirrorBackendReady){el("mirrorStatus").textContent="镜像审计尚未准备好，查看功能已停用";return;}
   const match=mirrorClients.find(x=>x.id===clientId);
   if(!match)return;
   selectedMirrorClientId=clientId;mirrorSnapshot=null;
@@ -159,6 +166,20 @@ async function refreshMirrorAudit(){
 }
 el("refreshMirrorAudit").addEventListener("click",refreshMirrorAudit);
 
+async function refreshMirrorStatus(){
+  try{
+    const response=await api("/admin/mirror-status");
+    mirrorBackendReady=response.mode==="READ_ONLY"&&response.ready===true;
+    el("mirrorAvailability").textContent=mirrorBackendReady
+      ?"镜像审计已就绪 · 仅供只读查看"
+      :"镜像暂不可用：访问审计表尚未配置，禁止读取客户数据";
+  }catch(error){
+    mirrorBackendReady=false;
+    el("mirrorAvailability").textContent="镜像状态无法验证，已停止读取客户数据：" + error.message;
+  }
+  renderClientDirectory(mirrorClients);
+}
+el("mirrorClientSearch").addEventListener("input",()=>renderClientDirectory(mirrorClients));
 async function refreshListings(){
   try{
     const data=await api("/admin/listings");
@@ -182,7 +203,7 @@ async function showDashboard(){
     el("bootstrapPanel").hidden=true;
     el("subadminForm").hidden=role!=="MASTER";
     el("listingForm").hidden=role!=="MASTER";
-    await Promise.all([refreshSubadmins(),refreshClients(),refreshListings()]);
+    await Promise.all([refreshSubadmins(),refreshClients(),refreshListings(),refreshMirrorStatus()]);
   }catch{
     sessionStorage.removeItem("gsp_admin_token");
     adminToken=null;
@@ -282,7 +303,10 @@ el("refreshClients").addEventListener("click",refreshClients);
 el("refreshListings").addEventListener("click",refreshListings);
 el("adminLogout").addEventListener("click",()=>{
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
-  mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];
+  mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
+  el("mirrorAvailability").textContent="未登录";
+  el("mirrorClientSearch").value="";
+  el("mirrorMatchCount").textContent="";
   el("mirrorEmail").textContent="尚未选择";el("mirrorCash").textContent="—";setMirrorScreen();
   el("mirrorClientList").replaceChildren();
   el("adminWorkspace").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=false;

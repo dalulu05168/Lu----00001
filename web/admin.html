@@ -88,6 +88,10 @@
         <div class="mirror-layout">
           <section class="panel mirror-client-panel">
             <div class="heading"><h3>可查看客户</h3><button type="button" id="refreshMirrorClients" class="outline">刷新客户</button></div>
+            <p id="mirrorAvailability" class="muted" role="status">正在检查镜像状态</p>
+            <label class="mirror-search-label" for="mirrorClientSearch">查找客户</label>
+            <input type="search" id="mirrorClientSearch" class="mirror-search" placeholder="按客户邮箱查找" autocomplete="off" aria-label="按客户邮箱查找">
+            <p id="mirrorMatchCount" class="muted" role="status"></p>
             <div id="mirrorClientList" class="admin-list"><p class="muted">登录后加载权限范围内的客户。</p></div>
           </section>
           <section class="mirror-phone" aria-label="客户 App 只读镜像">

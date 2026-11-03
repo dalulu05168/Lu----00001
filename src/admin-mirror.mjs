@@ -11,6 +11,16 @@ function invalid(message,statusCode){const e=new Error(message);e.statusCode=sta
  * MASTER: all non-administrator customers.
  * SUBADMIN: only customers bound to that subadmin through client_links.
  */
+
+export async function getClientMirrorSetupStatus(db,actor){
+  if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))invalid("Administrator 2FA session required",403);
+  const result=await db.query("SELECT to_regclass('public.admin_mirror_access_log') IS NOT NULL AS ready");
+  return {ready:result.rows[0]?.ready===true,mode:"READ_ONLY"};
+}
+async function ensureMirrorAuditAvailable(db,actor){
+  if(!(await getClientMirrorSetupStatus(db,actor)).ready)invalid("Mirror audit schema not installed",503);
+}
+
 export async function getClientAppMirror(db,actor,clientId){
   if(!UUID.test(clientId??""))invalid("Invalid client id",400);
   if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))invalid("Administrator 2FA session required",403);
@@ -24,6 +34,7 @@ export async function getClientAppMirror(db,actor,clientId){
       LIMIT 1`,[clientId,actor.role,actor.userId]);
   if(allowed.rows.length!==1)invalid("Client not found",404);
   const row=allowed.rows[0];
+  await ensureMirrorAuditAvailable(db,actor);
   const account=await getAccountSnapshot(db,row.account_id);
   const watchlist=await listWatchlist(db,row.account_id);
   // Viewing financial records is privileged: refuse to return data if audit fails.
@@ -42,7 +53,7 @@ export async function getClientAppMirror(db,actor,clientId){
 
 /** Inspect mirror reads without exposing session tokens, passwords or unrelated accounts. */
 export async function listClientMirrorAudit(db,actor){
-  if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))invalid("Administrator 2FA session required",403);
+  await ensureMirrorAuditAvailable(db,actor);
   const r=await db.query(`SELECT l.id,l.viewed_at AS "viewedAt",
       l.actor_user_id AS "actorUserId",l.client_user_id AS "clientUserId",
       c.email AS "clientEmail",a.email AS "actorEmail"
