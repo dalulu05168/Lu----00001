@@ -12,7 +12,8 @@ export type SupportMessage = {id:string; body:string; createdAt:string; senderUs
 export type SupportSnapshot = {thread:null | {id:string; status:string}; messages:SupportMessage[]};
 
 export class ApiError extends Error {
-  constructor(message:string, public readonly status:number) { super(message); this.name="ApiError"; }
+  readonly status:number;
+  constructor(message:string,status:number) { super(message); this.name="ApiError"; this.status=status; }
 }
 export function verifiedApiBase():string {
   const value=(process.env.EXPO_PUBLIC_API_BASE_URL || "").trim().replace(/\/+$/, "");
