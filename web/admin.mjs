@@ -241,6 +241,7 @@ async function refreshClients(){
 }
 
 let mirrorClients=[],selectedMirrorClientId=null,mirrorSnapshot=null,mirrorActiveTab="assets",mirrorSerial=0;
+let mirrorPolicy=null,mirrorPolicyField=null,mirrorOpsSerial=0,mirrorRequestsSerial=0,mirrorCase=null;
 let mirrorBackendReady=false;
 const cashFmt=cents=>(Number(cents??0)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 function plainNode(tag,text,cls=""){
@@ -347,7 +348,9 @@ el("clientPolicyForm").addEventListener("submit",async event=>{
 });
 el("mirrorManageClient").addEventListener("click",()=>{
   if(!selectedMirrorClientId)return;
-  activateAdminPane("clients");openClientDetail(selectedMirrorClientId);
+  setMirrorOperationTab("controls");
+  el("mirrorOperations").scrollIntoView?.({block:"nearest"});
+  el("mirrorRefreshControls").focus?.();
 });
 
 
@@ -476,17 +479,194 @@ function setMirrorScreen(){
   }
   view.append(wrapper);
 }
+
+function setMirrorOperationTab(tab){
+ const name=tab==="requests"?"requests":"controls";
+ document.querySelectorAll("[data-mirror-operation-tab]").forEach(b=>{
+  const active=b.dataset.mirrorOperationTab===name;
+  b.setAttribute("aria-selected",String(active));b.tabIndex=active?0:-1;
+ });
+ document.querySelectorAll("[data-mirror-operation-panel]").forEach(p=>{
+  p.hidden=p.dataset.mirrorOperationPanel!==name;
+ });
+ if(name==="requests"&&selectedMirrorClientId)void refreshMirrorRequests();
+}
+function hideMirrorPolicyForm(){
+ mirrorPolicyField=null;el("mirrorPolicyForm").hidden=true;
+ el("mirrorPolicyValue").replaceChildren();el("mirrorPolicyReason").value="";
+ el("mirrorPolicyPassword").value="";el("mirrorPolicyConfirm").checked=false;
+}
+function hideMirrorReviewForm(){
+ mirrorCase=null;el("mirrorReviewForm").hidden=true;el("mirrorReviewDecision").replaceChildren();
+ el("mirrorReviewReason").value="";el("mirrorReviewConfirm").checked=false;
+}
+function clearMirrorOperations(){
+ mirrorOpsSerial++;mirrorRequestsSerial++;mirrorPolicy=null;
+ hideMirrorPolicyForm();hideMirrorReviewForm();
+ for(const id of ["mirrorControlRows","mirrorPolicyAudit","mirrorRequestRows"])el(id).replaceChildren();
+ el("mirrorControlStatus").textContent="请选择客户读取管理策略";
+ el("mirrorRequestStatus").textContent="请选择客户读取申请";
+ el("mirrorOperationsCustomer").textContent="";
+ el("mirrorOperations").hidden=true;
+ el("mirrorPolicySave").disabled=false;el("mirrorReviewSave").disabled=false;
+ setMirrorOperationTab("controls");
+}
+function renderMirrorPolicy(policy){
+ mirrorPolicy=policy;const root=el("mirrorControlRows");root.replaceChildren();
+ for(const [field,label] of Object.entries(POLICY_TEXT)){
+  const row=document.createElement("div");row.className="mirror-control-row";
+  const info=document.createElement("div");info.className="mirror-control-info";
+  info.append(plainNode("small",label),plainNode("strong",policyTextValue(field,policy[field])));
+  row.append(info);
+  if(role==="MASTER"){
+   const button=document.createElement("button");button.type="button";button.className="outline";
+   button.textContent="修改";button.setAttribute("aria-label","修改 "+label);
+   button.addEventListener("click",()=>{
+    mirrorPolicyField=field;
+    el("mirrorPolicyHeading").textContent="修改 "+label;
+    const select=el("mirrorPolicyValue");select.replaceChildren();
+    for(const [value,caption] of POLICY_OPTIONS[field]){
+     const option=document.createElement("option");option.value=value;option.textContent=caption;select.append(option);
+    }
+    select.value=String(policy[field]);
+    el("mirrorPolicyReason").value="";el("mirrorPolicyPassword").value="";
+    el("mirrorPolicyConfirm").checked=false;el("mirrorPolicyForm").hidden=false;
+   });
+   row.append(button);
+  }
+  root.append(row);
+ }
+ el("mirrorControlStatus").textContent=role==="MASTER"
+  ?"选择管理项目并修改；必须再次输入主账号密码":"子账号只可查看此客户策略，修改权归主账号";
+}
+async function loadMirrorPolicy(clientId){
+ if(!clientId||selectedMirrorClientId!==clientId)return;
+ const serial=++mirrorOpsSerial,token=adminToken;hideMirrorPolicyForm();
+ el("mirrorControlStatus").textContent="读取客户管理策略中";
+ try{
+  const {policy}=await api("/admin/client-controls?clientId="+encodeURIComponent(clientId));
+  if(serial!==mirrorOpsSerial||clientId!==selectedMirrorClientId||token!==adminToken)return;
+  renderMirrorPolicy(policy);
+  try{
+   const {items}=await api("/admin/client-control-audit?clientId="+encodeURIComponent(clientId));
+   if(serial!==mirrorOpsSerial||clientId!==selectedMirrorClientId||token!==adminToken)return;
+   const root=el("mirrorPolicyAudit");root.replaceChildren();
+   if(!Array.isArray(items)||!items.length)root.append(plainNode("p","暂无权限修改记录","muted"));
+   else for(const x of items.slice(0,8))
+    root.append(itemRow((POLICY_TEXT[x.field]??x.field)+" · "+policyTextValue(x.field,x.previousValue)+" → "+
+     policyTextValue(x.field,x.nextValue),"原因："+x.reason+" · "+dateLabel(x.recordedAt)));
+  }catch(error){
+   if(serial===mirrorOpsSerial)el("mirrorPolicyAudit").append(plainNode("p","审计读取失败："+error.message,"muted"));
+  }
+ }catch(error){
+  if(serial!==mirrorOpsSerial||clientId!==selectedMirrorClientId||token!==adminToken)return;
+  mirrorPolicy=null;el("mirrorControlRows").replaceChildren();
+  el("mirrorControlStatus").textContent="策略读取失败："+error.message;
+ }
+}
+async function refreshMirrorRequests(){
+ const clientId=selectedMirrorClientId;if(!clientId)return;
+ const serial=++mirrorRequestsSerial,token=adminToken,category=el("mirrorRequestCategory").value;
+ hideMirrorReviewForm();const root=el("mirrorRequestRows");root.replaceChildren();
+ el("mirrorRequestStatus").textContent="读取该客户申请中";
+ try{
+  const {items}=await api("/admin/workflow-requests?category="+category+"&clientId="+encodeURIComponent(clientId));
+  if(serial!==mirrorRequestsSerial||clientId!==selectedMirrorClientId||token!==adminToken)return;
+  if(!Array.isArray(items)||items.some(x=>x.clientId!==clientId))throw Error("服务端返回的客户归属不匹配");
+  if(!items.length)root.append(plainNode("p","该客户暂无此类申请","muted"));
+  for(const item of items){
+   const row=document.createElement("div");row.className="mirror-request-row";
+   const meta=document.createElement("div");meta.className="mirror-control-info";
+   meta.append(plainNode("strong",caseSummary(item)),plainNode("small",dateLabel(item.createdAt)));
+   row.append(meta);
+   const options=caseOptions(item);
+   if(options.length){
+    const button=document.createElement("button");button.type="button";button.className="outline";
+    button.textContent="处理";
+    button.addEventListener("click",()=>{
+     mirrorCase=item;el("mirrorReviewHeading").textContent=caseSummary(item);
+     const select=el("mirrorReviewDecision");select.replaceChildren();
+     for(const [value,label] of options){
+      const opt=document.createElement("option");opt.value=value;opt.textContent=label;select.append(opt);
+     }
+     el("mirrorReviewReason").value="";el("mirrorReviewConfirm").checked=false;
+     el("mirrorReviewForm").hidden=false;
+    });
+    row.append(button);
+   }
+   root.append(row);
+  }
+  el("mirrorRequestStatus").textContent="显示 "+items.length+" 条申请；审核不执行真实收付款";
+ }catch(error){
+  if(serial===mirrorRequestsSerial&&clientId===selectedMirrorClientId&&token===adminToken)
+   el("mirrorRequestStatus").textContent="申请读取失败："+error.message;
+ }
+}
+document.querySelectorAll("[data-mirror-operation-tab]").forEach(b=>{
+ b.addEventListener("click",()=>setMirrorOperationTab(b.dataset.mirrorOperationTab));
+});
+el("mirrorPolicyCancel").addEventListener("click",hideMirrorPolicyForm);
+el("mirrorReviewCancel").addEventListener("click",hideMirrorReviewForm);
+el("mirrorRequestCategory").addEventListener("change",()=>void refreshMirrorRequests());
+el("mirrorRefreshControls").addEventListener("click",()=>{
+ if(selectedMirrorClientId){void loadMirrorPolicy(selectedMirrorClientId);
+  if(!el("mirrorRequestsPanel").hidden)void refreshMirrorRequests();}
+});
+el("mirrorPolicyForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const clientId=selectedMirrorClientId,field=mirrorPolicyField;
+ if(role!=="MASTER"||!clientId||!field||!mirrorPolicy)return;
+ const raw=el("mirrorPolicyValue").value;
+ const value=["loginAllowed","withdrawalRequestsAllowed","loanRequestsAllowed"].includes(field)?raw==="true":raw;
+ if(value===mirrorPolicy[field]){
+  el("mirrorControlStatus").textContent="新值与当前状态相同";return;
+ }
+ const token=adminToken,button=el("mirrorPolicySave");button.disabled=true;
+ const body={clientId,field,value,expectedVersion:mirrorPolicy.version,
+  reason:el("mirrorPolicyReason").value.trim(),confirmPassword:el("mirrorPolicyPassword").value};
+ try{
+  const {policy}=await api("/admin/client-controls",{method:"PATCH",body});
+  if(clientId!==selectedMirrorClientId||token!==adminToken)return;
+  hideMirrorPolicyForm();renderMirrorPolicy(policy);
+  el("mirrorControlStatus").textContent="已提交，正在重新读取策略和审计";
+  await loadMirrorPolicy(clientId);
+ }catch(error){
+  if(clientId===selectedMirrorClientId&&token===adminToken)
+   el("mirrorControlStatus").textContent="修改失败："+error.message;
+ }finally{button.disabled=false;el("mirrorPolicyPassword").value="";}
+});
+el("mirrorReviewForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const item=mirrorCase,clientId=selectedMirrorClientId,token=adminToken;
+ if(!item||!clientId||item.clientId!==clientId)return;
+ const body={category:item.category,id:item.id,expectedStatus:item.status,
+  status:el("mirrorReviewDecision").value,reason:el("mirrorReviewReason").value.trim()};
+ const button=el("mirrorReviewSave");button.disabled=true;
+ try{
+  await api("/admin/workflow-requests",{method:"PATCH",body});
+  if(clientId!==selectedMirrorClientId||token!==adminToken)return;
+  hideMirrorReviewForm();await refreshMirrorRequests();
+  el("mirrorRequestStatus").textContent="申请审核已保存；不代表已经付款或完成身份验证";
+ }catch(error){
+  if(clientId===selectedMirrorClientId&&token===adminToken)
+   el("mirrorRequestStatus").textContent="审核失败："+error.message;
+ }finally{button.disabled=false;}
+});
+
 async function selectMirrorClient(clientId){
-  if(!mirrorBackendReady){el("mirrorStatus").textContent="镜像服务暂不可用";return;}
   const match=mirrorClients.find(x=>x.id===clientId);
   if(!match)return;
   selectedMirrorClientId=clientId;mirrorSnapshot=null;
   activateAdminPane("mirror");
+  clearMirrorOperations();
+  el("mirrorOperations").hidden=false;
+  el("mirrorOperationsCustomer").textContent=match.email;
+  void loadMirrorPolicy(clientId);
   const mySerial=++mirrorSerial,usedToken=adminToken;
   el("mirrorEmail").textContent=match.email;el("mirrorCash").textContent="—";
   el("mirrorCurrency").textContent="—";el("mirrorUpdated").textContent="—";
   el("mirrorStatus").textContent="正在读取已授权的客户账户数据";
-  el("refreshMirror").disabled=true;el("mirrorManageClient").disabled=true;setMirrorScreen();
+  el("refreshMirror").disabled=true;el("mirrorManageClient").disabled=false;setMirrorScreen();
   try{
     const data=await api("/admin/mirror?clientId="+encodeURIComponent(clientId));
     if(mySerial!==mirrorSerial||adminToken!==usedToken||selectedMirrorClientId!==clientId)return;
@@ -496,11 +676,11 @@ async function selectMirrorClient(clientId){
     el("mirrorCash").textContent=cashFmt(data.account.cashCents);
     el("mirrorCurrency").textContent=data.account.currency;
     el("mirrorUpdated").textContent="快照读取时间："+new Date(data.checkedAt).toLocaleString("zh-CN");
-    el("mirrorStatus").textContent="只读 · 已记录访问审计";
+    el("mirrorStatus").textContent="快照已读取 · 管理操作在右侧";
     el("refreshMirror").disabled=false;el("mirrorManageClient").disabled=false;setMirrorScreen();
   }catch(error){
     if(mySerial!==mirrorSerial||adminToken!==usedToken)return;
-    el("mirrorStatus").textContent=error.message;setMirrorScreen();
+    el("mirrorStatus").textContent="快照不可用："+error.message+"；右侧管理操作可独立使用";setMirrorScreen();
   }
 }
 document.querySelectorAll("[data-mirror-tab]").forEach(button=>{
@@ -844,6 +1024,7 @@ el("adminLogout").addEventListener("click",()=>{
   if(expiredToken)void api("/admin/logout",{method:"POST",token:expiredToken}).catch(()=>{});
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
+  clearMirrorOperations();
   subadminDirectory=[];closeClientDetail();closeSubadminDetail();
   caseSerial++;fundingSerial++;caseRows=[];clearCaseSelection();
   el("workflowItems").replaceChildren();el("fundingRequestRows").replaceChildren();
