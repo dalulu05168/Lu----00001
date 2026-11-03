@@ -1,3 +1,4 @@
+declare const process: {env: {EXPO_PUBLIC_API_BASE_URL?: string}};
 export type Position = {market:string; symbol:string; quantity:number | string};
 export type Order = {
   id:string; market:string; symbol:string; side:string; quantity:number | string;
