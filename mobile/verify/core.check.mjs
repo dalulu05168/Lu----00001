@@ -109,3 +109,40 @@ test("privacy/deletion links allow verified HTTPS only",async()=>{
   assert.equal(safeHttpsUrl("https://localhost/privacy"),null);
   assert.equal(safeHttpsUrl("https://verified.example.org/privacy"),"https://verified.example.org/privacy");
 });
+
+test("release gate rejects unsigned or legally unapproved store submission",async()=>{
+ const {releaseIssues,loadAppConfig}=await import("../scripts/release-policy.mjs");
+ const config=await loadAppConfig();
+ const blockers=releaseIssues(config,{});
+ assert.ok(blockers.length>=10);
+ assert.ok(blockers.some(x=>x.includes("Expo project ID")));
+ assert.ok(blockers.some(x=>x.includes("real monitored")));
+ assert.ok(blockers.some(x=>x.includes("PRIVACY_POLICY_URL")));
+});
+test("release gate validates configuration separately from production network evidence",async()=>{
+ const {releaseIssues,loadAppConfig,liveReleaseChecks}=await import("../scripts/release-policy.mjs");
+ const cfg=await loadAppConfig();
+ cfg.expo.extra={...cfg.expo.extra,eas:{projectId:"test-unit-config-not-real"}};
+ const env={
+  EXPO_PUBLIC_API_BASE_URL:"https://api.operator.example.org",
+  EXPO_PUBLIC_PRIVACY_POLICY_URL:"https://legal.operator.example.org/privacy",
+  RELEASE_SUPPORT_URL:"https://support.operator.example.org/help",
+  RELEASE_LEGAL_ENTITY:"Test verified operator (unit test only)",
+  RELEASE_ALLOWED_COUNTRIES:"TEST"
+ };
+ for(const key of ["RELEASE_IOS_STORE_ACCOUNT_VERIFIED","RELEASE_ANDROID_STORE_ACCOUNT_VERIFIED","RELEASE_APP_IDS_APPROVED",
+   "RELEASE_FINANCIAL_LEGAL_REVIEW","RELEASE_DATA_RETENTION_APPROVED","RELEASE_DELETION_PROCESS_OPERATIONAL",
+   "RELEASE_PRIVACY_DISCLOSURES_APPROVED","RELEASE_REVIEW_ACCOUNT_READY","RELEASE_DEVICE_TESTS_PASSED"]){
+   env[key]="true";
+ }
+ assert.deepEqual(releaseIssues(cfg,env),[]);
+ const fetcher=async(url)=>new Response(url.endsWith("/ready")
+  ?JSON.stringify({status:"ready",database:"connected"})
+  :url.endsWith("/account-deletion")?"<html>NuvexaPro <form id='deletionForm'>account deletion</form></html>"
+  :"Policy or support information. ".repeat(12),{status:200,headers:{"content-type":"text/plain"}});
+ const checks=await liveReleaseChecks(env,fetcher);
+ assert.equal(checks.length,4);
+ assert.ok(checks.every(x=>x.passed));
+ const broken=await liveReleaseChecks(env,async()=>new Response("Not Found",{status:404}));
+ assert.ok(broken.every(x=>!x.passed));
+});
