@@ -1,5 +1,6 @@
 import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} from "./admin-mirror.mjs";
 import {getClientPolicy,changeClientPolicy,listClientPolicyAudit} from "./client-admin-policies.mjs";
+import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit} from "./operational-workflows.mjs";
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -43,6 +44,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/recover-pending-master":["POST"],"/api/admin/logout":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
     "/api/admin/client-controls":["GET","PATCH"],"/api/admin/client-control-audit":["GET"],
+    "/api/admin/workflow-requests":["GET","PATCH"],"/api/admin/workflow-audit":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
   };
@@ -112,6 +114,20 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     if(route==="/api/admin/client-control-audit"){
       const url=new URL(req.url??"/","http://localhost");
       response(res,200,{items:await listClientPolicyAudit(db,actor,url.searchParams.get("clientId"))});return true;
+    }
+    if(route==="/api/admin/workflow-requests"){
+      if(req.method==="PATCH"){
+        const data=await input(req);
+        response(res,200,{item:await reviewAdminRequest(db,actor,data.category,{
+          id:data.id,expectedStatus:data.expectedStatus,status:data.status,reason:data.reason
+        })});return true;
+      }
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,{items:await listAdminRequests(db,actor,url.searchParams.get("category"))});return true;
+    }
+    if(route==="/api/admin/workflow-audit"){
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,{items:await listAdminWorkflowAudit(db,actor,url.searchParams.get("clientId"))});return true;
     }
     if(route==="/api/admin/listings"){
       if(req.method!=="GET"&&actor.role!=="MASTER"){
