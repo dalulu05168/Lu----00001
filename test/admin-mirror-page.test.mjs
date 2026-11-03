@@ -56,7 +56,7 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(dom.window.document.querySelector('[data-pane="mirror"]').hidden,false);
     assert.equal(el("mirrorEmail").textContent,"customer@example.test");
     assert.equal(el("mirrorCash").textContent,"129.00");
-    assert.match(el("mirrorStatus").textContent,/已记录访问审计/);
+    assert.match(el("mirrorStatus").textContent,/快照已读取/);
     dom.window.document.querySelector('[data-mirror-tab="market"]').click();
     assert.match(el("mirrorAppScreen").textContent,/未接入/);
     dom.window.document.querySelector('[data-mirror-tab="trade"]').click();
