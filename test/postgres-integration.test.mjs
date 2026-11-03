@@ -487,7 +487,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.ok(initialSub.data.policy.requestCount>=2);
     assert.equal((await req(subPolicyPath,{token:subAdmin.data.token})).status,200);
     assert.equal((await req(subPolicyPath,{token:otherLogin.data.token})).status,404);
-    assert.equal((await req(subPolicyPath,{token:customerAppToken})).status,403);
+    assert.equal((await req(subPolicyPath,{token:customerAppToken})).status,401); // customer session was revoked above
     const subEdit=(body)=>req("/api/admin/subaccount-controls",{method:"PATCH",token:masterToken,body:{
       userId:sub.data.userId,loginAllowed:false,expectedVersion:0,reason:"Reviewed delegated account access and security requirements",
       confirmPassword:recoveredPassword,...body
