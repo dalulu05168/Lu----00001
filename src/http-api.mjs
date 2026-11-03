@@ -26,9 +26,9 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
-  if(req.method==="GET" && ["/","/index.html","/app.mjs","/styles.css","/admin.html","/admin.mjs","/admin.css","/portal.css","/portal.mjs"].includes(url.pathname)){
+  if(req.method==="GET" && ["/","/index.html","/app.mjs","/styles.css","/admin.html","/admin.mjs","/admin.css","/portal.css","/portal.mjs","/favicon.svg"].includes(url.pathname)){
    const file=url.pathname==="/"?"index.html":url.pathname.slice(1);
-   try{const bytes=await readFile(new URL("../web/"+file,import.meta.url));res.writeHead(200,{"content-type":file.endsWith(".mjs")?"text/javascript; charset=utf-8":file.endsWith(".css")?"text/css; charset=utf-8":"text/html; charset=utf-8","cache-control":"no-store"});res.end(bytes);return;}
+   try{const bytes=await readFile(new URL("../web/"+file,import.meta.url));res.writeHead(200,{"content-type":file.endsWith(".mjs")?"text/javascript; charset=utf-8":file.endsWith(".css")?"text/css; charset=utf-8":file.endsWith(".svg")?"image/svg+xml":"text/html; charset=utf-8","cache-control":"no-store"});res.end(bytes);return;}
    catch{return send(res,404,{error:"Not found"});}
   }
   if(url.pathname==="/health"&&req.method==="GET")return send(res,200,{status:"alive",brokerConnected:false,pricingConnected:typeof resolveExecutionPrice==="function"});
