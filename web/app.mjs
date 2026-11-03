@@ -34,6 +34,7 @@ let catalogLoaded = false;
 let catalogBusy = false;
 let transactionPage = 1;
 let transactionPageSize = 10;
+let serviceBusy=false,serviceRequests=[];
 
 
 const money = cents => {
@@ -557,6 +558,7 @@ function render() {
         timeZone:"Asia/Kuala_Lumpur",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false
       }).format(lastSyncedAt) + " MYT"
     : "尚未同步";
+  el("serviceRequestsPanel").hidden = !account;
   el("logout").hidden = !token;
   el("orderForm").querySelector('button[type="submit"]').disabled = !token || !account || !pricingConnected;
   renderRecords();
@@ -764,6 +766,91 @@ el("authForm").addEventListener("submit",async event => {
     render();
   }
 });
+
+const SERVICE_STATUS={
+ SUBMITTED:"已提交",UNDER_REVIEW:"审核中",APPROVED:"审核通过（未划转）",REJECTED:"已拒绝",
+ AWAITING_EVIDENCE:"等待验证材料",NEEDS_INFORMATION:"需补充材料",
+ MANUALLY_REVIEWED:"人工已审阅（未实名认证）",PENDING_VERIFICATION:"待第三方银行验证"
+};
+function serviceDescription(item){
+ const status=SERVICE_STATUS[item.status]??item.status;
+ if(item.category==="FUNDING"){
+  const cents=Number(item.amountCents);
+  const amount=Number.isSafeInteger(cents)?money(cents):"—";
+  return (item.kind==="DEPOSIT"?"充值申请":"提现申请")+" · "+amount+" USD · "+status;
+ }
+ if(item.category==="KYC")return "身份审核工单 · "+status;
+ return (item.bankLabel??"银行")+" · 账户尾号 "+(item.accountLast4??"—")+" · "+status;
+}
+function renderServiceRequests(){
+ const target=el("serviceRequestHistory");target.replaceChildren();
+ if(!serviceRequests.length){target.append(makeEmpty("暂无已提交申请"));return;}
+ const rows=serviceRequests.slice().sort((a,b)=>String(b.createdAt??"").localeCompare(String(a.createdAt??""))).slice(0,80);
+ for(const item of rows){
+  const row=document.createElement("div");row.className="service-request-record";
+  const title=document.createElement("strong");title.textContent=serviceDescription(item);
+  const time=document.createElement("span");time.textContent=item.createdAt?
+   new Date(item.createdAt).toLocaleString("zh-CN"):"等待记录时间";
+  row.append(title,time);target.append(row);
+ }
+}
+async function refreshServiceRequests(){
+ if(!token||!account)return;
+ const usedToken=token;el("serviceRequestFeedback").textContent="正在读取已提交申请…";
+ try{
+  const categories=["FUNDING","KYC","BANK_LINK"];
+  const results=await Promise.all(categories.map(category=>request("/requests?category="+category)));
+  if(usedToken!==token)return;
+  serviceRequests=results.flatMap((x,i)=>(Array.isArray(x.items)?x.items:[]).map(item=>({
+   ...item,category:categories[i]
+  })));
+  renderServiceRequests();
+  el("serviceRequestFeedback").textContent="已同步 "+serviceRequests.length+" 条申请。记录不代表实际收付款或核验通过。";
+ }catch(error){
+  if(usedToken===token)el("serviceRequestFeedback").textContent="申请列表读取失败："+error.message;
+ }
+}
+function validateUsdCents(input){
+ const raw=String(input??"").trim();
+ if(!/^\d{1,7}(?:\.\d{1,2})?$/.test(raw))throw Error("请输入合法的 USD 金额，最多两位小数");
+ const [whole,fraction=""]=raw.split(".");
+ const cents=Number(whole)*100+Number(fraction.padEnd(2,"0"));
+ if(!Number.isSafeInteger(cents)||cents<100||cents>100000000)
+  throw Error("每笔申请金额必须在 1.00 到 1,000,000.00 USD 之间");
+ return cents;
+}
+async function submitService(category,body,button){
+ if(!token||!account){el("serviceRequestFeedback").textContent="请先登录并同步账户";return false;}
+ if(serviceBusy)return false;serviceBusy=true;button.disabled=true;
+ try{
+  const {item}=await request("/requests?category="+category,{method:"POST",body});
+  el("serviceRequestFeedback").textContent="申请 "+String(item.id).slice(0,8)+" 已提交。尚无实际资金划转或第三方验证。";
+  await refreshServiceRequests();
+  return true;
+ }catch(error){el("serviceRequestFeedback").textContent="申请未提交："+error.message;return false;}
+ finally{serviceBusy=false;button.disabled=false;}
+}
+el("refreshServiceRequests").addEventListener("click",()=>{void refreshServiceRequests()});
+el("fundingRequestForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ try{
+  const amountCents=validateUsdCents(el("fundingRequestAmount").value);
+  const ok=await submitService("FUNDING",{kind:el("fundingRequestKind").value,amountCents},
+   event.currentTarget.querySelector('button[type="submit"]'));
+  if(ok)el("fundingRequestAmount").value="";
+ }catch(error){el("serviceRequestFeedback").textContent=error.message;}
+});
+el("bankLinkRequestForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const ok=await submitService("BANK_LINK",{
+  bankLabel:el("bankRequestName").value.trim(),accountLast4:el("bankRequestLast4").value.trim()
+ },event.currentTarget.querySelector('button[type="submit"]'));
+ if(ok){el("bankRequestName").value="";el("bankRequestLast4").value="";}
+});
+el("startKycRequest").addEventListener("click",async()=>{
+ await submitService("KYC",{},el("startKycRequest"));
+});
+
 el("railLogout").addEventListener("click",() => {
   if (token) el("logout").click();
   else el("account-section").scrollIntoView({behavior:"smooth",block:"start"});
@@ -782,6 +869,7 @@ el("logout").addEventListener("click",async () => {
     watchlistFetchSequence++;
     catalog=[];
     catalogLoaded=false;
+    serviceRequests=[];el("serviceRequestHistory").replaceChildren();
     el("savedWatchlistFeedback").textContent="";
     el("authFeedback").textContent = "已退出账户";
     render();
