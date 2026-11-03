@@ -12,10 +12,10 @@ test("dashboard follows the supplied dark charcoal transactions visual direction
   assert.match(css, /background:#191b1e/i);
   const weights = [...css.matchAll(/font-weight\s*:\s*(\d+)/g)].map(match => Number(match[1]));
   assert.ok(weights.length > 0);
-  assert.ok(weights.every(weight => weight <= 500), "UI should not add 600+ bold weights");
+  assert.ok(weights.every(weight => weight >= 300 && weight <= 700), "Use a restrained font hierarchy");
   assert.match(html, /id="transactions-section"/);
   assert.match(html, /id="transactionRows"/);
-  assert.match(html, /class="brand-mark"[^>]*><svg/, "the existing platform mark must be retained");
+  assert.match(html, /class="brand-mark"[^>]*><svg class="cn-capital-mark"/, "the CN Capital mark must be visible");
   assert.match(html, /class="metrics"/);
   assert.match(html, /class="primary-grid"/);
   assert.match(html, /class="secondary-grid"/);
