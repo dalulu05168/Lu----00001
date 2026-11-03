@@ -36,7 +36,11 @@ test("subadmin review cannot approve a money request or bypass scoped ownership"
 });
 test("client list reads only the authenticated user and admin dashboard filters by linkage",async()=>{
  const id=randomUUID(),actor={role:"SUBADMIN",userId:randomUUID()},sql=[];
- const db={query:async(s,p)=>{sql.push({s,p});return {rows:[]}}};
+ const db={query:async(s,p)=>{
+  sql.push({s,p});
+  if(s.startsWith("SELECT u.id FROM app_users"))return {rows:[{id}]};
+  return {rows:[]};
+ }};
  assert.deepEqual(await listClientRequests(db,id,"FUNDING"),[]);
  assert.deepEqual(await listAdminRequests(db,actor,"FUNDING"),[]);
  assert.deepEqual(await listAdminRequests(db,actor,"FUNDING",id),[]);
@@ -45,5 +49,23 @@ test("client list reads only the authenticated user and admin dashboard filters 
  assert.match(sql[1].s,/l.subadmin_user_id=\$2::uuid/);
  assert.match(sql[1].s,/r.client_user_id=\$3::uuid/);
  assert.deepEqual(sql[1].p,["SUBADMIN",actor.userId,null]);
- assert.deepEqual(sql[2].p,["SUBADMIN",actor.userId,id]);
+ assert.match(sql[2].s,/NOT EXISTS/);
+ assert.deepEqual(sql[2].p,[id,"SUBADMIN",actor.userId]);
+ assert.deepEqual(sql[3].p,["SUBADMIN",actor.userId,id]);
+});
+
+test("direct customer lookup denies cross-subaccount access even when no requests exist",async()=>{
+ const clientId=randomUUID();
+ const own={role:"SUBADMIN",userId:randomUUID()};
+ const other={role:"SUBADMIN",userId:randomUUID()};
+ const calls=[];
+ const db={query:async(sql,params)=>{
+  calls.push({sql,params});
+  if(sql.startsWith("SELECT u.id FROM app_users"))return {rows:params[2]===own.userId?[{id:clientId}]:[]};
+  return {rows:[]};
+ }};
+ assert.deepEqual(await listAdminRequests(db,own,"FUNDING",clientId),[]);
+ await assert.rejects(listAdminRequests(db,other,"FUNDING",clientId),e=>e.statusCode===404);
+ assert.equal(calls.filter(x=>x.sql.startsWith("SELECT r.*")).length,1);
+ assert.deepEqual(calls[calls.length-1].params,[clientId,"SUBADMIN",other.userId]);
 });

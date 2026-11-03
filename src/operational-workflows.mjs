@@ -66,7 +66,15 @@ export async function listClientRequests(db,userId,category){
 }
 export async function listAdminRequests(db,actor,category,clientId=null){
  actorScope(actor);const table=requireCategory(category);
- if(clientId!==null)requireUuid(clientId);
+ if(clientId!==null){
+  requireUuid(clientId);
+  const permitted=await db.query("SELECT u.id FROM app_users u "+
+   "LEFT JOIN client_links l ON l.user_id=u.id "+
+   "WHERE u.id=$1 AND NOT EXISTS (SELECT 1 FROM admin_roles ar WHERE ar.user_id=u.id) "+
+   "AND ($2::text='MASTER' OR l.subadmin_user_id=$3::uuid)",
+   [clientId,actor.role,actor.userId]);
+  if(permitted.rows.length!==1)bad("Client not found",404);
+ }
  const q=await db.query("SELECT r.* FROM "+table+" r LEFT JOIN client_links l ON l.user_id=r.client_user_id "+
   "WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid) "+
   "AND ($3::uuid IS NULL OR r.client_user_id=$3::uuid) "+
