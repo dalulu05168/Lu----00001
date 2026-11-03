@@ -1,0 +1,22 @@
+name: CN Capital website checks
+on:
+  push:
+    branches: ["dev/cn-capital-website-20261104"]
+    paths: ["site/**", ".github/workflows/website-check.yml"]
+  pull_request:
+    paths: ["site/**", ".github/workflows/website-check.yml"]
+permissions:
+  contents: read
+jobs:
+  site-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify marketing site
+        run: node site/check.mjs
+      - name: JavaScript syntax check
+        run: node --check site/main.js
