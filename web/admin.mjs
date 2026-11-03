@@ -1047,8 +1047,27 @@ function setMobileNavExpanded(expanded){
 el("adminMobileNavToggle").addEventListener("click",()=>{
   setMobileNavExpanded(el("adminMobileNavToggle").getAttribute("aria-expanded")!=="true");
 });
+async function refreshDeletionQueue(){
+  const status=el("deletionQueueStatus"),list=el("deletionQueueItems");
+  status.textContent="正在读取客户注销申请…";list.replaceChildren();
+  try{
+    const data=await api("/admin/deletion-requests");
+    const rows=Array.isArray(data?.items)?data.items:[];
+    status.textContent=rows.length?"待核验与保留评估的申请："+rows.length:"权限范围内暂无注销申请。";
+    for(const item of rows){
+      const row=document.createElement("div");row.className="record-item";
+      const title=document.createElement("strong");
+      title.textContent=(item.email||"账号已移除")+" · "+item.status;
+      const details=document.createElement("p");details.className="muted";
+      details.textContent="申请编号："+item.id+" · 时间："+(item.requestedAt||"—")+" · 客户："+(item.clientId||"已移除");
+      row.append(title,details);list.append(row);
+    }
+  }catch(error){status.textContent="读取失败："+error.message;}
+}
+el("refreshDeletionQueue").addEventListener("click",()=>{void refreshDeletionQueue();});
 function activateAdminPane(page) {
   if(page==="clients")closeClientDetail();
+  if(page==="risk")void refreshDeletionQueue();
   if(page==="audit")void refreshMirrorAudit();
   if(page==="approvals")void refreshCaseList();
   if(page==="treasury")void refreshFundingOverview();
