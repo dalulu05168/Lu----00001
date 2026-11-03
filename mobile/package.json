@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test verify/core.check.mjs",
     "check": "npm run typecheck && npm test",
     "postinstall": "node scripts/prepare-assets.mjs",
     "prepare-assets": "node scripts/prepare-assets.mjs"
