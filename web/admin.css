@@ -107,3 +107,13 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 #adminRoot{max-width:none;margin:0;padding:0}
 #adminWorkspace{padding:16px 20px}
 @media(max-width:650px){#adminWorkspace{padding:10px}}
+
+/* Securities directory: manage draft, publish and withdraw without losing mobile controls. */
+.listing-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-left:auto}
+.listing-actions .outline{padding:7px 11px;min-height:34px}
+.listing-actions button:disabled{opacity:.5;cursor:not-allowed}
+#listingCancelEdit[hidden]{display:none}
+@media(max-width:650px){
+  .listing-actions{margin-left:0;justify-content:flex-start;width:100%}
+  #listings .admin-list-row{flex-wrap:wrap}
+}
