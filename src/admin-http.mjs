@@ -2,6 +2,8 @@ import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} fro
 import {getClientPolicy,changeClientPolicy,listClientPolicyAudit} from "./client-admin-policies.mjs";
 import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit,listAdminClientHistoryPage} from "./operational-workflows.mjs";
 import {getSubadminPolicy,changeSubadminLogin,listSubadminControlAudit} from "./admin-subaccount-policies.mjs";
+import {listCommodityProducts,createCommodityProduct,updateCommodityProduct,commodityProductAudit} from "./commodity-products.mjs";
+import {listAdminSupportThreads,getAdminSupportThread,sendAdminSupportMessage,changeAdminSupportStatus} from "./support-messages.mjs";
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -49,7 +51,9 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/workflow-requests":["GET","PATCH"],"/api/admin/workflow-audit":["GET"],
     "/api/admin/client-history":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
-    "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
+    "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"],
+    "/api/admin/commodities":["GET","POST","PATCH"],"/api/admin/commodity-audit":["GET"],
+    "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
@@ -150,6 +154,24 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     if(route==="/api/admin/workflow-audit"){
       const url=new URL(req.url??"/","http://localhost");
       response(res,200,{items:await listAdminWorkflowAudit(db,actor,url.searchParams.get("clientId"))});return true;
+    }
+    if(route==="/api/admin/commodities"){
+      if(req.method==="POST"){response(res,201,{item:await createCommodityProduct(db,actor,await input(req))});return true;}
+      if(req.method==="PATCH"){response(res,200,{item:await updateCommodityProduct(db,actor,await input(req))});return true;}
+      response(res,200,await listCommodityProducts(db,actor));return true;
+    }
+    if(route==="/api/admin/commodity-audit"){
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,await commodityProductAudit(db,actor,url.searchParams.get("id")));return true;
+    }
+    if(route==="/api/admin/support"){
+      if(req.method==="POST"){response(res,201,await sendAdminSupportMessage(db,actor,await input(req)));return true;}
+      if(req.method==="PATCH"){response(res,200,await changeAdminSupportStatus(db,actor,await input(req)));return true;}
+      response(res,200,await listAdminSupportThreads(db,actor));return true;
+    }
+    if(route==="/api/admin/support-thread"){
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,await getAdminSupportThread(db,actor,url.searchParams.get("threadId")));return true;
     }
     if(route==="/api/admin/listings"){
       if(req.method!=="GET"&&actor.role!=="MASTER"){

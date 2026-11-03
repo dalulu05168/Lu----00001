@@ -7,6 +7,8 @@ import { placeInternalOrder } from "./order-service.mjs";
 import {registerAccount,loginAccount,logoutAccount,getAccountSnapshot} from "./account-service.mjs";
 import {listWatchlist,addWatchlistItem,removeWatchlistItem} from "./watchlist-service.mjs";
 import {submitClientRequest,listClientRequests} from "./operational-workflows.mjs";
+import {listCommodityProducts} from "./commodity-products.mjs";
+import {getCustomerSupport,sendCustomerSupportMessage} from "./support-messages.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
 async function readBody(req,maxBodyBytes){
@@ -47,11 +49,13 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/requests"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/requests"&&!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/commodities"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/support"&&!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/watchlist"&&!["GET","POST","DELETE"].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/auth/logout"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(isAuthRoute){
@@ -80,6 +84,22 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   try{session=await resolveSession(auth.slice(7));}catch{return send(res,401,{error:"Authentication failed"});}
   if(!session?.accountId)return send(res,401,{error:"Authentication required"});
   if(session.adminVerified===true)return send(res,403,{error:"Use the administrator console"});
+  if(route==="/api/commodities"){
+   try{return send(res,200,await listCommodityProducts(db,null,{publishedOnly:true}));}
+   catch{return send(res,500,{error:"Internal server error"});}
+  }
+  if(route==="/api/support"){
+   try{
+    if(req.method==="GET")return send(res,200,await getCustomerSupport(db,session.userId));
+    const payload=JSON.parse(await readBody(req,maxBodyBytes));
+    return send(res,201,await sendCustomerSupportMessage(db,session.userId,payload));
+   }catch(err){
+    if(err.statusCode===413)return send(res,413,{error:"Request too large"});
+    if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
+    if([400,403,404,409].includes(err.statusCode))return send(res,err.statusCode,{error:err.message});
+    return send(res,500,{error:"Internal server error"});
+   }
+  }
   if(route==="/api/requests"){
    try{
     const category=url.searchParams.get("category");
