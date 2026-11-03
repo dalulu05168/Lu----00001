@@ -476,6 +476,46 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const cashAfter=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
     assert.equal(Number(cashAfter.rows[0].cash_cents),0);
 
+    // A master can restrict a specific child administrator; an unrelated subaccount cannot inspect it.
+    const subPolicyPath="/api/admin/subaccount-controls?userId="+sub.data.userId;
+    const subAuditPath="/api/admin/subaccount-control-audit?userId="+sub.data.userId;
+    const initialSub=await req(subPolicyPath,{token:masterToken});
+    assert.equal(initialSub.status,200);
+    assert.equal(initialSub.data.policy.loginAllowed,true);
+    assert.equal(initialSub.data.policy.version,0);
+    assert.equal(initialSub.data.policy.clientCount,1);
+    assert.ok(initialSub.data.policy.requestCount>=2);
+    assert.equal((await req(subPolicyPath,{token:subAdmin.data.token})).status,200);
+    assert.equal((await req(subPolicyPath,{token:otherLogin.data.token})).status,404);
+    assert.equal((await req(subPolicyPath,{token:customerAppToken})).status,403);
+    const subEdit=(body)=>req("/api/admin/subaccount-controls",{method:"PATCH",token:masterToken,body:{
+      userId:sub.data.userId,loginAllowed:false,expectedVersion:0,reason:"Reviewed delegated account access and security requirements",
+      confirmPassword:recoveredPassword,...body
+    }});
+    assert.equal((await req("/api/admin/subaccount-controls",{method:"PATCH",token:subAdmin.data.token,body:{
+      userId:sub.data.userId,loginAllowed:false,expectedVersion:0,
+      reason:"Reviewed delegated account access and security requirements",confirmPassword:subPassword
+    }})).status,403);
+    assert.equal((await subEdit({confirmPassword:"invalid-password"})).status,401);
+    const disabled=await subEdit({});
+    assert.equal(disabled.status,200);
+    assert.equal(disabled.data.policy.version,1);
+    assert.equal(disabled.data.policy.loginAllowed,false);
+    assert.equal((await req("/api/admin/me",{token:subAdmin.data.token})).status,401);
+    assert.equal((await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}})).status,401);
+    assert.equal((await subEdit({expectedVersion:0,loginAllowed:true})).status,409);
+    const reinstated=await subEdit({expectedVersion:1,loginAllowed:true});
+    assert.equal(reinstated.status,200);
+    assert.equal(reinstated.data.policy.version,2);
+    assert.equal((await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}})).status,200);
+    const subHistory=await req(subAuditPath,{token:masterToken});
+    assert.equal(subHistory.status,200);
+    assert.equal(subHistory.data.items.length,2);
+    assert.equal(subHistory.data.items[0].newLoginAllowed,true);
+    assert.equal(subHistory.data.items[1].newLoginAllowed,false);
+    assert.equal((await req(subAuditPath,{token:otherLogin.data.token})).status,404);
+
+
   }finally{
     await new Promise(done=>app.close(done));
     await db.end();
