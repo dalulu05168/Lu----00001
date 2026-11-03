@@ -746,10 +746,20 @@ el("adminLogout").addEventListener("click",()=>{
   el("mirrorMatchCount").textContent="";
   el("mirrorEmail").textContent="尚未选择";el("mirrorCash").textContent="—";el("mirrorManageClient").disabled=true;setMirrorScreen();
   el("mirrorClientList").replaceChildren();
+  setMobileNavExpanded(false);
   el("adminWorkspace").hidden=true;el("adminTopbar").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=true;
   setText("loginFeedback","已退出管理后台。");
 });
 /** Independent client-side navigation: authorization is always enforced by /api/admin/*. */
+function setMobileNavExpanded(expanded){
+  const menu=el("adminMobileNavToggle");
+  el("adminWorkspace").querySelector(".admin-nav").dataset.mobileOpen=String(Boolean(expanded));
+  menu.setAttribute("aria-expanded",String(Boolean(expanded)));
+  menu.textContent=expanded?"收起菜单":"打开菜单";
+}
+el("adminMobileNavToggle").addEventListener("click",()=>{
+  setMobileNavExpanded(el("adminMobileNavToggle").getAttribute("aria-expanded")!=="true");
+});
 function activateAdminPane(page) {
   if(page==="audit")void refreshMirrorAudit();
   if(page==="approvals")void refreshCaseList();
@@ -763,6 +773,7 @@ function activateAdminPane(page) {
     if(button===nav)button.setAttribute("aria-current","page");
     else button.removeAttribute("aria-current");
   });
+  setMobileNavExpanded(false);
 }
 document.querySelectorAll("[data-admin-page]").forEach(button=>{
   button.addEventListener("click",()=>activateAdminPane(button.dataset.adminPage));
