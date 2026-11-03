@@ -118,12 +118,41 @@
         </section>
       </section>
       <section class="admin-pane" data-pane="clients" hidden>
-        <div class="pane-title"><span>CLIENT OPERATIONS</span><h2>客户归属管理</h2><p>主账户可以查看全部关联客户；子账户仅查看自己的客户。</p></div>
-        <section class="panel"><div class="heading"><h3>客户列表</h3><button type="button" id="refreshClients" class="outline">刷新</button></div><div id="clients"></div>
-          <section id="clientDetail" class="record-detail" hidden aria-label="客户完整详情">
-            <div class="heading"><h3>客户详情与业务入口</h3><button type="button" id="closeClientDetail" class="outline">返回列表</button></div>
-            <div id="clientDetailFields" class="record-fields"></div>
-            <div class="record-actions"><button type="button" id="clientDetailMirror" class="outline">进入客户 APP 镜像</button></div>
+        <div id="clientListView">
+          <div class="pane-title"><span>CLIENT OPERATIONS</span><h2>客户管理</h2><p>查看有权限管理的客户，打开独立工作区处理账户事务。</p></div>
+          <section class="panel client-list-panel">
+            <div class="heading client-list-toolbar"><div><h3>客户列表</h3><p id="clientDirectoryCount" class="muted">正在加载客户</p></div>
+              <div class="client-list-actions">
+                <label class="client-search-label">搜索客户 <input id="clientDirectorySearch" type="search" placeholder="邮箱或客户编号" autocomplete="off"></label>
+                <button type="button" id="refreshClients" class="outline">刷新</button>
+              </div>
+            </div>
+            <div class="client-directory-columns" aria-hidden="true"><span>客户与归属</span><span>管理操作</span></div>
+            <div id="clients" class="client-directory"></div>
+          </section>
+        </div>
+        <section id="clientDetail" class="record-detail client-workspace" hidden aria-label="客户完整详情">
+          <header class="client-workspace-header">
+            <div class="client-workspace-identity"><span class="client-eyebrow">CLIENT PROFILE / 客户档案</span>
+              <h2 id="clientDetailHeadline">客户管理工作台</h2>
+              <p id="clientDetailSubhead">查看账户资料、权限和申请记录</p>
+            </div>
+            <div class="client-workspace-actions">
+              <button type="button" id="closeClientDetail" class="outline">返回客户列表</button>
+              <button type="button" id="clientDetailMirror" class="outline">打开 APP 镜像</button>
+            </div>
+          </header>
+          <nav class="client-workspace-tabs" aria-label="客户管理分区" role="tablist">
+            <button type="button" role="tab" data-client-tab="overview" aria-selected="true" aria-controls="clientOverviewPanel">客户资料</button>
+            <button type="button" role="tab" data-client-tab="policy" aria-selected="false" aria-controls="clientPolicyTabPanel">账户管理</button>
+            <button type="button" role="tab" data-client-tab="requests" aria-selected="false" aria-controls="clientRequestsTabPanel">申请与记录</button>
+          </nav>
+          <section id="clientOverviewPanel" class="client-tab-panel client-overview-panel" data-client-panel="overview" role="tabpanel">
+            <div class="client-workspace-section-heading"><h3>基本资料</h3><span>关联账户信息</span></div>
+            <div id="clientDetailFields" class="record-fields client-profile-fields"></div>
+            <p class="record-boundary">仅展示已核实的账户资料。身份核验、银行卡及交易权限须以已接通的服务端记录为准。</p>
+          </section>
+          <section id="clientPolicyTabPanel" class="client-tab-panel" data-client-panel="policy" role="tabpanel" hidden>
             <section id="clientPolicyArea" class="policy-management" hidden aria-label="客户权限管理">
               <div class="heading"><h3>客户管理策略</h3><button type="button" id="refreshClientPolicy" class="outline">刷新权限</button></div>
               <p id="clientPolicyStatus" class="muted" role="status" aria-live="polite">请选择客户读取策略</p>
@@ -145,6 +174,8 @@
               <div class="policy-audit"><h4>最近权限操作记录</h4><div id="clientPolicyAudit"></div></div>
               <p class="record-boundary">提现申请和贷款申请的权限，不代表资金已经划转或贷款已发放。“真实账户待接入”仅是账户分类，不启用真实交易。</p>
             </section>
+          </section>
+          <section id="clientRequestsTabPanel" class="client-tab-panel" data-client-panel="requests" role="tabpanel" hidden>
             <section class="policy-management" id="clientWorkflowPanel" aria-label="当前客户业务申请" hidden>
               <div class="heading"><h3>当前客户的申请与审核记录</h3>
                 <button type="button" class="outline" id="refreshClientWorkflow">刷新申请</button></div>
@@ -156,8 +187,8 @@
               </div>
               <p class="record-boundary">这里显示授权范围内的近期申请，审批状态不代表真实资金到账、身份核验通过或银行卡验证。</p>
             </section>
-            <p class="record-boundary">客户登录、VIP、提现申请、贷款申请资格及账户分类采用受控的管理策略，并记录审计；身份核验与银行卡登记仍为待第三方验证的工单，不代表已完成认证或绑定。</p>
-          </section></section>
+          </section>
+        </section>
       </section>
       <section class="admin-pane" data-pane="mirror" hidden>
         <div class="pane-title"><span>SCOPED CUSTOMER APP MIRROR</span><h2>客户 App 镜像</h2><p>账户快照只读；管理员修改入口独立授权并审计</p></div>

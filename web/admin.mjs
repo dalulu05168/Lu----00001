@@ -56,7 +56,23 @@ function detailRow(name,value){
   const row=document.createElement("div");row.className="record-field";
   row.append(plainNode("span",name),plainNode("strong",value??"未提供"));return row;
 }
+function setClientDetailTab(name){
+  const selected=["overview","policy","requests"].includes(name)?name:"overview";
+  document.querySelectorAll("[data-client-tab]").forEach(button=>{
+    const active=button.dataset.clientTab===selected;
+    button.setAttribute("aria-selected",String(active));
+    button.tabIndex=active?0:-1;
+  });
+  document.querySelectorAll("[data-client-panel]").forEach(panel=>{
+    panel.hidden=panel.dataset.clientPanel!==selected;
+  });
+}
+document.querySelectorAll("[data-client-tab]").forEach(button=>{
+  button.addEventListener("click",()=>setClientDetailTab(button.dataset.clientTab));
+});
 function closeClientDetail(){
+  el("clientListView").hidden=false;
+  setClientDetailTab("overview");
   selectedClientDetailId=null;currentClientPolicy=null;clientPolicySerial++;clientWorkflowSerial++;
   el("clientDetail").hidden=true;el("clientDetailFields").replaceChildren();
   el("clientWorkflowPanel").hidden=true;el("clientWorkflowHistory").replaceChildren();
@@ -87,6 +103,10 @@ function openClientDetail(clientId){
     el("clientWorkflowAudit").replaceChildren();el("clientWorkflowMore").hidden=true;
   }
   selectedClientDetailId=c.id;
+  el("clientListView").hidden=true;
+  el("clientDetailHeadline").textContent=c.email;
+  el("clientDetailSubhead").textContent=c.subadmin_user_id?"由所属子账号管理的客户":"直接注册客户";
+  setClientDetailTab("overview");
   const target=el("clientDetailFields");target.replaceChildren(
     detailRow("客户邮箱",c.email),detailRow("客户编号",c.id),
     detailRow("归属子账号",c.subadmin_user_id||"未绑定子账号"),
@@ -404,29 +424,36 @@ function renderClientDirectory(items){
   const list=el("clients"),quick=el("mirrorClientList");
   const term=el("mirrorClientSearch").value.trim().toLocaleLowerCase();
   const visible=mirrorClients.filter(c=>String(c.email).toLocaleLowerCase().includes(term));
+  const dirTerm=el("clientDirectorySearch").value.trim().toLocaleLowerCase();
+  const directory=mirrorClients.filter(c=>
+    String(c.email).toLocaleLowerCase().includes(dirTerm)||String(c.id).toLowerCase().includes(dirTerm));
+  el("clientDirectoryCount").textContent="显示 "+directory.length+" / "+mirrorClients.length+" 位客户";
   el("mirrorMatchCount").textContent="匹配 "+visible.length+" / "+mirrorClients.length+" 位客户";
   for(const target of [list,quick]){
     target.replaceChildren();
-    const entries=target===quick?visible:mirrorClients;
+    const entries=target===quick?visible:directory;
     if(!entries.length){target.append(plainNode("p",term?"没有匹配的客户":"暂无有权限查看的客户","muted"));continue;}
     for(const c of entries){
-      const row=document.createElement("div");row.className="admin-list-row mirror-customer";
+      const row=document.createElement("div");row.className=target===list?"admin-list-row client-directory-row":"admin-list-row mirror-customer";
       const meta=document.createElement("div");
-      meta.append(plainNode("div",c.email),plainNode("small",c.subadmin_user_id?"已有子账户归属":"直接注册客户"));
+      meta.append(plainNode("div",c.email),plainNode("small",c.subadmin_user_id?"子账号归属 · "+c.subadmin_user_id:"直接注册客户"));
+      const actions=document.createElement("div");actions.className="client-directory-actions";
       if(target===list){
         const detail=document.createElement("button");detail.type="button";detail.className="outline record-detail-open";detail.textContent="查看详情";
         detail.addEventListener("click",()=>openClientDetail(c.id));
-        row.append(meta,detail);
-      }else row.append(meta);
+        actions.append(detail);
+      }
+      row.append(meta);
       const button=document.createElement("button");button.type="button";button.className="outline mirror-open";
       button.textContent="查看 App 镜像";
       button.disabled=!mirrorBackendReady;
       button.addEventListener("click",()=>selectMirrorClient(c.id));
-      row.append(button);target.append(row);
+      actions.append(button);row.append(actions);target.append(row);
     }
   }
-  if(selectedClientDetailId)openClientDetail(selectedClientDetailId);
+  if(selectedClientDetailId&&!mirrorClients.some(c=>c.id===selectedClientDetailId))closeClientDetail();
 }
+el("clientDirectorySearch").addEventListener("input",()=>renderClientDirectory(mirrorClients));
 function setMirrorScreen(){
   const view=el("mirrorAppScreen");view.replaceChildren();
   if(!mirrorSnapshot){view.append(plainNode("p","请选择客户以读取账户快照","muted"));return;}
@@ -840,6 +867,7 @@ el("adminMobileNavToggle").addEventListener("click",()=>{
   setMobileNavExpanded(el("adminMobileNavToggle").getAttribute("aria-expanded")!=="true");
 });
 function activateAdminPane(page) {
+  if(page==="clients")closeClientDetail();
   if(page==="audit")void refreshMirrorAudit();
   if(page==="approvals")void refreshCaseList();
   if(page==="treasury")void refreshFundingOverview();

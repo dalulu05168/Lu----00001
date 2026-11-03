@@ -185,3 +185,66 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 .client-history-footer{display:flex;justify-content:center;align-items:center;padding:14px 4px 4px;min-width:0}
 #clientWorkflowMore{min-height:42px;min-width:150px;max-width:100%;white-space:normal}
 @media(max-width:650px){.client-history-footer{padding:12px 0}.client-history-footer>button{width:100%}}
+
+/* Client workspaces: avoid the nested list/detail/card stack in the former client screen. */
+.client-list-panel{padding:0;overflow:hidden;border-radius:11px}
+.client-list-toolbar{padding:18px 20px;margin:0;border-bottom:1px solid var(--border)}
+.client-list-toolbar h3{margin:0;font-size:15px;font-weight:650}
+.client-list-toolbar p{margin:4px 0 0;line-height:1.5}
+.client-list-actions{display:flex;gap:10px;align-items:end;min-width:0}
+.client-search-label{display:grid;gap:5px;font-size:10px;color:#aeb5bd;min-width:230px}
+.client-search-label input{height:39px;width:100%;min-width:0;border:1px solid #41474e;background:#22262b;border-radius:6px;color:#e8eaed;padding:8px 10px;font-size:12px}
+.client-list-actions>.outline{min-height:39px}
+.client-directory-columns{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;background:#222529;border-bottom:1px solid #383c41;padding:12px 20px;font-size:11px;color:#adb4bb}
+.client-directory-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:13px 20px;min-height:70px}
+.client-directory-row>div:first-child{min-width:0}
+.client-directory-row>div:first-child>div{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.client-directory-row small{font-size:11px;overflow-wrap:anywhere}
+.client-directory-row:hover{background:#26292e}
+.client-directory-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.client-directory-actions>.outline{min-height:37px;font-size:12px;margin:0}
+.client-workspace{margin:0;padding:0;border:0;background:transparent;border-radius:0;min-width:0}
+.client-workspace-header{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:4px 0 20px}
+.client-workspace-identity{min-width:0}
+.client-eyebrow{color:#8e969f;font-size:10px;letter-spacing:.15em;font-weight:600}
+.client-workspace-identity h2{font-size:23px;font-weight:650;letter-spacing:-.025em;margin:8px 0 4px;overflow-wrap:anywhere}
+.client-workspace-identity p{color:#a2aab3;font-size:12px;margin:0}
+.client-workspace-actions{display:flex;flex-wrap:wrap;gap:9px;justify-content:flex-end}
+.client-workspace-actions>.outline{min-height:40px;font-size:12px}
+.client-workspace-tabs{display:flex;align-items:center;gap:4px;border-bottom:1px solid #3a4046;margin-bottom:18px;overflow-x:auto}
+.client-workspace-tabs button{padding:13px 19px;border:0;background:transparent;border-bottom:2px solid transparent;color:#9ca5ad;white-space:nowrap;font-size:13px;font-weight:500}
+.client-workspace-tabs button[aria-selected="true"]{color:#f2f4f6;border-bottom-color:#b4bac1;background:#25292e}
+.client-tab-panel{min-width:0}
+.client-overview-panel{border:1px solid var(--border);background:#1e2023;padding:18px 22px;border-radius:10px}
+.client-workspace-section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid #383d43}
+.client-workspace-section-heading h3{font-size:15px;margin:0}
+.client-workspace-section-heading span{font-size:11px;color:#929aa4}
+.client-profile-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
+.client-profile-fields .record-field{min-height:68px;padding:14px 0;gap:5px}
+.client-profile-fields .record-field span{font-size:11px}
+.client-profile-fields .record-field strong{font-size:13px;line-height:1.5}
+.client-workspace .policy-management{margin-top:0;margin-bottom:14px;padding:18px 22px;border-radius:10px;background:#1e2023}
+.client-workspace .policy-management .heading{padding-bottom:10px;border-bottom:1px solid #383d43}
+.client-workspace .record-boundary{font-size:11px!important;color:#aba8a0!important}
+.client-workspace .client-tab-panel[hidden]{display:none!important}
+@media(max-width:980px){
+  .client-workspace-header{align-items:flex-start}
+  .client-workspace-actions{flex:none}
+  .client-search-label{min-width:180px}
+}
+@media(max-width:720px){
+  .client-list-toolbar{align-items:stretch;flex-wrap:wrap;padding:14px}
+  .client-list-actions{width:100%}
+  .client-search-label{flex:1;min-width:0}
+  .client-directory-columns{padding:10px 14px}
+  .client-directory-row{grid-template-columns:minmax(0,1fr);gap:10px;padding:13px 14px}
+  .client-directory-actions{justify-content:flex-start}
+  .client-directory-actions>.outline{flex:1}
+  .client-workspace-header{flex-direction:column;align-items:stretch;gap:14px}
+  .client-workspace-actions{justify-content:flex-start}
+  .client-workspace-identity h2{font-size:19px}
+  .client-workspace-tabs button{padding:12px 13px;font-size:12px}
+  .client-overview-panel{padding:12px 14px}
+  .client-profile-fields{grid-template-columns:minmax(0,1fr)}
+  .client-workspace .policy-management{padding:12px 14px}
+}
