@@ -50,6 +50,7 @@ function displayItems(id,rows,format){
 }
 let subadminDirectory=[],selectedSubadminId=null,selectedClientDetailId=null;
 let currentClientPolicy=null,clientPolicySerial=0;
+let currentSubadminPolicy=null,subadminPolicySerial=0;
 const dateLabel=value=>value && !Number.isNaN(Date.parse(value))?new Date(value).toLocaleString("zh-CN"):"未提供";
 function detailRow(name,value){
   const row=document.createElement("div");row.className="record-field";
@@ -62,7 +63,14 @@ function closeClientDetail(){
   el("clientPolicyAudit").replaceChildren();
   el("clientPolicyReason").value="";el("clientPolicyPassword").value="";el("clientPolicyConfirm").checked=false;
 }
-function closeSubadminDetail(){selectedSubadminId=null;el("subadminDetail").hidden=true;el("subadminDetailFields").replaceChildren();}
+function closeSubadminDetail(){
+ selectedSubadminId=null;currentSubadminPolicy=null;subadminPolicySerial++;
+ el("subadminDetail").hidden=true;el("subadminDetailFields").replaceChildren();
+ el("subadminPolicyArea").hidden=true;el("subadminPolicyForm").hidden=true;
+ el("subadminPolicyFields").replaceChildren();el("subadminPolicyAudit").replaceChildren();
+ el("subadminPolicyReason").value="";el("subadminPolicyPassword").value="";
+ el("subadminPolicyConfirm").checked=false;
+}
 function openClientDetail(clientId){
   const c=mirrorClients.find(item=>item.id===clientId);
   if(!c){closeClientDetail();return;}
@@ -83,16 +91,98 @@ function openClientDetail(clientId){
 function openSubadminDetail(userId){
   const c=subadminDirectory.find(item=>item.user_id===userId);
   if(!c){closeSubadminDetail();return;}
+  if(selectedSubadminId!==c.user_id){
+    currentSubadminPolicy=null;el("subadminPolicyReason").value="";
+    el("subadminPolicyPassword").value="";el("subadminPolicyConfirm").checked=false;
+  }
   selectedSubadminId=c.user_id;
   const target=el("subadminDetailFields");target.replaceChildren(
     detailRow("管理员邮箱",c.email),detailRow("子账号编号",c.user_id),
     detailRow("邀请码",c.code||"未提供"),
     detailRow("邀请码使用次数",String(c.uses??0)+" / "+String(c.max_uses??"—")),
     detailRow("邀请码到期",dateLabel(c.expires_at)),
-    detailRow("登录状态与操作权限","尚无已接通的账户策略数据")
+    detailRow("登录状态与操作权限","请查看下方登录管理区")
   );
   el("subadminDetail").hidden=false;
+  void refreshSubadminPolicy(userId);
 }
+
+function renderSubadminPolicy(policy){
+ currentSubadminPolicy=policy;
+ const target=el("subadminPolicyFields");target.replaceChildren(
+  detailRow("管理员登录",policy.loginAllowed?"正常":"受限"),
+  detailRow("名下客户",String(policy.clientCount??0)+" 人"),
+  detailRow("名下充值及提现申请",String(policy.requestCount??0)+" 笔"),
+  detailRow("待处理资金申请",String(policy.pendingRequestCount??0)+" 笔"),
+  detailRow("策略版本",String(policy.version??0)),
+  detailRow("更新时间",dateLabel(policy.updatedAt))
+ );
+ el("subadminPolicyForm").hidden=role!=="MASTER";
+ el("subadminPolicyArea").hidden=false;
+ el("subadminPolicyStatus").textContent=role==="MASTER"
+  ?"主账号可在确认后限制或恢复子账号登录":"当前账号仅可查看自己的管理状态";
+ el("subadminLoginAllowed").value=String(policy.loginAllowed);
+}
+async function refreshSubadminPolicy(userId){
+ if(selectedSubadminId!==userId)return;
+ const serial=++subadminPolicySerial,usedToken=adminToken;
+ el("subadminPolicyArea").hidden=false;el("subadminPolicyForm").hidden=true;
+ el("subadminPolicyStatus").textContent="正在读取子账号管理策略";
+ el("subadminPolicyAudit").replaceChildren();
+ try{
+  const {policy}=await api("/admin/subaccount-controls?userId="+encodeURIComponent(userId));
+  if(serial!==subadminPolicySerial||selectedSubadminId!==userId||adminToken!==usedToken)return;
+  renderSubadminPolicy(policy);
+  try{
+   const {items}=await api("/admin/subaccount-control-audit?userId="+encodeURIComponent(userId));
+   if(serial!==subadminPolicySerial||selectedSubadminId!==userId||adminToken!==usedToken)return;
+   const target=el("subadminPolicyAudit");target.replaceChildren();
+   if(!Array.isArray(items)||!items.length){target.append(plainNode("p","暂无权限调整记录","muted"));return;}
+   for(const item of items.slice(0,8)){
+    const row=itemRow((item.oldLoginAllowed?"允许登录":"限制登录")+" → "+
+      (item.newLoginAllowed?"允许登录":"限制登录"),"原因："+item.reason+" · "+dateLabel(item.recordedAt));
+    target.append(row);
+   }
+  }catch(error){
+   if(serial===subadminPolicySerial)el("subadminPolicyAudit").append(plainNode("p","记录暂不可读："+error.message,"muted"));
+  }
+ }catch(error){
+  if(serial!==subadminPolicySerial||selectedSubadminId!==userId||adminToken!==usedToken)return;
+  currentSubadminPolicy=null;el("subadminPolicyForm").hidden=true;
+  el("subadminPolicyStatus").textContent="读取失败："+error.message;
+ }
+}
+el("refreshSubadminPolicy").addEventListener("click",()=>{
+ if(selectedSubadminId)void refreshSubadminPolicy(selectedSubadminId);
+});
+el("subadminPolicyForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ if(role!=="MASTER"||!currentSubadminPolicy||!selectedSubadminId){
+  el("subadminPolicyStatus").textContent="没有修改权限或策略未加载";return;
+ }
+ if(!el("subadminPolicyConfirm").checked){
+  el("subadminPolicyStatus").textContent="请确认本次变更";return;
+ }
+ const loginAllowed=el("subadminLoginAllowed").value==="true";
+ if(currentSubadminPolicy.loginAllowed===loginAllowed){
+  el("subadminPolicyStatus").textContent="状态未发生变化";return;
+ }
+ const userId=selectedSubadminId,usedToken=adminToken;
+ const body={userId,loginAllowed,expectedVersion:currentSubadminPolicy.version,
+  reason:el("subadminPolicyReason").value.trim(),confirmPassword:el("subadminPolicyPassword").value};
+ const button=el("subadminPolicySubmit");button.disabled=true;
+ try{
+  await api("/admin/subaccount-controls",{method:"PATCH",body});
+  if(selectedSubadminId!==userId||adminToken!==usedToken)return;
+  el("subadminPolicyReason").value="";el("subadminPolicyPassword").value="";
+  el("subadminPolicyConfirm").checked=false;
+  await refreshSubadminPolicy(userId);
+  if(selectedSubadminId===userId)el("subadminPolicyStatus").textContent="登录权限已修改，并记录审计";
+ }catch(error){
+  if(selectedSubadminId===userId)el("subadminPolicyStatus").textContent="保存失败："+error.message;
+ }finally{button.disabled=false;el("subadminPolicyPassword").value="";}
+});
+
 function renderSubadminDirectory(items){
   subadminDirectory=Array.isArray(items)?items:[];
   const target=el("subadmins");target.replaceChildren();
