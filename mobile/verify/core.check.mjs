@@ -83,3 +83,29 @@ test("generated iOS and Android app icons are 1024px PNG images",async()=>{
     assert.equal(buffer.readUInt32BE(20),1024);
   }
 });
+
+test("in-app deletion API sends password re-verification and reads server-confirmed status",async()=>{
+  const {deletionStatus,submitDeletionRequest}=await import("../src/api.ts");
+  const original=globalThis.fetch,prior=process.env.EXPO_PUBLIC_API_BASE_URL;
+  try{
+    process.env.EXPO_PUBLIC_API_BASE_URL="https://secure.example";
+    const calls=[];
+    globalThis.fetch=async(url,init)=>{
+      calls.push({url:String(url),init});
+      return new Response(JSON.stringify({status:"REQUESTED",requestId:"r1",requestedAt:"2026-11-04"}),{status:init?.method==="POST"?202:200,headers:{"content-type":"application/json"}});
+    };
+    assert.equal((await deletionStatus("abc")).status,"REQUESTED");
+    assert.equal((await submitDeletionRequest("abc","secret")).status,"REQUESTED");
+    assert.equal(calls[1].url,"https://secure.example/api/account/deletion-request");
+    assert.equal(calls[1].init.method,"POST");
+    assert.equal(calls[1].init.headers.authorization,"Bearer abc");
+    assert.deepEqual(JSON.parse(calls[1].init.body),{password:"secret",confirmation:"DELETE MY ACCOUNT"});
+  }finally{globalThis.fetch=original;if(prior===undefined)delete process.env.EXPO_PUBLIC_API_BASE_URL;else process.env.EXPO_PUBLIC_API_BASE_URL=prior;}
+});
+test("privacy/deletion links allow verified HTTPS only",async()=>{
+  const {safeHttpsUrl}=await import("../src/links.ts");
+  assert.equal(safeHttpsUrl("javascript:alert(1)"),null);
+  assert.equal(safeHttpsUrl("http://example.com/legal"),null);
+  assert.equal(safeHttpsUrl("https://localhost/privacy"),null);
+  assert.equal(safeHttpsUrl("https://verified.example.org/privacy"),"https://verified.example.org/privacy");
+});
