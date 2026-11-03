@@ -19,7 +19,7 @@ It does not alter the web frontend, administrator frontend, database or broker e
    it must be the verified HTTPS origin of the API server (e.g. `https://actual-host`, no /api suffix).
    DO NOT point this at unverified preview infrastructure or a different customer's API.
 4. `npm run typecheck` / `npm test`, then `npx expo start` for local development.
-5. Provision a real application icon and splash graphic, complete EAS project linking and build credentials.
+5. The existing platform SVG logo is kept at assets/brand.svg; npm postinstall uses sharp to generate 1024px iOS and Android icons.\n   A separate splash graphic and final store identity approval remain required before publication.\n   Complete EAS project linking and build credentials.
 6. Review package and bundle IDs with the company **before first publication**, as identity changes after release are constrained.
 7. Use `npx eas-cli build --platform android --profile production` and the equivalent iOS command,
    then TestFlight/Play internal tests; only after passing submit for review. Build credentials and store accounts are required.
