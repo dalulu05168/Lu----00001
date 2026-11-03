@@ -36,7 +36,9 @@ export function createSessionResolver(db){
   try{tokenHash=sessionTokenHash(token);}catch{return null;}
   const r=await db.query(`SELECT s.account_id,s.user_id,s.admin_verified_at FROM user_sessions s
    JOIN accounts a ON a.id=s.account_id AND a.user_id=s.user_id
-   WHERE s.token_hash=$1 AND s.expires_at>now() AND s.revoked_at IS NULL`,[tokenHash]);
+   LEFT JOIN client_admin_policies p ON p.user_id=s.user_id
+   WHERE s.token_hash=$1 AND s.expires_at>now() AND s.revoked_at IS NULL
+   AND (s.admin_verified_at IS NOT NULL OR COALESCE(p.login_allowed,true)=true)`,[tokenHash]);
   return r.rows.length===1?{accountId:r.rows[0].account_id,userId:r.rows[0].user_id,adminVerified:Boolean(r.rows[0].admin_verified_at)}:null;
  };
 }

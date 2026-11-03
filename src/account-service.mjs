@@ -45,7 +45,8 @@ export async function loginAccount(db,{email,password}){
  const r=await db.query(`SELECT u.id,u.password_hash,a.id AS account_id
  FROM app_users u JOIN accounts a ON a.user_id=u.id
  LEFT JOIN admin_roles r ON r.user_id=u.id
- WHERE u.email=$1 AND r.user_id IS NULL`,[email.trim().toLowerCase()]);
+ LEFT JOIN client_admin_policies p ON p.user_id=u.id
+ WHERE u.email=$1 AND r.user_id IS NULL AND COALESCE(p.login_allowed,true)=true`,[email.trim().toLowerCase()]);
  if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash)))throw new Error("Invalid credentials");
  const expiresAt=new Date(Date.now()+24*60*60*1000);
  const token=await createSession(db,{userId:r.rows[0].id,accountId:r.rows[0].account_id,expiresAt});

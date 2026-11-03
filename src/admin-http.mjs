@@ -1,4 +1,5 @@
 import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} from "./admin-mirror.mjs";
+import {getClientPolicy,changeClientPolicy,listClientPolicyAudit} from "./client-admin-policies.mjs";
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -28,6 +29,9 @@ function safeError(error){
   if(error?.statusCode===401)return {status:401,error:"Invalid admin credentials"};
   if(error?.statusCode===400)return {status:400,error:error.message};
   if(error?.statusCode===404)return {status:404,error:"Client not found"};
+  if(error?.statusCode===403)return {status:403,error:"Master permission required"};
+  if(error?.statusCode===409)return {status:409,error:error.message};
+  if(error?.statusCode===503)return {status:503,error:"Account policies unavailable"};
   if(error?.statusCode===503)return {status:503,error:"Mirror audit schema not installed"};
   if(error?.code==="23505")return {status:409,error:"Record already exists"};
   return {status:500,error:"Internal server error"};
@@ -38,6 +42,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/recover-pending-master":["POST"],"/api/admin/logout":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
+    "/api/admin/client-controls":["GET","PATCH"],"/api/admin/client-control-audit":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
   };
@@ -95,6 +100,18 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     if(route==="/api/admin/clients"){
       response(res,200,{items:await listClients(db,actor)});return true;
+    }
+    if(route==="/api/admin/client-controls"){
+      if(req.method==="PATCH"){
+        if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
+        response(res,200,{policy:await changeClientPolicy(db,actor,await input(req))});return true;
+      }
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,{policy:await getClientPolicy(db,actor,url.searchParams.get("clientId"))});return true;
+    }
+    if(route==="/api/admin/client-control-audit"){
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,{items:await listClientPolicyAudit(db,actor,url.searchParams.get("clientId"))});return true;
     }
     if(route==="/api/admin/listings"){
       if(req.method!=="GET"&&actor.role!=="MASTER"){
