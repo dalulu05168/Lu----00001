@@ -78,3 +78,13 @@ test("readiness endpoint checks database connection",async()=>{
   assert.equal((await response.json()).database,"unavailable");
  }finally{await new Promise(resolve=>api.close(resolve));}
 });
+
+test("serves transparent CN Capital logo as PNG with correct content type",async()=>withServer(async base=>{
+ const res=await fetch(base+"/cn-capital.png");
+ assert.equal(res.status,200);
+ assert.match(res.headers.get("content-type"),/image\/png/);
+ const bytes=Buffer.from(await res.arrayBuffer());
+ assert.equal(bytes.subarray(0,8).toString("hex"),"89504e470d0a1a0a");
+ assert.equal(bytes.readUInt32BE(16),192);
+ assert.ok(bytes.includes(Buffer.from("tRNS")),"PNG must retain transparent pixels");
+}));
