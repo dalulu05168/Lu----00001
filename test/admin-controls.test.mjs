@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {randomUUID} from "node:crypto";
+import {randomUUID,randomBytes} from "node:crypto";
 import {createApi} from "../src/http-api.mjs";
 import {newTotpSecret,currentOtp,checkOtp} from "../src/totp.mjs";
 import {protectTotp,unprotectTotp,matchBootstrapKey} from "../src/admin-secrets.mjs";
@@ -34,6 +34,25 @@ test("2FA values are encrypted and bootstrap proofs must match",()=>{
     else process.env.ADMIN_TOTP_ENCRYPTION_KEY=previousKey;
     if(previousProof===undefined)delete process.env.ADMIN_BOOTSTRAP_SECRET;
     else process.env.ADMIN_BOOTSTRAP_SECRET=previousProof;
+  }
+});
+test("Render generated 256-bit base64 TOTP key encrypts and decrypts without changing old key format",()=>{
+  const oldKey=process.env.ADMIN_TOTP_ENCRYPTION_KEY;
+  const totp=newTotpSecret();
+  try{
+    const generated=randomBytes(32).toString("base64");
+    process.env.ADMIN_TOTP_ENCRYPTION_KEY=generated;
+    const encrypted=protectTotp(totp);
+    assert.equal(unprotectTotp(encrypted),totp);
+    process.env.ADMIN_TOTP_ENCRYPTION_KEY="a".repeat(64);
+    assert.throws(()=>unprotectTotp(encrypted));
+    for(const invalid of ["short-secret","a".repeat(63),"A".repeat(44),"@@".repeat(22)]){
+      process.env.ADMIN_TOTP_ENCRYPTION_KEY=invalid;
+      assert.throws(()=>protectTotp(totp),/encryption key is not configured/);
+    }
+  }finally{
+    if(oldKey===undefined)delete process.env.ADMIN_TOTP_ENCRYPTION_KEY;
+    else process.env.ADMIN_TOTP_ENCRYPTION_KEY=oldKey;
   }
 });
 test("master can publish a directory entry without purchase or discount fields",async()=>{

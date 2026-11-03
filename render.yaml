@@ -18,6 +18,6 @@ services:
       - key: ADMIN_MASTER_EMAIL
         sync: false
       - key: ADMIN_BOOTSTRAP_SECRET
-        sync: false
+        generateValue: true
       - key: ADMIN_TOTP_ENCRYPTION_KEY
-        sync: false
+        generateValue: true

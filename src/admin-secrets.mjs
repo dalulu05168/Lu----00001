@@ -2,9 +2,15 @@ import {createCipheriv,createDecipheriv,randomBytes,timingSafeEqual} from "node:
 
 function key() {
   const value=process.env.ADMIN_TOTP_ENCRYPTION_KEY;
-  if(typeof value!=="string"||!/^[a-fA-F0-9]{64}$/.test(value))
-    throw new Error("Admin encryption key is not configured");
-  return Buffer.from(value,"hex");
+  if(typeof value!=="string")throw new Error("Admin encryption key is not configured");
+  // The existing 64-hex secret remains byte-for-byte compatible.
+  if(/^[a-fA-F0-9]{64}$/.test(value))return Buffer.from(value,"hex");
+  // Render's generateValue produces a base64-encoded 256-bit random secret.
+  if(/^[A-Za-z0-9+/]{43}=$/.test(value)){
+    const decoded=Buffer.from(value,"base64");
+    if(decoded.length===32&&decoded.toString("base64")===value)return decoded;
+  }
+  throw new Error("Admin encryption key is not configured");
 }
 export function protectTotp(value){
   if(typeof value!=="string"||value.length!==32)throw new Error("Invalid 2FA setup");
