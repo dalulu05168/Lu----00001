@@ -17,7 +17,13 @@ const INSTRUMENTS = [
   {market:"MY",symbol:"1023",name:"CIMB Group"}
 ];
 const visibleInstruments = () => mergePublishedInstruments(INSTRUMENTS,catalog,{authenticated:Boolean(token),catalogLoaded,markets:MARKETS.map(item=>item.code)});
-const instrumentName = (market,symbol) => visibleInstruments().find(item=>item.market===market&&item.symbol===symbol)?.name;
+const instrumentName = (market,symbol) => {
+ const published = catalogLoaded && token
+  ? catalog.find(item=>item && ["STOCK","FUND"].includes(item.itemType) &&
+      item.market===market && item.symbol===symbol && typeof item.name==="string" && item.name.trim())
+  : null;
+ return published?.name.trim() || INSTRUMENTS.find(item=>item.market===market&&item.symbol===symbol)?.name;
+};
 const el = id => document.getElementById(id);
 let market = "US";
 let selected = INSTRUMENTS[0];
