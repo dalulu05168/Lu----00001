@@ -262,6 +262,44 @@
         </div>
       </section>
 
+      <section class="panel workflow-client-panel" id="serviceRequestsPanel" hidden aria-labelledby="serviceRequestsTitle">
+        <div class="panel-heading">
+          <div><h2 id="serviceRequestsTitle">Account Requests / 账户申请中心</h2>
+            <p class="panel-caption">提交请求、追踪审核状态，不代表真实入金或提现到账</p></div>
+          <button class="secondary-button" id="refreshServiceRequests" type="button">刷新申请</button>
+        </div>
+        <div class="service-request-grid">
+          <form id="fundingRequestForm" class="service-request-form">
+            <h3>充值／提现申请</h3>
+            <label class="form-field">申请类型<select id="fundingRequestKind"><option value="DEPOSIT">充值申请</option>
+              <option value="WITHDRAWAL">提现申请</option></select></label>
+            <label class="form-field">申请金额（USD）<input id="fundingRequestAmount" type="text"
+              inputmode="decimal" placeholder="例如：100.00" maxlength="10" required></label>
+            <button class="primary-button" type="submit">提交申请</button>
+            <p class="service-disclosure">提交后等待后台审核；不会自动支付或改变账户余额。</p>
+          </form>
+          <div class="service-request-form">
+            <h3>身份资料审核</h3>
+            <p class="service-disclosure">这里仅创建审核工单。身份证明材料须经独立安全验证渠道提交，当前页面不接收证件照片。</p>
+            <button class="secondary-button" id="startKycRequest" type="button">创建身份审核工单</button>
+            <p class="service-disclosure">人工审阅不等于完成实名认证。</p>
+          </div>
+          <form id="bankLinkRequestForm" class="service-request-form">
+            <h3>收付款银行账户登记</h3>
+            <label class="form-field">银行名称<input id="bankRequestName" type="text" maxlength="80" required placeholder="银行名称"></label>
+            <label class="form-field">账户末四位<input id="bankRequestLast4" inputmode="numeric" type="text" maxlength="4"
+              pattern="[0-9]{4}" placeholder="仅填写 4 位数字" required></label>
+            <button class="secondary-button" type="submit">提交登记申请</button>
+            <p class="service-disclosure">不收集完整卡号、网银密码或验证码；登记不等于银行已验证。</p>
+          </form>
+        </div>
+        <p id="serviceRequestFeedback" class="form-feedback" role="status" aria-live="polite">请选择操作或刷新申请。</p>
+        <div class="service-request-history">
+          <h3>我的申请记录</h3>
+          <div id="serviceRequestHistory" class="record-list" aria-live="polite">点击刷新后读取申请记录</div>
+        </div>
+      </section>
+
       <section class="panel catalog-panel" id="catalog-section" aria-labelledby="catalogTitle">
         <div class="panel-heading">
           <h2 id="catalogTitle">Instrument Directory · 证券资料</h2>
