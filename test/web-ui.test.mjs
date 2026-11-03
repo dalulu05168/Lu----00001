@@ -98,7 +98,8 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("savedWatchlist").querySelectorAll(".saved-watchlist-row").length,1);
     assert.match(el("savedWatchlist").textContent,/9988/);
     el("markets").querySelectorAll("button")[0].click();
-    assert.equal(el("symbolTitle").textContent,"AAPL");
+    assert.equal(el("symbolTitle").textContent,"NVDA");
+    assert.equal(el("symbolName").textContent,"NVIDIA Corp.");
     el("savedWatchlist").querySelector(".saved-watchlist-open").click();
     assert.equal(el("symbolTitle").textContent,"9988");
     assert.equal(el("stockChart").querySelector("script"),null);
