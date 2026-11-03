@@ -20,9 +20,11 @@ test("admin primary buttons remain readable in graphite theme",()=>{
   assert.match(admin,/#adminPages button\[aria-current="page"\]\{[^}]*background:#2d3136/);
 });
 
-test("admin and client retain the no-bold typography and clear vector rendering requirement",()=>{
-  assert.match(admin,/font-weight:400!important/);
-  assert.doesNotMatch(admin,/font-weight:\s*(500|600|700|800|900)/);
+test("admin typography has readable hierarchy while the legacy client vector rendering remains unchanged",()=>{
+  assert.doesNotMatch(admin,/\*,\*::before,\*::after\{[^}]*font-weight:400!important/);
+  assert.match(admin,/h1,h2,h3\{font-weight:650/);
+  assert.match(admin,/\.admin-shell\{[^}]*grid-template-columns:262px minmax\(0,1fr\)/);
+  assert.match(admin,/\.admin-main\{[^}]*padding:26px 30px/);
   assert.match(frontend,/font-weight:\s*400\s*!important/);
   assert.match(frontend,/shape-rendering:\s*geometricPrecision/);
 });
