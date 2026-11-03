@@ -4,6 +4,7 @@ import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit,listAdminCli
 import {getSubadminPolicy,changeSubadminLogin,listSubadminControlAudit} from "./admin-subaccount-policies.mjs";
 import {listCommodityProducts,createCommodityProduct,updateCommodityProduct,commodityProductAudit} from "./commodity-products.mjs";
 import {listAdminSupportThreads,getAdminSupportThread,sendAdminSupportMessage,changeAdminSupportStatus} from "./support-messages.mjs";
+import {listUnifiedAudit} from "./operation-audit.mjs";
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -53,7 +54,8 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"],
     "/api/admin/commodities":["GET","POST","PATCH"],"/api/admin/commodity-audit":["GET"],
-    "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"]
+    "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"],
+    "/api/admin/audit-events":["GET"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
@@ -163,6 +165,12 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     if(route==="/api/admin/commodity-audit"){
       const url=new URL(req.url??"/","http://localhost");
       response(res,200,await commodityProductAudit(db,actor,url.searchParams.get("id")));return true;
+    }
+    if(route==="/api/admin/audit-events"){
+      const url=new URL(req.url??"/","http://localhost");
+      const raw=url.searchParams.get("limit");
+      const limit=raw===null?100:Number(raw);
+      response(res,200,await listUnifiedAudit(db,actor,{limit}));return true;
     }
     if(route==="/api/admin/support"){
       if(req.method==="POST"){response(res,201,await sendAdminSupportMessage(db,actor,await input(req)));return true;}

@@ -409,7 +409,13 @@
           <p id="mirrorAuditStatus" role="status" class="feedback"></p>
           <div id="mirrorAuditList" aria-live="polite"></div>
         </section>
-        <div class="panel unavailable"><h3>其他审计与报表</h3><p>其他报表功能暂未开放</p></div>
+        <section class="panel">
+          <div class="heading"><div><h3>统一操作审计</h3><p class="muted">客户策略、业务审核、APP 镜像、客服状态、商品及子账号权限操作</p></div>
+            <button type="button" id="refreshUnifiedAudit" class="outline">刷新操作记录</button></div>
+          <p id="unifiedAuditStatus" class="feedback" role="status" aria-live="polite">进入本页后读取</p>
+          <div id="unifiedAuditList" class="admin-list" aria-live="polite"></div>
+          <p class="record-boundary">本页展示操作结果和处理原因，不代表资金结算、外部身份认证或券商成交。</p>
+        </section>
       </section>
     </div>
   </div>

@@ -1237,10 +1237,34 @@ function setMobileNavExpanded(expanded){
 el("adminMobileNavToggle").addEventListener("click",()=>{
   setMobileNavExpanded(el("adminMobileNavToggle").getAttribute("aria-expanded")!=="true");
 });
+let unifiedAuditSerial=0;
+async function refreshUnifiedAudit(){
+ if(!adminToken)return;
+ const serial=++unifiedAuditSerial,token=adminToken;
+ el("unifiedAuditStatus").textContent="正在读取已授权审计记录";
+ try{
+  const {items}=await api("/admin/audit-events?limit=100");
+  if(serial!==unifiedAuditSerial||token!==adminToken)return;
+  const list=el("unifiedAuditList");list.replaceChildren();
+  if(!Array.isArray(items)||!items.length)list.append(plainNode("p","当前权限暂无操作记录","muted"));
+  else for(const x of items){
+   const title=(x.eventType??"EVENT")+" · "+(x.action??"记录");
+   const context="对象："+(x.clientId??"系统级")+" · 操作人："+(x.actorId??"—")+
+    " · "+dateLabel(x.recordedAt);
+   const row=itemRow(title,context);
+   const reason=document.createElement("small");reason.textContent=x.description??"";
+   row.append(reason);list.append(row);
+  }
+  el("unifiedAuditStatus").textContent="已读取 "+(items?.length??0)+" 条授权范围内的操作记录";
+ }catch(error){
+  if(serial===unifiedAuditSerial)el("unifiedAuditStatus").textContent="读取失败："+error.message;
+ }
+}
+el("refreshUnifiedAudit").addEventListener("click",()=>void refreshUnifiedAudit());
 function activateAdminPane(page) {
   if(page!=="mirror")closeMirrorDialog();
   if(page==="clients")closeClientDetail();
-  if(page==="audit")void refreshMirrorAudit();
+  if(page==="audit"){void refreshMirrorAudit();void refreshUnifiedAudit();}
   if(page==="approvals")void refreshCaseList();
   if(page==="treasury")void refreshFundingOverview();
   if(page==="commodities")void refreshCommodityItems();
