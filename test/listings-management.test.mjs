@@ -27,8 +27,8 @@ test("master edits metadata only while the listing is a draft",async()=>{
   await assert.rejects(updateListing(db,master,{id,name:"   "}),/Invalid listing update/);
   await assert.rejects(updateListing(db,master,{id,purchasePassword:"secret"}),/Invalid listing update/);
   await assert.rejects(updateListing(db,master,{id}),/Invalid listing update/);
-  const denied=await updateListing({query:async()=>({rows:[]})},master,{id,name:"Not allowed"});
-  assert.fail("Expected an update on a published listing to be rejected: "+JSON.stringify(denied));
+  await assert.rejects(updateListing({query:async()=>({rows:[]})},master,
+    {id,name:"Not allowed"}),/not a draft/);
 });
 
 test("published metadata edit is rejected when storage reports no draft",async()=>{
