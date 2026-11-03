@@ -1,4 +1,9 @@
 const el=id=>document.getElementById(id);
+if(document.location?.hostname==="admin.nuvexapro.com"){
+  document.querySelectorAll("[data-client-home]").forEach(link=>{
+    link.href="https://nuvexapro.com/";
+  });
+}
 let adminToken=sessionStorage.getItem("gsp_admin_token");
 let role=null;
 let selectedAdminRole="MASTER";
