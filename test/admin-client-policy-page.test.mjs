@@ -24,16 +24,16 @@ test("master client detail reads current policy, re-confirms and logs changes; m
       if(url==="/api/admin/subaccounts"||url==="/api/admin/listings")return reply(200,{items:[]});
       if(url==="/api/admin/clients")return reply(200,{items:[{id:clientId,email:"customer@example.test",subadmin_user_id:null}]});
       if(url==="/api/admin/mirror-status")return reply(200,{ready:true,mode:"READ_ONLY"});
-      if(url==="/api/admin/workflow-requests?category=FUNDING&clientId="+clientId)return reply(200,{items:[
+      if(url==="/api/admin/client-history?clientId="+clientId)return reply(200,{hasMore:true,nextCursor:"page-two",items:[
         {id:"case-a",clientId,category:"FUNDING",kind:"DEPOSIT",amountCents:5000,currency:"USD",status:"SUBMITTED",
           createdAt:"2026-11-03T10:00:00Z"},
-        {id:"case-other",clientId:"99999999-9999-4999-8999-999999999999",
-          category:"FUNDING",kind:"DEPOSIT",amountCents:15000,currency:"USD",status:"SUBMITTED"}
-      ]});
-      if(url==="/api/admin/workflow-requests?category=KYC&clientId="+clientId)return reply(200,{items:[
         {id:"case-kyc",clientId,category:"KYC",status:"AWAITING_EVIDENCE",createdAt:"2026-11-03T11:00:00Z"}
       ]});
-      if(url==="/api/admin/workflow-requests?category=BANK_LINK&clientId="+clientId)return reply(200,{items:[]});
+      if(url==="/api/admin/client-history?clientId="+clientId+"&cursor=page-two")
+        return reply(200,{hasMore:false,nextCursor:null,items:[
+          {id:"case-bank",clientId,category:"BANK_LINK",bankLabel:"Example Bank",accountLast4:"4321",
+            status:"PENDING_VERIFICATION",createdAt:"2026-11-02T10:00:00Z"}
+        ]});
       if(url==="/api/admin/workflow-audit?clientId="+clientId)return reply(200,{items:[{
         id:19,category:"FUNDING",request_id:"case-a",actor_user_id:"operator-1",
         old_status:"SUBMITTED",new_status:"UNDER_REVIEW",
@@ -70,6 +70,12 @@ test("master client detail reads current policy, re-confirms and logs changes; m
     assert.match(el("clientWorkflowHistory").textContent,/50\.00 USD/);
     assert.doesNotMatch(el("clientWorkflowHistory").textContent,/150\.00 USD/);
     assert.match(el("clientWorkflowStatus").textContent,/2 条/);
+    assert.equal(el("clientWorkflowMore").hidden,false);
+    el("clientWorkflowMore").click();await pause(65);
+    assert.equal(el("clientWorkflowHistory").querySelectorAll(".admin-list-row").length,3);
+    assert.match(el("clientWorkflowHistory").textContent,/尾号 4321/);
+    assert.equal(el("clientWorkflowMore").hidden,true);
+    assert.match(el("clientWorkflowStatus").textContent,/已到末页/);
     assert.match(el("clientWorkflowAudit").textContent,/已提交 → 审核中/);
     assert.match(el("clientWorkflowAudit").textContent,/operator-1/);
     assert.match(el("clientWorkflowAudit").textContent,/Verified supporting information/);
@@ -103,6 +109,7 @@ test("master client detail reads current policy, re-confirms and logs changes; m
     assert.equal(el("clientWorkflowPanel").hidden,true);
     assert.equal(el("clientWorkflowHistory").childElementCount,0);
     assert.equal(el("clientWorkflowAudit").childElementCount,0);
+    assert.equal(el("clientWorkflowMore").hidden,true);
     assert.equal(el("clientPolicyPassword").value,"");
   }finally{
     globalThis.document=old.document;globalThis.sessionStorage=old.sessionStorage;

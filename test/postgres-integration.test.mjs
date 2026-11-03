@@ -330,6 +330,19 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const scopedOwn=await req(adminWorkflow+"&clientId="+attached.data.userId,{token:subAdmin.data.token});
     assert.equal(scopedOwn.status,200);
     assert.equal(scopedOwn.data.items.length,2);
+    const historyUrl="/api/admin/client-history?clientId="+attached.data.userId+"&limit=1";
+    const firstHistory=await req(historyUrl,{token:subAdmin.data.token});
+    assert.equal(firstHistory.status,200);
+    assert.equal(firstHistory.data.items.length,1);
+    assert.equal(firstHistory.data.hasMore,true);
+    assert.equal(typeof firstHistory.data.nextCursor,"string");
+    const secondHistory=await req(historyUrl+"&cursor="+encodeURIComponent(firstHistory.data.nextCursor),
+      {token:subAdmin.data.token});
+    assert.equal(secondHistory.status,200);
+    assert.equal(secondHistory.data.items.length,1);
+    assert.notEqual(secondHistory.data.items[0].id,firstHistory.data.items[0].id);
+    assert.equal((await req(historyUrl+"&cursor=invalid",{token:subAdmin.data.token})).status,400);
+    assert.equal((await req(historyUrl.replace("limit=1","limit=51"),{token:subAdmin.data.token})).status,400);
     assert.equal((await req(adminWorkflow+"&clientId="+sub.data.userId,{token:subAdmin.data.token})).status,404);
     assert.equal((await req(adminWorkflow+"&clientId=invalid",{token:subAdmin.data.token})).status,400);
     assert.equal((await req(adminWorkflow,{token:clientLogin.data.token})).status,403);
@@ -397,6 +410,8 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const otherLogin=await req("/api/admin/login",{method:"POST",body:{email:otherEmail,password:subPassword}});
     assert.equal(otherLogin.status,200);
     assert.deepEqual((await req(adminWorkflow,{token:otherLogin.data.token})).data.items,[]);
+    assert.equal((await req("/api/admin/client-history?clientId="+attached.data.userId,
+      {token:otherLogin.data.token})).status,404);
     assert.equal((await req(adminWorkflow+"&clientId="+attached.data.userId,{token:otherLogin.data.token})).status,404);
     assert.equal((await workflowChange(otherLogin.data.token,"FUNDING",withdrawal.data.item.id,
       "SUBMITTED","UNDER_REVIEW")).status,404);
