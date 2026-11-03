@@ -300,6 +300,25 @@
         </div>
       </section>
 
+      <section class="panel" id="commodityCatalogPanel" hidden aria-labelledby="customerCommodityHeading">
+        <div class="panel-heading"><div><h2 id="customerCommodityHeading">Commodity Directory / 商品目录</h2>
+          <p class="panel-caption">仅展示管理员公开发布的商品；价格为人工参考信息，并非实时交易所报价</p></div>
+          <button id="refreshCustomerCommodities" type="button" class="secondary-button">刷新目录</button></div>
+        <p class="form-feedback" id="customerCommodityStatus" role="status" aria-live="polite"></p>
+        <div id="customerCommodityItems" class="customer-commodity-grid"></div>
+      </section>
+      <section class="panel" id="customerSupportPanel" hidden aria-labelledby="customerSupportHeading">
+        <div class="panel-heading"><div><h2 id="customerSupportHeading">Customer Support / 客户客服</h2>
+          <p class="panel-caption">消息由账户身份关联保存，可由有权限的客服人员回复</p></div>
+          <button id="refreshCustomerSupport" type="button" class="secondary-button">刷新消息</button></div>
+        <div id="customerSupportMessages" class="customer-support-messages" role="log" aria-live="polite"></div>
+        <form id="customerSupportForm">
+          <label for="customerSupportText">发送消息</label>
+          <textarea id="customerSupportText" rows="3" maxlength="4000" placeholder="输入需要客服处理的问题" required></textarea>
+          <button type="submit" class="primary-button">发送给客服</button>
+        </form>
+        <p class="form-feedback" id="customerSupportStatus" role="status" aria-live="polite"></p>
+      </section>
       <section class="panel catalog-panel" id="catalog-section" aria-labelledby="catalogTitle">
         <div class="panel-heading">
           <h2 id="catalogTitle">Instrument Directory · 证券资料</h2>
