@@ -1,6 +1,6 @@
 import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} from "./admin-mirror.mjs";
 import {getClientPolicy,changeClientPolicy,listClientPolicyAudit} from "./client-admin-policies.mjs";
-import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit} from "./operational-workflows.mjs";
+import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit,listAdminClientHistoryPage} from "./operational-workflows.mjs";
 import {getSubadminPolicy,changeSubadminLogin,listSubadminControlAudit} from "./admin-subaccount-policies.mjs";
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
@@ -47,6 +47,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/subaccount-controls":["GET","PATCH"],"/api/admin/subaccount-control-audit":["GET"],
     "/api/admin/client-controls":["GET","PATCH"],"/api/admin/client-control-audit":["GET"],
     "/api/admin/workflow-requests":["GET","PATCH"],"/api/admin/workflow-audit":["GET"],
+    "/api/admin/client-history":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
   };
@@ -138,6 +139,13 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
       }
       const url=new URL(req.url??"/","http://localhost");
       response(res,200,{items:await listAdminRequests(db,actor,url.searchParams.get("category"),url.searchParams.get("clientId"))});return true;
+    }
+    if(route==="/api/admin/client-history"){
+      const url=new URL(req.url??"/","http://localhost");
+      const rawLimit=url.searchParams.get("limit");
+      const limit=rawLimit===null?20:Number(rawLimit);
+      response(res,200,await listAdminClientHistoryPage(db,actor,
+        url.searchParams.get("clientId"),{cursor:url.searchParams.get("cursor"),limit}));return true;
     }
     if(route==="/api/admin/workflow-audit"){
       const url=new URL(req.url??"/","http://localhost");

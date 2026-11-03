@@ -126,3 +126,51 @@ export async function listAdminWorkflowAudit(db,actor,clientId){
   "FROM client_workflow_audit WHERE client_user_id=$1 ORDER BY event_at DESC,id DESC LIMIT 150",[clientId]);
  return r.rows;
 }
+
+/**
+ * Keyset pagination across all three customer application types.
+ * Confirm ownership before querying records; no offset caps or cross-user data.
+ */
+export async function listAdminClientHistoryPage(db,actor,clientId,{cursor=null,limit=20}={}){
+ actorScope(actor);requireUuid(clientId);
+ if(!Number.isSafeInteger(limit)||limit<1||limit>50)bad("Invalid history page size");
+ let pointer=null;
+ if(cursor!==null){
+  if(typeof cursor!=="string"||cursor.length<12||cursor.length>240||!/^[A-Za-z0-9_-]+$/.test(cursor))
+   bad("Invalid history cursor");
+  try{pointer=JSON.parse(Buffer.from(cursor,"base64url").toString("utf8"));}
+  catch{bad("Invalid history cursor");}
+  if(!Array.isArray(pointer)||pointer.length!==3||
+   typeof pointer[0]!=="string"||!Number.isFinite(Date.parse(pointer[0]))||
+   !UUID.test(pointer[1])||!Object.hasOwn(TABLES,pointer[2]))
+   bad("Invalid history cursor");
+ }
+ const access=await db.query("SELECT u.id FROM app_users u LEFT JOIN client_links l ON l.user_id=u.id "+
+  "WHERE u.id=$1 AND NOT EXISTS(SELECT 1 FROM admin_roles ar WHERE ar.user_id=u.id) "+
+  "AND ($2::text='MASTER' OR l.subadmin_user_id=$3::uuid)",[clientId,actor.role,actor.userId]);
+ if(access.rows.length!==1)bad("Client not found",404);
+ const sql=String.rawSELECT h.* FROM (
+ SELECT id,client_user_id,'FUNDING'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
+        kind,amount_cents,currency,NULL::text AS bank_label,NULL::char(4) AS account_last4
+ FROM client_funding_requests WHERE client_user_id=$1
+ UNION ALL
+ SELECT id,client_user_id,'KYC'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
+        NULL::text,NULL::bigint,NULL::char(3),NULL::text,NULL::char(4)
+ FROM client_kyc_requests WHERE client_user_id=$1
+ UNION ALL
+ SELECT id,client_user_id,'BANK_LINK'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
+        NULL::text,NULL::bigint,NULL::char(3),bank_label,account_last4
+ FROM client_bank_link_requests WHERE client_user_id=$1
+) h WHERE ($3::timestamptz IS NULL OR
+  (h.created_at,h.id,h.category) < ($3::timestamptz,$4::uuid,$5::text))
+ORDER BY h.created_at DESC,h.id DESC,h.category DESC LIMIT $2;
+ const params=[clientId,limit+1,pointer?.[0]??null,pointer?.[1]??null,pointer?.[2]??null];
+ const result=await db.query(sql,params);
+ const hasMore=result.rows.length>limit;
+ const page=result.rows.slice(0,limit);
+ const last=page.at(-1);
+ const nextCursor=hasMore && last
+  ?Buffer.from(JSON.stringify([new Date(last.created_at).toISOString(),last.id,last.category]),"utf8").toString("base64url")
+  :null;
+ return {items:page.map(row=>publicItem(row.category,row)),hasMore,nextCursor,pageSize:limit};
+}

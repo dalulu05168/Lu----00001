@@ -49,7 +49,7 @@ function displayItems(id,rows,format){
   node.replaceChildren(container);
 }
 let subadminDirectory=[],selectedSubadminId=null,selectedClientDetailId=null;
-let currentClientPolicy=null,clientPolicySerial=0,clientWorkflowSerial=0;
+let currentClientPolicy=null,clientPolicySerial=0,clientWorkflowSerial=0,clientHistoryCursor=null,clientHistoryLoaded=0,clientHistoryLoading=false;
 let currentSubadminPolicy=null,subadminPolicySerial=0;
 const dateLabel=value=>value && !Number.isNaN(Date.parse(value))?new Date(value).toLocaleString("zh-CN"):"未提供";
 function detailRow(name,value){
@@ -62,6 +62,8 @@ function closeClientDetail(){
   el("clientWorkflowPanel").hidden=true;el("clientWorkflowHistory").replaceChildren();
   el("clientWorkflowAudit").replaceChildren();
   el("clientWorkflowStatus").textContent="";
+  clientHistoryCursor=null;clientHistoryLoaded=0;clientHistoryLoading=false;
+  el("clientWorkflowMore").hidden=true;el("clientWorkflowMore").disabled=false;
   el("clientPolicyArea").hidden=true;el("clientPolicyForm").hidden=true;el("clientPolicyReadout").replaceChildren();
   el("clientPolicyAudit").replaceChildren();
   el("clientPolicyReason").value="";el("clientPolicyPassword").value="";el("clientPolicyConfirm").checked=false;
@@ -326,56 +328,72 @@ el("mirrorManageClient").addEventListener("click",()=>{
 });
 
 
-async function refreshClientWorkflowHistory(clientId){
-  if(!clientId||selectedClientDetailId!==clientId)return;
+async function refreshClientWorkflowHistory(clientId,{append=false}={}){
+  if(!clientId||selectedClientDetailId!==clientId||clientHistoryLoading)return;
+  if(append&&!clientHistoryCursor)return;
   const serial=++clientWorkflowSerial,usedToken=adminToken;
-  const panel=el("clientWorkflowPanel");
-  panel.hidden=false;
-  el("clientWorkflowStatus").textContent="正在读取当前客户的申请记录";
-  el("clientWorkflowHistory").replaceChildren();
-  el("clientWorkflowAudit").replaceChildren();
+  const requestedCursor=append?clientHistoryCursor:null;
+  const panel=el("clientWorkflowPanel"),button=el("clientWorkflowMore");
+  panel.hidden=false;clientHistoryLoading=true;button.disabled=true;
+  el("clientWorkflowStatus").textContent=append?"正在读取下一页申请":"正在读取当前客户的申请记录";
+  if(!append){
+    clientHistoryCursor=null;clientHistoryLoaded=0;
+    button.hidden=true;
+    el("clientWorkflowHistory").replaceChildren();
+    el("clientWorkflowAudit").replaceChildren();
+  }
   try{
-    const categories=["FUNDING","KYC","BANK_LINK"];
-    const responses=await Promise.all(categories.map(category=>
-      api("/admin/workflow-requests?category="+category+"&clientId="+encodeURIComponent(clientId))));
+    const url="/admin/client-history?clientId="+encodeURIComponent(clientId)+
+      (requestedCursor?"&cursor="+encodeURIComponent(requestedCursor):"");
+    const page=await api(url);
     if(serial!==clientWorkflowSerial||selectedClientDetailId!==clientId||adminToken!==usedToken)return;
-    const rows=responses.flatMap((result,index)=>
-      (Array.isArray(result.items)?result.items:[])
-        .filter(item=>item.clientId===clientId)
-        .map(item=>({...item,category:categories[index]})));
-    rows.sort((a,b)=>String(b.createdAt??"").localeCompare(String(a.createdAt??"")));
-    const target=el("clientWorkflowHistory");target.replaceChildren();
-    if(!rows.length)target.append(plainNode("p","当前客户暂无近期申请","muted"));
-    else for(const item of rows.slice(0,60)){
-      const row=itemRow(caseSummary(item),"提交时间 "+dateLabel(item.createdAt)+" · "+item.category);
-      target.append(row);
+    const rows=Array.isArray(page.items)?page.items:[];
+    if(rows.some(item=>item.clientId!==clientId))throw Error("请求记录权限验证失败");
+    const target=el("clientWorkflowHistory");
+    if(!append&&!rows.length)target.append(plainNode("p","当前客户暂无申请记录","muted"));
+    for(const item of rows){
+      target.append(itemRow(caseSummary(item),"提交时间 "+dateLabel(item.createdAt)+" · "+item.category));
     }
-    el("clientWorkflowStatus").textContent="当前客户近期申请 "+rows.length+" 条；来源为授权范围内的业务记录。";
-    try{
-      const audit=await api("/admin/workflow-audit?clientId="+encodeURIComponent(clientId));
-      if(serial!==clientWorkflowSerial||selectedClientDetailId!==clientId||adminToken!==usedToken)return;
-      const auditTarget=el("clientWorkflowAudit");auditTarget.replaceChildren();
-      const entries=Array.isArray(audit.items)?audit.items:[];
-      if(!entries.length)auditTarget.append(plainNode("p","暂无审核操作记录","muted"));
-      else for(const event of entries.slice(0,25)){
-        const previous=CASE_STATUS[event.old_status]??event.old_status??"新建申请";
-        const next=CASE_STATUS[event.new_status]??event.new_status??"—";
-        const title=(CASE_NAMES[event.category]??event.category??"申请")+" · "+previous+" → "+next;
-        const detail="操作员 "+String(event.actor_user_id??"未知")+
-          " · "+dateLabel(event.event_at)+(event.reason?" · 原因："+event.reason:"");
-        auditTarget.append(itemRow(title,detail));
+    clientHistoryLoaded+=rows.length;
+    clientHistoryCursor=page.hasMore&&typeof page.nextCursor==="string"?page.nextCursor:null;
+    button.hidden=!clientHistoryCursor;
+    el("clientWorkflowStatus").textContent="已加载该客户 "+clientHistoryLoaded+" 条申请"+
+      (clientHistoryCursor?"；还有更早记录":"；已到末页");
+    if(!append){
+      try{
+        const audit=await api("/admin/workflow-audit?clientId="+encodeURIComponent(clientId));
+        if(serial!==clientWorkflowSerial||selectedClientDetailId!==clientId||adminToken!==usedToken)return;
+        const auditTarget=el("clientWorkflowAudit");auditTarget.replaceChildren();
+        const entries=Array.isArray(audit.items)?audit.items:[];
+        if(!entries.length)auditTarget.append(plainNode("p","暂无审核操作记录","muted"));
+        else for(const event of entries.slice(0,25)){
+          const previous=CASE_STATUS[event.old_status]??event.old_status??"新建申请";
+          const next=CASE_STATUS[event.new_status]??event.new_status??"—";
+          const title=(CASE_NAMES[event.category]??event.category??"申请")+" · "+previous+" → "+next;
+          const detail="操作员 "+String(event.actor_user_id??"未知")+
+            " · "+dateLabel(event.event_at)+(event.reason?" · 原因："+event.reason:"");
+          auditTarget.append(itemRow(title,detail));
+        }
+      }catch(error){
+        if(serial===clientWorkflowSerial&&selectedClientDetailId===clientId&&adminToken===usedToken)
+          el("clientWorkflowAudit").append(plainNode("p","审核记录读取失败："+error.message,"muted"));
       }
-    }catch(error){
-      if(serial===clientWorkflowSerial&&selectedClientDetailId===clientId&&adminToken===usedToken)
-        el("clientWorkflowAudit").append(plainNode("p","审核记录读取失败："+error.message,"muted"));
     }
   }catch(error){
     if(serial!==clientWorkflowSerial||selectedClientDetailId!==clientId||adminToken!==usedToken)return;
-    el("clientWorkflowStatus").textContent="当前客户申请读取失败："+error.message;
+    el("clientWorkflowStatus").textContent="客户申请读取失败："+error.message;
+  }finally{
+    if(serial===clientWorkflowSerial){
+      clientHistoryLoading=false;
+      button.disabled=false;
+    }
   }
 }
 el("refreshClientWorkflow").addEventListener("click",()=>{
   if(selectedClientDetailId)void refreshClientWorkflowHistory(selectedClientDetailId);
+});
+el("clientWorkflowMore").addEventListener("click",()=>{
+  if(selectedClientDetailId)void refreshClientWorkflowHistory(selectedClientDetailId,{append:true});
 });
 
 function renderClientDirectory(items){
