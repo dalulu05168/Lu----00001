@@ -13,13 +13,18 @@
     "android": {
       "package": "com.nuvexapro.globalstock",
       "versionCode": 1,
-      "permissions": []
+      "permissions": [],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#111722"
+      }
     },
     "updates": {
       "checkAutomatically": "ON_LOAD"
     },
     "extra": {
       "serviceDescription": "Internal account records only; not a broker or live trading app"
-    }
+    },
+    "icon": "./assets/icon.png"
   }
 }
