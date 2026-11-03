@@ -25,9 +25,9 @@
 </section>
 <section class="panel" id="bootstrapPanel" hidden>
   <div class="heading"><h2>主账户初次配置</h2><button type="button" class="outline" id="closeAdminSetup">返回登录</button></div>
-  <p class="muted">仅首次创建主账户时使用。项目初始化凭证从 Render 的私密环境变量获取。</p>
+  <p class="muted">仅首次创建主账户时使用。请通过授权管理员获取初始化凭证。</p>
   <form id="bootstrapForm" class="field-grid">
-    <label>主账户邮箱<input id="bootstrapEmail" type="email" value="chennan05168@gmail.com" autocomplete="username" required></label>
+    <label>主账户邮箱<input id="bootstrapEmail" type="email" autocomplete="username" required></label>
     <label>设置密码（至少12位）<input id="bootstrapPassword" type="password" minlength="12" autocomplete="new-password" required></label>
     <label>项目初始化凭证<input id="bootstrapKey" type="password" autocomplete="off" required></label>
     <button type="submit">创建主账户</button>
@@ -74,8 +74,8 @@
         </div>
         <div class="panel">
           <h3>系统与业务边界</h3>
-          <div class="info-line"><span>登录保护</span><span>管理员密码 + TOTP 双因素认证</span></div>
-          <div class="info-line"><span>角色控制</span><span>后端 MASTER / SUBADMIN 独立校验</span></div>
+          <div class="info-line"><span>登录保护</span><span>管理员账号密码登录</span></div>
+          <div class="info-line"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
           <div class="info-line"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
           <div class="info-line"><span>资金审批 / 出入金</span><span class="pending">暂未开放</span></div>
         </div>
@@ -156,7 +156,7 @@
       </section>
       <section class="admin-pane" data-pane="risk" hidden>
         <div class="pane-title"><span>RISK & PERMISSIONS</span><h2>风险与权限</h2></div>
-        <div class="panel unavailable" role="status"><h3>部分能力待开发</h3><p>MASTER / SUBADMIN 访问范围及 密码认证 已由后端校验。交易限额、合规审查和权限变更管理尚无完整接口，不显示虚构状态。</p></div>
+        <div class="panel unavailable" role="status"><h3>部分能力待开发</h3><p>交易限额、合规审查和权限调整功能暂未开放。</p></div>
       </section>
       <section class="admin-pane" data-pane="audit" hidden>
         <div class="pane-title"><span>AUDIT & REPORTS</span><h2>审计与报表</h2></div>
