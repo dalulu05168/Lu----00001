@@ -73,3 +73,13 @@ test("API rejects unauthenticated account snapshots without pretending success",
     else process.env.EXPO_PUBLIC_API_BASE_URL=prior;
   }
 });
+
+test("generated iOS and Android app icons are 1024px PNG images",async()=>{
+  const {readFile}=await import("node:fs/promises");
+  for(const filename of ["icon.png","adaptive-icon.png"]){
+    const buffer=await readFile(new URL("../assets/"+filename,import.meta.url));
+    assert.equal(buffer.subarray(0,8).toString("hex"),"89504e470d0a1a0a");
+    assert.equal(buffer.readUInt32BE(16),1024);
+    assert.equal(buffer.readUInt32BE(20),1024);
+  }
+});
