@@ -145,6 +145,13 @@
               <div class="policy-audit"><h4>最近权限操作记录</h4><div id="clientPolicyAudit"></div></div>
               <p class="record-boundary">提现申请和贷款申请的权限，不代表资金已经划转或贷款已发放。“真实账户待接入”仅是账户分类，不启用真实交易。</p>
             </section>
+            <section class="policy-management" id="clientWorkflowPanel" aria-label="当前客户业务申请" hidden>
+              <div class="heading"><h3>当前客户的申请与审核记录</h3>
+                <button type="button" class="outline" id="refreshClientWorkflow">刷新申请</button></div>
+              <p id="clientWorkflowStatus" class="muted" role="status" aria-live="polite"></p>
+              <div id="clientWorkflowHistory" class="admin-list"></div>
+              <p class="record-boundary">这里显示授权范围内的近期申请，审批状态不代表真实资金到账、身份核验通过或银行卡验证。</p>
+            </section>
             <p class="record-boundary">客户登录、VIP、提现申请、贷款申请资格及账户分类采用受控的管理策略，并记录审计；身份核验与银行卡登记仍为待第三方验证的工单，不代表已完成认证或绑定。</p>
           </section></section>
       </section>
