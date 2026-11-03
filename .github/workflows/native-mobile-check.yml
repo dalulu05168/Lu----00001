@@ -34,6 +34,15 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Static typecheck and API unit tests
         run: npm run check
+      - name: Assert store release is denied without verified legal and deployment prerequisites
+        run: |
+          if npm run release:verify > release-gate.log 2>&1; then
+            cat release-gate.log
+            echo "Unexpected release authorization" >&2
+            exit 1
+          fi
+          grep -q "STORE RELEASE BLOCKED" release-gate.log
+          echo "Verified: unapproved store release is blocked"
       - name: Bundle Android JavaScript and assets
         run: npx expo export --platform android --output-dir dist-android
       - name: Bundle iOS JavaScript and assets
