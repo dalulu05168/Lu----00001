@@ -129,3 +129,21 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 .record-boundary{margin:14px 0 0;color:#e5b35e!important;font-size:11px!important;line-height:1.7!important}
 .record-detail-open{flex:none;margin-left:auto}
 @media(max-width:720px){.record-fields{grid-template-columns:1fr}.record-detail{padding:12px}.record-detail-open{margin-left:0}.admin-list-row.mirror-customer{flex-wrap:wrap}}
+
+/* Customer policy control center: readable graphite hierarchy and scoped audit. */
+.policy-management{margin-top:18px;padding:18px;border:1px solid #3a3e43;background:#1e2023;border-radius:10px}
+.policy-management h3{font-size:15px;font-weight:650}
+.policy-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;margin:18px 0}
+.policy-form>label{display:grid;gap:7px;font-size:12px;color:#bcc1c8;min-width:0}
+.policy-form select,.policy-form input:not([type="checkbox"]),.policy-form textarea{width:100%;min-width:0;padding:10px 12px;border:1px solid #41474e;border-radius:5px;color:#f0f2f4;background:#22272d;font-size:12px;font-family:inherit}
+.policy-form select,.policy-form input:not([type="checkbox"]){height:40px}
+.policy-form textarea{resize:vertical;min-height:78px}
+.policy-form-wide{grid-column:1/-1}
+.policy-form .policy-check{display:flex;align-items:flex-start;gap:10px;line-height:1.6;cursor:pointer}
+.policy-check input[type="checkbox"]{accent-color:#88ab9e;width:18px;height:18px;flex:none}
+.policy-form button[type="submit"]{min-height:40px;padding:10px 16px;border:1px solid #bbc1c6;background:#e1e4e6;color:#181a1e;border-radius:5px;justify-self:start}
+.policy-audit{margin-top:15px;padding-top:15px;border-top:1px solid #363a3f}
+.policy-audit h4{font-size:12px;font-weight:650;margin:0 0 10px}
+.policy-audit .admin-list-row{font-size:12px}
+.policy-management .record-fields{margin-top:10px}
+@media(max-width:720px){.policy-management{padding:12px}.policy-form{grid-template-columns:minmax(0,1fr)}.policy-form-wide{grid-column:1}.mirror-bottom{flex-wrap:wrap}}

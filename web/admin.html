@@ -105,6 +105,27 @@
             <div class="heading"><h3>客户详情与业务入口</h3><button type="button" id="closeClientDetail" class="outline">返回列表</button></div>
             <div id="clientDetailFields" class="record-fields"></div>
             <div class="record-actions"><button type="button" id="clientDetailMirror" class="outline">进入客户 APP 镜像</button></div>
+            <section id="clientPolicyArea" class="policy-management" hidden aria-label="客户权限管理">
+              <div class="heading"><h3>客户管理策略</h3><button type="button" id="refreshClientPolicy" class="outline">刷新权限</button></div>
+              <p id="clientPolicyStatus" class="muted" role="status" aria-live="polite">请选择客户读取策略</p>
+              <div id="clientPolicyReadout" class="record-fields"></div>
+              <form id="clientPolicyForm" class="policy-form" hidden>
+                <label>操作项目<select id="clientPolicyField" required>
+                  <option value="loginAllowed">客户登录权限</option>
+                  <option value="withdrawalRequestsAllowed">提现申请权限</option>
+                  <option value="vipTier">VIP 等级</option>
+                  <option value="loanRequestsAllowed">贷款申请资格</option>
+                  <option value="accountClass">账户类别</option>
+                </select></label>
+                <label>更新为<select id="clientPolicyValue" required></select></label>
+                <label class="policy-form-wide">变更原因（至少 12 字）<textarea id="clientPolicyReason" rows="2" minlength="12" maxlength="400" required placeholder="写明审核依据和变更原因"></textarea></label>
+                <label class="policy-form-wide">重新输入主账户登录密码<input id="clientPolicyPassword" type="password" autocomplete="off" required minlength="12"></label>
+                <label class="policy-check policy-form-wide"><input id="clientPolicyConfirm" type="checkbox" required>我确认修改所选客户的管理策略；所有操作会写入审计</label>
+                <button id="clientPolicySubmit" type="submit">确认并保存</button>
+              </form>
+              <div class="policy-audit"><h4>最近权限操作记录</h4><div id="clientPolicyAudit"></div></div>
+              <p class="record-boundary">提现申请和贷款申请的权限，不代表资金已经划转或贷款已发放。“真实账户待接入”仅是账户分类，不启用真实交易。</p>
+            </section>
             <p class="record-boundary">身份认证、VIP、银行卡、提现限制、贷款资格和账户类型暂无已接通的管理接口；不展示虚构状态，不冒充已经执行的操作。后续受控管理操作需具备服务端授权、二次确认和审计。</p>
           </section></section>
       </section>
@@ -136,7 +157,7 @@
               </div>
               <div class="mirror-screen" id="mirrorAppScreen" role="tabpanel"><p class="muted">从左侧客户名单点击“查看 App 镜像”后，读取该客户实际账户数据。</p></div>
               <div class="mirror-bottom">
-                <span id="mirrorStatus">未选择客户</span><button type="button" id="refreshMirror" class="outline" disabled>刷新快照</button>
+                <span id="mirrorStatus">未选择客户</span><button type="button" id="refreshMirror" class="outline" disabled>刷新快照</button><button type="button" id="mirrorManageClient" class="outline" disabled>后台管理操作</button>
               </div>
               <p class="mirror-disclosure">只读数据快照，访问已记录</p>
             </div>
