@@ -248,3 +248,57 @@ button:hover:not(:disabled){filter:brightness(1.12)}
   .client-profile-fields{grid-template-columns:minmax(0,1fr)}
   .client-workspace .policy-management{padding:12px 14px}
 }
+
+/* The APP mirror is an active administrative workbench: 3-column graphite layout. */
+.mirror-layout{display:grid;grid-template-columns:minmax(210px,.77fr) minmax(310px,1.17fr) minmax(285px,1fr);gap:14px;align-items:start}
+.mirror-client-panel{max-height:calc(100dvh - 140px);min-height:410px;overflow-y:auto}
+.mirror-operations{padding:0;overflow:hidden;max-height:calc(100dvh - 140px);min-height:460px;overflow-y:auto;scrollbar-width:thin}
+.mirror-operations-head{align-items:flex-start;gap:9px;flex-wrap:wrap;margin:0;padding:18px;border-bottom:1px solid #373c42}
+.mirror-operations-head h3{margin:4px 0 3px;font-size:15px}
+.mirror-section-eyebrow{font-size:10px;letter-spacing:.12em;color:#98a3af}
+.mirror-operations-head>.outline{min-height:34px}
+.mirror-operation-tabs{display:flex;padding:0 14px;border-bottom:1px solid #383d43;gap:12px}
+.mirror-operation-tabs button{font-size:12px;color:#aeb5be;white-space:nowrap;background:transparent;padding:13px 7px;border:0;border-bottom:2px solid transparent}
+.mirror-operation-tabs button[aria-selected="true"]{color:#f1f3f5;border-bottom-color:#e5e8eb}
+.mirror-operations [data-mirror-operation-panel]{padding:15px 17px}
+.mirror-control-row,.mirror-request-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #373c42;min-width:0}
+.mirror-control-info{display:grid;gap:5px;min-width:0;overflow-wrap:anywhere}
+.mirror-control-info small{font-size:11px;color:#9da5ae;line-height:1.5}
+.mirror-control-info strong{font-size:12px;line-height:1.5;font-weight:600;color:#f1f2f5;overflow-wrap:anywhere}
+.mirror-control-row button,.mirror-request-row button{flex:none;min-height:35px}
+.mirror-policy-form{margin:15px 0;padding:14px;border:1px solid #4b535b;border-radius:8px;background:#252a30;display:grid;gap:12px;min-width:0}
+.mirror-policy-form h4{margin:0;font-size:13px}
+.mirror-policy-form label{display:grid;gap:6px;color:#c5cbd1;font-size:11px}
+.mirror-policy-form select,.mirror-policy-form textarea,.mirror-policy-form input[type="password"]{width:100%;min-width:0;border:1px solid #4b535b;border-radius:5px;background:#1b2025;color:#f2f2f2;padding:10px;font-size:12px}
+.mirror-policy-form textarea{min-height:75px;resize:vertical}
+.mirror-policy-form .mirror-confirm-row{display:flex;align-items:flex-start;gap:9px;line-height:1.6}
+.mirror-confirm-row input{accent-color:#80bba0;width:17px;height:17px;flex:none}
+.mirror-policy-actions{display:flex;flex-wrap:wrap;gap:8px}
+.mirror-policy-actions button{min-height:38px;padding:8px 12px;font-size:12px}
+.mirror-policy-actions button[type="submit"]{background:#e1e4e6;color:#1b2025;border:1px solid #e1e4e6;border-radius:5px}
+.mirror-operations-audit{border-top:1px solid #373c42;margin-top:12px;padding-top:12px}
+.mirror-operations-audit h4{font-size:12px;margin:0 0 8px}
+.mirror-operations-audit .admin-list-row{align-items:flex-start;padding:9px 0}
+.mirror-operations-filter label{display:grid;gap:6px;font-size:11px;color:#aeb4bc}
+.mirror-operations-filter select{min-height:39px;padding:8px;border:1px solid #424950;background:#20252a;color:#f1f3f5;border-radius:5px}
+.mirror-operations .mirror-disclosure{border-top:1px solid #41474e;padding:12px 17px!important;line-height:1.7}
+@media(max-width:1320px){
+ .mirror-layout{grid-template-columns:minmax(205px,.8fr) minmax(300px,1.2fr)}
+ .mirror-operations{grid-column:1/-1;max-height:none;min-height:0}
+ .mirror-operations [data-mirror-operation-panel]{padding:16px 20px}
+ .mirror-control-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}
+}
+@media(max-width:950px){
+ .mirror-layout{grid-template-columns:1fr}
+ .mirror-client-panel{max-height:310px;min-height:0}
+ .mirror-operations{grid-column:1}
+ .mirror-phone{justify-items:center}
+}
+@media(max-width:600px){
+ .mirror-operations-head{padding:13px}
+ .mirror-operations [data-mirror-operation-panel]{padding:13px}
+ .mirror-control-rows{grid-template-columns:1fr}
+ .mirror-operations{max-height:none}
+ .mirror-control-row,.mirror-request-row{flex-wrap:wrap}
+ .mirror-operations-head>.outline{width:100%}
+}
