@@ -100,3 +100,10 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 .mirror-search:focus-visible{outline:2px solid #aeb4ba;outline-offset:2px}
 .mirror-customer .mirror-open:disabled{opacity:.45;cursor:not-allowed}
 #mirrorAvailability{border-left:2px solid #c7aa68;padding-left:10px;margin:8px 0 12px}
+
+#adminTopbar h1{display:flex;align-items:center;gap:10px}
+#adminTopbar .nuvexa-mark{width:32px;height:30px}
+#bootstrapPanel{max-width:960px;margin:28px auto}
+#adminRoot{max-width:none;margin:0;padding:0}
+#adminWorkspace{padding:16px 20px}
+@media(max-width:650px){#adminWorkspace{padding:10px}}

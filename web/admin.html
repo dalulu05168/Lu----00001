@@ -1,41 +1,55 @@
 <!doctype html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>管理控制台 | Global Stock Platform</title><link rel="stylesheet" href="/admin.css"></head>
+<title>NuvexaPro | 管理控制台</title><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/portal.css"></head>
 <body>
-<header class="topbar"><div><small>GLOBAL STOCK PLATFORM</small><h1>管理控制台</h1></div><a href="/">返回客户前台</a></header>
-<main class="workspace">
-<section class="panel" id="admin-login">
-<h2>管理员登录</h2><p class="muted">管理员使用独立的双因素验证；客户会话不具备后台权限。</p>
-<form id="adminLoginForm" class="field-grid">
-<label>管理员邮箱<input id="adminEmail" type="email" required autocomplete="username"></label>
-<label>密码<input id="adminPassword" type="password" required autocomplete="current-password"></label>
-<label>6 位动态验证码<input id="adminOtp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
-<button type="submit">验证并进入后台</button>
-</form><p id="loginFeedback" class="feedback" role="status"></p>
+<header class="topbar" id="adminTopbar" hidden><div><small>NUVEXAPRO · GLOBAL STOCK PLATFORM</small><h1><svg class="nuvexa-mark" viewBox="0 0 90 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="nx-blue" x1="0" x2="1" y1="1" y2="0"><stop stop-color="#1b8fd8"/><stop offset="1" stop-color="#91dfff"/></linearGradient><linearGradient id="nx-gold" x1="0" x2="1" y1="1" y2="0"><stop stop-color="#9d6c31"/><stop offset="1" stop-color="#f7d396"/></linearGradient></defs><path fill="url(#nx-blue)" d="M4 65 24 12 38 12 58 43 47 62 31 37 20 64Z"/><path fill="url(#nx-gold)" d="M47 62 57 43 67 46 85 7 71 10 61 30Z"/><path fill="none" stroke="#d5edfc" stroke-width=".8" d="M4 65 24 12 38 12 58 43"/><path fill="none" stroke="#fce1b6" stroke-width=".8" d="M47 62 67 46 85 7"/></svg> NuvexaPro 管理控制台</h1></div><a href="/">返回客户前台</a></header>
+<main class="workspace" id="adminRoot">
+<section id="admin-login" class="portal" aria-label="管理员登录">
+  <canvas class="portal-stars" aria-hidden="true"></canvas><div class="portal-aurora" aria-hidden="true"></div><div class="portal-horizon" aria-hidden="true"></div>
+  <div class="portal-content">
+    <div class="portal-brand"><div class="portal-logo"><svg class="nuvexa-mark" viewBox="0 0 90 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="nx-blue" x1="0" x2="1" y1="1" y2="0"><stop stop-color="#1b8fd8"/><stop offset="1" stop-color="#91dfff"/></linearGradient><linearGradient id="nx-gold" x1="0" x2="1" y1="1" y2="0"><stop stop-color="#9d6c31"/><stop offset="1" stop-color="#f7d396"/></linearGradient></defs><path fill="url(#nx-blue)" d="M4 65 24 12 38 12 58 43 47 62 31 37 20 64Z"/><path fill="url(#nx-gold)" d="M47 62 57 43 67 46 85 7 71 10 61 30Z"/><path fill="none" stroke="#d5edfc" stroke-width=".8" d="M4 65 24 12 38 12 58 43"/><path fill="none" stroke="#fce1b6" stroke-width=".8" d="M47 62 67 46 85 7"/></svg></div><div class="portal-name">Nuvexa<span>Pro</span></div><div class="portal-subtitle">ADMIN CONSOLE · GLOBAL STOCK PLATFORM</div></div>
+    <div class="portal-card">
+      <div class="portal-role-tabs" role="group" aria-label="管理员账户类型"><button type="button" data-role-choice="MASTER" aria-pressed="true">主账户</button><button type="button" data-role-choice="SUBADMIN" aria-pressed="false">子账户</button></div>
+      <form id="adminLoginForm" autocomplete="on">
+        <label class="portal-field">管理员邮箱<input type="email" id="adminEmail" autocomplete="username" placeholder="Email" required></label>
+        <label class="portal-field">后台登录密码<input type="password" id="adminPassword" autocomplete="current-password" placeholder="Password" required></label>
+        <button type="submit" class="portal-primary">进入管理后台</button>
+      </form>
+      <p id="loginFeedback" class="portal-feedback" role="status" aria-live="polite"></p>
+      <a class="portal-text-button" href="/">返回客户前台</a>
+      <button id="showAdminSetup" type="button" class="portal-setup-link">首次配置或找回未完成设置的主账户</button>
+    </div>
+    <div class="portal-foot">NuvexaPro · Authorized Access</div>
+  </div>
 </section>
-<section class="panel" id="bootstrapPanel">
-<h2>首次开通主账户</h2>
-<p class="muted">首次开通不需要先进入客户前台。填写指定的主账户邮箱、为后台单独设置密码，并提供项目所有者保管的初始化凭证。仅系统首次开通时可用。</p>
-<form id="bootstrapForm" class="field-grid">
-<label>主账户邮箱<input id="bootstrapEmail" type="email" value="chennan05168@gmail.com" autocomplete="username" required></label>
-<label>设置后台密码（至少12位）<input id="bootstrapPassword" type="password" minlength="12" autocomplete="new-password" required></label>
-<label>项目初始化凭证<input id="bootstrapKey" type="password" autocomplete="off" required></label>
-<button type="submit">创建主账户并获取 2FA 密钥</button>
-</form><p id="bootstrapFeedback" class="feedback" role="status"></p>
-<div id="bootstrapResult" class="sensitive" hidden></div>
-<form id="activateForm" class="field-grid">
-<label>主账户或子账户邮箱<input id="activateEmail" type="email" value="chennan05168@gmail.com" autocomplete="username" required></label>
-<label>后台登录密码<input id="activatePassword" type="password" autocomplete="current-password" required></label>
-<label>验证器 6 位动态验证码<input id="activateOtp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
-<button type="submit">确认 2FA，启用后台登录</button>
-</form><p id="activateFeedback" class="feedback" role="status"></p>
+<section class="panel" id="bootstrapPanel" hidden>
+  <div class="heading"><h2>主账户初次配置</h2><button type="button" class="outline" id="closeAdminSetup">返回登录</button></div>
+  <p class="muted">仅首次创建主账户时使用。项目初始化凭证从 Render 的私密环境变量获取，不需要动态验证码。</p>
+  <form id="bootstrapForm" class="field-grid">
+    <label>主账户邮箱<input id="bootstrapEmail" type="email" value="chennan05168@gmail.com" autocomplete="username" required></label>
+    <label>设置密码（至少12位）<input id="bootstrapPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+    <label>项目初始化凭证<input id="bootstrapKey" type="password" autocomplete="off" required></label>
+    <button type="submit">创建主账户</button>
+  </form>
+  <p id="bootstrapFeedback" class="feedback" role="status"></p>
+  <div class="panel" style="margin-top:18px">
+    <h3>已有主账户但无法登录</h3>
+    <p class="muted">旧版未完成设置的主账户可以凭初始化凭证仅重置一次密码；已正常使用的账户不能通过此入口重置。</p>
+    <form id="recoverForm" class="field-grid">
+      <label>主账户邮箱<input type="email" id="recoverEmail" value="chennan05168@gmail.com" autocomplete="username" required></label>
+      <label>新登录密码（至少12位）<input type="password" id="recoverPassword" autocomplete="new-password" minlength="12" required></label>
+      <label>项目初始化凭证<input type="password" id="recoverKey" autocomplete="off" required></label>
+      <button type="submit">重置尚未完成设置的账户密码</button>
+    </form>
+    <p id="recoverFeedback" class="feedback" role="status"></p>
+  </div>
 </section>
 <section id="adminWorkspace" hidden aria-label="管理工作台">
   <div class="admin-shell">
     <aside class="admin-nav" aria-label="管理导航">
       <div class="nav-heading">管理工作台</div>
-      <div class="nav-identity"><span id="adminRole">—</span><span class="server-status">受保护会话 / 2FA</span></div>
+      <div class="nav-identity"><span id="adminRole">—</span><span class="server-status">账户密码会话</span></div>
       <nav id="adminPages">
         <button type="button" data-admin-page="dashboard" aria-current="page">概览 / Overview</button>
         <button type="button" data-admin-page="accounts" data-required-role="MASTER">子账户 / Subaccounts</button>
@@ -142,7 +156,7 @@
       </section>
       <section class="admin-pane" data-pane="risk" hidden>
         <div class="pane-title"><span>RISK & PERMISSIONS</span><h2>风险与权限</h2></div>
-        <div class="panel unavailable" role="status"><h3>部分能力待开发</h3><p>MASTER / SUBADMIN 访问范围及 2FA 已由后端校验。交易限额、合规审查和权限变更管理尚无完整接口，不显示虚构状态。</p></div>
+        <div class="panel unavailable" role="status"><h3>部分能力待开发</h3><p>MASTER / SUBADMIN 访问范围及 密码认证 已由后端校验。交易限额、合规审查和权限变更管理尚无完整接口，不显示虚构状态。</p></div>
       </section>
       <section class="admin-pane" data-pane="audit" hidden>
         <div class="pane-title"><span>AUDIT & REPORTS</span><h2>审计与报表</h2></div>
@@ -157,5 +171,5 @@
     </div>
   </div>
 </section>
-</main><script type="module" src="/admin.mjs"></script>
+</main><script type="module" src="/portal.mjs"></script><script type="module" src="/admin.mjs"></script>
 </body></html>

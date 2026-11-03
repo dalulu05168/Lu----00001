@@ -546,3 +546,13 @@ html, body, body *, body *::before, body *::after {
 }
 svg { shape-rendering: geometricPrecision; }
 .chart-stage, .chart svg, .chart canvas { image-rendering: auto; }
+
+
+/* NuvexaPro shared charcoal design tokens and regular typography. */
+:root{--nx-bg:#17191c;--nx-panel:#1e2023;--nx-edge:#363a3f;--nx-text:#f0f2f4;--nx-muted:#92979e;--nx-success:#20c88b;--nx-gold:#d3a360;}
+html,body,body *,body *::before,body *::after{font-weight:400!important}
+.nuvexa-mark{width:100%;height:100%;display:block}
+.sidebar .brand-mark{width:32px;height:30px;display:inline-flex;align-items:center;justify-content:center}
+.sidebar .brand-copy strong{font-weight:400!important;letter-spacing:.015em}
+.sidebar .brand-copy small{font-size:8px;letter-spacing:.04em}
+[hidden]{display:none!important}
