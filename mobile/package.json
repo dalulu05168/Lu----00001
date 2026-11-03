@@ -12,14 +12,19 @@
     "check": "npm run typecheck && npm test",
     "postinstall": "node scripts/prepare-assets.mjs",
     "prepare-assets": "node scripts/prepare-assets.mjs",
-    "release:verify": "node scripts/verify-store-release.mjs"
+    "release:verify": "node scripts/verify-store-release.mjs",
+    "web": "expo start --web",
+    "build:web": "expo export --platform web --output-dir dist-web"
   },
   "dependencies": {
     "expo": "~58.0.0",
     "expo-secure-store": "~58.0.2",
     "react": "19.3.0",
     "react-native": "0.88.0",
-    "sharp": "^0.34.0"
+    "sharp": "^0.34.0",
+    "react-dom": "19.3.0",
+    "react-native-web": "~0.21.0",
+    "@expo/metro-runtime": "~58.0.16"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
