@@ -7,7 +7,11 @@ async function withServer(fn){
  try{await fn("http://127.0.0.1:"+api.address().port);}finally{await new Promise(resolve=>api.close(resolve));}
 }
 test("health endpoint declares broker disconnected",async()=>withServer(async base=>{
- const res=await fetch(base+"/health");assert.equal(res.status,200);assert.equal((await res.json()).brokerConnected,false);
+ for(const path of ["/health","/api/health"]){
+  const res=await fetch(base+path);
+  assert.equal(res.status,200,path);
+  assert.equal((await res.json()).brokerConnected,false);
+ }
 }));
 test("rejects unauthenticated order",async()=>withServer(async base=>{
  const res=await fetch(base+"/api/orders",{method:"POST",headers:{"content-type":"application/json"},body:"{}"});assert.equal(res.status,401);
@@ -66,15 +70,27 @@ test("readiness endpoint checks database connection",async()=>{
  await new Promise(resolve=>api.listen(0,"127.0.0.1",resolve));
  const base="http://127.0.0.1:"+api.address().port;
  try{
-  assert.equal((await fetch(base+"/ready")).status,200);
+  for(const path of ["/ready","/api/ready"]){
+   const res=await fetch(base+path);
+   assert.equal(res.status,200,path);
+   assert.equal((await res.json()).database,"connected");
+  }
   schemaReady=false;
-  const missing=await fetch(base+"/ready");
+  const missing=await fetch(base+"/api/ready");
   assert.equal(missing.status,503);
   assert.equal((await missing.json()).database,"schema_missing");
   schemaReady=true;
   healthy=false;
-  const response=await fetch(base+"/ready");
+  const response=await fetch(base+"/api/ready");
   assert.equal(response.status,503);
   assert.equal((await response.json()).database,"unavailable");
  }finally{await new Promise(resolve=>api.close(resolve));}
 });
+
+test("serves all frontend ESM imports on the Node service",async()=>withServer(async base=>{
+ for(const asset of ["/market-allocation.mjs","/catalog-instruments.mjs"]){
+  const response=await fetch(base+asset);
+  assert.equal(response.status,200,asset);
+  assert.match(response.headers.get("content-type"),/javascript/,asset);
+ }
+}));

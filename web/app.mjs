@@ -1,4 +1,5 @@
 import { summarizeMarketHoldings } from "./market-allocation.mjs";
+import { mergePublishedInstruments } from "./catalog-instruments.mjs";
 const MARKETS = [
   {code:"US",label:"美国市场",exchange:"NYSE / NASDAQ",currency:"USD",icon:"US",sub:"United States"},
   {code:"HK",label:"香港市场",exchange:"HKEX",currency:"HKD",icon:"HK",sub:"Hong Kong"},
@@ -15,6 +16,8 @@ const INSTRUMENTS = [
   {market:"MY",symbol:"1155",name:"Maybank"},
   {market:"MY",symbol:"1023",name:"CIMB Group"}
 ];
+const visibleInstruments = () => mergePublishedInstruments(INSTRUMENTS,catalog,{authenticated:Boolean(token),catalogLoaded,markets:MARKETS.map(item=>item.code)});
+const instrumentName = (market,symbol) => visibleInstruments().find(item=>item.market===market&&item.symbol===symbol)?.name;
 const el = id => document.getElementById(id);
 let market = "US";
 let selected = INSTRUMENTS[0];
@@ -103,13 +106,13 @@ function renderMarkets() {
 function pickMarket(code) {
   if (!MARKETS.some(item => item.code === code)) return;
   market = code;
-  selected = INSTRUMENTS.find(item => item.market === code);
+  selected = visibleInstruments().find(item => item.market === code) || INSTRUMENTS.find(item => item.market === code);
   el("search").value = "";
   render();
 }
 function renderSymbols() {
   const search = el("search").value.trim().toLocaleLowerCase();
-  const items = INSTRUMENTS.filter(item => item.market === market &&
+  const items = visibleInstruments().filter(item => item.market === market &&
     (item.symbol.toLowerCase().includes(search) || item.name.toLocaleLowerCase().includes(search)));
   if (!items.length) {
     const empty = document.createElement("div");
@@ -168,7 +171,7 @@ function renderSavedWatchlist() {
     const symbol=document.createElement("strong");
     symbol.textContent=item.symbol;
     const label=document.createElement("small");
-    label.textContent=INSTRUMENTS.find(s=>s.market===item.market&&s.symbol===item.symbol)?.name || "自选代码（未验证行情）";
+    label.textContent=instrumentName(item.market,item.symbol) || "自选代码（未验证行情）";
     description.append(symbol,label);
     identity.append(description);
     const actions=document.createElement("div");
@@ -195,7 +198,7 @@ function renderSavedWatchlist() {
 function selectWatchlistInstrument(item) {
   if(!MARKETS.some(m=>m.code===item.market)||typeof item.symbol!=="string")return;
   market=item.market;
-  selected=INSTRUMENTS.find(s=>s.market===item.market&&s.symbol===item.symbol) ||
+  selected=visibleInstruments().find(s=>s.market===item.market&&s.symbol===item.symbol) ||
     {market:item.market,symbol:item.symbol,name:"自选代码（未验证行情）"};
   el("search").value="";
   el("watchlistFeedback").textContent="自选列表保存于当前账户";
@@ -295,7 +298,10 @@ async function refreshCatalog() {
     if(current!==token)return;
     if(!Array.isArray(data?.items))throw Error("证券资料目录格式异常");
     catalog=data.items;catalogLoaded=true;
+    const updated=visibleInstruments().find(item=>item.market===selected.market&&item.symbol===selected.symbol);
+    if(updated)selected=updated;
     el("catalogFeedback").textContent="";
+    render();
   }catch(error){
     if(current!==token)return;
     catalogLoaded=false;
@@ -320,7 +326,7 @@ function renderRecords() {
     stock.className = "holding-company";
     const code = document.createElement("strong");
     code.textContent = item.symbol;
-    const name = textNode(INSTRUMENTS.find(s=>s.market === item.market && s.symbol === item.symbol)?.name || item.market + " MARKET","holding-name");
+    const name = textNode(instrumentName(item.market,item.symbol) || item.market + " MARKET","holding-name");
     stock.append(code,name);
     left.append(icon,stock);
     const right = document.createElement("div");
@@ -349,7 +355,7 @@ const TRANSACTION_RANGE_LABELS = Object.freeze({
   all:"All time", "7d":"Last 7 days", "30d":"Last 30 days", "90d":"Last 90 days"
 });
 function transactionName(item) {
-  return INSTRUMENTS.find(stock => stock.market === item.market && stock.symbol === item.symbol)?.name || "名称未登记";
+  return instrumentName(item.market,item.symbol) || "名称未登记";
 }
 function transactionPrice(item) {
   const marketInfo = MARKETS.find(entry => entry.code === item.market);
