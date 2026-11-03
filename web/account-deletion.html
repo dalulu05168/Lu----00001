@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#101317">
+<title>NuvexaPro | 账户注销申请</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#101317;color:#edf1f7}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px}
+main{width:min(100%,530px);background:#1b2027;border:1px solid #35404b;border-radius:16px;padding:26px}
+h1{font-size:26px;font-weight:600}small,p{color:#b8c3cf;line-height:1.7}
+label{display:block;font-size:13px;margin:16px 0 7px}
+input{width:100%;border-radius:9px;border:1px solid #647186;background:#111820;color:white;padding:12px;font-size:16px}
+button{margin-top:20px;width:100%;padding:13px;border:0;border-radius:9px;background:#53b8fa;color:#07131f;font-weight:600}
+button:disabled{opacity:.5}a{color:#9cdbff}output{display:block;margin-top:18px;white-space:pre-wrap;line-height:1.6}footer{margin-top:16px;font-size:12px}
+</style>
+</head>
+<body>
+<main>
+<header><small>NuvexaPro · Customer Account</small><h1>申请删除账户</h1></header>
+<p>即使已经卸载手机 App，也可以在本网页发起账户删除申请。请使用现有客户账户验证本人身份。</p>
+<p>提交申请不表示立即完成删除。后台需要核验申请，并按适用法律处理必须保留的财务及审计记录。在完成处理前，本页面会如实显示“已提交申请”。</p>
+<form id="deletionForm">
+<label for="email">账户邮箱</label><input id="email" name="email" type="email" autocomplete="username" required>
+<label for="password">当前账户密码</label><input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required>
+<label for="confirmation">输入 DELETE MY ACCOUNT 确认</label>
+<input id="confirmation" name="confirmation" type="text" spellcheck="false" autocomplete="off" placeholder="DELETE MY ACCOUNT" required>
+<button id="submit" type="submit">提交注销申请</button>
+</form>
+<output id="feedback" role="status" aria-live="polite"></output>
+<footer>需要更多信息？请登录账户使用现有客服功能。此页面不会提供证券下单服务。</footer>
+</main>
+<script type="module" src="/account-deletion.mjs"></script>
+</body>
+</html>
