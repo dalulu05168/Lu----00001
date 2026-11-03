@@ -101,7 +101,7 @@ export default function App(){
   }
   const filteredOrders=useMemo(()=>snapshot?.orders.filter(o=>(o.market+" "+o.symbol+" "+o.side).toLowerCase().includes(query.toLowerCase().trim()))||[],[snapshot,query]);
   if(booting)return <SafeAreaView style={styles.root}><StatusBar barStyle="light-content"/><View style={styles.center}><ActivityIndicator color={COLORS.blue}/><Hint>正在读取安全登录状态…</Hint></View></SafeAreaView>;
-  return <SafeAreaView style={styles.root}><StatusBar barStyle="light-content" backgroundColor={COLORS.bg}/>
+  return <SafeAreaView style={styles.root}><StatusBar barStyle="light-content"/>
     {!token?<KeyboardAvoidingView style={styles.flex} behavior={Platform.OS==="ios"?"padding":undefined}>
       <ScrollView contentContainerStyle={styles.auth} keyboardShouldPersistTaps="handled">
         <Text style={styles.logo}>Nuvexa<Text style={styles.logoAccent}>Pro</Text></Text>
@@ -120,7 +120,7 @@ export default function App(){
       </ScrollView>
     </KeyboardAvoidingView>:<>
       <View style={styles.topbar}><View><Text style={styles.brand}>Nuvexa<Text style={styles.logoAccent}>Pro</Text></Text><Text style={styles.eyebrow}>CLIENT WORKSPACE</Text></View><Pressable accessibilityRole="button" onPress={()=>token&&void refresh(token)}><Text style={styles.refresh}>↻ 刷新</Text></Pressable></View>
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>token&&void refresh(token)} tintColor={COLORS.blue}/>}>
+      <ScrollView style={styles.flex} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>{if(token)void refresh(token);}} tintColor={COLORS.blue}/>}>
         <View style={styles.disclosure}><Text style={styles.disclosureText}>内部账户记录 · 未连接真实券商或实时证券交易</Text></View>
         {error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}
         {tab==="overview"?<>
