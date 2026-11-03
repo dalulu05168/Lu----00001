@@ -69,3 +69,31 @@ test("HTTP deletion endpoints enforce valid Bearer session, prevent impersonatio
    assert.match(javascript.headers.get("content-type")||"",/javascript/);
  }finally{await new Promise(resolve=>server.close(resolve));}
 });
+
+test("administrator deletion queue is role-scoped and cannot be read without a verified role",async()=>{
+ const {listAdminDeletionRequests}=await import("../src/account-deletion-service.mjs");
+ const observed=[];
+ const db={query:async(sql,params)=>{
+   observed.push({sql,params});
+   return {rows:[{id:"request-2",client_user_id:UUID,email:"customer@example.org",
+     status:"REQUESTED",requested_at:"2026-11-04T00:00:00Z"}]};
+ }};
+ await assert.rejects(()=>listAdminDeletionRequests(db,null),/permission required/i);
+ const own=await listAdminDeletionRequests(db,{role:"SUBADMIN",userId:"subadmin-uuid"});
+ assert.equal(own.items.length,1);
+ assert.equal(own.items[0].email,"customer@example.org");
+ assert.deepEqual(observed[0].params,["SUBADMIN","subadmin-uuid"]);
+ assert.match(observed[0].sql,/l\.subadmin_user_id=\$2::uuid/);
+ const all=await listAdminDeletionRequests(db,{role:"MASTER",userId:"master-uuid"});
+ assert.equal(all.items.length,1);
+ assert.deepEqual(observed[1].params,["MASTER","master-uuid"]);
+});
+test("admin risk pane exposes only queued deletion status, not fake deletion controls",async()=>{
+ const {readFile}=await import("node:fs/promises");
+ const html=await readFile(new URL("../web/admin.html",import.meta.url),"utf8");
+ const js=await readFile(new URL("../web/admin.mjs",import.meta.url),"utf8");
+ assert.match(html,/id="deletionQueueItems"/);
+ assert.match(js,/refreshDeletionQueue/);
+ assert.match(js,/textContent=.*item\.email/);
+ assert.doesNotMatch(html,/id="completeCustomerErasure"/);
+});
