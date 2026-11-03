@@ -59,8 +59,10 @@
         <button type="button" data-admin-page="clients">客户管理 / Clients</button>
         <button type="button" data-admin-page="mirror">客户 App 镜像 / App Mirror</button>
         <button type="button" data-admin-page="catalog">证券资料 / Instruments</button>
+        <button type="button" data-admin-page="commodities">大宗商品 / Commodities</button>
         <button type="button" data-admin-page="approvals">审批中心 / Approvals</button>
         <button type="button" data-admin-page="treasury">资金申请记录 / Treasury</button>
+        <button type="button" data-admin-page="support">客户客服 / Support</button>
         <span class="admin-nav-group" data-required-role="MASTER">GOVERNANCE / 治理审计</span>
         <button type="button" data-admin-page="risk" data-required-role="MASTER">风险与权限 / Risk</button>
         <button type="button" data-admin-page="audit" data-required-role="MASTER">审计与报表 / Audit</button>
@@ -297,6 +299,29 @@
           </form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p>
         </section>
       </section>
+      <section class="admin-pane" data-pane="commodities" hidden>
+        <div class="pane-title"><span>COMMODITY CATALOG</span><h2>大宗商品目录</h2>
+          <p>后台可管理商品名称、单位、最低数量和人工参考价格。价格不是实时交易所报价；系统尚未连接商品交易商。</p></div>
+        <section class="panel" id="commodityArea">
+          <div class="heading"><h3>商品管理</h3><button type="button" id="commodityRefresh" class="outline">刷新</button></div>
+          <form id="commodityForm" class="field-grid">
+            <label>商品代码<input id="commoditySku" maxlength="32" pattern="[A-Z0-9._-]{2,32}" placeholder="例如 GOLD-OZ" required></label>
+            <label>商品名称<input id="commodityName" maxlength="120" placeholder="例如 黄金参考目录" required></label>
+            <label>类别<select id="commodityCategory"><option value="PRECIOUS_METAL">贵金属</option><option value="ENERGY">能源</option>
+              <option value="AGRICULTURE">农产品</option><option value="INDUSTRIAL_METAL">工业金属</option><option value="OTHER">其他</option></select></label>
+            <label>计量单位<input id="commodityUnit" maxlength="24" placeholder="例如 盎司 / 吨" required></label>
+            <label>最低数量<input id="commodityMinQty" type="number" min="1" max="1000000" step="1" value="1" required></label>
+            <label>人工参考价（USD，可空）<input id="commodityIndicativePrice" inputmode="decimal" placeholder="不是实时报价"></label>
+            <label>目录状态<select id="commodityStatus"><option value="DRAFT">草稿</option>
+              <option value="PUBLISHED">公开目录</option><option value="ARCHIVED">归档</option></select></label>
+            <label>变更原因（至少 12 字）<input id="commodityReason" maxlength="400" minlength="12" required placeholder="请填写上架或修改原因"></label>
+            <button id="commoditySubmit" type="submit">创建商品</button>
+            <button id="commodityCancel" type="button" class="outline" hidden>取消编辑</button>
+          </form>
+          <p id="commodityFeedback" class="feedback" role="status" aria-live="polite"></p>
+          <div id="commodityItems" class="admin-list"></div>
+        </section>
+      </section>
       <section class="admin-pane" data-pane="approvals" hidden>
         <div class="pane-title"><span>REVIEW CENTER</span><h2>业务申请审核</h2>
           <p>按主账号／子账号权限查看已提交的申请。审核不执行资金划转、身份核验或银行卡验证。</p></div>
@@ -336,6 +361,32 @@
           <p id="fundingSummaryStatus" role="status" class="feedback"></p>
           <div id="fundingRequestRows" class="admin-list"></div>
         </section>
+      </section>
+      <section class="admin-pane" data-pane="support" hidden>
+        <div class="pane-title"><span>CLIENT COMMUNICATIONS</span><h2>客户客服中心</h2>
+          <p>客户提交的消息持久保存于数据库。子账号只处理名下客户；主账号可以查看所有客户会话。</p></div>
+        <div class="support-workspace">
+          <section class="panel support-inbox">
+            <div class="heading"><h3>客户会话</h3><button type="button" class="outline" id="supportRefresh">刷新</button></div>
+            <p id="supportListStatus" class="feedback" role="status" aria-live="polite"></p>
+            <div id="supportThreads" class="admin-list"></div>
+          </section>
+          <section class="panel support-conversation">
+            <div class="heading"><h3 id="supportConversationTitle">选择一位客户</h3>
+              <button type="button" class="outline" id="supportStatusToggle" hidden>关闭会话</button></div>
+            <div id="supportMessages" class="support-messages" role="log" aria-live="polite"></div>
+            <form id="supportReplyForm" hidden>
+              <label>发送客服回复<textarea id="supportReplyMessage" rows="3" maxlength="4000" required></textarea></label>
+              <button type="submit">发送回复</button>
+            </form>
+            <form id="supportStatusForm" hidden>
+              <label>状态变更原因（至少 12 字）<input id="supportStatusReason" maxlength="400" minlength="12" required></label>
+              <button type="submit" id="supportStatusConfirm">确认状态调整</button>
+              <button type="button" class="outline" id="supportStatusCancel">取消</button>
+            </form>
+            <p id="supportActionStatus" class="feedback" role="status" aria-live="polite"></p>
+          </section>
+        </div>
       </section>
       <section class="admin-pane" data-pane="risk" hidden>
         <div class="pane-title"><span>RISK & PERMISSIONS</span><h2>风险与权限</h2></div>
