@@ -56,7 +56,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     const el = id => dom.window.document.getElementById(id);
     assert.equal(el("entryGate").hidden,false,"customer must see login first");
     assert.equal(el("overview").hidden,true,"workspace must be inaccessible before login");
-    assert.match(el("entryGate").textContent,/NuvexaPro/);
+    assert.match(el("entryGate").textContent,/CN Capital/);
     assert.equal(el("markets").querySelectorAll("button").length, 4);
     assert.equal(el("marketCards").querySelectorAll("button").length, 4);
     assert.equal(el("quotePrice").textContent, "—");

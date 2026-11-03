@@ -49,7 +49,7 @@ test("auth endpoints reject GET method",async()=>withServer(async base=>{
 test("serves terminal from the same origin",async()=>withServer(async base=>{
  const page=await fetch(base+"/");
  assert.equal(page.status,200);
- assert.match(await page.text(),/Global Stock Platform/);
+ assert.match(await page.text(),/CN Capital Markets/);
  const script=await fetch(base+"/app.mjs");
  assert.equal(script.status,200);
  assert.match(await script.text(),/refreshAccount/);

@@ -7,11 +7,11 @@ const read=p=>readFileSync(new URL("../web/"+p,import.meta.url),"utf8");
 test("brand and animated login are shared across client and admin",()=>{
   for(const path of ["index.html","admin.html"]){
     const html=read(path);
-    assert.match(html,/NuvexaPro/);
+    assert.match(html,/CN Capital/);
     assert.match(html,/portal-stars/);
     assert.match(html,/portal\.mjs/);
     assert.match(html,/portal\.css/);
-    assert.match(html,/class="nuvexa-mark"/);
+    assert.match(html,/class="cn-capital-mark"/);
     assert.doesNotMatch(html,/adminOtp|activateForm|动态验证码/);
   }
   const animation=read("portal.mjs");

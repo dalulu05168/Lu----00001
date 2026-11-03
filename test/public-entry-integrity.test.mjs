@@ -4,10 +4,10 @@ import {readFileSync} from "node:fs";
 import {createApi} from "../src/http-api.mjs";
 const html=readFileSync(new URL("../web/index.html",import.meta.url),"utf8");
 
-test("NuvexaPro login and logo are visible by default; workspace is hidden",()=>{
+test("CN Capital login and logo are visible by default; workspace is hidden",()=>{
   assert.match(html,/<section id="entryGate" class="portal"/);
   assert.match(html,/<div class="app-shell" id="overview" hidden>/);
-  assert.match(html,/class="portal-name">Nuvexa<span>Pro<\/span>/);
+  assert.match(html,/class="portal-name">CN <span>Capital<\/span>/);
   assert.match(html,/id="entryForm"/);
   assert.match(html,/src="\/portal\.mjs"/);
   assert.match(html,/src="\/app\.mjs"/);
