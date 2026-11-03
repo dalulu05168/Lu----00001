@@ -1,4 +1,4 @@
-/* Decorative particles travel toward the shared NuvexaPro brand, then drift.
+/* Decorative particles travel toward the shared CN Capital brand, then drift.
    No credentials, auth state or API activity is handled by this file. */
 const portals=document.querySelectorAll(".portal");
 for(const portal of portals){

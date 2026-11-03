@@ -30,3 +30,5 @@
 @keyframes nebulaDrift{from{transform:translate(-2%,2%) scale(1)}to{transform:translate(3%,-2%) scale(1.05)}}
 @media(max-width:580px){.portal-content{padding:27px 18px 20px;gap:17px}.portal-card{padding:24px 19px 16px;border-radius:16px}.portal-logo{width:70px;height:58px}.portal-subtitle{letter-spacing:.23em}.portal-horizon{bottom:-220px;height:390px}.portal-field input{height:46px}}
 @media(prefers-reduced-motion:reduce){.portal-aurora,.portal-content{animation:none!important}.portal-stars{opacity:.5}}
+
+.portal-name{font-weight:600;letter-spacing:-.035em}.portal-logo .cn-capital-mark{filter:drop-shadow(0 3px 10px rgba(212,171,99,.25))}

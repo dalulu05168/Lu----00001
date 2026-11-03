@@ -655,3 +655,6 @@ body{font-size:13px;-webkit-font-smoothing:antialiased}
 @media(prefers-reduced-motion:reduce){
   #adminWorkspace #adminPages button,#adminWorkspace .admin-list-row{transition:none}
 }
+
+/* CN Capital mark in admin sidebar, header, and operating workspace. */
+#adminTopbar .cn-capital-mark{width:35px;height:31px;display:inline-block;vertical-align:middle}.nav-brand-mark .cn-capital-mark{width:31px;height:30px;display:block}.dashboard-hero-art>span{font-style:normal;letter-spacing:-.1em}

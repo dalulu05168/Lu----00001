@@ -548,7 +548,7 @@ svg { shape-rendering: geometricPrecision; }
 .chart-stage, .chart svg, .chart canvas { image-rendering: auto; }
 
 
-/* NuvexaPro shared charcoal design tokens and regular typography. */
+/* CN Capital shared charcoal design tokens and regular typography. */
 :root{--nx-bg:#17191c;--nx-panel:#1e2023;--nx-edge:#363a3f;--nx-text:#f0f2f4;--nx-muted:#92979e;--nx-success:#20c88b;--nx-gold:#d3a360;}
 html,body,body *,body *::before,body *::after{font-weight:400!important}
 .nuvexa-mark{width:100%;height:100%;display:block}
@@ -577,3 +577,6 @@ html,body,body *,body *::before,body *::after{font-weight:400!important}
 .service-request-record span{color:#a7adb5;font-size:11px;flex:none}
 @media(max-width:1200px){.service-request-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.service-request-grid{grid-template-columns:1fr}.service-request-form{padding:13px}.service-request-record{align-items:flex-start;flex-direction:column}.service-request-record span{flex:auto}}
+
+/* Visible CN Capital logo treatment; internal CSS class names stay compatible. */
+.cn-capital-mark{width:100%;height:100%;display:block;overflow:visible}.portal-name span{color:#e6bc72}.brand-mark .cn-capital-mark{width:100%;height:100%}.portal-logo .cn-capital-mark{width:100%;height:100%}
