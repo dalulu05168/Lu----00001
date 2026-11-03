@@ -8,7 +8,8 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "bundleIdentifier": "com.nuvexapro.globalstock",
-      "supportsTablet": true
+      "supportsTablet": false,
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.nuvexapro.globalstock",
