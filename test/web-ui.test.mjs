@@ -73,11 +73,10 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("stockChart").querySelector("script"),null);
     assert.equal(el("quotePrice").textContent,"—");
     assert.equal(el("orderSymbol").textContent, "HK · 9988");
-    el("email").value = "user@example.com";
-    el("password").value = "a-long-test-password";
-    const login = el("authForm").querySelector('button[value="login"]');
-    el("authForm").dispatchEvent(new dom.window.SubmitEvent("submit", {
-      bubbles: true, cancelable: true, submitter: login
+    el("entryEmail").value = "user@example.com";
+    el("entryPassword").value = "a-long-test-password";
+    el("entryForm").dispatchEvent(new dom.window.SubmitEvent("submit", {
+      bubbles: true, cancelable: true
     }));
     await new Promise(resolve => setTimeout(resolve, 25));
     assert.equal(el("entryGate").hidden,true,"signed-in user sees workspace");

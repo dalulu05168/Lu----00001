@@ -66,6 +66,13 @@ test("master and subadmin login gates, password-only setup and role-based admin 
     assert.equal(el("adminWorkspace").hidden,true);
     assert.equal(el("admin-login").hidden,false);
     assert.equal(dom.window.sessionStorage.getItem("gsp_admin_token"),null);
+    dom.window.document.querySelector('[data-role-choice="SUBADMIN"]').click();
+    el("adminEmail").value="chennan05168@gmail.com";
+    el("adminPassword").value="testing-master-password";
+    el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{cancelable:true,bubbles:true}));
+    await new Promise(done=>setTimeout(done,45));
+    assert.match(el("loginFeedback").textContent,/不属于所选角色/);
+    assert.equal(el("adminWorkspace").hidden,true);
   }finally{
     globalThis.document=old.document;
     globalThis.sessionStorage=old.sessionStorage;
