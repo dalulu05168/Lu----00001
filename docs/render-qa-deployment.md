@@ -36,3 +36,38 @@ Because the repository is **private**, the Render account must authorize access 
 - QA schema migration `007_admin_password_only.sql` removes the encrypted authenticator key columns.
 - A master previously created but never activated may use the one-time pending setup form with `ADMIN_BOOTSTRAP_SECRET` to set a new password.
 - Existing sessions retain scoped expiry and logout revocation. Strong unique passwords remain essential.
+
+
+## NuvexaPro custom domain rollout (NOT connected yet)
+Domain is managed through the user's Cloudflare DNS account. Preserve all existing
+records, especially unrelated subdomains such as `crm.nuvexapro.com`.
+
+Desired hostnames on this SAME Render service:
+- `nuvexapro.com`: client sign-in at `/`.
+- `admin.nuvexapro.com`: master/subadmin sign-in at `/` (server selects admin page by exact Host).
+- The temporary `global-stock-qa-preview.onrender.com` continues to show client login
+  at `/` and admin login at `/admin.html` for debugging.
+
+**Do not cut over DNS before verifying a healthy Render deployment, client and admin
+login, old DB password rotation, and the actual live DNS records.** Render Hobby has
+an allowance of two custom domains. Adding an apex domain automatically provisions
+`www` as a redirect, so check domain count and any potential charge for the
+separate `admin` hostname before attaching both.
+
+Activation procedure (requires connected Render/Cloudflare write permissions):
+1. In Render service Settings > Custom Domains, add `nuvexapro.com` and
+   `admin.nuvexapro.com` after checking domain quota. Render automatically adds
+   a `www` redirect for the root.
+2. Cloudflare DNS > Records: set CNAME `@`, `www`, and `admin` to
+   `global-stock-qa-preview.onrender.com`, DNS-only during verification. Only
+   replace conflicting records for these exact names after inspection; do not
+   delete unrelated DNS records.
+3. Cloudflare SSL/TLS mode Full (Strict) when certificates are valid; verify
+   the relevant hostnames in Render and wait for HTTPS certificates.
+4. Verify `https://nuvexapro.com/` presents client login and
+   `https://admin.nuvexapro.com/` presents admin login, plus API readiness
+   and user-role isolation. Keep the Render preview hostname as a fallback.
+
+The configuration uses a single application/service, not two separately managed
+Render services. Separate deployments would require creating a second service and
+isolating admin API routing, not just adding two DNS names.

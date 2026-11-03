@@ -19,3 +19,11 @@ services:
         sync: false
       - key: ADMIN_BOOTSTRAP_SECRET
         generateValue: true
+
+# Future custom domains after QA rollout is approved:
+# domains:
+#   - nuvexapro.com
+#   - admin.nuvexapro.com
+# Intentionally not activated here. A Blueprint sync may add the domain,
+# change billing after the free custom-domain allowance, and affect live DNS.
+# Add in Render Settings > Custom Domains only after checking plan/quota.
