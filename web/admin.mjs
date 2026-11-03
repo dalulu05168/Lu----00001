@@ -900,6 +900,176 @@ el("workflowReviewForm").addEventListener("submit",async event=>{
  finally{button.disabled=false;}
 });
 
+
+/* Commodity directory is administrator-managed and explicitly not live market data. */
+let commodityEditingId=null,commodityRows=[],commoditySerial=0;
+const COMMODITY_CATEGORIES={PRECIOUS_METAL:"贵金属",ENERGY:"能源",AGRICULTURE:"农产品",
+ INDUSTRIAL_METAL:"工业金属",OTHER:"其他"};
+function commodityPrice(value){
+ if(value===null||value===undefined)return "未提供";
+ const dollars=Number(value)/100;
+ return Number.isFinite(dollars)?dollars.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})+" USD":"—";
+}
+function commodityCents(value){
+ const str=String(value??"").trim();
+ if(!str)return null;
+ if(!/^\d{1,10}(?:\.\d{1,2})?$/.test(str))throw Error("参考价格式不正确");
+ const [whole,frac=""]=str.split(".");
+ const cents=Number(whole)*100+Number(frac.padEnd(2,"0"));
+ if(!Number.isSafeInteger(cents)||cents<1||cents>1000000000000)throw Error("参考价超出范围");
+ return cents;
+}
+function resetCommodityEditor(){
+ commodityEditingId=null;el("commodityForm").reset();
+ el("commoditySku").disabled=false;el("commoditySubmit").textContent="创建商品";
+ el("commodityCancel").hidden=true;el("commodityMinQty").value="1";
+}
+function openCommodityEditor(item){
+ if(role!=="MASTER")return;
+ commodityEditingId=item.id;
+ el("commoditySku").value=item.sku;el("commoditySku").disabled=true;
+ el("commodityName").value=item.name;el("commodityCategory").value=item.category;
+ el("commodityUnit").value=item.unit;el("commodityMinQty").value=String(item.minimumQuantity);
+ el("commodityIndicativePrice").value=item.indicativePriceCents===null?"":String(item.indicativePriceCents/100);
+ el("commodityStatus").value=item.status;el("commodityReason").value="";
+ el("commoditySubmit").textContent="保存修改";el("commodityCancel").hidden=false;
+ el("commodityForm").scrollIntoView?.({block:"nearest"});
+}
+function renderCommodityItems(items){
+ const target=el("commodityItems");target.replaceChildren();
+ if(!items.length){target.append(plainNode("p","暂无商品目录记录","muted"));return;}
+ for(const item of items){
+  const row=itemRow(item.sku+" · "+item.name,COMMODITY_CATEGORIES[item.category]+" · "+
+   item.unit+" · 最低数量 "+item.minimumQuantity+" · "+
+   commodityPrice(item.indicativePriceCents)+" · "+item.status+
+   " · 人工参考价 / 非交易所实时报价");
+  if(role==="MASTER"){
+   const btn=document.createElement("button");btn.type="button";btn.className="outline";
+   btn.textContent="编辑";btn.addEventListener("click",()=>openCommodityEditor(item));row.append(btn);
+  }
+  target.append(row);
+ }
+}
+async function refreshCommodityItems(){
+ const serial=++commoditySerial,usedToken=adminToken;
+ el("commodityFeedback").textContent="正在读取商品目录";
+ try{
+  const r=await api("/admin/commodities");
+  if(serial!==commoditySerial||usedToken!==adminToken)return;
+  commodityRows=Array.isArray(r.items)?r.items:[];
+  renderCommodityItems(commodityRows);
+  el("commodityFeedback").textContent="已同步 "+commodityRows.length+" 条商品目录记录";
+ }catch(error){
+  if(serial===commoditySerial&&usedToken===adminToken)el("commodityFeedback").textContent="读取失败："+error.message;
+ }
+}
+el("commodityRefresh").addEventListener("click",()=>void refreshCommodityItems());
+el("commodityCancel").addEventListener("click",resetCommodityEditor);
+el("commodityForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ if(role!=="MASTER")return;
+ const btn=el("commoditySubmit");btn.disabled=true;
+ try{
+  const data={
+   name:el("commodityName").value.trim(),category:el("commodityCategory").value,
+   unit:el("commodityUnit").value.trim(),minimumQuantity:Number(el("commodityMinQty").value),
+   indicativePriceCents:commodityCents(el("commodityIndicativePrice").value),
+   status:el("commodityStatus").value,reason:el("commodityReason").value.trim()
+  };
+  if(commodityEditingId)await api("/admin/commodities",{method:"PATCH",body:{id:commodityEditingId,...data}});
+  else await api("/admin/commodities",{method:"POST",body:{sku:el("commoditySku").value.trim().toUpperCase(),...data}});
+  resetCommodityEditor();await refreshCommodityItems();
+  el("commodityFeedback").textContent="商品目录已保存；价格为人工参考价，不是实时市场报价";
+ }catch(error){el("commodityFeedback").textContent="保存失败："+error.message;}
+ finally{btn.disabled=false;}
+});
+
+/* Scoped support chat; all messages persist in PostgreSQL and inherit admin ownership checks. */
+let selectedSupportThread=null,supportSerial=0,supportLoading=false;
+function resetSupportWorkspace(){
+ supportSerial++;selectedSupportThread=null;supportLoading=false;
+ el("supportThreads").replaceChildren();el("supportMessages").replaceChildren();
+ el("supportReplyForm").hidden=true;el("supportStatusForm").hidden=true;
+ el("supportStatusToggle").hidden=true;
+ el("supportReplyMessage").value="";el("supportStatusReason").value="";
+ el("supportConversationTitle").textContent="选择一位客户";
+ el("supportListStatus").textContent="";el("supportActionStatus").textContent="";
+}
+async function refreshSupportThreads(){
+ const serial=++supportSerial,token=adminToken;
+ el("supportListStatus").textContent="正在读取客服会话";
+ try{
+  const data=await api("/admin/support");
+  if(serial!==supportSerial||token!==adminToken)return;
+  const items=Array.isArray(data.items)?data.items:[];
+  const root=el("supportThreads");root.replaceChildren();
+  if(!items.length)root.append(plainNode("p","暂无客户客服消息","muted"));
+  for(const item of items){
+   const row=itemRow(item.clientEmail??item.clientId,item.status==="CLOSED"?"已关闭":"进行中");
+   const btn=document.createElement("button");btn.type="button";btn.className="outline";
+   btn.textContent="打开会话";btn.addEventListener("click",()=>void selectSupportThread(item.id));
+   row.append(btn);root.append(row);
+  }
+  el("supportListStatus").textContent="当前权限可见 "+items.length+" 条会话";
+ }catch(error){if(serial===supportSerial)el("supportListStatus").textContent="读取失败："+error.message;}
+}
+async function selectSupportThread(threadId){
+ if(!threadId)return;
+ const serial=++supportSerial,token=adminToken;
+ supportLoading=true;el("supportActionStatus").textContent="读取客服消息中";
+ el("supportMessages").replaceChildren();el("supportReplyForm").hidden=true;
+ el("supportStatusForm").hidden=true;el("supportStatusToggle").hidden=true;
+ try{
+  const response=await api("/admin/support-thread?threadId="+encodeURIComponent(threadId));
+  if(serial!==supportSerial||token!==adminToken)return;
+  selectedSupportThread=response.thread;
+  el("supportConversationTitle").textContent="客户 "+response.thread.clientId.slice(0,12);
+  const target=el("supportMessages");target.replaceChildren();
+  for(const msg of response.messages??[]){
+   const box=document.createElement("article");
+   box.className="support-message"+(msg.senderUserId===response.thread.clientId?" from-client":" from-admin");
+   const content=document.createElement("p");content.textContent=msg.body;
+   const stamp=document.createElement("small");stamp.textContent=dateLabel(msg.createdAt);
+   box.append(content,stamp);target.append(box);
+  }
+  el("supportReplyForm").hidden=response.thread.status!=="OPEN";
+  el("supportStatusToggle").hidden=false;
+  el("supportStatusToggle").textContent=response.thread.status==="OPEN"?"关闭会话":"重新开启";
+  el("supportActionStatus").textContent="已同步客服消息 · "+(response.messages?.length??0)+" 条";
+ }catch(error){if(serial===supportSerial)el("supportActionStatus").textContent="读取失败："+error.message;}
+ finally{if(serial===supportSerial)supportLoading=false;}
+}
+el("supportRefresh").addEventListener("click",()=>void refreshSupportThreads());
+el("supportStatusToggle").addEventListener("click",()=>{
+ if(!selectedSupportThread)return;
+ el("supportStatusForm").hidden=false;el("supportStatusReason").value="";
+});
+el("supportStatusCancel").addEventListener("click",()=>{el("supportStatusForm").hidden=true;});
+el("supportReplyForm").addEventListener("submit",async e=>{
+ e.preventDefault();const thread=selectedSupportThread;if(!thread||supportLoading)return;
+ const token=adminToken,btn=e.currentTarget.querySelector('button[type="submit"]');btn.disabled=true;
+ try{
+  await api("/admin/support",{method:"POST",body:{threadId:thread.id,message:el("supportReplyMessage").value.trim()}});
+  if(token!==adminToken||thread.id!==selectedSupportThread?.id)return;
+  el("supportReplyMessage").value="";await selectSupportThread(thread.id);
+  await refreshSupportThreads();
+ }catch(error){el("supportActionStatus").textContent="发送失败："+error.message;}
+ finally{btn.disabled=false;}
+});
+el("supportStatusForm").addEventListener("submit",async e=>{
+ e.preventDefault();const thread=selectedSupportThread;if(!thread)return;
+ const token=adminToken,btn=el("supportStatusConfirm");btn.disabled=true;
+ try{
+  const status=thread.status==="OPEN"?"CLOSED":"OPEN";
+  await api("/admin/support",{method:"PATCH",body:{threadId:thread.id,expectedStatus:thread.status,status,
+   reason:el("supportStatusReason").value.trim()}});
+  if(token!==adminToken||thread.id!==selectedSupportThread?.id)return;
+  el("supportStatusForm").hidden=true;await selectSupportThread(thread.id);
+  await refreshSupportThreads();
+ }catch(error){el("supportActionStatus").textContent="状态修改失败："+error.message;}
+ finally{btn.disabled=false;}
+});
+
 async function refreshListings(){
   try{
     const data=await api("/admin/listings");
@@ -922,6 +1092,7 @@ async function showDashboard(){
     el("adminTopbar").hidden=false;
     el("subadminForm").hidden=role!=="MASTER";
     el("listingForm").hidden=role!=="MASTER";
+    el("commodityForm").hidden=role!=="MASTER";
     await Promise.all([refreshSubadmins(),refreshClients(),refreshListings(),refreshMirrorStatus()]);
   }catch{
     sessionStorage.removeItem("gsp_admin_token");
@@ -1028,6 +1199,8 @@ el("adminLogout").addEventListener("click",()=>{
   subadminDirectory=[];closeClientDetail();closeSubadminDetail();
   caseSerial++;fundingSerial++;caseRows=[];clearCaseSelection();
   el("workflowItems").replaceChildren();el("fundingRequestRows").replaceChildren();
+  commoditySerial++;commodityRows=[];resetCommodityEditor();el("commodityItems").replaceChildren();
+  resetSupportWorkspace();
   el("mirrorAvailability").textContent="未登录";
   el("mirrorClientSearch").value="";
   el("mirrorMatchCount").textContent="";
@@ -1052,6 +1225,8 @@ function activateAdminPane(page) {
   if(page==="audit")void refreshMirrorAudit();
   if(page==="approvals")void refreshCaseList();
   if(page==="treasury")void refreshFundingOverview();
+  if(page==="commodities")void refreshCommodityItems();
+  if(page==="support")void refreshSupportThreads();
   const target=document.querySelector('[data-pane="'+page+'"]');
   if(!target)return;
   const nav=document.querySelector('[data-admin-page="'+page+'"]');
