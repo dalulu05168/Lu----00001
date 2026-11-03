@@ -93,7 +93,25 @@
           <section id="subadminDetail" class="record-detail" hidden aria-label="子管理员详情">
             <div class="heading"><h3>子管理员详情</h3><button type="button" id="closeSubadminDetail" class="outline">返回列表</button></div>
             <div id="subadminDetailFields" class="record-fields"></div>
-            <p class="record-boundary">只展示权限范围内的账号资料。登录限制、权限调整与资金管理尚无已验收的服务端接口，本阶段不会产生任何账户变更。</p>
+            <section id="subadminPolicyArea" class="policy-management" hidden aria-label="子账号登录管理">
+              <div class="heading"><h3>子账号登录限制与管理记录</h3>
+                <button type="button" id="refreshSubadminPolicy" class="outline">刷新状态</button></div>
+              <p id="subadminPolicyStatus" class="feedback" role="status" aria-live="polite"></p>
+              <div id="subadminPolicyFields" class="record-fields"></div>
+              <form id="subadminPolicyForm" class="policy-form" hidden>
+                <label>登录权限<select id="subadminLoginAllowed" required>
+                  <option value="true">正常登录</option><option value="false">限制登录</option></select></label>
+                <label class="policy-form-wide">变更原因（至少 12 字）
+                  <textarea id="subadminPolicyReason" rows="2" minlength="12" maxlength="400" required></textarea></label>
+                <label class="policy-form-wide">再次输入主账户密码
+                  <input id="subadminPolicyPassword" type="password" minlength="12" autocomplete="off" required></label>
+                <label class="policy-check policy-form-wide"><input id="subadminPolicyConfirm" type="checkbox" required>
+                  我确认本次操作会改变子账号登录状态并记录审计</label>
+                <button id="subadminPolicySubmit" type="submit">确认保存</button>
+              </form>
+              <div class="policy-audit"><h4>最近变更记录</h4><div id="subadminPolicyAudit"></div></div>
+              <p class="record-boundary">禁用登录会撤销子管理员已有会话，但不删除名下客户或修改任何资金申请。</p>
+            </section>
           </section>
           <p id="subadminFeedback" class="feedback" role="status"></p>
         </section>
