@@ -35,6 +35,7 @@ let catalogBusy = false;
 let transactionPage = 1;
 let transactionPageSize = 10;
 let serviceBusy=false,serviceRequests=[];
+let customerCommodityItems=[],customerCommoditySerial=0,customerSupportSerial=0;
 
 
 const money = cents => {
@@ -559,6 +560,8 @@ function render() {
       }).format(lastSyncedAt) + " MYT"
     : "尚未同步";
   el("serviceRequestsPanel").hidden = !account;
+  el("commodityCatalogPanel").hidden = !account;
+  el("customerSupportPanel").hidden = !account;
   el("logout").hidden = !token;
   el("orderForm").querySelector('button[type="submit"]').disabled = !token || !account || !pricingConnected;
   renderRecords();
@@ -604,6 +607,8 @@ async function refreshAccount() {
     lastSyncedAt = new Date();
     await refreshWatchlist();
     await refreshCatalog();
+    void refreshCustomerCommodities();
+    void refreshCustomerSupport();
     el("authFeedback").textContent = "账户数据已同步";
   } catch(error) {
     if (requestedToken !== token) return;
@@ -617,6 +622,8 @@ async function refreshAccount() {
       watchlistFetchSequence++;
       sessionStorage.removeItem("gsp_token");
       serviceRequests=[];el("serviceRequestHistory").replaceChildren();
+    customerCommoditySerial++;customerSupportSerial++;customerCommodityItems=[];
+    el("customerCommodityItems").replaceChildren();el("customerSupportMessages").replaceChildren();
     }
   } finally {
     accountRefreshing = false;
@@ -835,6 +842,83 @@ async function submitService(category,body,button){
  }catch(error){el("serviceRequestFeedback").textContent="申请未提交："+error.message;return false;}
  finally{serviceBusy=false;button.disabled=false;}
 }
+
+function customerCommodityCard(item){
+ const box=document.createElement("article");box.className="customer-commodity-card";
+ const h=document.createElement("h3");h.textContent=item.sku+" · "+item.name;
+ const info=document.createElement("p");info.textContent=
+  item.category+" · "+item.unit+" · 最低数量 "+item.minimumQuantity;
+ const price=document.createElement("strong");price.textContent=item.indicativePriceCents===null
+  ?"没有参考报价"
+  :money(item.indicativePriceCents)+" USD";
+ const disclosure=document.createElement("small");
+ disclosure.textContent="管理员参考价格 · 非实时报价 · 未连接商品交易商";
+ box.append(h,info,price,disclosure);return box;
+}
+async function refreshCustomerCommodities(){
+ if(!token||!account)return;
+ const serial=++customerCommoditySerial,usedToken=token;
+ el("customerCommodityStatus").textContent="正在同步商品目录";
+ try{
+  const result=await request("/commodities");
+  if(serial!==customerCommoditySerial||usedToken!==token)return;
+  customerCommodityItems=Array.isArray(result.items)?result.items:[];
+  const root=el("customerCommodityItems");
+  root.replaceChildren(...customerCommodityItems.map(customerCommodityCard));
+  if(!customerCommodityItems.length)root.append(makeEmpty("暂无已发布商品"));
+  el("customerCommodityStatus").textContent="目录已同步；人工参考价，不构成实际交易报价";
+ }catch(error){
+  if(serial===customerCommoditySerial&&usedToken===token)
+   el("customerCommodityStatus").textContent="商品目录读取失败："+error.message;
+ }
+}
+async function refreshCustomerSupport(){
+ if(!token||!account)return;
+ const serial=++customerSupportSerial,usedToken=token;
+ el("customerSupportStatus").textContent="正在同步客服消息";
+ try{
+  const response=await request("/support");
+  if(serial!==customerSupportSerial||usedToken!==token)return;
+  const root=el("customerSupportMessages");root.replaceChildren();
+  const messages=Array.isArray(response.messages)?response.messages:[];
+  if(!messages.length)root.append(makeEmpty("暂无客服消息，您可以直接发送问题"));
+  for(const item of messages){
+   const box=document.createElement("article");
+   const own=item.senderUserId===response.thread?.clientId;
+   box.className="customer-support-message "+(own?"from-customer":"from-support");
+   const content=document.createElement("p");content.textContent=item.body;
+   const from=document.createElement("small");from.textContent=(own?"我的消息":"客服回复")+" · "+
+     (item.createdAt?new Date(item.createdAt).toLocaleString("zh-CN"):"");
+   box.append(content,from);root.append(box);
+  }
+  const closed=response.thread?.status==="CLOSED";
+  el("customerSupportForm").querySelector('button[type="submit"]').disabled=closed;
+  el("customerSupportStatus").textContent=closed
+   ?"当前会话已关闭，发送新消息前请联系客服重新开启"
+   :"共 "+messages.length+" 条消息，来自真实账户客服记录";
+ }catch(error){
+  if(serial===customerSupportSerial&&usedToken===token)
+   el("customerSupportStatus").textContent="客服消息读取失败："+error.message;
+ }
+}
+el("refreshCustomerCommodities").addEventListener("click",()=>void refreshCustomerCommodities());
+el("refreshCustomerSupport").addEventListener("click",()=>void refreshCustomerSupport());
+el("customerSupportForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ if(!token||!account)return;
+ const tokenAtSend=token,button=event.currentTarget.querySelector('button[type="submit"]');
+ button.disabled=true;
+ try{
+  await request("/support",{method:"POST",body:{message:el("customerSupportText").value.trim()}});
+  if(tokenAtSend!==token)return;
+  el("customerSupportText").value="";
+  await refreshCustomerSupport();
+  el("customerSupportStatus").textContent="客服消息已提交并保存";
+ }catch(error){
+  if(tokenAtSend===token)el("customerSupportStatus").textContent="发送失败："+error.message;
+ }finally{button.disabled=false;}
+});
+
 el("refreshServiceRequests").addEventListener("click",()=>{void refreshServiceRequests()});
 el("fundingRequestForm").addEventListener("submit",async event=>{
  event.preventDefault();
@@ -875,6 +959,8 @@ el("logout").addEventListener("click",async () => {
     catalog=[];
     catalogLoaded=false;
     serviceRequests=[];el("serviceRequestHistory").replaceChildren();
+    customerCommoditySerial++;customerSupportSerial++;customerCommodityItems=[];
+    el("customerCommodityItems").replaceChildren();el("customerSupportMessages").replaceChildren();
     el("savedWatchlistFeedback").textContent="";
     el("authFeedback").textContent = "已退出账户";
     render();
