@@ -346,6 +346,67 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const unchangedClient=await req("/api/account",{token:customerAppToken});
     assert.equal(unchangedClient.data.account.cashCents,0);
 
+    // MASTER-managed account flags are persisted, scoped and audited, not payments or real trading permissions.
+    const policyPath="/api/admin/client-controls?clientId="+attached.data.userId;
+    const auditPath="/api/admin/client-control-audit?clientId="+attached.data.userId;
+    const initialPolicy=await req(policyPath,{token:masterToken});
+    assert.equal(initialPolicy.status,200);
+    assert.deepEqual({
+      login:initialPolicy.data.policy.loginAllowed,
+      withdrawal:initialPolicy.data.policy.withdrawalRequestsAllowed,
+      loan:initialPolicy.data.policy.loanRequestsAllowed,
+      vip:initialPolicy.data.policy.vipTier,
+      account:initialPolicy.data.policy.accountClass,
+      version:initialPolicy.data.policy.version
+    },{login:true,withdrawal:true,loan:false,vip:"STANDARD",account:"SIMULATED",version:0});
+    assert.equal((await req(policyPath,{token:subAdmin.data.token})).status,200);
+    assert.equal((await req(policyPath,{token:otherLogin.data.token})).status,404);
+    assert.equal((await req(policyPath,{token:customerAppToken})).status,403);
+    assert.equal((await req(policyPath)).status,401);
+    const change=(token,body)=>req("/api/admin/client-controls",{method:"PATCH",token,body:{
+      clientId:attached.data.userId,reason:"Verified internal policy adjustment",confirmPassword:recoveredPassword,...body
+    }});
+    assert.equal((await change(subAdmin.data.token,{field:"vipTier",value:"GOLD",expectedVersion:0})).status,403);
+    assert.equal((await change(masterToken,{field:"vipTier",value:"GOLD",expectedVersion:0,confirmPassword:"wrong-confirmation"})).status,401);
+    assert.equal((await change(masterToken,{field:"vipTier",value:"GOLD",expectedVersion:0,reason:"short"})).status,400);
+    const vipChanged=await change(masterToken,{field:"vipTier",value:"GOLD",expectedVersion:0});
+    assert.equal(vipChanged.status,200);
+    assert.equal(vipChanged.data.policy.version,1);
+    assert.equal(vipChanged.data.policy.vipTier,"GOLD");
+    assert.equal((await change(masterToken,{field:"vipTier",value:"PLATINUM",expectedVersion:0})).status,409);
+    const loanChanged=await change(masterToken,{field:"loanRequestsAllowed",value:true,expectedVersion:1});
+    assert.equal(loanChanged.status,200);
+    assert.equal(loanChanged.data.policy.version,2);
+    const classChanged=await change(masterToken,{field:"accountClass",value:"REAL_PENDING",expectedVersion:2});
+    assert.equal(classChanged.status,200);
+    assert.equal(classChanged.data.policy.accountClass,"REAL_PENDING");
+    assert.equal(classChanged.data.policy.version,3);
+    const withdrawalsChanged=await change(masterToken,{field:"withdrawalRequestsAllowed",value:false,expectedVersion:3});
+    assert.equal(withdrawalsChanged.status,200);
+    assert.equal(withdrawalsChanged.data.policy.version,4);
+    assert.equal((await change(masterToken,{field:"accountClass",value:"REAL_CONNECTED",expectedVersion:4})).status,400);
+    const changedAudit=await req(auditPath,{token:masterToken});
+    assert.equal(changedAudit.status,200);
+    assert.equal(changedAudit.data.items.length,4);
+    assert.deepEqual(changedAudit.data.items.map(x=>x.field).sort(),
+      ["accountClass","loanRequestsAllowed","vipTier","withdrawalRequestsAllowed"].sort());
+    assert.equal((await req(auditPath,{token:otherLogin.data.token})).status,404);
+    assert.equal((await req(auditPath,{token:subAdmin.data.token})).status,200);
+    assert.equal((await req(auditPath,{token:customerAppToken})).status,403);
+    const locked=await change(masterToken,{field:"loginAllowed",value:false,expectedVersion:4});
+    assert.equal(locked.status,200);
+    assert.equal(locked.data.policy.version,5);
+    assert.equal((await req("/api/account",{token:customerAppToken})).status,401);
+    assert.equal((await req("/api/auth/login",{method:"POST",body:{
+      email:attachedEmail,password:"testing-client-pass-2026"
+    }})).status,401);
+    const policyAfter=await req(policyPath,{token:masterToken});
+    assert.equal(policyAfter.data.policy.loginAllowed,false);
+    assert.equal(policyAfter.data.policy.withdrawalRequestsAllowed,false);
+    assert.equal(policyAfter.data.policy.accountClass,"REAL_PENDING");
+    const cashAfter=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
+    assert.equal(Number(cashAfter.rows[0].cash_cents),0);
+
   }finally{
     await new Promise(done=>app.close(done));
     await db.end();
