@@ -72,6 +72,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   let session;
   try{session=await resolveSession(auth.slice(7));}catch{return send(res,401,{error:"Authentication failed"});}
   if(!session?.accountId)return send(res,401,{error:"Authentication required"});
+  if(session.adminVerified===true)return send(res,403,{error:"Use the administrator console"});
   if(route==="/api/account"){
    try{return send(res,200,await getAccountSnapshot(db,session.accountId));}
    catch{return send(res,500,{error:"Internal server error"});}

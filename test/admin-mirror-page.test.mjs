@@ -37,7 +37,8 @@ test("master can open a scoped client App mirror with account records and clear 
     const el=id=>dom.window.document.getElementById(id);
     el("adminEmail").value="master@example.test";
     el("adminPassword").value="password-12345";
-    el("adminOtp").value="123456";
+    assert.equal(el("admin-login").hidden,false);
+    assert.equal(el("adminWorkspace").hidden,true);
     el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
     await pause(55);
     assert.equal(el("adminWorkspace").hidden,false);

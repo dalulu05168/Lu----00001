@@ -1,58 +1,38 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {randomUUID,randomBytes} from "node:crypto";
+import {randomUUID} from "node:crypto";
 import {createApi} from "../src/http-api.mjs";
-import {newTotpSecret,currentOtp,checkOtp} from "../src/totp.mjs";
-import {protectTotp,unprotectTotp,matchBootstrapKey} from "../src/admin-secrets.mjs";
-import {createListing,updateListing} from "../src/admin-service.mjs";
+import {createListing,updateListing,adminLogin,recoverPendingMaster} from "../src/admin-service.mjs";
+import {hashPassword} from "../src/auth.mjs";
 
-test("administrator 2FA is six digits and refuses invalid or expired codes",()=>{
-  const secret=newTotpSecret(),instant=Date.UTC(2026,10,2,12,0,0);
-  assert.match(secret,/^[A-Z2-7]{32}$/);
-  const code=currentOtp(secret,instant);
-  assert.match(code,/^[0-9]{6}$/);
-  assert.equal(checkOtp(secret,code,instant),true);
-  assert.equal(checkOtp(secret,code,instant+31000),true);
-  assert.equal(checkOtp(secret,code,instant+120000),false);
-  assert.equal(checkOtp(secret,"abcdef",instant),false);
+test("master and subadmin authenticate with password only and reject wrong password",async()=>{
+  const userId=randomUUID(),accountId=randomUUID(),hash=await hashPassword("correct-password-2026");
+  const queries=[];
+  const db={query:async(sql,params)=>{
+    queries.push(sql);
+    if(sql.includes("SELECT u.id,u.password_hash"))return {rows:[{id:userId,account_id:accountId,password_hash:hash,role:"MASTER"}]};
+    return {rows:[]};
+  }};
+  const signed=await adminLogin(db,{email:"admin@example.test",password:"correct-password-2026"});
+  assert.equal(signed.role,"MASTER");assert.ok(signed.token.length>=32);
+  assert.ok(queries.some(sql=>sql.includes("admin_verified_at")));
+  await assert.rejects(adminLogin(db,{email:"admin@example.test",password:"wrong-password-2026"}),e=>e.statusCode===401);
 });
-test("2FA values are encrypted and bootstrap proofs must match",()=>{
-  const previousKey=process.env.ADMIN_TOTP_ENCRYPTION_KEY;
-  const previousProof=process.env.ADMIN_BOOTSTRAP_SECRET;
-  try {
-    process.env.ADMIN_TOTP_ENCRYPTION_KEY="a".repeat(64);
-    process.env.ADMIN_BOOTSTRAP_SECRET="b".repeat(64);
-    const secret=newTotpSecret(),ciphertext=protectTotp(secret);
-    assert.equal(ciphertext.includes(secret),false);
-    assert.equal(unprotectTotp(ciphertext),secret);
-    const tampered=ciphertext.split(".");tampered[1]="AAAAAAAAAAAAAAAAAAAAAA";
-    assert.throws(()=>unprotectTotp(tampered.join(".")));
-    assert.equal(matchBootstrapKey("b".repeat(64)),true);
-    assert.equal(matchBootstrapKey("c".repeat(64)),false);
-  }finally{
-    if(previousKey===undefined)delete process.env.ADMIN_TOTP_ENCRYPTION_KEY;
-    else process.env.ADMIN_TOTP_ENCRYPTION_KEY=previousKey;
-    if(previousProof===undefined)delete process.env.ADMIN_BOOTSTRAP_SECRET;
-    else process.env.ADMIN_BOOTSTRAP_SECRET=previousProof;
-  }
-});
-test("Render generated 256-bit base64 TOTP key encrypts and decrypts without changing old key format",()=>{
-  const oldKey=process.env.ADMIN_TOTP_ENCRYPTION_KEY;
-  const totp=newTotpSecret();
+
+test("pending-master reset requires strong setup proof and refuses wrong credentials",async()=>{
+  const previousEmail=process.env.ADMIN_MASTER_EMAIL;
+  const previousSecret=process.env.ADMIN_BOOTSTRAP_SECRET;
+  process.env.ADMIN_MASTER_EMAIL="master@example.test";
+  process.env.ADMIN_BOOTSTRAP_SECRET="b".repeat(64);
   try{
-    const generated=randomBytes(32).toString("base64");
-    process.env.ADMIN_TOTP_ENCRYPTION_KEY=generated;
-    const encrypted=protectTotp(totp);
-    assert.equal(unprotectTotp(encrypted),totp);
-    process.env.ADMIN_TOTP_ENCRYPTION_KEY="a".repeat(64);
-    assert.throws(()=>unprotectTotp(encrypted));
-    for(const invalid of ["short-secret","a".repeat(63),"A".repeat(44),"@@".repeat(22)]){
-      process.env.ADMIN_TOTP_ENCRYPTION_KEY=invalid;
-      assert.throws(()=>protectTotp(totp),/encryption key is not configured/);
-    }
+    await assert.rejects(recoverPendingMaster({connect(){throw Error("should not reach db")}},{
+      email:"master@example.test",password:"new-long-password-2026",setupKey:"bad-proof"
+    }),/Invalid setup proof/);
   }finally{
-    if(oldKey===undefined)delete process.env.ADMIN_TOTP_ENCRYPTION_KEY;
-    else process.env.ADMIN_TOTP_ENCRYPTION_KEY=oldKey;
+    if(previousEmail===undefined)delete process.env.ADMIN_MASTER_EMAIL;
+    else process.env.ADMIN_MASTER_EMAIL=previousEmail;
+    if(previousSecret===undefined)delete process.env.ADMIN_BOOTSTRAP_SECRET;
+    else process.env.ADMIN_BOOTSTRAP_SECRET=previousSecret;
   }
 });
 test("master can publish a directory entry without purchase or discount fields",async()=>{

@@ -556,3 +556,5 @@ html,body,body *,body *::before,body *::after{font-weight:400!important}
 .sidebar .brand-copy strong{font-weight:400!important;letter-spacing:.015em}
 .sidebar .brand-copy small{font-size:8px;letter-spacing:.04em}
 [hidden]{display:none!important}
+
+:root{color-scheme:dark;--text:#f2f4f5;--muted:#92979e;font-weight:400}
