@@ -149,7 +149,7 @@ export async function listAdminClientHistoryPage(db,actor,clientId,{cursor=null,
   "WHERE u.id=$1 AND NOT EXISTS(SELECT 1 FROM admin_roles ar WHERE ar.user_id=u.id) "+
   "AND ($2::text='MASTER' OR l.subadmin_user_id=$3::uuid)",[clientId,actor.role,actor.userId]);
  if(access.rows.length!==1)bad("Client not found",404);
- const sql=String.rawSELECT h.* FROM (
+ const sql=String.raw`SELECT h.* FROM (
  SELECT id,client_user_id,'FUNDING'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
         kind,amount_cents,currency,NULL::text AS bank_label,NULL::char(4) AS account_last4
  FROM client_funding_requests WHERE client_user_id=$1
@@ -163,7 +163,7 @@ export async function listAdminClientHistoryPage(db,actor,clientId,{cursor=null,
  FROM client_bank_link_requests WHERE client_user_id=$1
 ) h WHERE ($3::timestamptz IS NULL OR
   (h.created_at,h.id,h.category) < ($3::timestamptz,$4::uuid,$5::text))
-ORDER BY h.created_at DESC,h.id DESC,h.category DESC LIMIT $2;
+ORDER BY h.created_at DESC,h.id DESC,h.category DESC LIMIT $2`;
  const params=[clientId,limit+1,pointer?.[0]??null,pointer?.[1]??null,pointer?.[2]??null];
  const result=await db.query(sql,params);
  const hasMore=result.rows.length>limit;
