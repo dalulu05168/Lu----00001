@@ -1,4 +1,5 @@
 import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} from "./admin-mirror.mjs";
+import {listAdminDeletionRequests} from "./account-deletion-service.mjs";
 import {getClientPolicy,changeClientPolicy,listClientPolicyAudit} from "./client-admin-policies.mjs";
 import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit,listAdminClientHistoryPage} from "./operational-workflows.mjs";
 import {getSubadminPolicy,changeSubadminLogin,listSubadminControlAudit} from "./admin-subaccount-policies.mjs";
@@ -53,7 +54,8 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"],
     "/api/admin/commodities":["GET","POST","PATCH"],"/api/admin/commodity-audit":["GET"],
-    "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"]
+    "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"],
+     "/api/admin/deletion-requests":["GET"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
@@ -90,6 +92,9 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator session required"});return true;}
     if(route==="/api/admin/me"){response(res,200,{role:actor.role,userId:actor.userId});return true;}
+    if(route==="/api/admin/deletion-requests"){
+      response(res,200,await listAdminDeletionRequests(db,actor));return true;
+    }
     if(route==="/api/admin/subaccounts"){
       if(req.method==="POST"){
         if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
