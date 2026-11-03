@@ -57,7 +57,7 @@
         <button type="button" data-admin-page="mirror">客户 App 镜像 / App Mirror</button>
         <button type="button" data-admin-page="catalog">证券资料 / Instruments</button>
         <button type="button" data-admin-page="approvals">审批中心 / Approvals</button>
-        <button type="button" data-admin-page="treasury" data-required-role="MASTER">资金与账本 / Treasury</button>
+        <button type="button" data-admin-page="treasury">资金申请记录 / Treasury</button>
         <button type="button" data-admin-page="risk" data-required-role="MASTER">风险与权限 / Risk</button>
         <button type="button" data-admin-page="audit" data-required-role="MASTER">审计与报表 / Audit</button>
       </nav>
@@ -180,12 +180,44 @@
         </section>
       </section>
       <section class="admin-pane" data-pane="approvals" hidden>
-        <div class="pane-title"><span>APPROVAL CENTER</span><h2>审批中心</h2></div>
-        <div class="panel unavailable" role="status"><h3>审批操作尚未启用</h3><p>资金申请、提现审批等操作尚未开放。</p></div>
+        <div class="pane-title"><span>REVIEW CENTER</span><h2>业务申请审核</h2>
+          <p>按主账号／子账号权限查看已提交的申请。审核不执行资金划转、身份核验或银行卡验证。</p></div>
+        <section class="panel">
+          <div class="heading workflow-toolbar"><h3>申请列表</h3>
+            <label for="workflowCategory">申请类型 <select id="workflowCategory" aria-label="选择申请类型">
+              <option value="FUNDING">充值与提现</option><option value="KYC">身份核验工单</option>
+              <option value="BANK_LINK">银行卡登记请求</option></select></label>
+            <button type="button" id="workflowRefresh" class="outline">刷新申请</button>
+          </div>
+          <p id="workflowStatus" class="feedback" role="status" aria-live="polite"></p>
+          <div id="workflowItems" class="admin-list" aria-live="polite"></div>
+          <form id="workflowReviewForm" class="workflow-review-form" hidden>
+            <h3>处理选中申请</h3><p id="workflowSelection" class="muted"></p>
+            <label>处理状态<select id="workflowDecision" required></select></label>
+            <label class="workflow-form-wide">处理原因（至少 12 字）
+              <textarea id="workflowReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
+            <label class="workflow-confirm workflow-form-wide">
+              <input id="workflowConfirm" type="checkbox" required>确认仅更新审核状态，不代表付款或身份核验成功
+            </label>
+            <div class="workflow-form-wide"><button type="submit" id="workflowSubmit">保存审核记录</button>
+              <button type="button" class="outline" id="workflowCancel">取消</button></div>
+          </form>
+        </section>
       </section>
       <section class="admin-pane" data-pane="treasury" hidden>
-        <div class="pane-title"><span>TREASURY & LEDGER</span><h2>资金与账本</h2></div>
-        <div class="panel unavailable" role="status"><h3>资金管理尚未启用</h3><p>资金管理功能暂不可用</p></div>
+        <div class="pane-title"><span>REQUEST LEDGER</span><h2>资金申请与审批记录</h2>
+          <p>仅显示权限范围内的充值／提现申请记录，不代表银行支付流水或真实资金余额。</p></div>
+        <section class="panel">
+          <div class="heading"><h3>申请统计</h3><button id="refreshFundingSummary" class="outline" type="button">刷新统计</button></div>
+          <div class="summary-grid" id="fundingSummaryCards">
+            <div class="summary-card"><span>充值申请</span><output id="depositRequestTotal">—</output></div>
+            <div class="summary-card"><span>提现申请</span><output id="withdrawRequestTotal">—</output></div>
+            <div class="summary-card"><span>待处理</span><output id="pendingRequestTotal">—</output></div>
+            <div class="summary-card"><span>审核通过但未划转</span><output id="approvedRequestTotal">—</output></div>
+          </div>
+          <p id="fundingSummaryStatus" role="status" class="feedback"></p>
+          <div id="fundingRequestRows" class="admin-list"></div>
+        </section>
       </section>
       <section class="admin-pane" data-pane="risk" hidden>
         <div class="pane-title"><span>RISK & PERMISSIONS</span><h2>风险与权限</h2></div>
