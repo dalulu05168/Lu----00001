@@ -523,6 +523,12 @@ function renderTransactionHistory() {
   el("exportHistoryButton").disabled = !account || filtered.length === 0;
 }
 
+function syncClientGate(){
+  const admitted=Boolean(token&&account);
+  el("entryGate").hidden=admitted;
+  el("overview").hidden=!admitted;
+  if(!admitted&&token)el("entryFeedback").textContent=accountRefreshing?"正在验证账户状态…":el("authFeedback").textContent;
+}
 function render() {
   renderMarkets();
   renderSymbols();
@@ -556,6 +562,7 @@ function render() {
   renderRecords();
   renderTransactionHistory();
   renderWatchlistControl();
+  syncClientGate();
 }
 async function request(path,options = {}) {
   let result;
@@ -689,6 +696,44 @@ el("watchlistToggle").addEventListener("click",()=>{
 el("refreshWatchlistButton").addEventListener("click",()=>{if(token&&!watchlistBusy)refreshWatchlist();});
 el("refreshCatalogButton").addEventListener("click",()=>{if(token&&!catalogBusy)refreshCatalog();});
 el("refreshAccountButton").addEventListener("click",() => { if(token) refreshAccount(); });
+// Credential-only client entry. No workspace DOM is displayed until /api/account succeeds.
+let entryRegisterMode=false,entryBusy=false;
+el("entryMode").addEventListener("click",()=>{
+  entryRegisterMode=!entryRegisterMode;
+  el("entryInviteWrap").hidden=!entryRegisterMode;
+  el("entrySubmit").textContent=entryRegisterMode?"注册并进入平台":"进入交易平台";
+  el("entryMode").textContent=entryRegisterMode?"已有账户？返回登录":"创建新账户";
+  el("entryTitle").textContent=entryRegisterMode?"新账户注册":"安全账户登录";
+  el("entryFeedback").textContent="";
+});
+el("entryForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(entryBusy)return;
+  entryBusy=true;
+  const button=el("entrySubmit");button.disabled=true;
+  el("entryFeedback").textContent="正在安全验证账户…";
+  try{
+    const email=el("entryEmail").value.trim(),password=el("entryPassword").value;
+    if(entryRegisterMode){
+      const inviteCode=el("entryInvite").value.trim();
+      await request("/auth/register",{method:"POST",body:{email,password,...(inviteCode?{inviteCode}:{})}});
+    }
+    const session=await request("/auth/login",{method:"POST",body:{email,password}});
+    if(!session?.token)throw new Error("登录未返回有效会话");
+    token=session.token;
+    sessionStorage.setItem("gsp_token",token);
+    el("entryPassword").value="";
+    await refreshAccount();
+    if(!account)throw new Error(el("authFeedback").textContent||"账户无法验证，请重试");
+    el("entryFeedback").textContent="";
+    syncClientGate();
+  }catch(error){
+    el("entryFeedback").textContent=error.message;
+  }finally{
+    entryBusy=false;button.disabled=false;
+    render();
+  }
+});
 el("authForm").addEventListener("submit",async event => {
   event.preventDefault();
   if (authBusy) return;

@@ -22,7 +22,7 @@ export async function registerAccount(db,{email,password,openingCashCents=0,invi
       const invited=await client.query(`SELECT i.id,i.subadmin_user_id FROM invite_codes i
         JOIN admin_roles a ON a.user_id=i.subadmin_user_id AND a.role='SUBADMIN'
         WHERE i.code=$1 AND i.revoked_at IS NULL AND i.expires_at>now()
-        AND i.uses<i.max_uses AND a.twofa_confirmed_at IS NOT NULL FOR UPDATE OF i`,[inviteCode]);
+        AND i.uses<i.max_uses FOR UPDATE OF i`,[inviteCode]);
       if(invited.rows.length!==1)throw new Error("Invalid invitation code");
       invitation=invited.rows[0];
     }
@@ -43,7 +43,9 @@ export async function registerAccount(db,{email,password,openingCashCents=0,invi
 export async function loginAccount(db,{email,password}){
  if(typeof email!=="string"||typeof password!=="string")throw new Error("Invalid credentials");
  const r=await db.query(`SELECT u.id,u.password_hash,a.id AS account_id
- FROM app_users u JOIN accounts a ON a.user_id=u.id WHERE u.email=$1`,[email.trim().toLowerCase()]);
+ FROM app_users u JOIN accounts a ON a.user_id=u.id
+ LEFT JOIN admin_roles r ON r.user_id=u.id
+ WHERE u.email=$1 AND r.user_id IS NULL`,[email.trim().toLowerCase()]);
  if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash)))throw new Error("Invalid credentials");
  const expiresAt=new Date(Date.now()+24*60*60*1000);
  const token=await createSession(db,{userId:r.rows[0].id,accountId:r.rows[0].account_id,expiresAt});
