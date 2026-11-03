@@ -81,7 +81,10 @@ export async function adminLogin(db,{email,password}){
   if(typeof password!=="string")invalid("Invalid admin login");
   const r=await db.query(`SELECT u.id,u.password_hash,a.id AS account_id,r.role
     FROM app_users u JOIN accounts a ON a.user_id=u.id
-    JOIN admin_roles r ON r.user_id=u.id WHERE u.email=$1`,[getEmail(email)]);
+
+    JOIN admin_roles r ON r.user_id=u.id
+    LEFT JOIN admin_subaccount_policies sp ON sp.user_id=u.id
+    WHERE u.email=$1 AND COALESCE(sp.login_allowed,true)=true`,[getEmail(email)]);
   if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash))){
     const error=new Error("Invalid admin credentials");error.statusCode=401;throw error;
   }

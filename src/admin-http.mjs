@@ -1,6 +1,7 @@
 import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} from "./admin-mirror.mjs";
 import {getClientPolicy,changeClientPolicy,listClientPolicyAudit} from "./client-admin-policies.mjs";
 import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit} from "./operational-workflows.mjs";
+import {getSubadminPolicy,changeSubadminLogin,listSubadminControlAudit} from "./admin-subaccount-policies.mjs";
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -43,6 +44,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/recover-pending-master":["POST"],"/api/admin/logout":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
+    "/api/admin/subaccount-controls":["GET","PATCH"],"/api/admin/subaccount-control-audit":["GET"],
     "/api/admin/client-controls":["GET","PATCH"],"/api/admin/client-control-audit":["GET"],
     "/api/admin/workflow-requests":["GET","PATCH"],"/api/admin/workflow-audit":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
@@ -89,6 +91,18 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
         response(res,201,await createSubadmin(db,actor,await input(req)));return true;
       }
       response(res,200,{items:await listSubadmins(db,actor)});return true;
+    }
+    if(route==="/api/admin/subaccount-controls"){
+      if(req.method==="PATCH"){
+        if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
+        response(res,200,{policy:await changeSubadminLogin(db,actor,await input(req))});return true;
+      }
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,{policy:await getSubadminPolicy(db,actor,url.searchParams.get("userId"))});return true;
+    }
+    if(route==="/api/admin/subaccount-control-audit"){
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,{items:await listSubadminControlAudit(db,actor,url.searchParams.get("userId"))});return true;
     }
     if(route==="/api/admin/mirror-status"){
       response(res,200,await getClientMirrorSetupStatus(db,actor));return true;
