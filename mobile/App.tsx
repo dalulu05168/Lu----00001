@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {ActivityIndicator,Alert,KeyboardAvoidingView,Linking,Platform,Pressable,RefreshControl,SafeAreaView,ScrollView,Share,StatusBar,StyleSheet,Text,TextInput,View} from "react-native";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "./src/session-store";
 import {accountSnapshot,ApiError,changeWatchlist,deletionStatus,login,logout,sendSupport,submitDeletionRequest,support,watchlist, type DeletionStatus,type Snapshot,type SupportMessage,type WatchItem} from "./src/api";
 import {externalDeletionUrl,privacyPolicyUrl} from "./src/links";
 import {amount,dateLabel,orderCsv,shares} from "./src/format";
