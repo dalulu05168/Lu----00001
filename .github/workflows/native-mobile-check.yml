@@ -23,3 +23,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Static typecheck and API unit tests
         run: npm run check
+      - name: Bundle Android JavaScript and assets
+        run: npx expo export --platform android --output-dir dist-android
+      - name: Bundle iOS JavaScript and assets
+        run: npx expo export --platform ios --output-dir dist-ios
