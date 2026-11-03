@@ -42,3 +42,22 @@ export async function requestAccountDeletion(db,userId,{password,confirmation}={
  );
  return safeResponse(q.rows[0]);
 }
+
+/** Read-only administrator queue. Master sees all; subadmin only clients linked to that user. */
+export async function listAdminDeletionRequests(db,actor){
+ if(!actor||!["MASTER","SUBADMIN"].includes(actor.role)||!actor.userId){
+  throw Object.assign(new Error("Administrator permission required"),{statusCode:403});
+ }
+ const r=await db.query(`
+  SELECT d.id,d.status,d.requested_at,d.client_user_id,u.email
+  FROM customer_account_deletion_requests d
+  LEFT JOIN app_users u ON u.id=d.client_user_id
+  LEFT JOIN client_links l ON l.user_id=d.client_user_id
+  WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid)
+  ORDER BY d.requested_at DESC,d.id DESC LIMIT 200`,
+  [actor.role,actor.userId]);
+ return {items:r.rows.map(row=>({
+  id:row.id,clientId:row.client_user_id,email:row.email,
+  status:row.status,requestedAt:row.requested_at
+ }))};
+}
