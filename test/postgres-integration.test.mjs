@@ -295,6 +295,67 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     }});
     assert.equal(clientLogin.status,200);
 
+    // Persisted commodity catalog: publication changes visibility, not brokerage eligibility.
+    const commoditySku="GOLD-"+randomUUID().slice(0,8).toUpperCase();
+    const product=await req("/api/admin/commodities",{method:"POST",token:masterToken,body:{
+      sku:commoditySku,name:"Gold directory example",category:"PRECIOUS_METAL",unit:"ounce",
+      minimumQuantity:1,indicativePriceCents:125500,status:"DRAFT",
+      reason:"Create non-trading reference commodity catalog entry"
+    }});
+    assert.equal(product.status,201);
+    assert.equal(product.data.item.status,"DRAFT");
+    assert.equal(product.data.item.isDemo,true);
+    assert.equal((await req("/api/commodities",{token:clientLogin.data.token})).data.items.some(x=>x.sku===commoditySku),false);
+    assert.equal((await req("/api/admin/commodities",{method:"POST",token:subAdmin.data.token,body:{
+      sku:"UNAUTHORIZED",name:"Invalid",category:"ENERGY",unit:"barrel",
+      reason:"Unauthorized product publication attempt"
+    }})).status,403);
+    const publishCommodity=await req("/api/admin/commodities",{method:"PATCH",token:masterToken,body:{
+      id:product.data.item.id,status:"PUBLISHED",
+      reason:"Approve visible indicative-only commodity directory"
+    }});
+    assert.equal(publishCommodity.status,200);
+    assert.equal(publishCommodity.data.item.priceSource,"ADMIN_INDICATIVE");
+    const visibleProducts=await req("/api/commodities",{token:clientLogin.data.token});
+    assert.equal(visibleProducts.status,200);
+    assert.equal(visibleProducts.data.items.some(x=>x.sku===commoditySku),true);
+    assert.equal(visibleProducts.data.brokerConnected,false);
+    assert.equal((await req("/api/admin/commodity-audit?id="+product.data.item.id,{token:masterToken})).data.items.length,2);
+    assert.equal((await req("/api/admin/commodity-audit?id="+product.data.item.id,{token:subAdmin.data.token})).status,403);
+    assert.equal((await req("/api/commodities")).status,401);
+
+    // Customer <-> assigned support operator: server-side ownership and persistent messages.
+    const clientSupport=await req("/api/support",{method:"POST",token:clientLogin.data.token,
+      body:{message:"Please clarify the withdrawal application status."}});
+    assert.equal(clientSupport.status,201);
+    const threadId=clientSupport.data.thread.id;
+    assert.equal(clientSupport.data.thread.clientId,attached.data.userId);
+    assert.equal((await req("/api/support",{token:clientLogin.data.token})).data.messages.length,1);
+    const subInbox=await req("/api/admin/support",{token:subAdmin.data.token});
+    assert.equal(subInbox.status,200);
+    assert.ok(subInbox.data.items.some(x=>x.id===threadId));
+    const subReply=await req("/api/admin/support",{method:"POST",token:subAdmin.data.token,
+      body:{threadId,message:"Your request is under internal review; no payment has occurred."}});
+    assert.equal(subReply.status,201);
+    const clientThread=await req("/api/support",{token:clientLogin.data.token});
+    assert.equal(clientThread.status,200);
+    assert.equal(clientThread.data.messages.length,2);
+    assert.match(clientThread.data.messages[1].body,/no payment/);
+    assert.equal((await req("/api/admin/support",{method:"POST",token:clientLogin.data.token,
+      body:{threadId,message:"Illegal administrator impersonation"}})).status,403);
+    const closeSupport=await req("/api/admin/support",{method:"PATCH",token:masterToken,body:{
+      threadId,expectedStatus:"OPEN",status:"CLOSED",
+      reason:"Conversation reviewed and closed by a supervisor"
+    }});
+    assert.equal(closeSupport.status,200);
+    assert.equal(closeSupport.data.thread.status,"CLOSED");
+    assert.equal((await req("/api/support",{method:"POST",token:clientLogin.data.token,
+      body:{message:"Trying to message after thread closure"}})).status,409);
+    assert.equal((await req("/api/admin/support",{method:"PATCH",token:subAdmin.data.token,body:{
+      threadId,expectedStatus:"OPEN",status:"CLOSED",reason:"Outdated status transition should be rejected"
+    }})).status,409);
+
+
     // User-controlled requests are only pending administrative records; no money movement or KYC verification.
     const ownReq=(category,body)=>req("/api/requests?category="+category,{
       method:"POST",token:clientLogin.data.token,body
@@ -409,6 +470,11 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(otherSub.status,201);
     const otherLogin=await req("/api/admin/login",{method:"POST",body:{email:otherEmail,password:subPassword}});
     assert.equal(otherLogin.status,200);
+    assert.equal((await req("/api/admin/support-thread?threadId="+threadId,
+      {token:otherLogin.data.token})).status,404);
+    assert.equal((await req("/api/admin/support",{method:"POST",token:otherLogin.data.token,
+      body:{threadId,message:"Cross-account message must be rejected"}})).status,404);
+    assert.equal((await req("/api/admin/support",{token:otherLogin.data.token})).data.items.some(x=>x.id===threadId),false);
     assert.deepEqual((await req(adminWorkflow,{token:otherLogin.data.token})).data.items,[]);
     assert.equal((await req("/api/admin/client-history?clientId="+attached.data.userId,
       {token:otherLogin.data.token})).status,404);
