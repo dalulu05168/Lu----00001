@@ -49,16 +49,27 @@ function displayItems(id,rows,format){
   node.replaceChildren(container);
 }
 let subadminDirectory=[],selectedSubadminId=null,selectedClientDetailId=null;
+let currentClientPolicy=null,clientPolicySerial=0;
 const dateLabel=value=>value && !Number.isNaN(Date.parse(value))?new Date(value).toLocaleString("zh-CN"):"未提供";
 function detailRow(name,value){
   const row=document.createElement("div");row.className="record-field";
   row.append(plainNode("span",name),plainNode("strong",value??"未提供"));return row;
 }
-function closeClientDetail(){selectedClientDetailId=null;el("clientDetail").hidden=true;el("clientDetailFields").replaceChildren();}
+function closeClientDetail(){
+  selectedClientDetailId=null;currentClientPolicy=null;clientPolicySerial++;
+  el("clientDetail").hidden=true;el("clientDetailFields").replaceChildren();
+  el("clientPolicyArea").hidden=true;el("clientPolicyForm").hidden=true;el("clientPolicyReadout").replaceChildren();
+  el("clientPolicyAudit").replaceChildren();
+  el("clientPolicyReason").value="";el("clientPolicyPassword").value="";el("clientPolicyConfirm").checked=false;
+}
 function closeSubadminDetail(){selectedSubadminId=null;el("subadminDetail").hidden=true;el("subadminDetailFields").replaceChildren();}
 function openClientDetail(clientId){
   const c=mirrorClients.find(item=>item.id===clientId);
   if(!c){closeClientDetail();return;}
+  if(selectedClientDetailId!==c.id){
+    currentClientPolicy=null;el("clientPolicyReason").value="";
+    el("clientPolicyPassword").value="";el("clientPolicyConfirm").checked=false;
+  }
   selectedClientDetailId=c.id;
   const target=el("clientDetailFields");target.replaceChildren(
     detailRow("客户邮箱",c.email),detailRow("客户编号",c.id),
@@ -67,6 +78,7 @@ function openClientDetail(clientId){
     detailRow("VIP / KYC / 登录 / 提现 / 贷款 / 账户分类","尚无已接通管理数据")
   );
   el("clientDetail").hidden=false;
+  void refreshClientPolicy(clientId);
 }
 function openSubadminDetail(userId){
   const c=subadminDirectory.find(item=>item.user_id===userId);
@@ -115,6 +127,109 @@ function plainNode(tag,text,cls=""){
   const n=document.createElement(tag);n.textContent=String(text??"—");
   if(cls)n.className=cls;return n;
 }
+
+const POLICY_TEXT={
+  loginAllowed:"客户登录",
+  withdrawalRequestsAllowed:"提现申请",
+  vipTier:"VIP 等级",
+  loanRequestsAllowed:"贷款申请资格",
+  accountClass:"账户类别"
+};
+const POLICY_OPTIONS={
+  loginAllowed:[["true","允许登录"],["false","限制登录"]],
+  withdrawalRequestsAllowed:[["true","允许申请提现"],["false","暂停提现申请"]],
+  vipTier:[["STANDARD","普通"],["SILVER","白银"],["GOLD","黄金"],["PLATINUM","铂金"]],
+  loanRequestsAllowed:[["true","允许提交贷款申请"],["false","暂停贷款申请"]],
+  accountClass:[["SIMULATED","模拟账户（无实盘）"],["REAL_PENDING","真实账户（待接券商）"],["INTERNAL","内部记录账户"]]
+};
+function policyTextValue(field,value){
+  return POLICY_OPTIONS[field]?.find(([code])=>code===String(value))?.[1]??String(value??"—");
+}
+function refreshPolicyValues(){
+  const field=el("clientPolicyField").value;
+  const selector=el("clientPolicyValue");selector.replaceChildren();
+  for(const [code,label] of POLICY_OPTIONS[field]??[]){
+    const option=document.createElement("option");option.value=code;option.textContent=label;selector.append(option);
+  }
+  if(currentClientPolicy && Object.hasOwn(currentClientPolicy,field)){
+    selector.value=String(currentClientPolicy[field]);
+  }
+}
+function renderClientPolicy(policy){
+  currentClientPolicy=policy;
+  const target=el("clientPolicyReadout");target.replaceChildren();
+  for(const [field,label] of Object.entries(POLICY_TEXT)){
+    target.append(detailRow(label,policyTextValue(field,policy[field])));
+  }
+  target.append(detailRow("策略版本",String(policy.version??0)),detailRow("最近更新",dateLabel(policy.updatedAt)));
+  el("clientPolicyArea").hidden=false;
+  el("clientPolicyForm").hidden=role!=="MASTER";
+  el("clientPolicyStatus").textContent=role==="MASTER"?"修改需再次输入主账号密码、填写原因并留下审计":"此客户仅允许查看，策略修改限主账号";
+  refreshPolicyValues();
+}
+async function refreshClientPolicy(clientId){
+  if(!clientId || selectedClientDetailId!==clientId)return;
+  const serial=++clientPolicySerial,token=adminToken;
+  el("clientPolicyArea").hidden=false;el("clientPolicyForm").hidden=true;
+  el("clientPolicyStatus").textContent="正在读取客户策略";el("clientPolicyAudit").replaceChildren();
+  try{
+    const {policy}=await api("/admin/client-controls?clientId="+encodeURIComponent(clientId));
+    if(serial!==clientPolicySerial||selectedClientDetailId!==clientId||adminToken!==token)return;
+    renderClientPolicy(policy);
+    try{
+      const {items}=await api("/admin/client-control-audit?clientId="+encodeURIComponent(clientId));
+      if(serial!==clientPolicySerial||selectedClientDetailId!==clientId||adminToken!==token)return;
+      const target=el("clientPolicyAudit");target.replaceChildren();
+      if(!Array.isArray(items)||!items.length){target.append(plainNode("p","暂无权限调整记录","muted"));return;}
+      for(const item of items.slice(0,8)){
+        const row=document.createElement("div");row.className="admin-list-row";
+        const meta=plainNode("div",(POLICY_TEXT[item.field]??item.field)+" · "+policyTextValue(item.field,item.previousValue)+" → "+policyTextValue(item.field,item.nextValue));
+        meta.append(plainNode("small","原因："+item.reason+" · "+dateLabel(item.recordedAt)));
+        row.append(meta);target.append(row);
+      }
+    }catch(error){
+      if(serial===clientPolicySerial)el("clientPolicyAudit").append(plainNode("p","审计记录暂不可读："+error.message,"muted"));
+    }
+  }catch(error){
+    if(serial!==clientPolicySerial||selectedClientDetailId!==clientId||adminToken!==token)return;
+    currentClientPolicy=null;
+    el("clientPolicyForm").hidden=true;
+    el("clientPolicyStatus").textContent="客户策略读取失败："+error.message;
+  }
+}
+el("clientPolicyField").addEventListener("change",refreshPolicyValues);
+el("refreshClientPolicy").addEventListener("click",()=>{if(selectedClientDetailId)void refreshClientPolicy(selectedClientDetailId)});
+el("clientPolicyForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(role!=="MASTER"||!selectedClientDetailId||!currentClientPolicy){
+    el("clientPolicyStatus").textContent="没有修改权限或策略未加载";return;
+  }
+  if(!el("clientPolicyConfirm").checked){el("clientPolicyStatus").textContent="请先确认这次管理操作";return;}
+  const field=el("clientPolicyField").value;
+  const raw=el("clientPolicyValue").value;
+  const value=["loginAllowed","withdrawalRequestsAllowed","loanRequestsAllowed"].includes(field)?raw==="true":raw;
+  if(currentClientPolicy[field]===value){el("clientPolicyStatus").textContent="目标状态与当前设置一致";return;}
+  const clientId=selectedClientDetailId,token=adminToken;
+  const body={clientId,field,value,reason:el("clientPolicyReason").value.trim(),
+    confirmPassword:el("clientPolicyPassword").value,expectedVersion:currentClientPolicy.version};
+  const button=el("clientPolicySubmit");button.disabled=true;
+  try{
+    const result=await api("/admin/client-controls",{method:"PATCH",body});
+    if(selectedClientDetailId!==clientId||adminToken!==token)return;
+    currentClientPolicy=result.policy;
+    el("clientPolicyReason").value="";el("clientPolicyPassword").value="";el("clientPolicyConfirm").checked=false;
+    renderClientPolicy(result.policy);
+    el("clientPolicyStatus").textContent="修改已保存，并写入服务端审计";
+    void refreshClientPolicy(clientId);
+  }catch(error){
+    if(selectedClientDetailId===clientId)el("clientPolicyStatus").textContent="未保存："+error.message+"；可刷新后重试";
+  }finally{button.disabled=false;el("clientPolicyPassword").value="";}
+});
+el("mirrorManageClient").addEventListener("click",()=>{
+  if(!selectedMirrorClientId)return;
+  activateAdminPane("clients");openClientDetail(selectedMirrorClientId);
+});
+
 function renderClientDirectory(items){
   mirrorClients=Array.isArray(items)?items:[];
   const list=el("clients"),quick=el("mirrorClientList");
@@ -175,7 +290,7 @@ async function selectMirrorClient(clientId){
   el("mirrorEmail").textContent=match.email;el("mirrorCash").textContent="—";
   el("mirrorCurrency").textContent="—";el("mirrorUpdated").textContent="—";
   el("mirrorStatus").textContent="正在读取已授权的客户账户数据";
-  el("refreshMirror").disabled=true;setMirrorScreen();
+  el("refreshMirror").disabled=true;el("mirrorManageClient").disabled=true;setMirrorScreen();
   try{
     const data=await api("/admin/mirror?clientId="+encodeURIComponent(clientId));
     if(mySerial!==mirrorSerial||adminToken!==usedToken||selectedMirrorClientId!==clientId)return;
@@ -186,7 +301,7 @@ async function selectMirrorClient(clientId){
     el("mirrorCurrency").textContent=data.account.currency;
     el("mirrorUpdated").textContent="快照读取时间："+new Date(data.checkedAt).toLocaleString("zh-CN");
     el("mirrorStatus").textContent="只读 · 已记录访问审计";
-    el("refreshMirror").disabled=false;setMirrorScreen();
+    el("refreshMirror").disabled=false;el("mirrorManageClient").disabled=false;setMirrorScreen();
   }catch(error){
     if(mySerial!==mirrorSerial||adminToken!==usedToken)return;
     el("mirrorStatus").textContent=error.message;setMirrorScreen();
@@ -428,7 +543,7 @@ el("adminLogout").addEventListener("click",()=>{
   el("mirrorAvailability").textContent="未登录";
   el("mirrorClientSearch").value="";
   el("mirrorMatchCount").textContent="";
-  el("mirrorEmail").textContent="尚未选择";el("mirrorCash").textContent="—";setMirrorScreen();
+  el("mirrorEmail").textContent="尚未选择";el("mirrorCash").textContent="—";el("mirrorManageClient").disabled=true;setMirrorScreen();
   el("mirrorClientList").replaceChildren();
   el("adminWorkspace").hidden=true;el("adminTopbar").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=true;
   setText("loginFeedback","已退出管理后台。");
