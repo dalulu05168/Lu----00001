@@ -1,0 +1,55 @@
+name: Publish NuvexaPro App preview to GitHub Pages
+on:
+  push:
+    branches:
+      - deploy/mobile-web-preview-20261104
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: nuvexapro-mobile-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout existing App source
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install mobile dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify original App
+        run: npm run check
+      - name: Export browser App with Pages base path
+        run: npm run build:web
+      - name: Validate exported entry and assets
+        run: |
+          test -s dist-web/index.html
+          grep -q "global-stock-platform" dist-web/index.html
+          touch dist-web/.nojekyll
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload static App
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: mobile/dist-web
+      - name: Deploy browser preview
+        uses: actions/deploy-pages@v4
+        id: deployment
