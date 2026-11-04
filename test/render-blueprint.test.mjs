@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 test("QA Render deploy configuration is gated on passed CI",()=>{
- const yaml=readFileSync(new URL("../render.yaml",import.meta.url),"utf8");
+ const yaml=readFileSync(new URL("../render.yaml",import.meta.url),"utf8").replace(/\r\n/g,"\n");
  assert.match(yaml,/name: global-stock-qa-preview/);
  assert.match(yaml,/plan: free/);
  assert.match(yaml,/branch: dev\/restore-four-role-platform-20261103/);
