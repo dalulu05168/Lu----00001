@@ -6,6 +6,8 @@ export const TRADING_VIEW_WIDGET_SCRIPT =
 const LISTED = Object.freeze({
   "US:AAPL": "NASDAQ:AAPL",
   "US:MSFT": "NASDAQ:MSFT",
+  // Confirmed by Newmont investor stock information (NYSE listing).
+  "US:NEM": "NYSE:NEM",
   "HK:0700": "HKEX:700",
   "HK:9988": "HKEX:9988",
   "CN:600519": "SSE:600519",

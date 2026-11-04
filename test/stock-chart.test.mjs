@@ -9,6 +9,7 @@ import {
 test("stock symbols use explicit provider exchange codes across four markets", () => {
   const expected = [
     ["US","AAPL","NASDAQ:AAPL"], ["US","MSFT","NASDAQ:MSFT"],
+    ["US","NEM","NYSE:NEM"],
     ["HK","0700","HKEX:700"], ["HK","9988","HKEX:9988"],
     ["CN","600519","SSE:600519"], ["CN","000001","SZSE:000001"],
     ["MY","1155","MYX:1155"], ["MY","1023","MYX:1023"]
