@@ -10,6 +10,7 @@ import {submitClientRequest,listClientRequests} from "./operational-workflows.mj
 import {listCommodityProducts} from "./commodity-products.mjs";
 import {getCustomerSupport,sendCustomerSupportMessage} from "./support-messages.mjs";
 import {getAccountAnalytics} from "./account-analytics.mjs";
+import {createReferenceFx} from "./reference-fx.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
 async function readBody(req,maxBodyBytes){
@@ -26,7 +27,7 @@ async function readBody(req,maxBodyBytes){
  return payload;
 }
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
-export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192}){
+export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192,referenceFx=createReferenceFx()}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
@@ -46,6 +47,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    catch{return send(res,503,{status:"not_ready",database:"unavailable",brokerConnected:false});}
   }
   const route=url.pathname;
+  if(route==="/api/reference-fx"){
+   if(req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+   try{return send(res,200,await referenceFx());}
+   catch{return send(res,503,{error:"Reference FX unavailable"});}
+  }
   if(await handleAdminApi(req,res,route,db,resolveSession))return;
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";

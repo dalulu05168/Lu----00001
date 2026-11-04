@@ -1095,3 +1095,20 @@ render();
 updateClock();
 updateConnection();
 refreshAccount();
+async function refreshReferenceFx(){
+ const button=el('refreshReferenceFx');button.disabled=true;
+ el('referenceFxStatus').textContent='正在读取日参考汇率…';
+ el('referenceFxRates').textContent='';
+ try{
+  const response=await fetch('/api/reference-fx');
+  if(!response.ok)throw Error('unavailable');
+  const data=await response.json();
+  if(data.source!=='ECB'||data.base!=='USD'||!['available','stale'].includes(data.status)||
+   !/^\d{4}-\d{2}-\d{2}$/.test(data.date)||['USD','HKD','CNY','MYR'].some(c=>!Number.isFinite(data.rates?.[c])||data.rates[c]<=0))throw Error('invalid');
+  el('referenceFxStatus').textContent=`ECB 日参考汇率 · 数据日期 ${data.date}${data.status==='stale'?' · 旧数据／更新未确认，请谨慎参考':''}`;
+  el('referenceFxRates').textContent='1 USD = '+['HKD','CNY','MYR'].map(c=>data.rates[c].toFixed(4)+' '+c).join(' / ');
+ }catch{el('referenceFxStatus').textContent='日参考汇率暂不可用，请稍后刷新';}
+ finally{button.disabled=false;}
+}
+el('refreshReferenceFx').addEventListener('click',()=>void refreshReferenceFx());
+void refreshReferenceFx();
