@@ -8,6 +8,6 @@ test("QA Render deploy configuration is gated on passed CI",()=>{
  assert.match(yaml,/branch: dev\/restore-four-role-platform-20261103/);
  assert.match(yaml,/autoDeployTrigger: checksPass/);
  assert.doesNotMatch(yaml,/autoDeployTrigger:\s*['"]?off/);
- assert.match(yaml,/key: DATABASE_URL\n\s*sync: false/);
+ assert.match(yaml,/key: DATABASE_URL\r?\n\s*sync: false/);
  assert.match(yaml,/healthCheckPath: \/ready/);
 });

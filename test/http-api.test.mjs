@@ -66,8 +66,7 @@ test("rejects inaccessible static paths",async()=>withServer(async base=>{
 
 test("readiness endpoint checks database connection",async()=>{
  let healthy=true, schemaReady=true;
- const names=["app_users","accounts","positions","orders","cash_ledger","user_sessions"];
- const db={query:async()=>{if(!healthy)throw new Error("db offline");return {rows:[Object.fromEntries(names.map(name=>[name,schemaReady?name:null]))]};},connect:async()=>({query:async(sql)=>({rows:sql.startsWith("SELECT cash_cents")?[{cash_cents:100000}]:[]}),release(){}})};
+ const db={query:async sql=>{if(!healthy)throw new Error("db offline");const names=[...sql.matchAll(/AS ([a-z_]+)/g)].map(match=>match[1]);return {rows:[Object.fromEntries(names.map(name=>[name,schemaReady?name:null]))]};},connect:async()=>({query:async(sql)=>({rows:sql.startsWith("SELECT cash_cents")?[{cash_cents:100000}]:[]}),release(){}})};
  const api=createApi({db,resolveSession:async()=>null});
  await new Promise(resolve=>api.listen(0,"127.0.0.1",resolve));
  const base="http://127.0.0.1:"+api.address().port;

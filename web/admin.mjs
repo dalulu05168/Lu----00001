@@ -28,6 +28,12 @@ async function api(path,{method="GET",body,token=adminToken}={}){
     });
     answer=await res.json().catch(()=>({}));
   }catch{throw Error("后台接口连接失败");}
+  // A response belongs to the session that sent it, even after a new login.
+  if(token&&token!==adminToken&&path!=="/admin/logout")throw Error("管理会话已变更");
+  if(token===adminToken&&token&&(
+    (res.status===401&&answer.error==="Authentication required")||
+    (res.status===403&&answer.error==="Administrator session required")
+  ))resetAdminSession("登录已失效，请重新登录。");
   if(!res.ok)throw Error(answer.error||"请求失败（HTTP "+res.status+"）");
   return answer;
 }
@@ -157,6 +163,7 @@ async function refreshSubadminPolicy(userId){
  if(selectedSubadminId!==userId)return;
  const serial=++subadminPolicySerial,usedToken=adminToken;
  el("subadminPolicyArea").hidden=false;el("subadminPolicyForm").hidden=true;
+ currentSubadminPolicy=null;el("subadminPolicyFields").replaceChildren();
  el("subadminPolicyStatus").textContent="正在读取子账号管理策略";
  el("subadminPolicyAudit").replaceChildren();
  try{
@@ -226,18 +233,22 @@ function renderSubadminDirectory(items){
   if(selectedSubadminId)openSubadminDetail(selectedSubadminId);
 }
 async function refreshSubadmins(){
+  const token=adminToken;
   try{
     const data=await api("/admin/subaccounts");
+    if(token!==adminToken)return;
     el("adminSubadminCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
     renderSubadminDirectory(data.items);
-  }catch(e){setText("subadminFeedback",e.message)}
+  }catch(e){if(token===adminToken)setText("subadminFeedback",e.message)}
 }
 async function refreshClients(){
+  const token=adminToken;
   try{
     const data=await api("/admin/clients");
+    if(token!==adminToken)return;
     el("adminClientCount").textContent=Array.isArray(data.items)?String(data.items.length):"—";
     renderClientDirectory(data.items||[]);
-  }catch(e){setText("clients",e.message)}
+  }catch(e){if(token===adminToken)setText("clients",e.message)}
 }
 
 let mirrorClients=[],selectedMirrorClientId=null,mirrorSnapshot=null,mirrorActiveTab="assets",mirrorSerial=0;
@@ -292,6 +303,7 @@ async function refreshClientPolicy(clientId){
   if(!clientId || selectedClientDetailId!==clientId)return;
   const serial=++clientPolicySerial,token=adminToken;
   el("clientPolicyArea").hidden=false;el("clientPolicyForm").hidden=true;
+  currentClientPolicy=null;el("clientPolicyReadout").replaceChildren();
   el("clientPolicyStatus").textContent="正在读取客户策略";el("clientPolicyAudit").replaceChildren();
   try{
     const {policy}=await api("/admin/client-controls?clientId="+encodeURIComponent(clientId));
@@ -688,6 +700,7 @@ async function selectMirrorClient(clientId){
     const data=await api("/admin/mirror?clientId="+encodeURIComponent(clientId));
     if(mySerial!==mirrorSerial||adminToken!==usedToken||selectedMirrorClientId!==clientId)return;
     if(data.mode!=="READ_ONLY")throw Error("镜像模式不安全");
+    if(data.client?.id!==clientId)throw Error("客户快照身份不匹配");
     mirrorSnapshot=data;
     el("mirrorEmail").textContent=data.client.email;
     el("mirrorCash").textContent=cashFmt(data.account.cashCents);
@@ -713,11 +726,13 @@ el("refreshMirrorClients").addEventListener("click",refreshClients);
 
 // Read-only administrative mirror access history. Server handles actor-level isolation.
 async function refreshMirrorAudit(){
+  const token=adminToken;
   const feedback=el("mirrorAuditStatus"),target=el("mirrorAuditList");
   feedback.textContent="正在读取审计记录";
   target.replaceChildren();
   try{
     const {items}=await api("/admin/mirror-audit");
+    if(token!==adminToken)return;
     if(!Array.isArray(items))throw Error("无效的审计数据");
     if(!items.length){
       target.append(plainNode("p","暂无镜像访问记录","muted"));
@@ -733,18 +748,21 @@ async function refreshMirrorAudit(){
       }
     }
     feedback.textContent="已加载 "+items.length+" 条访问记录（最多 80 条）";
-  }catch(e){feedback.textContent=e.message;}
+  }catch(e){if(token===adminToken)feedback.textContent=e.message;}
 }
 el("refreshMirrorAudit").addEventListener("click",refreshMirrorAudit);
 
 async function refreshMirrorStatus(){
+  const token=adminToken;
   try{
     const response=await api("/admin/mirror-status");
+    if(token!==adminToken)return;
     mirrorBackendReady=response.mode==="READ_ONLY"&&response.ready===true;
     el("mirrorAvailability").textContent=mirrorBackendReady
       ?"账户快照与访问审计已就绪；权限管理操作独立授权"
       :"账户快照暂不可用；仍可尝试通过受控后台管理接口操作";
   }catch(error){
+    if(token!==adminToken)return;
     mirrorBackendReady=false;
     el("mirrorAvailability").textContent="镜像状态检查失败：" + error.message;
   }
@@ -1088,17 +1106,21 @@ el("supportStatusForm").addEventListener("submit",async e=>{
 });
 
 async function refreshListings(){
+  const token=adminToken;
   try{
     const data=await api("/admin/listings");
+    if(token!==adminToken)return;
     const items=Array.isArray(data.items)?data.items:[];
     el("adminListingCount").textContent=String(items.length);
     renderListingDirectory(items);
-  }catch(error){setText("listingFeedback",error.message)}
+  }catch(error){if(token===adminToken)setText("listingFeedback",error.message)}
 }
 async function showDashboard(){
   if(!adminToken){el("adminWorkspace").hidden=true;return;}
+  const token=adminToken;
   try{
     const me=await api("/admin/me");
+    if(token!==adminToken)return;
     role=me.role;
     setText("adminRole",role==="MASTER"?"主账户":"子账户");
     document.querySelectorAll("[data-required-role]").forEach(node=>node.hidden=node.dataset.requiredRole!==role);
@@ -1112,11 +1134,7 @@ async function showDashboard(){
     el("commodityForm").hidden=role!=="MASTER";
     await Promise.all([refreshSubadmins(),refreshClients(),refreshListings(),refreshMirrorStatus()]);
   }catch{
-    sessionStorage.removeItem("gsp_admin_token");
-    adminToken=null;
-    el("adminWorkspace").hidden=true;
-    el("adminTopbar").hidden=true;
-    el("admin-login").hidden=false;
+    if(token===adminToken)resetAdminSession("登录已失效，请重新登录。");
   }
 }
 el("adminLoginForm").addEventListener("submit",async event=>{
@@ -1207,9 +1225,7 @@ el("clientDetailMirror").addEventListener("click",()=>{
 el("refreshSubadmins").addEventListener("click",refreshSubadmins);
 el("refreshClients").addEventListener("click",refreshClients);
 el("refreshListings").addEventListener("click",refreshListings);
-el("adminLogout").addEventListener("click",()=>{
-  const expiredToken=adminToken;
-  if(expiredToken)void api("/admin/logout",{method:"POST",token:expiredToken}).catch(()=>{});
+function resetAdminSession(message){
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
   clearMirrorOperations();closeMirrorDialog();
@@ -1218,6 +1234,16 @@ el("adminLogout").addEventListener("click",()=>{
   el("workflowItems").replaceChildren();el("fundingRequestRows").replaceChildren();
   commoditySerial++;commodityRows=[];resetCommodityEditor();el("commodityItems").replaceChildren();
   resetSupportWorkspace();
+  unifiedAuditSerial++;
+  for(const id of ["clients","subadmins","listings","mirrorAuditList","unifiedAuditList","subadminProvisioning"])
+    el(id).replaceChildren();
+  for(const id of ["adminClientCount","adminSubadminCount","adminListingCount","depositRequestTotal",
+    "withdrawRequestTotal","pendingRequestTotal","approvedRequestTotal"])el(id).textContent="—";
+  for(const id of ["mirrorAuditStatus","unifiedAuditStatus","adminRole","clientDetailHeadline","clientDetailSubhead",
+    "workflowSelection","workflowStatus","fundingSummaryStatus","listingFeedback","subadminFeedback"])
+    el(id).textContent="";
+  el("adminWorkspace").querySelectorAll("form").forEach(form=>form.reset());
+  clearListingEditor();
   el("mirrorAvailability").textContent="未登录";
   el("mirrorClientSearch").value="";
   el("mirrorMatchCount").textContent="";
@@ -1225,7 +1251,12 @@ el("adminLogout").addEventListener("click",()=>{
   el("mirrorClientList").replaceChildren();
   setMobileNavExpanded(false);
   el("adminWorkspace").hidden=true;el("adminTopbar").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=true;
-  setText("loginFeedback","已退出管理后台。");
+  setText("loginFeedback",message);
+}
+el("adminLogout").addEventListener("click",()=>{
+  const expiredToken=adminToken;
+  resetAdminSession("已退出管理后台。");
+  if(expiredToken)void api("/admin/logout",{method:"POST",token:expiredToken}).catch(()=>{});
 });
 /** Independent client-side navigation: authorization is always enforced by /api/admin/*. */
 function setMobileNavExpanded(expanded){

@@ -463,8 +463,18 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.deepEqual(mirrorFromMaster.data.watchlist,[]);
     assert.equal("password" in mirrorFromMaster.data,false);
     assert.equal("token" in mirrorFromMaster.data,false);
+    // Client writes and administrator reads use the same persisted account.
+    assert.equal((await req("/api/watchlist",{method:"POST",token:customerAppToken,
+      body:{market:"HK",symbol:"9988"}})).status,200);
+    const accountView=await req("/api/account",{token:customerAppToken});
+    const watchlistView=await req("/api/watchlist",{token:customerAppToken});
     const mirrorFromOwnSub=await req("/api/admin/mirror?clientId="+attached.data.userId,{token:subAdmin.data.token});
     assert.equal(mirrorFromOwnSub.status,200);
+    assert.deepEqual(mirrorFromOwnSub.data.account,accountView.data.account);
+    assert.deepEqual(mirrorFromOwnSub.data.positions,accountView.data.positions);
+    assert.deepEqual(mirrorFromOwnSub.data.orders,accountView.data.orders);
+    assert.deepEqual(mirrorFromOwnSub.data.watchlist,watchlistView.data.items);
+    assert.equal(mirrorFromOwnSub.data.watchlist[0].symbol,"9988");
     const otherEmail="other-sub-"+randomUUID().slice(0,8)+"@example.test";
     const otherSub=await req("/api/admin/subaccounts",{method:"POST",token:masterToken,body:{email:otherEmail,password:subPassword}});
     assert.equal(otherSub.status,201);
@@ -601,6 +611,33 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(subHistory.data.items[0].newLoginAllowed,true);
     assert.equal(subHistory.data.items[1].newLoginAllowed,false);
     assert.equal((await req(subAuditPath,{token:otherLogin.data.token})).status,404);
+
+    // The unified feed executes real UNION SQL and preserves each role's scope.
+    const unifiedMaster=await req("/api/admin/audit-events?limit=200",{token:masterToken});
+    assert.equal(unifiedMaster.status,200);
+    assert.ok(unifiedMaster.data.items.some(x=>x.eventType==="SUBADMIN"));
+    assert.ok(unifiedMaster.data.items.some(x=>x.eventType==="CLIENT_POLICY"&&x.clientId===attached.data.userId));
+    const activeSub=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}});
+    const unifiedSub=await req("/api/admin/audit-events",{token:activeSub.data.token});
+    assert.equal(unifiedSub.status,200);
+    assert.ok(unifiedSub.data.items.length>0);
+    assert.ok(unifiedSub.data.items.every(x=>x.clientId===attached.data.userId));
+    assert.ok(unifiedSub.data.items.every(x=>!["SUBADMIN","COMMODITY"].includes(x.eventType)));
+    assert.deepEqual((await req("/api/admin/audit-events",{token:otherLogin.data.token})).data.items,[]);
+
+    // A failed access-audit INSERT must never release the snapshot in the HTTP response.
+    await db.query(`CREATE FUNCTION reject_test_mirror_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'synthetic audit failure'; END $$`);
+    await db.query(`CREATE TRIGGER reject_test_mirror_audit BEFORE INSERT ON admin_mirror_access_log
+      FOR EACH ROW EXECUTE FUNCTION reject_test_mirror_audit()`);
+    try{
+      const blockedMirror=await req("/api/admin/mirror?clientId="+attached.data.userId,{token:masterToken});
+      assert.equal(blockedMirror.status,500);
+      assert.deepEqual(blockedMirror.data,{error:"Internal server error"});
+    }finally{
+      await db.query("DROP TRIGGER reject_test_mirror_audit ON admin_mirror_access_log");
+      await db.query("DROP FUNCTION reject_test_mirror_audit()");
+    }
 
 
   }finally{

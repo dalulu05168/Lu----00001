@@ -1,8 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const ORIGIN = "https://trade.maacropierce.com";
-const isGitHubCI = process.env.GITHUB_ACTIONS === "true";
+// Local tests and ordinary CI must never probe a different website by default.
+const enabled = process.env.RUN_LIVE_SITE_CHECKS === "true";
+let origin;
+if(enabled){
+  const target=new URL(process.env.LIVE_SITE_ORIGIN??"");
+  if(!["https:","http:"].includes(target.protocol)||target.username||target.password||
+    target.pathname!=="/"||target.search||target.hash)throw Error("LIVE_SITE_ORIGIN must be an explicit HTTP(S) origin");
+  origin=target.origin;
+}
 const targets = [
   ["/", 200, "GET"],
   ["/admin.html", 200, "GET"],
@@ -24,14 +31,15 @@ const targets = [
 ];
 
 for (const [path, expected, method] of targets) {
-  test("public route " + method + " " + path, { skip: !isGitHubCI, timeout: 25000 }, async () => {
+  const permitted=enabled&&(method==="GET"||process.env.LIVE_SITE_ALLOW_INVALID_POST==="true");
+  test("public route " + method + " " + path, { skip: !permitted, timeout: 25000 }, async () => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 19000);
     try {
-      const response = await fetch(ORIGIN + path, {
+      const response = await fetch(origin + path, {
         method,
         signal: controller.signal,
-        redirect: "follow",
+        redirect: "error",
         headers: method === "POST" ? { "content-type": "application/json" } : {},
         ...(method === "POST" ? { body: "{invalid-json" } : {})
       });

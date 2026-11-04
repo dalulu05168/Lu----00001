@@ -36,8 +36,8 @@ function safeError(error){
   if(error?.statusCode===404)return {status:404,error:"Client not found"};
   if(error?.statusCode===403)return {status:403,error:"Master permission required"};
   if(error?.statusCode===409)return {status:409,error:error.message};
-  if(error?.statusCode===503)return {status:503,error:"Account policies unavailable"};
-  if(error?.statusCode===503)return {status:503,error:"Mirror audit schema not installed"};
+  if(error?.statusCode===503)return {status:503,error:error.message==="Mirror audit schema not installed"
+    ?"Mirror audit schema not installed":"Account policies unavailable"};
   if(error?.code==="23505")return {status:409,error:"Record already exists"};
   return {status:500,error:"Internal server error"};
 }
