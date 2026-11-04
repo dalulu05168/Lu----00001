@@ -254,6 +254,7 @@
                 <button type="button" role="tab" data-mirror-tab="positions" aria-selected="false">持仓</button>
                 <button type="button" role="tab" data-mirror-tab="orders" aria-selected="false">订单</button>
                 <button type="button" role="tab" data-mirror-tab="watchlist" aria-selected="false">自选</button>
+                <button type="button" role="tab" data-mirror-tab="internalProducts" aria-selected="false">内部产品</button>
               </div>
               <div class="mirror-screen" id="mirrorAppScreen" role="tabpanel"><p class="muted">从左侧客户名单点击“查看 App 镜像”后，读取该客户实际账户数据。</p></div>
               <div class="mirror-bottom">
@@ -436,5 +437,18 @@
     </div>
   </div>
 </section>
-</main><script type="module" src="/portal.mjs"></script><script type="module" src="/admin.mjs"></script>
+</main>
+<dialog id="productTermsDialog" class="product-terms-dialog" aria-labelledby="productTermsTitle">
+ <h2 id="productTermsTitle">折扣与参与交易设置</h2><p id="productTermsName"></p>
+ <form id="productTermsForm" class="field-grid" autocomplete="off">
+  <label>内部原价（USD）<input id="productTermsPrice" inputmode="decimal" required placeholder="每份原价，例如100.00"></label>
+  <label>优惠比例（%）<input id="productTermsDiscount" type="number" min="0" max="99.99" step="0.01" value="0" required></label>
+  <label>六位参与密码<input id="productTermsPassword" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" placeholder="每个产品单独设置；留空保留原密码"></label>
+  <label>允许内部购买<select id="productTermsEnabled"><option value="false">关闭</option><option value="true">开启</option></select></label>
+  <label>变更原因（至少12字）<input id="productTermsReason" minlength="12" maxlength="400" required></label>
+  <div><button type="submit" id="productTermsSave">保存交易设置</button><button type="button" id="productTermsCancel" class="outline">取消</button></div>
+ </form><p class="muted">优惠10%代表按原价90%购买。密码不回显；变更价格后客户需重新确认。仅生成平台内部记录。</p>
+ <p id="productTermsFeedback" class="feedback" role="status"></p>
+</dialog>
+<script type="module" src="/portal.mjs"></script><script type="module" src="/admin.mjs"></script>
 </body></html>

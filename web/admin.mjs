@@ -480,7 +480,11 @@ function setMirrorScreen(){
     positions:()=>snap.positions?.map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")+" 股（内部记录）"])??[],
     orders:()=>snap.orders?.map(o=>[(o.side==="BUY"?"买入":"卖出")+" · "+o.market+":"+o.symbol,
       "数量 "+o.quantity+" · 内部金额 "+cashFmt(o.amount_usd_cents)+" USD"+(o.created_at?" · "+new Date(o.created_at).toLocaleDateString("zh-CN"):"")])??[],
-    watchlist:()=>snap.watchlist?.map(w=>[w.market+" · "+w.symbol,"已保存（无实时价格）"])??[]
+    watchlist:()=>snap.watchlist?.map(w=>[w.market+" · "+w.symbol,"已保存（无实时价格）"])??[],
+    internalProducts:()=>[
+     ...(snap.internalProducts?.positions??[]).map(p=>['持仓 · '+p.name+' · '+p.code,'数量 '+p.quantity+' · 成本 '+cashFmt(p.cost_cents)+' USD']),
+     ...(snap.internalProducts?.purchases??[]).map(p=>['购买 · '+p.product_name+' · '+p.product_code,'数量 '+p.quantity+' · 优惠 '+(p.discount_bps/100)+'% · 实付 '+cashFmt(p.total_cents)+' USD · '+dateLabel(p.created_at)])
+    ]
   };
   const rows=formats[mirrorActiveTab]?.()??[];
   if(!rows.length){view.append(plainNode("p","该客户暂无对应记录","muted"));return;}
@@ -825,7 +829,8 @@ function renderListingDirectory(items){
           toggle.disabled=false;edit.disabled=published;
         }
       });
-      actions.append(edit,toggle);row.append(actions);
+      const termsButton=document.createElement('button');termsButton.type='button';termsButton.className='outline';termsButton.textContent='折扣与交易设置';termsButton.addEventListener('click',()=>openProductTerms('LISTING',item));
+      actions.append(edit,toggle,termsButton);row.append(actions);
     }
     container.append(row);
   }
@@ -1032,6 +1037,7 @@ function renderCommodityItems(items){
   if(role==="MASTER"){
    const btn=document.createElement("button");btn.type="button";btn.className="outline";
    btn.textContent="编辑";btn.addEventListener("click",()=>openCommodityEditor(item));row.append(btn);
+   const termsButton=document.createElement('button');termsButton.type='button';termsButton.className='outline';termsButton.textContent='折扣与交易设置';termsButton.addEventListener('click',()=>openProductTerms('COMMODITY',item));row.append(termsButton);
   }
   target.append(row);
  }
@@ -1277,6 +1283,7 @@ el("refreshSubadmins").addEventListener("click",refreshSubadmins);
 el("refreshClients").addEventListener("click",refreshClients);
 el("refreshListings").addEventListener("click",refreshListings);
 function resetAdminSession(message){
+  closeProductTerms();
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
   clearMirrorOperations();closeMirrorDialog();
@@ -1372,4 +1379,50 @@ document.querySelectorAll("[data-dashboard-open]").forEach(button=>{
   button.addEventListener("click",()=>activateAdminPane(button.dataset.dashboardOpen));
 });
 
+let productTermsState=null,productTermsSerial=0;
+function closeProductTerms(){
+ productTermsSerial++;productTermsState=null;el('productTermsPassword').value='';el('productTermsForm').reset();
+ const dialog=el('productTermsDialog');if(dialog.open&&typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');
+}
+async function openProductTerms(kind,item){
+ if(role!=='MASTER')return;
+ closeProductTerms();const serial=++productTermsSerial,usedToken=adminToken;
+ el('productTermsName').textContent=item.name+' · '+(item.sku??item.symbol);
+ el('productTermsFeedback').textContent='正在读取交易设置';el('productTermsSave').disabled=true;
+ const dialog=el('productTermsDialog');if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+ try{
+  const {item:terms}=await api('/admin/product-terms?kind='+kind+'&id='+encodeURIComponent(item.id));
+  if(serial!==productTermsSerial||adminToken!==usedToken)return;
+  productTermsState={kind,id:item.id,...terms};
+  el('productTermsPrice').value=terms.internalPriceCents==null?'':String(terms.internalPriceCents/100);
+  el('productTermsDiscount').value=String(terms.discountBps/100);
+  el('productTermsEnabled').value=String(terms.tradingEnabled);
+  updateProductPasswordRequirement();
+  el('productTermsFeedback').textContent=terms.passwordConfigured?'已设置密码，留空保留原密码':'尚未设置参与密码';
+ }catch(error){if(serial===productTermsSerial)el('productTermsFeedback').textContent='读取失败：'+error.message;}
+ finally{if(serial===productTermsSerial)el('productTermsSave').disabled=!productTermsState;}
+}
+function updateProductPasswordRequirement(){el('productTermsPassword').required=el('productTermsEnabled').value==='true'&&!productTermsState?.passwordConfigured;}
+function discountInputBps(value){
+ if(!/^\d{1,2}(?:\.\d{1,2})?$/.test(value))throw Error('优惠比例应在0至99.99%之间');
+ const [whole,part='']=value.split('.');return Number(whole)*100+Number(part.padEnd(2,'0'));
+}
+el('productTermsEnabled').addEventListener('change',updateProductPasswordRequirement);
+el('productTermsCancel').addEventListener('click',closeProductTerms);
+el('productTermsDialog').addEventListener('cancel',()=>{productTermsSerial++;productTermsState=null;el('productTermsPassword').value='';});
+el('productTermsForm').addEventListener('submit',async event=>{
+ event.preventDefault();if(!productTermsState||role!=='MASTER')return;
+ const usedToken=adminToken,serial=productTermsSerial,state=productTermsState,button=el('productTermsSave');button.disabled=true;
+ try{
+  const body={kind:state.kind,id:state.id,expectedVersion:state.termsVersion??0,
+   internalPriceCents:commodityCents(el('productTermsPrice').value),discountBps:discountInputBps(el('productTermsDiscount').value),
+   tradingEnabled:el('productTermsEnabled').value==='true',reason:el('productTermsReason').value.trim()};
+  if(el('productTermsPassword').value)body.participationPassword=el('productTermsPassword').value;
+  const {item}=await api('/admin/product-terms',{method:'PATCH',body});
+  if(usedToken!==adminToken||serial!==productTermsSerial)return;
+  productTermsState={...state,...item};el('productTermsPassword').value='';updateProductPasswordRequirement();
+  el('productTermsFeedback').textContent='交易设置已保存 · 优惠 '+(item.discountBps/100)+'% · '+(item.tradingEnabled?'内部购买已开启':'内部购买已关闭');
+ }catch(error){if(usedToken===adminToken&&serial===productTermsSerial)el('productTermsFeedback').textContent='未保存：'+error.message;}
+ finally{el('productTermsPassword').value='';if(serial===productTermsSerial)button.disabled=false;}
+});
 showDashboard();

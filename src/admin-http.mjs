@@ -5,6 +5,7 @@ import {getSubadminPolicy,changeSubadminLogin,listSubadminControlAudit} from "./
 import {listCommodityProducts,createCommodityProduct,updateCommodityProduct,commodityProductAudit} from "./commodity-products.mjs";
 import {listAdminSupportThreads,getAdminSupportThread,sendAdminSupportMessage,changeAdminSupportStatus} from "./support-messages.mjs";
 import {listUnifiedAudit} from "./operation-audit.mjs";
+import {readAdminProductTerms,updateAdminProductTerms} from './internal-products.mjs';
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -56,6 +57,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/commodities":["GET","POST","PATCH"],"/api/admin/commodity-audit":["GET"],
     "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"],
     "/api/admin/audit-events":["GET"]
+    ,"/api/admin/product-terms":["GET","PATCH"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
@@ -91,6 +93,10 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator session required"});return true;}
+    if(route==='/api/admin/product-terms'){
+      const url=new URL(req.url??'/','http://localhost');
+      response(res,200,{item:req.method==='GET'?await readAdminProductTerms(db,actor,url.searchParams.get('kind'),url.searchParams.get('id')):await updateAdminProductTerms(db,actor,await input(req))});return true;
+    }
     if(route==="/api/admin/me"){response(res,200,{role:actor.role,userId:actor.userId});return true;}
     if(route==="/api/admin/subaccounts"){
       if(req.method==="POST"){

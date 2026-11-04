@@ -10,7 +10,8 @@ test("unified audit scopes all client events and hides commodity/subadmin audits
  assert.deepEqual(params,["MASTER",master,50]);
  assert.match(query,/commodity_product_audit a WHERE \$1::text='MASTER'/);
  assert.match(query,/admin_subaccount_control_audit a WHERE \$1::text='MASTER'/);
- assert.equal((query.match(/l\.subadmin_user_id=\$2::uuid/g)||[]).length,4);
+ assert.equal((query.match(/l\.subadmin_user_id=\$2::uuid/g)||[]).length,5);
+ assert.match(query,/internal_product_terms_audit a WHERE \$1::text='MASTER'/);
  await listUnifiedAudit(db,{role:"SUBADMIN",userId:sub});
  assert.deepEqual(params,["SUBADMIN",sub,100]);
  await assert.rejects(listUnifiedAudit(db,{role:"CLIENT",userId:sub}),/Administrator required/);

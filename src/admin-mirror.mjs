@@ -1,5 +1,6 @@
 import {getAccountSnapshot} from "./account-service.mjs";
 import {listWatchlist} from "./watchlist-service.mjs";
+import {readInternalPurchaseRows} from './internal-purchases.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function invalid(message,statusCode){const e=new Error(message);e.statusCode=statusCode;throw e;}
@@ -37,6 +38,7 @@ export async function getClientAppMirror(db,actor,clientId){
   await ensureMirrorAuditAvailable(db,actor);
   const account=await getAccountSnapshot(db,row.account_id);
   const watchlist=await listWatchlist(db,row.account_id);
+  const internalProducts=await readInternalPurchaseRows(db,row.account_id);
   // Viewing financial records is privileged: refuse to return data if audit fails.
   await db.query("INSERT INTO admin_mirror_access_log(actor_user_id,client_user_id) VALUES($1,$2)",[actor.userId,row.user_id]);
   return {
@@ -45,6 +47,7 @@ export async function getClientAppMirror(db,actor,clientId){
     positions:account.positions,
     orders:account.orders,
     watchlist,
+    internalProducts,
     mode:"READ_ONLY",
     checkedAt:new Date().toISOString(),
     disclosure:"Database snapshot of internal account records only; not a live device screen, licensed market feed, or brokerage position."

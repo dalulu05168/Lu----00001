@@ -187,12 +187,12 @@ test("master console renders edit, publish and withdraw controls",async()=>{
     await new Promise(done=>setTimeout(done,50));
     assert.equal(listings[0].name,"Apple New");
     row=el("listings").querySelector(".admin-list-row");
-    row.querySelector(".listing-actions button:last-child").click();
+    [...row.querySelectorAll('.listing-actions button')].find(b=>b.textContent==='发布').click();
     await new Promise(done=>setTimeout(done,45));
     assert.equal(listings[0].status,"PUBLISHED");
     row=el("listings").querySelector(".admin-list-row");
     assert.equal(row.querySelector(".listing-actions button").disabled,true);
-    row.querySelector(".listing-actions button:last-child").click();
+    [...row.querySelectorAll('.listing-actions button')].find(b=>b.textContent==='撤回').click();
     await new Promise(done=>setTimeout(done,45));
     assert.equal(listings[0].status,"DRAFT");
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.name==="Apple New"));

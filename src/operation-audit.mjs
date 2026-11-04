@@ -35,6 +35,16 @@ export async function listUnifiedAudit(db,actor,{limit=100}={}){
    CASE WHEN a.new_login_allowed THEN 'ALLOW_LOGIN' ELSE 'BLOCK_LOGIN' END,
    a.reason,a.recorded_at
   FROM admin_subaccount_control_audit a WHERE $1::text='MASTER'
+  UNION ALL
+  SELECT 'PRODUCT_TERMS',a.id::text,NULL::uuid,a.actor_user_id,
+   'CONFIGURE:v'||a.version::text,a.reason,a.created_at
+  FROM internal_product_terms_audit a WHERE $1::text='MASTER'
+  UNION ALL
+  SELECT 'INTERNAL_PURCHASE',p.id::text,a.user_id,a.user_id,
+   'BUY:'||p.product_code,'Quantity '||p.quantity::text||', USD cents '||p.total_cents::text,p.created_at
+  FROM internal_purchases p JOIN accounts a ON a.id=p.account_id
+   LEFT JOIN client_links l ON l.user_id=a.user_id
+  WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid)
  ) events ORDER BY event_at DESC,event_type,event_id DESC LIMIT $3`;
  const result=await db.query(query,[actor.role,actor.userId,limit]);
  return {items:result.rows.map(x=>({eventType:x.event_type,eventId:x.event_id,clientId:x.client_id,

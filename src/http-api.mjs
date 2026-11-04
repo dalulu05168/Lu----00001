@@ -10,6 +10,8 @@ import {submitClientRequest,listClientRequests} from "./operational-workflows.mj
 import {listCommodityProducts} from "./commodity-products.mjs";
 import {getCustomerSupport,sendCustomerSupportMessage} from "./support-messages.mjs";
 import {getAccountAnalytics} from "./account-analytics.mjs";
+import {listPublishedInternalProducts} from './internal-products.mjs';
+import {buyInternalProduct,internalPurchaseAccount} from './internal-purchases.mjs';
 import {createReferenceFx} from "./reference-fx.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
@@ -56,7 +58,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/account/analytics","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/account/analytics","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support","/api/internal-products","/api/internal-purchases"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
@@ -92,6 +94,19 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   try{session=await resolveSession(auth.slice(7));}catch{return send(res,401,{error:"Authentication failed"});}
   if(!session?.accountId)return send(res,401,{error:"Authentication required"});
   if(session.adminVerified===true)return send(res,403,{error:"Use the administrator console"});
+  if(route==='/api/internal-products'||route==='/api/internal-purchases'){
+   if((route==='/api/internal-products'&&req.method!=='GET')||(route==='/api/internal-purchases'&&!['GET','POST'].includes(req.method)))return send(res,405,{error:'Method not allowed'});
+   try{
+    if(route==='/api/internal-products')return send(res,200,{items:await listPublishedInternalProducts(db)});
+    if(req.method==='GET')return send(res,200,await internalPurchaseAccount(db,session.accountId));
+    const result=await buyInternalProduct(db,session.accountId,req.headers['idempotency-key'],JSON.parse(await readBody(req,maxBodyBytes)));
+    return send(res,result.replayed?200:201,result);
+   }catch(error){
+    if(error instanceof SyntaxError)return send(res,400,{error:'Invalid JSON'});
+    const status=[400,403,404,409,413,429].includes(error.statusCode)?error.statusCode:500;
+    return send(res,status,{error:status===500?'Internal purchase service unavailable':error.message});
+   }
+  }
   if(route==="/api/commodities"){
    try{return send(res,200,await listCommodityProducts(db,null,{publishedOnly:true}));}
    catch{return send(res,500,{error:"Internal server error"});}

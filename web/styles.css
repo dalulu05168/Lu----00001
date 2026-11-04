@@ -632,3 +632,9 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
  .sidebar-section>summary{padding:7px 5px;min-height:30px;margin:0}
  .sidebar-section .sidebar-nav{flex-wrap:wrap}
  .sidebar-section .sidebar-link{white-space:normal;min-width:0}}
+.internal-products-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px;margin:14px 0 24px}
+.internal-product-card{padding:18px;border:1px solid #363a3f;border-radius:10px;min-width:0;background:#202327}
+.internal-product-card h3{font-size:15px;margin-bottom:8px}.internal-product-card p{font-size:12px;color:#abb3bd;line-height:1.6}
+.internal-product-card form{display:grid;gap:9px}.internal-product-card label{display:grid;gap:5px;font-size:12px}
+.internal-product-card input{min-width:0;width:100%;padding:9px;border-radius:6px;border:1px solid #454b53;background:#171a1e;color:#edf0f4}
+.internal-product-card output{font-size:14px}.internal-product-card small{font-size:11px;color:#a2aab5}

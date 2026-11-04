@@ -877,3 +877,7 @@ html,body{background:var(--ui-canvas);color:var(--ui-text);font-weight:400}
 #adminMobileNavToggle{display:none!important}
 @media(max-width:1100px){.dashboard-detail-grid{grid-template-columns:1fr}.funding-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.admin-nav #adminPages{display:block!important;max-height:none;overflow:visible}.dashboard-section-heading{align-items:flex-start;flex-wrap:wrap}.funding-metric-grid{gap:10px}.funding-metric{padding:14px}.funding-metric output{font-size:23px}#adminTopbar h1{font-size:20px}}
+/* Product participation settings share the existing dark management surfaces. */
+.product-terms-dialog{width:min(760px,calc(100vw - 32px));max-height:90vh;overflow:auto;background:#1e2024;color:#e5e7eb;border:1px solid #383d43;border-radius:12px;padding:24px}
+.product-terms-dialog::backdrop{background:#000a}
+.product-terms-dialog h2{font-size:20px;margin-top:0}
