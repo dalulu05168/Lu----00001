@@ -26,6 +26,9 @@
     "extra": {
       "serviceDescription": "Internal account records only; not a broker or live trading app"
     },
-    "icon": "./assets/icon.png"
+    "icon": "./assets/icon.png",
+    "experiments": {
+      "baseUrl": "/global-stock-platform"
+    }
   }
 }
