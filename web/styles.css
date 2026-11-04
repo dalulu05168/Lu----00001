@@ -623,7 +623,12 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
 #refreshReferenceFx{font-size:10px;padding:5px 9px;min-height:28px}
 .market-card-empty{position:absolute;inset:0;display:grid;place-items:center;color:#89929c;font-size:10px;font-weight:400}
 *{scrollbar-width:none}*::-webkit-scrollbar{display:none}
-.sidebar-section>summary{cursor:pointer;list-style:none;user-select:none}
+.sidebar-section>summary{display:block;cursor:pointer;list-style:none;user-select:none}
 .sidebar-section>summary::after{content:'＋';float:right;margin-left:8px}
 .sidebar-section[open]>summary::after{content:'－'}
-@media(max-width:760px){#stockChart{height:350px}}
+@media(max-width:760px){#stockChart{height:350px}
+ .sidebar{flex-wrap:wrap;align-items:flex-start;overflow-x:visible}
+ .sidebar-section{flex:1 1 140px;min-width:0}
+ .sidebar-section>summary{padding:7px 5px;min-height:30px;margin:0}
+ .sidebar-section .sidebar-nav{flex-wrap:wrap}
+ .sidebar-section .sidebar-link{white-space:normal;min-width:0}}
