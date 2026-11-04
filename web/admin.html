@@ -110,7 +110,7 @@
           <div class="info-line"><span>登录保护</span><span>管理员账号密码登录</span></div>
           <div class="info-line"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
           <div class="info-line"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
-          <div class="info-line"><span>资金申请审核</span><span>已接入申请状态管理；实际收付款未接通</span></div>
+          <div class="info-line"><span>资金申请审核</span><span>同意后完成平台内部记账；银行收付款未接通</span></div>
         </details>
       </section>
       <section class="admin-pane" data-pane="accounts" hidden>
@@ -298,7 +298,7 @@
                 <h4 id="mirrorReviewHeading">处理业务申请</h4>
                 <label>处理状态<select id="mirrorReviewDecision" required></select></label>
                 <label>审核原因（资金同意可留空，其余至少12字）<textarea id="mirrorReviewReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
-                <label class="mirror-confirm-row"><input id="mirrorReviewConfirm" type="checkbox" required>确认仅修改审核状态，不执行真实付款或身份核验</label>
+                <label class="mirror-confirm-row"><input id="mirrorReviewConfirm" type="checkbox" required>确认本次处理；资金同意将更新平台内部余额，不发起银行付款</label>
                 <div class="mirror-policy-actions"><button id="mirrorReviewSave" type="submit">保存审核记录</button>
                   <button id="mirrorReviewCancel" type="button" class="outline">取消</button></div>
               </form>
@@ -349,7 +349,7 @@
       </section>
       <section class="admin-pane" data-pane="approvals" hidden>
         <div class="pane-title"><span>REVIEW CENTER</span><h2>业务申请审核</h2>
-          <p>按主账号／子账号权限查看已提交的申请。审核不执行资金划转、身份核验或银行卡验证。</p></div>
+          <p>按主账号／子账号权限查看申请。资金同意后更新平台内部余额，不执行银行付款、外部身份核验或银行卡验证。</p></div>
         <section class="panel">
           <div class="heading workflow-toolbar"><h3>申请列表</h3>
             <label for="workflowCategory">申请类型 <select id="workflowCategory" aria-label="选择申请类型">
