@@ -613,3 +613,17 @@ html,body,body *,body *::before,body *::after{font-weight:400!important}
 .sidebar .brand-mark{width:44px;height:44px;padding:3px;background:linear-gradient(135deg,#f4f6f3,#dce2e7);
  border:1px solid #b9c6cf;border-radius:9px;flex:none}
 .sidebar .brand-mark .cn-capital-mark{width:100%;height:100%;object-fit:contain;display:block}
+
+/* Compact source notes leave room for the selected stock chart. */
+#stockChart{height:clamp(350px,43vh,540px)}
+section[aria-label="日参考汇率"]{border-top:1px solid #363a3f;padding-top:10px;margin-top:12px}
+#referenceFxStatus{font-size:11px;margin:0 0 6px;color:#a9b0b8}
+#referenceFxRates{font-size:12px;margin:0 0 7px;color:#dbe0e5}
+section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1.6;margin:0 0 8px}
+#refreshReferenceFx{font-size:10px;padding:5px 9px;min-height:28px}
+.market-card-empty{position:absolute;inset:0;display:grid;place-items:center;color:#89929c;font-size:10px;font-weight:400}
+*{scrollbar-width:none}*::-webkit-scrollbar{display:none}
+.sidebar-section>summary{cursor:pointer;list-style:none;user-select:none}
+.sidebar-section>summary::after{content:'＋';float:right;margin-left:8px}
+.sidebar-section[open]>summary::after{content:'－'}
+@media(max-width:760px){#stockChart{height:350px}}

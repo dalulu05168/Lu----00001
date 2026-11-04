@@ -7,6 +7,7 @@ import serverlessHandler from "../api/[...path].mjs";
 import { createApi } from "../src/http-api.mjs";
 import { createSessionResolver } from "../src/auth.mjs";
 import { placeInternalOrder } from "../src/order-service.mjs";
+import {verifyInternalFunding} from './internal-funding-postgres.test.mjs';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 const run = connectionString ? test : test.skip;
@@ -32,7 +33,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql", "012_internal_funding.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -479,7 +480,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(intake.data.item.status,"UNDER_REVIEW");
     const approved=await workflowChange(masterToken,"FUNDING",deposit.data.item.id,"UNDER_REVIEW","APPROVED");
     assert.equal(approved.status,200);
-    assert.equal(approved.data.item.settlementStatus,"NOT_EXECUTED");
+    assert.equal(approved.data.item.settlementStatus,"INTERNAL_POSTED");
     assert.equal((await workflowChange(masterToken,"FUNDING",deposit.data.item.id,"SUBMITTED","APPROVED")).status,409);
     const kycNeedsInfo=await workflowChange(subAdmin.data.token,"KYC",kycRequest.data.item.id,
       "AWAITING_EVIDENCE","NEEDS_INFORMATION");
@@ -495,7 +496,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal((await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{token:clientLogin.data.token})).status,403);
     assert.equal((await req("/api/admin/workflow-audit?clientId="+sub.data.userId,{token:masterToken})).status,404);
     const balanceAfterReview=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
-    assert.equal(Number(balanceAfterReview.rows[0].cash_cents),0);
+    assert.equal(Number(balanceAfterReview.rows[0].cash_cents),12000);
 
     const catalog=await req("/api/catalog",{token:clientLogin.data.token});
     assert.equal(catalog.status,200);
@@ -571,7 +572,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal((await req("/api/admin/mirror-status",{token:customerAppToken})).status,403);
     assert.equal((await req("/api/admin/mirror-audit",{method:"POST",token:masterToken})).status,405);
     const unchangedClient=await req("/api/account",{token:customerAppToken});
-    assert.equal(unchangedClient.data.account.cashCents,0);
+    assert.equal(unchangedClient.data.account.cashCents,12000);
 
     // MASTER-managed account flags are persisted, scoped and audited, not payments or real trading permissions.
     const policyPath="/api/admin/client-controls?clientId="+attached.data.userId;
@@ -633,7 +634,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(policyAfter.data.policy.withdrawalRequestsAllowed,false);
     assert.equal(policyAfter.data.policy.accountClass,"REAL_PENDING");
     const cashAfter=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[attached.data.accountId]);
-    assert.equal(Number(cashAfter.rows[0].cash_cents),0);
+    assert.equal(Number(cashAfter.rows[0].cash_cents),12000);
 
     // A master can restrict a specific child administrator; an unrelated subaccount cannot inspect it.
     const subPolicyPath="/api/admin/subaccount-controls?userId="+sub.data.userId;
@@ -711,3 +712,5 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     else process.env.ADMIN_MASTER_EMAIL=previousMasterEmail;
   }
 });
+
+run('PostgreSQL: concurrent funding approvals post once and insufficient withdrawals roll back',verifyInternalFunding);

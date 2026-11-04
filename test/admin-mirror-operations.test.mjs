@@ -90,7 +90,9 @@ test("master can modify client policy and review request without leaving the APP
   assert.match(el("mirrorRequestRows").textContent,/25\.00/);
   el("mirrorRequestRows").querySelector("button").click();
   assert.equal(el("mirrorReviewForm").hidden,false);
-  assert.equal(el("mirrorReviewDecision").value,"UNDER_REVIEW");
+  assert.equal(el("mirrorReviewDecision").value,"APPROVED");
+  el("mirrorReviewDecision").value="UNDER_REVIEW";
+  el("mirrorReviewDecision").dispatchEvent(new dom.window.Event('change'));
   el("mirrorReviewReason").value="Reviewed withdrawal request against existing customer data";
   el("mirrorReviewConfirm").checked=true;
   el("mirrorReviewForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));

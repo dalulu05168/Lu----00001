@@ -9,6 +9,7 @@ test("master reviews an authorized funding request and sees non-settlement dashb
  const html=await readFile(new URL("../web/admin.html",import.meta.url),"utf8");
  const dom=new JSDOM(html,{url:"https://qa.example/admin.html"});
  const old={document:globalThis.document,sessionStorage:globalThis.sessionStorage,fetch:globalThis.fetch};
+ let fundingFailure=false;
  const calls=[],cases=[{id:REQUEST,clientId:CLIENT,category:"FUNDING",kind:"DEPOSIT",amountCents:12000,
   currency:"USD",status:"SUBMITTED",settlementStatus:"NOT_EXECUTED",createdAt:"2026-11-03T08:00:00Z"}];
  const json=(status,body)=>new Response(status===204?null:JSON.stringify(body),{
@@ -24,7 +25,7 @@ test("master reviews an authorized funding request and sees non-settlement dashb
    if(url==="/api/admin/clients"||url==="/api/admin/subaccounts"||url==="/api/admin/listings")
     return json(200,{items:[]});
    if(url==="/api/admin/mirror-status")return json(200,{ready:true,mode:"READ_ONLY"});
-   if(url==="/api/admin/workflow-requests?category=FUNDING")return json(200,{items:cases});
+   if(url==="/api/admin/workflow-requests?category=FUNDING")return fundingFailure?json(503,{error:'unavailable'}):json(200,{items:cases});
    if(url==="/api/admin/workflow-requests"&&options.method==="PATCH"){
     const body=JSON.parse(options.body);
     if(body.expectedStatus!==cases[0].status)return json(409,{error:"Version mismatch"});
@@ -39,13 +40,21 @@ test("master reviews an authorized funding request and sees non-settlement dashb
   el("adminEmail").value="master@example.test";el("adminPassword").value="master-password-2026";
   el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
   await pause(85);
+  assert.equal(el('adminPageTitle').textContent,'全局运营总览');
+  assert.equal(el('dashboardDepositAmount').textContent,'$120.00');
+  assert.equal(el('dashboardWithdrawAmount').textContent,'$0.00');
+  assert.equal(el('dashboardPendingCount').textContent,'1');
+  assert.match(el('dashboardFundingRows').textContent,/120\.00/);
+  assert.match(el('dashboardFundingStatus').textContent,/300/);
   dom.window.document.querySelector('[data-admin-page="approvals"]').click();
   await pause(60);
   assert.equal(el("workflowItems").querySelectorAll("button").length,1);
   assert.match(el("workflowItems").textContent,/120\.00 USD/);
   el("workflowItems").querySelector("button").click();
   assert.equal(el("workflowReviewForm").hidden,false);
-  assert.equal(el("workflowDecision").value,"UNDER_REVIEW");
+  assert.equal(el("workflowDecision").value,"APPROVED");
+  el("workflowDecision").value="UNDER_REVIEW";
+  el("workflowDecision").dispatchEvent(new dom.window.Event('change'));
   el("workflowReason").value="Checked the funding application and supporting internal records";
   el("workflowConfirm").checked=true;
   el("workflowReviewForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
@@ -54,17 +63,32 @@ test("master reviews an authorized funding request and sees non-settlement dashb
   const patch=calls.find(x=>x.url==="/api/admin/workflow-requests"&&x.options.method==="PATCH");
   assert.equal(JSON.parse(patch.options.body).status,"UNDER_REVIEW");
   assert.equal(el("workflowReviewForm").hidden,true);
+  el("workflowItems").querySelector("button").click();
+  assert.equal(el("workflowDecision").value,"APPROVED");
+  assert.equal(el("workflowReason").required,false);
+  assert.equal(el("workflowReason").minLength,0);
+  el("workflowReason").value="";
+  el("workflowConfirm").checked=true;
+  el("workflowReviewForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+  await pause(60);
+  assert.equal(cases[0].status,"APPROVED");
   dom.window.document.querySelector('[data-admin-page="treasury"]').click();
   await pause(55);
   assert.equal(el("depositRequestTotal").textContent,"1");
   assert.equal(el("withdrawRequestTotal").textContent,"0");
-  assert.equal(el("pendingRequestTotal").textContent,"1");
-  assert.equal(el("approvedRequestTotal").textContent,"0");
+  assert.equal(el("pendingRequestTotal").textContent,"0");
+  assert.equal(el("approvedRequestTotal").textContent,"1");
   assert.match(el("fundingSummaryStatus").textContent,/未接入/);
+  fundingFailure=true;el('refreshDashboardFunding').click();await pause(50);
+  assert.equal(el('dashboardDepositAmount').textContent,'—');
+  assert.equal(el('dashboardFundingRows').childElementCount,0);
+  assert.match(el('dashboardFundingStatus').textContent,/失败/);
   el("adminLogout").click();
   assert.equal(el("fundingRequestRows").childElementCount,0);
   assert.equal(el("workflowItems").childElementCount,0);
   assert.equal(el("adminWorkspace").hidden,true);
+  assert.equal(el('dashboardFundingRows').childElementCount,0);
+  assert.equal(el('dashboardDepositAmount').textContent,'—');
  }finally{
   globalThis.document=old.document;globalThis.sessionStorage=old.sessionStorage;
   globalThis.fetch=old.fetch;dom.window.close();

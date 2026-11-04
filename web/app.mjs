@@ -112,6 +112,7 @@ function renderMarkets() {
     bar.className = "market-card-bar";
     bar.style.height = allocation.available ? count.percent + "%" : "0%";
     barBox.append(bar);
+    if(allocation.available&&count.count===0)barBox.append(textNode('暂无持仓','market-card-empty'));
     const name = document.createElement("span");
     name.className = "market-card-top";
     name.append(textNode(item.code,"market-card-code"),textNode(item.label,"market-card-name"));
@@ -892,7 +893,7 @@ const SERVICE_STATUS={
  MANUALLY_REVIEWED:"人工已审阅（未实名认证）",PENDING_VERIFICATION:"待第三方银行验证"
 };
 function serviceDescription(item){
- const status=SERVICE_STATUS[item.status]??item.status;
+ const status=item.category==='FUNDING'&&item.settlementStatus==='INTERNAL_POSTED'?'成功 · 平台内部入账':SERVICE_STATUS[item.status]??item.status;
  if(item.category==="FUNDING"){
   const cents=Number(item.amountCents);
   const amount=Number.isSafeInteger(cents)?money(cents):"—";

@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CN Capital | 管理控制台</title><link rel="icon" type="image/png" href="/cn-capital.png"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/portal.css"></head>
 <body>
-<header class="topbar" id="adminTopbar" hidden><div><small>CN CAPITAL · PRIVATE MARKET OPERATIONS</small><h1><img class="cn-capital-mark" src="/cn-capital.png" width="192" height="192" decoding="async" alt=""> CN Capital 管理控制台</h1></div><a href="/" data-client-home>返回客户前台</a></header>
+<header class="topbar" id="adminTopbar" hidden><h1 id="adminPageTitle">全局运营总览</h1><a href="/" data-client-home>返回客户前台</a></header>
 <main class="workspace" id="adminRoot">
 <section id="admin-login" class="portal" aria-label="管理员登录">
   <canvas class="portal-stars" aria-hidden="true"></canvas><div class="portal-aurora" aria-hidden="true"></div><div class="portal-horizon" aria-hidden="true"></div>
@@ -52,10 +52,10 @@
       <div class="nav-identity"><span id="adminRole">—</span><span class="server-status">账户密码会话</span></div>
       <button type="button" id="adminMobileNavToggle" class="outline" aria-controls="adminPages" aria-expanded="false">打开菜单</button>
       <nav id="adminPages">
-        <span class="admin-nav-group">WORKSPACE / 工作区</span>
+        <details open><summary class="admin-nav-group">WORKSPACE / 工作区</summary>
         <button type="button" data-admin-page="dashboard" aria-current="page">概览 / Overview</button>
         <button type="button" data-admin-page="accounts">子账户 / Subaccounts</button>
-        <span class="admin-nav-group">CLIENT OPERATIONS / 客户业务</span>
+        </details><details open><summary class="admin-nav-group">CLIENT OPERATIONS / 客户业务</summary>
         <button type="button" data-admin-page="clients">客户管理 / Clients</button>
         <button type="button" data-admin-page="mirror">客户 App 镜像 / App Mirror</button>
         <button type="button" data-admin-page="catalog">证券资料 / Instruments</button>
@@ -63,10 +63,10 @@
         <button type="button" data-admin-page="approvals">审批中心 / Approvals</button>
         <button type="button" data-admin-page="treasury">资金申请记录 / Treasury</button>
         <button type="button" data-admin-page="support">客户客服 / Support</button>
-        <span class="admin-nav-group" data-required-role="MASTER">GOVERNANCE / 治理审计</span>
+        </details><details open data-required-role="MASTER"><summary class="admin-nav-group">GOVERNANCE / 治理审计</summary>
         <button type="button" data-admin-page="risk" data-required-role="MASTER">风险与权限 / Risk</button>
         <button type="button" data-admin-page="audit" data-required-role="MASTER">审计与报表 / Audit</button>
-      </nav>
+      </details></nav>
       <button type="button" id="adminLogout" class="outline logout">退出管理后台</button>
     </aside>
     <div class="admin-main">
@@ -89,13 +89,29 @@
           <div class="summary-card"><span>证券目录 / Listings</span><output id="adminListingCount">—</output><small>现有资料记录</small></div>
           <div class="summary-card"><span>券商交易 / Broker</span><output class="pending">未接入</output></div>
         </div>
-        <div class="panel operations-overview">
+        <section class="dashboard-funding" aria-label="资金申请概览">
+          <div class="dashboard-section-heading"><div><h3>资金申请概览</h3><p>充值与提现申请记录 · USD</p></div><button id="refreshDashboardFunding" type="button" class="outline">刷新资金数据</button></div>
+          <div class="funding-metric-grid">
+            <article class="funding-metric"><span>充值申请金额</span><output id="dashboardDepositAmount">—</output><small id="dashboardDepositCount">—</small></article>
+            <article class="funding-metric"><span>提现申请金额</span><output id="dashboardWithdrawAmount">—</output><small id="dashboardWithdrawCount">—</small></article>
+            <article class="funding-metric"><span>待处理申请</span><output id="dashboardPendingCount">—</output><small>已提交或审核中</small></article>
+            <article class="funding-metric"><span>审核通过</span><output id="dashboardApprovedCount">—</output><small>内部记账状态见下方明细</small></article>
+          </div>
+          <p id="dashboardFundingStatus" class="dashboard-data-status" role="status" aria-live="polite">正在读取资金申请</p>
+          <div class="dashboard-detail-grid">
+            <section class="panel dashboard-funding-detail"><div class="dashboard-section-heading"><h3>近期进出资金申请明细</h3><button type="button" class="outline" id="dashboardOpenTreasury">查看全部</button></div>
+              <div class="dashboard-table-scroll"><table class="dashboard-funding-table"><thead><tr><th>类型</th><th>申请金额 USD</th><th>客户编号</th><th>审核状态</th><th>提交时间</th></tr></thead><tbody id="dashboardFundingRows"></tbody></table></div>
+            </section>
+            <section class="panel dashboard-tasks"><h3>待办与处理分布</h3><div id="dashboardFundingBreakdown"></div><button type="button" class="outline" id="dashboardOpenApprovals">进入审批中心</button><p>实际入金、出金及银行到账明细尚未接入。</p></section>
+          </div>
+        </section>
+        <details class="panel operations-overview"><summary>系统运行与接入状态</summary>
           <div class="operations-overview-title"><div><span>PLATFORM STATUS / SCOPE</span><h3>系统运行与管理边界</h3></div><small>已核实的权限与接入范围</small></div>
           <div class="info-line"><span>登录保护</span><span>管理员账号密码登录</span></div>
           <div class="info-line"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
           <div class="info-line"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
           <div class="info-line"><span>资金申请审核</span><span>已接入申请状态管理；实际收付款未接通</span></div>
-        </div>
+        </details>
       </section>
       <section class="admin-pane" data-pane="accounts" hidden>
         <div class="pane-title"><span>COMMAND CENTER</span><h2>子账户管理</h2><p>主账户可以创建和管理所属子账号；子账户仅可查看自己的资料、客户及申请统计。</p></div>
@@ -281,7 +297,7 @@
               <form id="mirrorReviewForm" class="mirror-policy-form" hidden>
                 <h4 id="mirrorReviewHeading">处理业务申请</h4>
                 <label>处理状态<select id="mirrorReviewDecision" required></select></label>
-                <label>审核原因（至少 12 字）<textarea id="mirrorReviewReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
+                <label>审核原因（资金同意可留空，其余至少12字）<textarea id="mirrorReviewReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
                 <label class="mirror-confirm-row"><input id="mirrorReviewConfirm" type="checkbox" required>确认仅修改审核状态，不执行真实付款或身份核验</label>
                 <div class="mirror-policy-actions"><button id="mirrorReviewSave" type="submit">保存审核记录</button>
                   <button id="mirrorReviewCancel" type="button" class="outline">取消</button></div>
@@ -346,10 +362,10 @@
           <form id="workflowReviewForm" class="workflow-review-form" hidden>
             <h3>处理选中申请</h3><p id="workflowSelection" class="muted"></p>
             <label>处理状态<select id="workflowDecision" required></select></label>
-            <label class="workflow-form-wide">处理原因（至少 12 字）
+            <label class="workflow-form-wide">处理原因（资金同意可留空，其余至少12字）
               <textarea id="workflowReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
             <label class="workflow-confirm workflow-form-wide">
-              <input id="workflowConfirm" type="checkbox" required>确认仅更新审核状态，不代表付款或身份核验成功
+              <input id="workflowConfirm" type="checkbox" required>确认本次处理；资金同意将更新平台内部余额，不发起银行付款
             </label>
             <div class="workflow-form-wide"><button type="submit" id="workflowSubmit">保存审核记录</button>
               <button type="button" class="outline" id="workflowCancel">取消</button></div>
@@ -365,7 +381,7 @@
             <div class="summary-card"><span>充值申请</span><output id="depositRequestTotal">—</output></div>
             <div class="summary-card"><span>提现申请</span><output id="withdrawRequestTotal">—</output></div>
             <div class="summary-card"><span>待处理</span><output id="pendingRequestTotal">—</output></div>
-            <div class="summary-card"><span>审核通过但未划转</span><output id="approvedRequestTotal">—</output></div>
+            <div class="summary-card"><span>审核通过</span><output id="approvedRequestTotal">—</output></div>
           </div>
           <p id="fundingSummaryStatus" role="status" class="feedback"></p>
           <div id="fundingRequestRows" class="admin-list"></div>

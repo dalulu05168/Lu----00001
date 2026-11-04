@@ -845,3 +845,35 @@ html,body{background:var(--ui-canvas);color:var(--ui-text);font-weight:400}
  #adminWorkspace .client-list-panel{padding:0}
  #adminWorkspace .operations-overview{padding:0 16px 4px}
 }
+
+/* One page title; the overview is an operations dashboard rather than a splash. */
+#adminWorkspace .pane-title>span,#adminWorkspace .pane-title h2,#adminWorkspace .dashboard-hero-copy>span,#adminWorkspace .dashboard-hero h2{display:none}
+#adminWorkspace .dashboard-hero{padding-bottom:16px;margin-bottom:18px}
+#adminWorkspace .dashboard-hero-actions{margin-top:12px}
+#adminTopbar h1{font-size:23px;margin:0}
+.dashboard-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.dashboard-section-heading h3{margin:0;font-size:15px;font-weight:500}.dashboard-section-heading p{margin:5px 0 0;font-size:11px;color:var(--ui-muted)}
+.funding-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.funding-metric{background:#1e2023;border:1px solid #363a3f;border-radius:10px;padding:18px;display:grid;gap:12px;min-width:0}
+.funding-metric span{color:#b4bbc4;font-size:11px}.funding-metric output{font-size:26px;font-weight:500;letter-spacing:-.025em;overflow-wrap:anywhere}.funding-metric small{color:#92979e;font-size:11px}
+.dashboard-data-status{color:#92979e;font-size:11px;line-height:1.65;margin:12px 0 18px}
+.dashboard-detail-grid{display:grid;grid-template-columns:minmax(0,2.5fr) minmax(220px,1fr);gap:16px}
+#adminWorkspace .dashboard-funding-detail{min-width:0;padding:18px}
+.dashboard-table-scroll{overflow:auto;max-width:100%}
+.dashboard-funding-table{width:100%;border-collapse:collapse;white-space:nowrap;text-align:left;font-size:11px}
+.dashboard-funding-table th{font-weight:400;color:#92979e;background:#24272b}
+.dashboard-funding-table :is(td,th){padding:13px 10px;border-bottom:1px solid #363a3f}
+.dashboard-funding-table td:nth-child(2){color:#e8ebef;font-variant-numeric:tabular-nums}
+.dashboard-status-row{display:flex;justify-content:space-between;gap:15px;padding:13px 0;border-bottom:1px solid #363a3f;font-size:12px;color:#b4bbc4}
+.dashboard-status-row strong{color:#eceff2;font-weight:500}
+.dashboard-tasks button{margin-top:18px}.dashboard-tasks p{font-size:11px!important;margin-top:14px}
+#adminWorkspace details.operations-overview{padding:16px 20px;margin-top:4px}
+.operations-overview>summary{cursor:pointer;color:#a5adb7;font-size:12px;list-style:none}
+.operations-overview>summary::after{content:'＋';float:right}.operations-overview[open]>summary::after{content:'－'}
+*{scrollbar-width:none}*::-webkit-scrollbar{display:none}
+#adminPages details>summary{cursor:pointer;list-style:none;user-select:none}
+#adminPages details>summary::after{content:'＋';float:right}#adminPages details[open]>summary::after{content:'－'}
+#adminPages details>button{width:100%;display:block;text-align:left;margin:3px 0}
+#adminMobileNavToggle{display:none!important}
+@media(max-width:1100px){.dashboard-detail-grid{grid-template-columns:1fr}.funding-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.admin-nav #adminPages{display:block!important;max-height:none;overflow:visible}.dashboard-section-heading{align-items:flex-start;flex-wrap:wrap}.funding-metric-grid{gap:10px}.funding-metric{padding:14px}.funding-metric output{font-size:23px}#adminTopbar h1{font-size:20px}}

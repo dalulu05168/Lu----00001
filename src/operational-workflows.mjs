@@ -14,7 +14,7 @@ function requireCategory(category){if(!Object.hasOwn(TABLES,category))bad("Inval
 function publicItem(category,row){
  const x={id:row.id,clientId:row.client_user_id,status:row.status,createdAt:row.created_at,updatedAt:row.updated_at,
   category,reviewerId:row.review_actor_user_id??null,reviewReason:row.review_reason??null};
- if(category==="FUNDING")Object.assign(x,{kind:row.kind,amountCents:Number(row.amount_cents),currency:row.currency,settlementStatus:"NOT_EXECUTED"});
+ if(category==="FUNDING")Object.assign(x,{kind:row.kind,amountCents:Number(row.amount_cents),currency:row.currency,settlementStatus:row.settlement_status??"NOT_EXECUTED"});
  if(category==="BANK_LINK")Object.assign(x,{bankLabel:row.bank_label,accountLast4:row.account_last4,verified:false});
  if(category==="KYC")Object.assign(x,{identityVerified:false,documentsStored:false});
  return x;
@@ -84,6 +84,7 @@ export async function listAdminRequests(db,actor,category,clientId=null){
 function nextStatus(category,role,current,target){
  if(!STATUS[category].has(target))bad("Unsupported review status");
  if(category==="FUNDING"){
+  if(role==="MASTER"&&current==="SUBMITTED"&&target==="APPROVED")return;
   if(current==="SUBMITTED"&&target==="UNDER_REVIEW")return;
   if(role==="MASTER"&&current==="UNDER_REVIEW"&&["APPROVED","REJECTED"].includes(target))return;
  }else if(category==="KYC"){
@@ -101,7 +102,10 @@ export async function reviewAdminRequest(db,actor,category,data){
  exact(data,["id","expectedStatus","status","reason"]);
  requireUuid(data.id);
  if(typeof data.expectedStatus!=="string"||!STATUS[category].has(data.expectedStatus))bad("Invalid current status");
- if(typeof data.reason!=="string"||data.reason.trim().length<12||data.reason.trim().length>400)bad("Review reason required");
+ const optionalReason=category==="FUNDING"&&data.status==="APPROVED"&&actor.role==="MASTER";
+ if(data.reason!==undefined&&typeof data.reason!=="string")bad("Review reason required");
+ const reason=data.reason?.trim()|| (optionalReason?"管理员确认平台内部资金入账":"");
+ if((!optionalReason&&reason.length<12)||reason.length>400)bad("Review reason required");
  return withTxn(db,async conn=>{
   const q=await conn.query("SELECT r.* FROM "+table+" r LEFT JOIN client_links l ON l.user_id=r.client_user_id "+
    "WHERE r.id=$1 AND ($2::text='MASTER' OR l.subadmin_user_id=$3::uuid) FOR UPDATE OF r",
@@ -110,9 +114,21 @@ export async function reviewAdminRequest(db,actor,category,data){
   const previous=q.rows[0];
   if(previous.status!==data.expectedStatus)bad("Request state changed",409);
   nextStatus(category,actor.role,previous.status,data.status);
+  if(category==="FUNDING"&&data.status==="APPROVED"){
+   const account=(await conn.query("SELECT id,cash_cents FROM accounts WHERE user_id=$1 FOR UPDATE",[previous.client_user_id])).rows[0];
+   if(!account)bad("Account not found",409);
+   const delta=BigInt(previous.amount_cents)*(previous.kind==="DEPOSIT"?1n:-1n);
+   const balance=BigInt(account.cash_cents)+delta;
+   if(balance<0n)bad("Insufficient internal balance",409);
+   if(balance>BigInt(Number.MAX_SAFE_INTEGER))bad("Internal balance limit exceeded",409);
+   await conn.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1",[account.id,balance.toString()]);
+   await conn.query("INSERT INTO cash_ledger(account_id,funding_request_id,delta_cents,balance_after_cents) VALUES($1,$2,$3,$4)",
+    [account.id,previous.id,delta.toString(),balance.toString()]);
+   await conn.query("UPDATE client_funding_requests SET settlement_status='INTERNAL_POSTED',settled_at=now() WHERE id=$1",[previous.id]);
+  }
   const u=await conn.query("UPDATE "+table+" SET status=$2,review_actor_user_id=$3,review_reason=$4,"+
-   "updated_at=now() WHERE id=$1 RETURNING *",[data.id,data.status,actor.userId,data.reason.trim()]);
-  await recordAudit(conn,category,data.id,previous.client_user_id,actor.userId,previous.status,data.status,data.reason.trim());
+   "updated_at=now() WHERE id=$1 RETURNING *",[data.id,data.status,actor.userId,reason]);
+  await recordAudit(conn,category,data.id,previous.client_user_id,actor.userId,previous.status,data.status,reason);
   return publicItem(category,u.rows[0]);
  });
 }
@@ -151,15 +167,15 @@ export async function listAdminClientHistoryPage(db,actor,clientId,{cursor=null,
  if(access.rows.length!==1)bad("Client not found",404);
  const sql=String.raw`SELECT h.* FROM (
  SELECT id,client_user_id,'FUNDING'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
-        kind,amount_cents,currency,NULL::text AS bank_label,NULL::char(4) AS account_last4
+        kind,amount_cents,currency,NULL::text AS bank_label,NULL::char(4) AS account_last4,settlement_status
  FROM client_funding_requests WHERE client_user_id=$1
  UNION ALL
  SELECT id,client_user_id,'KYC'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
-        NULL::text,NULL::bigint,NULL::char(3),NULL::text,NULL::char(4)
+        NULL::text,NULL::bigint,NULL::char(3),NULL::text,NULL::char(4),NULL::text
  FROM client_kyc_requests WHERE client_user_id=$1
  UNION ALL
  SELECT id,client_user_id,'BANK_LINK'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
-        NULL::text,NULL::bigint,NULL::char(3),bank_label,account_last4
+        NULL::text,NULL::bigint,NULL::char(3),bank_label,account_last4,NULL::text
  FROM client_bank_link_requests WHERE client_user_id=$1
 ) h WHERE ($3::timestamptz IS NULL OR
   (h.created_at,h.id,h.category) < ($3::timestamptz,$4::uuid,$5::text))
