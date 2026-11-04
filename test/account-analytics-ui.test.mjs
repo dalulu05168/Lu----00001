@@ -36,10 +36,15 @@ test('frontend renders full-history FIFO statistics, distinguishes cash-only val
   assert.equal(el('portfolioValue').textContent,'$234.56');assert.match(el('portfolioValueNote').textContent,/仅现金/);
   assert.match(el('accountAnalyticsStatus').textContent,/手续费|税费/);
   assert.equal(el('dayRealizedPnl').textContent,'$20.00');assert.equal(el('monthRealizedPnl').textContent,'$60.00');
+  assert.equal(el('overviewDayRealizedPnl').textContent,'$20.00');
+  assert.equal(el('overviewMonthRealizedPnl').textContent,'$60.00');
+  for(const target of ['serviceRequestsPanel','commodityCatalogPanel','customerSupportPanel'])
+   assert.ok(dom.window.document.querySelector('.sidebar-link[href="#'+target+'"]'));
   response={...response,historyAvailable:false,reason:'POSITION_HISTORY_MISMATCH',realizedPnlCents:null,
    dayRealizedPnlCents:null,monthRealizedPnlCents:null,positionCostCents:null,portfolioValueCents:null,holdingCount:1};
   el('refreshAccountButton').click();await flush();
   assert.equal(el('realizedPnl').textContent,'—');assert.equal(el('portfolioValue').textContent,'—');
+  assert.equal(el('overviewDayRealizedPnl').textContent,'—');
   assert.match(el('accountAnalyticsStatus').textContent,/不一致/);
   blocked=true;el('refreshAccountButton').click();await flush();
   assert.equal(el('realizedPnl').textContent,'—');

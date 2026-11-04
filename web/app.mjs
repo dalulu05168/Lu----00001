@@ -582,6 +582,8 @@ function syncClientGate(){
 function renderAccountAnalytics(){
  const data=account?accountAnalytics:null;
  const values={analyticsBuyVolume:data?.buyVolumeCents,analyticsSellVolume:data?.sellVolumeCents,
+  overviewDayRealizedPnl:data?.historyAvailable?data.dayRealizedPnlCents:null,
+  overviewMonthRealizedPnl:data?.historyAvailable?data.monthRealizedPnlCents:null,
   analyticsPositionCost:data?.historyAvailable?data.positionCostCents:null,
   dayRealizedPnl:data?.historyAvailable?data.dayRealizedPnlCents:null,
   monthRealizedPnl:data?.historyAvailable?data.monthRealizedPnlCents:null};
