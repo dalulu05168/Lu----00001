@@ -40,6 +40,10 @@ let transactionPageSize = 10;
 let serviceBusy=false,serviceRequests=[];
 let customerCommodityItems=[],customerCommoditySerial=0,customerSupportSerial=0;
 let customerSupportClosed=false;
+let accountAnalytics=null,accountAnalyticsSerial=0,accountAnalyticsState="idle",accountAnalyticsError="";
+const ANALYTICS_REASONS={INCOMPLETE_HISTORY:"缺少买入成本记录，无法匹配卖出",
+ POSITION_HISTORY_MISMATCH:"历史订单与当前持仓不一致",INVALID_RECORDS:"历史记录格式或顺序不完整",
+ AMOUNT_OVERFLOW:"统计金额超出安全计算范围",LEDGER_HISTORY_UNAVAILABLE:"缺少可靠入账顺序或流水金额不符"};
 
 
 const money = cents => {
@@ -339,7 +343,7 @@ function renderRecords() {
   ) : [];
   const orders = Array.isArray(account?.orders) ? account.orders : [];
   el("positionCount").textContent = account ? String(positions.length) : "—";
-  el("orderCount").textContent = account ? String(orders.length) : "—";
+  el("orderCount").textContent = account ? String(accountAnalytics?.orderCount??orders.length) : "—";
   const posRows = positions.map(item => {
     const node = document.createElement("div");
     node.className = "record-item holding-row";
@@ -476,11 +480,27 @@ function renderTransactionHistory() {
       : allOrders.length ? "订单金额字段不可用" : "暂无交易记录";
   el("realizedPnl").textContent = "—";
   el("realizedPnlNote").textContent = "缺少逐笔成本匹配数据，暂不计算";
-  el("internalRecordCount").textContent = account ? String(allOrders.length) : "—";
+  if(account&&accountAnalytics){
+    if(Number.isSafeInteger(accountAnalytics.volumeCents)){
+      el("transactionVolume").textContent="$"+money(accountAnalytics.volumeCents);
+      el("transactionVolumeNote").textContent=accountAnalytics.orderCount+" 笔 · 完整历史 · USD 等值";
+    }
+    if(accountAnalytics.historyAvailable){
+      el("realizedPnl").textContent="$"+money(accountAnalytics.realizedPnlCents);
+      el("realizedPnlNote").textContent="FIFO 已实现毛盈亏 · 未扣手续费及税费";
+    }else el("realizedPnlNote").textContent=ANALYTICS_REASONS[accountAnalytics.reason]??"完整成本记录不可用";
+  }
+  el("internalRecordCount").textContent = account ? String(accountAnalytics?.orderCount??allOrders.length) : "—";
   el("brokerExecutionStatus").textContent = "未连接";
 
   const range = "all";
   el("transactionRangeLabel").textContent = TRANSACTION_RANGE_LABELS[range] ?? "All time";
+  const totalHistory=accountAnalytics?.orderCount;
+  el("transactionHistoryScope").textContent=!account?"登录后查看记录范围":Number.isSafeInteger(totalHistory)
+    ?"统计基于完整历史 "+totalHistory+" 笔；列表已加载 "+allOrders.length+" 笔，筛选、分页和导出仅作用于已加载记录。"
+    :"列表为最近最多 100 笔；筛选、分页和导出仅作用于已加载记录，完整历史统计待同步。";
+  if(Number.isSafeInteger(totalHistory)&&totalHistory>allOrders.length)
+    el("transactionRangeLabel").textContent="最近 "+allOrders.length+" 笔";
   const filtered = filteredTransactions();
   const pageCount = Math.max(1,Math.ceil(filtered.length / transactionPageSize));
   transactionPage = Math.min(Math.max(1,transactionPage),pageCount);
@@ -559,6 +579,47 @@ function syncClientGate(){
   el("overview").hidden=!admitted;
   if(!admitted&&token)el("entryFeedback").textContent=accountRefreshing?"正在验证账户状态…":el("authFeedback").textContent;
 }
+function renderAccountAnalytics(){
+ const data=account?accountAnalytics:null;
+ const values={analyticsBuyVolume:data?.buyVolumeCents,analyticsSellVolume:data?.sellVolumeCents,
+  analyticsPositionCost:data?.historyAvailable?data.positionCostCents:null,
+  dayRealizedPnl:data?.historyAvailable?data.dayRealizedPnlCents:null,
+  monthRealizedPnl:data?.historyAvailable?data.monthRealizedPnlCents:null};
+ for(const [id,value] of Object.entries(values))el(id).textContent=Number.isSafeInteger(value)?"$"+money(value):"—";
+ el("portfolioValue").textContent=Number.isSafeInteger(data?.portfolioValueCents)?"$"+money(data.portfolioValueCents):"—";
+ el("portfolioValueNote").textContent=Number.isSafeInteger(data?.portfolioValueCents)
+  ?"仅现金，无持仓 · USD 账户记录":data?.holdingCount>0?"缺少持仓报价，无法计算总市值":
+   !account?"登录后查看账户估值":"等待完整账户统计";
+ el("refreshAnalyticsButton").disabled=!account||accountAnalyticsState==="loading";
+ el("accountAnalyticsStatus").textContent=!account?"登录后读取统计":accountAnalyticsState==="loading"
+  ?"正在读取完整账户历史":accountAnalyticsState==="error"?"统计不可用："+accountAnalyticsError:
+   data?(data.historyAvailable?"FIFO 按流水入账顺序计算，未扣手续费、税费；日/月按订单记录时间 UTC 归属，持仓成本不是市值。":
+    (ANALYTICS_REASONS[data.reason]??"成本统计不可用")+"；不显示推算收益。")+" · 统计时间 "+data.asOf:
+    "尚未读取账户统计";
+}
+async function refreshAccountAnalytics(){
+ if(!token||!account)return;
+ const serial=++accountAnalyticsSerial,usedToken=token;
+ accountAnalytics=null;accountAnalyticsState="loading";accountAnalyticsError="";render();
+ try{
+  const data=await request("/account/analytics");
+  if(serial!==accountAnalyticsSerial||usedToken!==token)return;
+  const amounts=["buyVolumeCents","sellVolumeCents","volumeCents","realizedPnlCents",
+   "dayRealizedPnlCents","monthRealizedPnlCents","positionCostCents","portfolioValueCents"];
+  if(!data||data.currency!=="USD"||data.method!=="FIFO"||data.basis!=="INTERNAL_GROSS"||
+    data.orderBasis!=="CASH_LEDGER_ID"||data.periodBasis!=="ORDER_CREATED_AT"||
+    data.reportingTimeZone!=="UTC"||!Number.isFinite(Date.parse(data.asOf))||
+    typeof data.historyAvailable!=="boolean"||!Number.isSafeInteger(data.orderCount)||data.orderCount<0||
+    amounts.some(key=>data[key]!==null&&!Number.isSafeInteger(data[key])))throw Error("统计数据格式不正确");
+  if(data.historyAvailable&&["realizedPnlCents","dayRealizedPnlCents","monthRealizedPnlCents","positionCostCents"]
+    .some(key=>data[key]===null))throw Error("成本统计数据不完整");
+  accountAnalytics=data;accountAnalyticsState="ready";
+ }catch(error){
+  if(serial!==accountAnalyticsSerial||usedToken!==token)return;
+  accountAnalyticsState="error";accountAnalyticsError=error.message;
+ }finally{if(serial===accountAnalyticsSerial&&usedToken===token)render();}
+}
+el("refreshAnalyticsButton").addEventListener("click",()=>void refreshAccountAnalytics());
 function render() {
   renderMarkets();
   renderSymbols();
@@ -594,6 +655,7 @@ function render() {
   el("orderForm").querySelector('button[type="submit"]').disabled = !token || !account || !pricingConnected;
   renderRecords();
   renderTransactionHistory();
+  renderAccountAnalytics();
   renderWatchlistControl();
   renderChart();
   syncClientGate();
@@ -605,6 +667,7 @@ function resetClientSession(message){
   serviceRequests=[];serviceBusy=false;serviceFetchSequence++;
   customerCommoditySerial++;customerSupportSerial++;customerCommodityItems=[];
   customerSupportClosed=false;
+  accountAnalyticsSerial++;accountAnalytics=null;accountAnalyticsState="idle";accountAnalyticsError="";
   for(const id of ["serviceRequestHistory","customerCommodityItems","customerSupportMessages"])el(id).replaceChildren();
   for(const id of ["serviceRequestFeedback","customerCommodityStatus","customerSupportStatus","savedWatchlistFeedback",
     "watchlistFeedback","catalogFeedback","feedback"])el(id).textContent="";
@@ -647,6 +710,7 @@ async function refreshAccount() {
   if (!token) { account = null; lastSyncedAt = null; render(); return; }
   if (accountRefreshing) return;
   accountRefreshing = true;
+  accountAnalyticsSerial++;accountAnalytics=null;accountAnalyticsState="loading";accountAnalyticsError="";
   const requestedToken = token;
   render();
   try {
@@ -657,7 +721,7 @@ async function refreshAccount() {
     }
     account = data;
     lastSyncedAt = new Date();
-    await Promise.all([refreshWatchlist(),refreshCatalog(),refreshServiceRequests(),
+    await Promise.all([refreshWatchlist(),refreshCatalog(),refreshServiceRequests(),refreshAccountAnalytics(),
       refreshCustomerCommodities(),refreshCustomerSupport()]);
     if(requestedToken!==token)return;
     el("authFeedback").textContent = "账户数据已同步";

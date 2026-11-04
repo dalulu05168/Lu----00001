@@ -94,7 +94,7 @@
         <span class="status-chip" id="connectionStatus"><span class="status-dot"></span><span id="connectionText">连接检测中</span></span>
         <span class="clock" id="clock" aria-label="当前时间">—</span>
         <a href="#intelligence-section" class="header-action">Market Insights <span aria-hidden="true">↗</span></a>
-        <button class="primary-button export-button" id="exportHistoryButton" type="button" disabled>↓ Export History</button>
+        <button class="primary-button export-button" id="exportHistoryButton" type="button" disabled title="导出当前已加载并符合筛选条件的订单记录">↓ Export Loaded Records</button>
         <a href="#account-section" class="profile" aria-label="账户信息"><span class="profile-avatar">G</span><span class="profile-label"><span>Account</span></span><span class="chevron">⌄</span></a>
       </div>
     </header>
@@ -136,7 +136,8 @@
             <table class="transactions-table">
               <thead><tr><th>Symbol</th><th>Name</th><th>Type</th><th>Price</th><th>Quantity</th><th>Total (USD)</th><th>Record</th><th>Time</th></tr></thead>
               <tbody id="transactionRows"><tr><td colspan="8" class="transaction-empty">登录后查看账户交易记录</td></tr></tbody>
-            </table>
+          </table>
+          <p class="account-sync" id="transactionHistoryScope">登录后查看记录范围</p>
           </div>
           <div class="transaction-pagination">
             <div class="page-size-control"><label for="transactionPageSize">Rows</label><select id="transactionPageSize"><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option></select><span id="transactionPageSummary">0 records</span></div>
@@ -146,7 +147,7 @@
       </section>
 
       <section class="metrics" id="overview-metrics" aria-label="组合指标">
-        <article class="metric-card"><div class="metric-header"><span>Total Portfolio Value</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5 12 5l8 4.5-8 4.5L4 9.5zM4 14l8 4.5 8-4.5M4 18l8 4.5 8-4.5"/></svg></span></div><div class="metric-value" id="portfolioValue">—</div><p>暂无估值数据</p></article>
+        <article class="metric-card"><div class="metric-header"><span>Total Portfolio Value</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5 12 5l8 4.5-8 4.5L4 9.5zM4 14l8 4.5 8-4.5M4 18l8 4.5 8-4.5"/></svg></span></div><div class="metric-value" id="portfolioValue">—</div><p id="portfolioValueNote">暂无估值数据</p></article>
         <article class="metric-card"><div class="metric-header"><span>Daily P/L</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" aria-hidden="true"><path d="M4 20v-8M9 20V8M14 20V4M19 20v-11"/></svg></span></div><div class="metric-value">—</div><p>暂无盈亏数据</p></article>
         <article class="metric-card"><div class="metric-header"><span>Monthly Return</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 9 11l4 3 8-9M16 5h5v5"/></svg></span></div><div class="metric-value">—</div><p>月度回报暂无数据</p></article>
         <article class="metric-card"><div class="metric-header"><span>Dividend Income</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 6v12M15 9c-2-2-6-1-6 1s6 2 6 4-4 3-6 1"/></svg></span></div><div class="metric-value">—</div><p>暂无股息收入记录</p></article>
@@ -233,6 +234,17 @@
               <div><dt>现金余额</dt><dd><span id="accountCashValue">—</span> <small>USD</small></dd></div>
             </dl>
             <p class="account-sync" id="accountSyncedAt">尚未同步</p>
+            <section class="account-analytics" aria-label="账户记录统计">
+              <div class="account-summary-heading"><h3>账户记录统计 · USD</h3><button type="button" class="secondary-button" id="refreshAnalyticsButton">刷新统计</button></div>
+              <dl class="account-facts">
+                <div><dt>全历史买入金额</dt><dd id="analyticsBuyVolume">—</dd></div>
+                <div><dt>全历史卖出金额</dt><dd id="analyticsSellVolume">—</dd></div>
+                <div><dt>剩余持仓成本</dt><dd id="analyticsPositionCost">—</dd></div>
+                <div><dt>今日已实现毛盈亏 · UTC</dt><dd id="dayRealizedPnl">—</dd></div>
+                <div><dt>本月已实现毛盈亏 · UTC</dt><dd id="monthRealizedPnl">—</dd></div>
+              </dl>
+              <p class="account-sync" id="accountAnalyticsStatus" role="status" aria-live="polite">登录后读取统计</p>
+            </section>
           </section>
           <button class="secondary-button logout-button" type="button" id="logout" hidden>退出账户</button>
           <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>

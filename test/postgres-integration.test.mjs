@@ -150,6 +150,16 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const final = await request("/api/account", { token: tokenA });
     assert.equal(final.value.orders.length, 2);
     assert.equal(Number(final.value.positions[0].quantity), 1);
+    const analytics=await request("/api/account/analytics?accountId="+registerB.value.accountId,{token:tokenA});
+    assert.equal(analytics.status,200);
+    assert.equal(analytics.value.historyAvailable,true);
+    assert.equal(analytics.value.realizedPnlCents,2000);
+    assert.equal(analytics.value.positionCostCents,10000);
+    assert.equal(analytics.value.volumeCents,32000);
+    assert.equal(analytics.value.portfolioValueCents,null);
+    const emptyAnalytics=await request("/api/account/analytics",{token:tokenB});
+    assert.equal(emptyAnalytics.value.orderCount,0);
+    assert.equal(emptyAnalytics.value.realizedPnlCents,0);
     const ledger = await db.query("SELECT delta_cents,balance_after_cents FROM cash_ledger WHERE account_id=$1 ORDER BY id",
       [registerA.value.accountId]);
     assert.deepEqual(ledger.rows.map(row => Number(row.delta_cents)), [100000,-20000,12000]);
@@ -162,6 +172,58 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     await new Promise(resolve => app.close(resolve));
     await db.end();
   }
+});
+
+run("PostgreSQL: full-history analytics exceeds the 100-row account view and rejects incomplete cost histories",async()=>{
+  const db=new Pool({connectionString,max:4});
+  const app=createApi({db,resolveSession:createSessionResolver(db)});
+  await new Promise(resolve=>app.listen(0,"127.0.0.1",resolve));
+  const base="http://127.0.0.1:"+app.address().port;
+  const request=async(path,{token,body}={})=>{
+    const response=await fetch(base+path,{method:body?"POST":"GET",headers:{
+      ...(token?{authorization:"Bearer "+token}:{}),...(body?{"content-type":"application/json"}:{})},
+      ...(body?{body:JSON.stringify(body)}:{})});
+    return {status:response.status,data:await response.json()};
+  };
+  try{
+    const email="analytics-"+randomUUID()+"@example.test",password="local-analytics-password-2026";
+    const account=await request("/api/auth/register",{body:{email,password}});
+    assert.equal(account.status,201);
+    const accountId=account.data.accountId;
+    await db.query("UPDATE accounts SET cash_cents=100000 WHERE id=$1",[accountId]);
+    await db.query("INSERT INTO cash_ledger(account_id,delta_cents,balance_after_cents) VALUES($1,100000,100000)",[accountId]);
+    await placeInternalOrder(db,accountId,"analytics-initial-buy",{market:"US",symbol:"AAPL",side:"BUY",quantity:120,priceCents:100,fxUsdMicros:1000000},randomUUID());
+    for(let index=0;index<120;index++)await placeInternalOrder(db,accountId,"analytics-sale-"+index,
+      {market:"US",symbol:"AAPL",side:"SELL",quantity:1,priceCents:150,fxUsdMicros:1000000},randomUUID());
+    const login=await request("/api/auth/login",{body:{email,password}}),token=login.data.token;
+    assert.equal((await request("/api/account/analytics")).status,401);
+    const snapshot=await request("/api/account",{token});assert.equal(snapshot.data.orders.length,100);
+    const statistics=await request("/api/account/analytics",{token});
+    assert.equal(statistics.status,200);assert.equal(statistics.data.orderCount,121);
+    assert.equal(statistics.data.historyAvailable,true);assert.equal(statistics.data.realizedPnlCents,6000);
+    assert.equal(statistics.data.volumeCents,30000);assert.equal(statistics.data.portfolioValueCents,106000);
+    await placeInternalOrder(db,accountId,"analytics-lot-one",{market:"US",symbol:"AAPL",side:"BUY",quantity:1,priceCents:200,fxUsdMicros:1000000},randomUUID());
+    const secondLotId=randomUUID();
+    await placeInternalOrder(db,accountId,"analytics-lot-two",{market:"US",symbol:"AAPL",side:"BUY",quantity:1,priceCents:400,fxUsdMicros:1000000},secondLotId);
+    const finalSaleId=randomUUID();
+    await placeInternalOrder(db,accountId,"analytics-final-sale",{market:"US",symbol:"AAPL",side:"SELL",quantity:1,priceCents:300,fxUsdMicros:1000000},finalSaleId);
+    // Transaction timestamps may disagree with actual serialized ledger order.
+    await db.query("UPDATE orders SET created_at=now()-interval '1 hour' WHERE id=$1",[secondLotId]);
+    const ledgerOrdered=await request("/api/account/analytics",{token});
+    assert.equal(ledgerOrdered.data.historyAvailable,true);assert.equal(ledgerOrdered.data.realizedPnlCents,6100);
+    assert.equal(ledgerOrdered.data.positionCostCents,400);
+    await db.query("UPDATE positions SET quantity=2 WHERE account_id=$1 AND market='US' AND symbol='AAPL'",[accountId]);
+    const inconsistent=await request("/api/account/analytics",{token});
+    assert.equal(inconsistent.data.historyAvailable,false);
+    assert.equal(inconsistent.data.reason,"POSITION_HISTORY_MISMATCH");
+    assert.equal(inconsistent.data.realizedPnlCents,null);assert.equal(inconsistent.data.portfolioValueCents,null);
+    await db.query("UPDATE positions SET quantity=1 WHERE account_id=$1 AND market='US' AND symbol='AAPL'",[accountId]);
+    await db.query("UPDATE cash_ledger SET delta_cents=delta_cents+1 WHERE order_id=$1",[finalSaleId]);
+    const untrustedLedger=await request("/api/account/analytics",{token});
+    assert.equal(untrustedLedger.data.historyAvailable,false);
+    assert.equal(untrustedLedger.data.reason,"LEDGER_HISTORY_UNAVAILABLE");
+    assert.equal(untrustedLedger.data.realizedPnlCents,null);
+  }finally{await new Promise(resolve=>app.close(resolve));await db.end();}
 });
 
 run("Vercel serverless API adapter routes to real PostgreSQL", async () => {

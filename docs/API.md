@@ -63,3 +63,8 @@ Mirror response: `{client,account,positions,orders,watchlist,mode,checkedAt,disc
 ## Validation limits
 
 See `admin-integration-validation.md` for actual local tests and remaining visual/deployment acceptance. Process liveness, readiness, automated DOM checks, database tests and production acceptance are distinct. No deployment, DNS change or production-data write is part of this work.
+
+## Account-record analytics (2026-11-04)
+GET /api/account/analytics uses the authenticated customer account, ignores caller account identifiers, rejects administrator sessions, and returns no-store JSON. All reads share one repeatable-read read-only transaction. The response includes currency USD, method FIFO, basis INTERNAL_GROSS, orderBasis CASH_LEDGER_ID, periodBasis ORDER_CREATED_AT, reportingTimeZone UTC, asOf, historyAvailable/reason, orderCount/holdingCount, buyVolumeCents/sellVolumeCents/volumeCents, realizedPnlCents/dayRealizedPnlCents/monthRealizedPnlCents/positionCostCents and portfolioValueCents.
+
+FIFO requires matched same-account cash-ledger entries with increasing IDs and matching signed USD amounts. Incomplete or inconsistent history returns unavailable profit/cost values instead of invented results. Current portfolioValueCents is returned only for cash-only accounts; positions require a separate quote source. Day/month realized figures group by the stored order timestamp in UTC and exclude fees/taxes; they are not total daily portfolio P/L or monthly return. The existing /api/account order list remains capped at100 while analytics reads full history. See [actual tests and limits](account-analytics-validation.md).

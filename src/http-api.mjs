@@ -9,6 +9,7 @@ import {listWatchlist,addWatchlistItem,removeWatchlistItem} from "./watchlist-se
 import {submitClientRequest,listClientRequests} from "./operational-workflows.mjs";
 import {listCommodityProducts} from "./commodity-products.mjs";
 import {getCustomerSupport,sendCustomerSupportMessage} from "./support-messages.mjs";
+import {getAccountAnalytics} from "./account-analytics.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
 async function readBody(req,maxBodyBytes){
@@ -49,10 +50,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/account/analytics","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/account/analytics"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/requests"&&!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/commodities"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/support"&&!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
@@ -112,6 +114,10 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
     if([400,403,404,409].includes(err.statusCode))return send(res,err.statusCode,{error:err.message});
     return send(res,500,{error:"Internal server error"});
    }
+  }
+  if(route==="/api/account/analytics"){
+   try{return send(res,200,await getAccountAnalytics(db,session.accountId));}
+   catch(error){return send(res,error.statusCode===404?404:503,{error:"Account analytics unavailable"});}
   }
   if(route==="/api/account"){
    try{return send(res,200,await getAccountSnapshot(db,session.accountId));}
