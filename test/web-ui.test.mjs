@@ -62,7 +62,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("quotePrice").textContent, "—");
     assert.equal(el("performanceTitle").textContent,"Stock Chart / 股票走势");
     assert.equal(el("stockChart").querySelector("script"),null);
-    assert.match(el("stockChart").textContent,/走势图暂不可用/);
+    assert.match(el("stockChart").textContent,/登录后查看公开走势图/);
     assert.doesNotMatch(html,/TradingView|tradingview|在数据源查看/);
     assert.doesNotMatch(html,/登录后可保存自选股票/);
     assert.equal(el("connectionText").textContent, "账户已连接 · 行情待接入");
@@ -106,7 +106,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("symbolTitle").textContent,"AAPL");
     el("savedWatchlist").querySelector(".saved-watchlist-open").click();
     assert.equal(el("symbolTitle").textContent,"9988");
-    assert.equal(el("stockChart").querySelector("script"),null);
+    assert.equal(JSON.parse(el("stockChart").querySelector("script").textContent).symbol,"HKEX:9988");
     el("refreshWatchlistButton").click();
     await new Promise(resolve=>setTimeout(resolve,20));
     assert.equal(el("savedWatchlistCount").textContent,"1");

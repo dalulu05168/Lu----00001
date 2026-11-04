@@ -31,7 +31,7 @@ test("official widget is configured with the selected stock, attribution and no 
     assert.equal(first.src,TRADING_VIEW_WIDGET_SCRIPT);
     const settings=JSON.parse(first.textContent);
     assert.equal(settings.symbol,"NASDAQ:AAPL");
-    assert.equal(settings.theme,"light");
+    assert.equal(settings.theme,"dark");
     assert.equal(settings.interval,"D");
     assert.equal(settings.allow_symbol_change,false);
     assert.equal(host.querySelector(".tradingview-widget-container__widget").children.length,0);

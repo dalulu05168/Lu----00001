@@ -1,4 +1,5 @@
 import { summarizeMarketHoldings } from "./market-allocation.mjs";
+import { mountStockChart } from "./stock-chart.mjs";
 const MARKETS = [
   {code:"US",label:"美国市场",exchange:"NYSE / NASDAQ",currency:"USD",icon:"US",sub:"United States"},
   {code:"HK",label:"香港市场",exchange:"HKEX",currency:"HKD",icon:"HK",sub:"Hong Kong"},
@@ -32,10 +33,13 @@ let watchlistFetchSequence = 0;
 let catalog = [];
 let catalogLoaded = false;
 let catalogBusy = false;
+let catalogFetchSequence = 0;
+let serviceFetchSequence = 0;
 let transactionPage = 1;
 let transactionPageSize = 10;
 let serviceBusy=false,serviceRequests=[];
 let customerCommodityItems=[],customerCommoditySerial=0,customerSupportSerial=0;
+let customerSupportClosed=false;
 
 
 const money = cents => {
@@ -54,6 +58,22 @@ function makeEmpty(label) {
   node.className = "record-empty";
   node.textContent = label;
   return node;
+}
+function selectionInstruments(){
+  const published=catalogLoaded?catalog.filter(item=>item&&["STOCK","FUND"].includes(item.itemType)&&
+    MARKETS.some(m=>m.code===item.market)&&typeof item.symbol==="string"&&/^[A-Z0-9][A-Z0-9.-]{0,23}$/.test(item.symbol)&&
+    typeof item.name==="string"&&item.name.trim()):[];
+  const identities=new Set(published.map(item=>item.market+":"+item.symbol));
+  return [...published,...INSTRUMENTS.filter(item=>!identities.has(item.market+":"+item.symbol))];
+}
+function renderChart(){
+  const host=el("stockChart");
+  if(!token||!account){
+    host.replaceChildren(makeEmpty("登录后查看公开走势图"));delete host.dataset.chartSymbol;
+    host.classList.remove("chart--external");return;
+  }
+  host.classList.add("chart--external");
+  mountStockChart(host,selected);
 }
 function renderMarkets() {
   const allocation = summarizeMarketHoldings(account?.positions ?? null);
@@ -105,13 +125,13 @@ function renderMarkets() {
 function pickMarket(code) {
   if (!MARKETS.some(item => item.code === code)) return;
   market = code;
-  selected = INSTRUMENTS.find(item => item.market === code);
+  selected = selectionInstruments().find(item => item.market === code);
   el("search").value = "";
   render();
 }
 function renderSymbols() {
   const search = el("search").value.trim().toLocaleLowerCase();
-  const items = INSTRUMENTS.filter(item => item.market === market &&
+  const items = selectionInstruments().filter(item => item.market === market &&
     (item.symbol.toLowerCase().includes(search) || item.name.toLocaleLowerCase().includes(search)));
   if (!items.length) {
     const empty = document.createElement("div");
@@ -170,7 +190,7 @@ function renderSavedWatchlist() {
     const symbol=document.createElement("strong");
     symbol.textContent=item.symbol;
     const label=document.createElement("small");
-    label.textContent=INSTRUMENTS.find(s=>s.market===item.market&&s.symbol===item.symbol)?.name || "自选代码（未验证行情）";
+    label.textContent=selectionInstruments().find(s=>s.market===item.market&&s.symbol===item.symbol)?.name || "自选代码（未验证行情）";
     description.append(symbol,label);
     identity.append(description);
     const actions=document.createElement("div");
@@ -197,7 +217,7 @@ function renderSavedWatchlist() {
 function selectWatchlistInstrument(item) {
   if(!MARKETS.some(m=>m.code===item.market)||typeof item.symbol!=="string")return;
   market=item.market;
-  selected=INSTRUMENTS.find(s=>s.market===item.market&&s.symbol===item.symbol) ||
+  selected=selectionInstruments().find(s=>s.market===item.market&&s.symbol===item.symbol) ||
     {market:item.market,symbol:item.symbol,name:"自选代码（未验证行情）"};
   el("search").value="";
   el("watchlistFeedback").textContent="自选列表保存于当前账户";
@@ -285,24 +305,32 @@ function renderCatalog() {
     const desc=document.createElement("small");
     desc.textContent=item.market+":"+item.symbol+" · 证券资料";
     info.append(title,desc);
-    row.append(info);return row;
+    row.append(info);
+    if(["STOCK","FUND"].includes(item.itemType)&&MARKETS.some(m=>m.code===item.market)&&
+      typeof item.symbol==="string"&&/^[A-Z0-9][A-Z0-9.-]{0,23}$/.test(item.symbol)){
+      const view=document.createElement("button");view.type="button";view.className="secondary-button";
+      view.textContent="查看走势图";view.setAttribute("aria-label","查看 "+item.market+" "+item.symbol+" 走势图");
+      view.addEventListener("click",()=>selectWatchlistInstrument(item));row.append(view);
+    }
+    return row;
   });
   list.replaceChildren(...cards);
 }
 async function refreshCatalog() {
   if(!token){catalog=[];catalogLoaded=false;renderCatalog();return;}
-  const current=token;catalogBusy=true;renderCatalog();
+  const current=token,sequence=++catalogFetchSequence;catalogBusy=true;renderCatalog();
   try {
     const data=await request("/catalog");
-    if(current!==token)return;
+    if(current!==token||sequence!==catalogFetchSequence)return;
     if(!Array.isArray(data?.items))throw Error("证券资料目录格式异常");
     catalog=data.items;catalogLoaded=true;
+    selected=selectionInstruments().find(item=>item.market===selected.market&&item.symbol===selected.symbol)??selected;
     el("catalogFeedback").textContent="";
   }catch(error){
-    if(current!==token)return;
+    if(current!==token||sequence!==catalogFetchSequence)return;
     catalogLoaded=false;
     el("catalogFeedback").textContent=error.message;
-  }finally{catalogBusy=false;renderCatalog();}
+  }finally{if(sequence===catalogFetchSequence){catalogBusy=false;renderSymbols();renderChart();}}
 }
 function renderRecords() {
   const positions = Array.isArray(account?.positions) ? account.positions.filter(item =>
@@ -322,7 +350,7 @@ function renderRecords() {
     stock.className = "holding-company";
     const code = document.createElement("strong");
     code.textContent = item.symbol;
-    const name = textNode(INSTRUMENTS.find(s=>s.market === item.market && s.symbol === item.symbol)?.name || item.market + " MARKET","holding-name");
+    const name = textNode(selectionInstruments().find(s=>s.market === item.market && s.symbol === item.symbol)?.name || item.market + " MARKET","holding-name");
     stock.append(code,name);
     left.append(icon,stock);
     const right = document.createElement("div");
@@ -351,7 +379,7 @@ const TRANSACTION_RANGE_LABELS = Object.freeze({
   all:"All time", "7d":"Last 7 days", "30d":"Last 30 days", "90d":"Last 90 days"
 });
 function transactionName(item) {
-  return INSTRUMENTS.find(stock => stock.market === item.market && stock.symbol === item.symbol)?.name || "名称未登记";
+  return selectionInstruments().find(stock => stock.market === item.market && stock.symbol === item.symbol)?.name || "名称未登记";
 }
 function transactionPrice(item) {
   const marketInfo = MARKETS.find(entry => entry.code === item.market);
@@ -567,15 +595,36 @@ function render() {
   renderRecords();
   renderTransactionHistory();
   renderWatchlistControl();
+  renderChart();
   syncClientGate();
+}
+function resetClientSession(message){
+  sessionStorage.removeItem("gsp_token");token=null;account=null;lastSyncedAt=null;accountRefreshing=false;
+  watchlist=[];watchlistLoaded=false;watchlistBusy=false;watchlistFetching=false;watchlistFetchSequence++;
+  catalog=[];catalogLoaded=false;catalogBusy=false;catalogFetchSequence++;
+  serviceRequests=[];serviceBusy=false;serviceFetchSequence++;
+  customerCommoditySerial++;customerSupportSerial++;customerCommodityItems=[];
+  customerSupportClosed=false;
+  for(const id of ["serviceRequestHistory","customerCommodityItems","customerSupportMessages"])el(id).replaceChildren();
+  for(const id of ["serviceRequestFeedback","customerCommodityStatus","customerSupportStatus","savedWatchlistFeedback",
+    "watchlistFeedback","catalogFeedback","feedback"])el(id).textContent="";
+  for(const id of ["customerSupportText","fundingRequestAmount","bankRequestName","bankRequestLast4"])el(id).value="";
+  for(const id of ["startKycRequest","fundingRequestForm","bankLinkRequestForm","customerSupportForm"]){
+    const node=el(id);if(node.tagName==="BUTTON")node.disabled=false;
+    else node.querySelectorAll('button[type="submit"]').forEach(button=>button.disabled=false);
+  }
+  selected=INSTRUMENTS[0];market=selected.market;transactionPage=1;
+  el("authFeedback").textContent=message;el("entryFeedback").textContent=message;
+  render();
 }
 async function request(path,options = {}) {
   let result;
   let response;
+  const usedToken=Object.hasOwn(options,"token")?options.token:token;
   try {
     response = await fetch("/api" + path,{
       method:options.method || "GET",
-      headers:{"content-type":"application/json",...(token ? {authorization:"Bearer " + token} : {}),...(options.headers || {})},
+      headers:{"content-type":"application/json",...(usedToken ? {authorization:"Bearer " + usedToken} : {}),...(options.headers || {})},
       ...(options.body ? {body:JSON.stringify(options.body)} : {}),
       cache:"no-store"
     });
@@ -583,8 +632,11 @@ async function request(path,options = {}) {
   } catch {
     throw new Error("无法连接服务，请检查网络或部署状态");
   }
+  if(usedToken&&usedToken!==token&&path!=="/auth/logout")throw new Error("账户会话已变更");
   if (!response.ok) {
-    if (response.status === 503 && path !== "/orders") throw new Error("账户数据库尚未连接，登录服务暂不可用");
+    if(response.status===401&&usedToken&&usedToken===token&&!path.startsWith("/auth/"))
+      resetClientSession("账户认证失败或会话已失效，请重新登录");
+    if (response.status === 503 && ["/auth/login","/auth/register"].includes(path)) throw new Error("账户数据库尚未连接，登录服务暂不可用");
     if (response.status === 503 && path === "/orders") throw new Error("可信报价服务尚未接入，订单未执行");
     if (response.status === 401) throw new Error("账户认证失败或会话已失效");
     throw new Error(result.error || "请求失败（HTTP " + response.status + "）");
@@ -605,10 +657,9 @@ async function refreshAccount() {
     }
     account = data;
     lastSyncedAt = new Date();
-    await refreshWatchlist();
-    await refreshCatalog();
-    void refreshCustomerCommodities();
-    void refreshCustomerSupport();
+    await Promise.all([refreshWatchlist(),refreshCatalog(),refreshServiceRequests(),
+      refreshCustomerCommodities(),refreshCustomerSupport()]);
+    if(requestedToken!==token)return;
     el("authFeedback").textContent = "账户数据已同步";
   } catch(error) {
     if (requestedToken !== token) return;
@@ -616,18 +667,10 @@ async function refreshAccount() {
     lastSyncedAt = null;
     el("authFeedback").textContent = error.message;
     if (/认证失败|会话已失效/.test(error.message)) {
-      token = null;
-      watchlist = [];
-      watchlistLoaded = false;
-      watchlistFetchSequence++;
-      sessionStorage.removeItem("gsp_token");
-      serviceRequests=[];el("serviceRequestHistory").replaceChildren();
-    customerCommoditySerial++;customerSupportSerial++;customerCommodityItems=[];
-    el("customerCommodityItems").replaceChildren();el("customerSupportMessages").replaceChildren();
+      resetClientSession(error.message);
     }
   } finally {
-    accountRefreshing = false;
-    render();
+    if(requestedToken===token){accountRefreshing = false;render();}
   }
 }
 
@@ -806,18 +849,18 @@ function renderServiceRequests(){
 }
 async function refreshServiceRequests(){
  if(!token||!account)return;
- const usedToken=token;el("serviceRequestFeedback").textContent="正在读取已提交申请…";
+ const usedToken=token,sequence=++serviceFetchSequence;el("serviceRequestFeedback").textContent="正在读取已提交申请…";
  try{
   const categories=["FUNDING","KYC","BANK_LINK"];
   const results=await Promise.all(categories.map(category=>request("/requests?category="+category)));
-  if(usedToken!==token)return;
+  if(usedToken!==token||sequence!==serviceFetchSequence)return;
   serviceRequests=results.flatMap((x,i)=>(Array.isArray(x.items)?x.items:[]).map(item=>({
    ...item,category:categories[i]
   })));
   renderServiceRequests();
   el("serviceRequestFeedback").textContent="已同步 "+serviceRequests.length+" 条申请。记录不代表实际收付款或核验通过。";
  }catch(error){
-  if(usedToken===token)el("serviceRequestFeedback").textContent="申请列表读取失败："+error.message;
+  if(usedToken===token&&sequence===serviceFetchSequence)el("serviceRequestFeedback").textContent="申请列表读取失败："+error.message;
  }
 }
 function validateUsdCents(input){
@@ -838,9 +881,9 @@ async function submitService(category,body,button){
   if(usedToken!==token)return false;
   el("serviceRequestFeedback").textContent="申请 "+String(item.id).slice(0,8)+" 已提交。尚无实际资金划转或第三方验证。";
   await refreshServiceRequests();
-  return true;
- }catch(error){el("serviceRequestFeedback").textContent="申请未提交："+error.message;return false;}
- finally{serviceBusy=false;button.disabled=false;}
+  return usedToken===token;
+ }catch(error){if(usedToken===token)el("serviceRequestFeedback").textContent="申请未提交："+error.message;return false;}
+ finally{if(usedToken===token){serviceBusy=false;button.disabled=false;}}
 }
 
 function customerCommodityCard(item){
@@ -892,6 +935,7 @@ async function refreshCustomerSupport(){
    box.append(content,from);root.append(box);
   }
   const closed=response.thread?.status==="CLOSED";
+  customerSupportClosed=closed;
   el("customerSupportForm").querySelector('button[type="submit"]').disabled=closed;
   el("customerSupportStatus").textContent=closed
    ?"当前会话已关闭，发送新消息前请联系客服重新开启"
@@ -913,10 +957,11 @@ el("customerSupportForm").addEventListener("submit",async event=>{
   if(tokenAtSend!==token)return;
   el("customerSupportText").value="";
   await refreshCustomerSupport();
-  el("customerSupportStatus").textContent="客服消息已提交并保存";
+  if(tokenAtSend!==token)return;
+  if(!customerSupportClosed)el("customerSupportStatus").textContent="客服消息已提交并保存";
  }catch(error){
   if(tokenAtSend===token)el("customerSupportStatus").textContent="发送失败："+error.message;
- }finally{button.disabled=false;}
+ }finally{if(tokenAtSend===token)button.disabled=customerSupportClosed;}
 });
 
 el("refreshServiceRequests").addEventListener("click",()=>{void refreshServiceRequests()});
@@ -946,26 +991,13 @@ el("railLogout").addEventListener("click",() => {
 });
 el("logout").addEventListener("click",async () => {
   if (!token) return;
+  const expiredToken=token;
+  resetClientSession("已退出账户");
   el("logout").disabled = true;
   try {
-    await request("/auth/logout",{method:"POST"});
-    sessionStorage.removeItem("gsp_token");
-    token = null;
-    account = null;
-    lastSyncedAt = null;
-    watchlist = [];
-    watchlistLoaded = false;
-    watchlistFetchSequence++;
-    catalog=[];
-    catalogLoaded=false;
-    serviceRequests=[];el("serviceRequestHistory").replaceChildren();
-    customerCommoditySerial++;customerSupportSerial++;customerCommodityItems=[];
-    el("customerCommodityItems").replaceChildren();el("customerSupportMessages").replaceChildren();
-    el("savedWatchlistFeedback").textContent="";
-    el("authFeedback").textContent = "已退出账户";
-    render();
+    await request("/auth/logout",{method:"POST",token:expiredToken});
   } catch(error) {
-    el("authFeedback").textContent = error.message;
+    if(!token)el("entryFeedback").textContent="本机已退出；服务端会话撤销未确认，请稍后重试或等待会话到期";
   } finally {el("logout").disabled = false;}
 });
 el("orderForm").addEventListener("submit",async event => {

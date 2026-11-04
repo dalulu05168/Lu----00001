@@ -28,3 +28,6 @@ Ordinary CI and local tests skip `test/live-site-api.test.mjs`. There is no defa
 ## Acceptance
 
 See `admin-integration-validation.md`. Successful local tests do not prove that a deployed service, native mobile build, real browser rendering, broker integration or real funds flow has been accepted. No changes are pushed or deployed by these instructions.
+
+## Frontend API and public chart completion (2026-11-04)
+Customer account synchronization now loads every existing business module, including request history, and clears the session on any protected-route 401. Published securities feed instrument selection and display names. The authenticated frontend mounts the official public chart for mapped symbols; no iframe price is used for orders. See [validation and remaining data-source gaps](client-api-chart-validation.md).

@@ -28,7 +28,7 @@ test("Node server serves every module needed by the login experience",async()=>{
   await new Promise(resolve=>app.listen(0,"127.0.0.1",resolve));
   try{
     const base="http://127.0.0.1:"+app.address().port;
-    for(const path of ["/","/app.mjs","/portal.mjs","/styles.css","/portal.css","/market-allocation.mjs","/favicon.svg"]){
+    for(const path of ["/","/app.mjs","/stock-chart.mjs","/portal.mjs","/styles.css","/portal.css","/market-allocation.mjs","/favicon.svg"]){
       const response=await fetch(base+path);
       assert.equal(response.status,200,path+" must be served");
       if(path.endsWith(".mjs"))assert.match(response.headers.get("content-type"),/javascript/);

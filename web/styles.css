@@ -404,7 +404,7 @@ body{min-width:320px}
 .chart-empty-graphic{background:#25282c;border-color:#3b4046;color:#92979e}
 .chart-empty>span:nth-child(2){color:#dfe2e5}
 .chart-empty small{color:#858c93}
-.chart--external{background:#1b1e21;border-color:#363a3f}
+.chart.chart--external{background:#1b1e21;border-color:#363a3f}
 .chart--external .tradingview-widget-copyright{background:#1b1e21;color:#92979e}
 .chart--external .tradingview-widget-copyright a{color:#d9dde0}
 .chart--external .stock-chart-loading{background:#1b1e21;color:#92979e}
