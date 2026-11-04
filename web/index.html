@@ -178,6 +178,12 @@
           <div class="chart chart--unavailable" id="stockChart" role="region" aria-label="股票历史走势图">
             <div class="stock-chart-empty">历史走势图暂不可用</div>
           </div>
+          <section aria-label="日参考汇率">
+            <p id="referenceFxStatus" role="status">正在读取日参考汇率…</p>
+            <p id="referenceFxRates"></p>
+            <p class="chart-source">按 ECB 的 EUR 基准计算 USD 交叉汇率，仅供参考，不用于订单或结算。<a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank" rel="noopener noreferrer">来源：ECB（免费获取）</a></p>
+            <button type="button" class="secondary-button" id="refreshReferenceFx">刷新汇率</button>
+          </section>
           <p id="watchlistFeedback" class="watchlist-feedback" role="status" aria-live="polite"></p>
           <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
         </section>

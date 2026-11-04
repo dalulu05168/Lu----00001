@@ -1,3 +1,4 @@
+import {createReferenceFx} from './reference-fx.mjs';
 import { isDatabaseReady } from "./readiness.mjs";
 import {handleAdminApi} from "./admin-http.mjs";
 import { createServer } from "node:http";
@@ -23,7 +24,7 @@ async function readBody(req,maxBodyBytes){
  return payload;
 }
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
-export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192}){
+export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192,referenceFx=createReferenceFx()}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
@@ -43,6 +44,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    catch{return send(res,503,{status:"not_ready",database:"unavailable",brokerConnected:false});}
   }
   const route=url.pathname;
+  if(route==="/api/reference-fx"){
+   if(req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+   try{return send(res,200,await referenceFx());}
+   catch{return send(res,503,{error:"Reference FX unavailable"});}
+  }
   if(await handleAdminApi(req,res,route,db,resolveSession))return;
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
