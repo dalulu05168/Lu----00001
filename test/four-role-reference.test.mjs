@@ -38,7 +38,7 @@ test('real admin layout preserves secure flows and separates capabilities',()=>{
   for(const page of ['dashboard','clients','catalog','approvals','treasury','risk','audit'])assert.match(admin,new RegExp('data-pane="'+page+'"'));
   for(const id of ['workflowCategory','workflowRefresh','workflowReviewForm','workflowDecision','workflowReason','fundingRequestRows'])
     assert.match(admin,new RegExp('id="'+id+'"'));
-  assert.match(admin,/审核不执行资金划转/);
+  assert.match(admin,/资金同意后更新平台内部余额，不执行银行付款/);
   assert.match(admin,/不代表银行支付流水或真实资金余额/);
   assert.doesNotMatch(admin,/后端没有资金申请|adminOtp|activateForm|6 位动态验证码|TOTP/);
   assert.match(css,/h1,h2,h3\{font-weight:650/);
