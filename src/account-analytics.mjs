@@ -110,17 +110,42 @@ export async function getAccountAnalytics(db,accountId,{now}={}){
   await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");active=true;
   const account=await client.query("SELECT cash_cents,clock_timestamp() AS as_of FROM accounts WHERE id=$1",[accountId]);
   if(account.rows.length!==1)throw Object.assign(new Error("Account not found"),{statusCode:404});
-  const positions=await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1 AND quantity>0 "+
-   "UNION ALL SELECT 'PRODUCT',terms_id::text,quantity FROM internal_product_positions WHERE account_id=$1",[accountId]);
+  const positions=await client.query(`WITH active_lots AS (
+    SELECT p.id,p.terms_id,p.quantity FROM fund_maturities m JOIN internal_purchases p ON p.id=m.purchase_id
+    WHERE p.account_id=$1 AND m.settled_at IS NULL
+    UNION ALL
+    SELECT p.id,p.terms_id,(p.quantity-COALESCE(s.quantity,0))::bigint FROM internal_purchases p
+    LEFT JOIN LATERAL (SELECT sum(quantity) AS quantity FROM internal_stock_sale_lots WHERE purchase_id=p.id) s ON true
+    WHERE p.account_id=$1 AND p.item_type='STOCK' AND p.quantity>COALESCE(s.quantity,0)
+   )
+   SELECT market,symbol,quantity FROM positions WHERE account_id=$1 AND quantity>0
+   UNION ALL SELECT 'PRODUCT',v.terms_id::text,(v.quantity-COALESCE(f.quantity,0))::bigint
+    FROM internal_product_positions v
+    LEFT JOIN (SELECT terms_id,sum(quantity) AS quantity FROM active_lots GROUP BY terms_id) f USING (terms_id)
+    WHERE v.account_id=$1 AND v.quantity<>COALESCE(f.quantity,0)
+   UNION ALL SELECT 'PRODUCT',id::text,quantity FROM active_lots`,[accountId]);
   const orders=await client.query("SELECT o.market,o.symbol,o.side,o.quantity,o.amount_usd_cents,o.created_at,"+
-   "l.id AS ledger_sequence,l.delta_cents AS ledger_delta_cents FROM orders o "+
+   "l.id::numeric*1000001 AS ledger_sequence,l.delta_cents AS ledger_delta_cents,'order:'||o.id::text AS record_key FROM orders o "+
    "LEFT JOIN cash_ledger l ON l.order_id=o.id AND l.account_id=o.account_id "+
    "WHERE o.account_id=$1 UNION ALL "+
-   "SELECT 'PRODUCT',p.terms_id::text,'BUY',p.quantity,p.total_cents,p.created_at,l.id,l.delta_cents "+
-   "FROM internal_purchases p LEFT JOIN cash_ledger l ON l.internal_purchase_id=p.id AND l.account_id=p.account_id "+
-   "WHERE p.account_id=$1 ORDER BY ledger_sequence ASC NULLS LAST",[accountId]);
+   "SELECT 'PRODUCT',(CASE WHEN p.item_type='STOCK' OR m.purchase_id IS NOT NULL THEN p.id ELSE p.terms_id END)::text,'BUY',p.quantity,p.total_cents,p.created_at,l.id::numeric*1000001,l.delta_cents,'buy:'||p.id::text "+
+   "FROM internal_purchases p LEFT JOIN fund_maturities m ON m.purchase_id=p.id "+
+   "LEFT JOIN cash_ledger l ON l.internal_purchase_id=p.id AND l.account_id=p.account_id "+
+   "WHERE p.account_id=$1 UNION ALL "+
+   "SELECT 'PRODUCT',p.id::text,'SELL',p.quantity,p.total_cents+m.profit_cents,m.settled_at,l.id::numeric*1000001,l.delta_cents,'maturity:'||p.id::text "+
+   "FROM fund_maturities m JOIN internal_purchases p ON p.id=m.purchase_id "+
+   "LEFT JOIN cash_ledger l ON l.fund_maturity_id=p.id AND l.account_id=p.account_id "+
+   "WHERE p.account_id=$1 AND m.settled_at IS NOT NULL UNION ALL "+
+   "SELECT 'PRODUCT',v.purchase_id::text,'SELL',v.quantity,s.unit_price_cents*v.quantity,s.created_at,"+
+   "l.id::numeric*1000001+row_number() OVER (PARTITION BY s.id ORDER BY v.purchase_id),"+
+   "CASE WHEN l.delta_cents=s.total_cents AND sum(v.quantity) OVER (PARTITION BY s.id)=s.quantity "+
+   "THEN s.unit_price_cents*v.quantity END,'sale:'||s.id::text FROM internal_stock_sales s "+
+   "JOIN internal_stock_sale_lots v ON v.sale_id=s.id "+
+   "LEFT JOIN cash_ledger l ON l.internal_stock_sale_id=s.id AND l.account_id=s.account_id "+
+   "WHERE s.account_id=$1 ORDER BY ledger_sequence ASC NULLS LAST",[accountId]);
   const result=calculateAccountAnalytics({cashCents:account.rows[0].cash_cents,positions:positions.rows,orders:orders.rows,
    now:now??account.rows[0].as_of??new Date()});
+  if(orders.rows.every(row=>row.record_key))result.orderCount=new Set(orders.rows.map(row=>row.record_key)).size;
   await client.query("COMMIT");active=false;return result;
  }catch(error){if(active)await client.query("ROLLBACK");throw error;}
  finally{client.release();}

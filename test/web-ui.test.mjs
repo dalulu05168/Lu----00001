@@ -43,7 +43,10 @@ test("trading terminal renders, switches markets, and handles account session wi
         return json(200,{item});
       }
       if (url === "/api/catalog") return json(200,{items:[{id:"test",itemType:"IPO",market:"US",symbol:"TESTIPO",name:"IPO资料"}]});
-      if (url === "/api/internal-products") return json(200,{items:[]});
+      if (url === "/api/internal-products") return json(200,{items:[
+        {itemType:"FUND",name:"测试基金",code:"FUND30",internalPriceCents:10000,discountBps:1000,minimumQuantity:1,
+          unit:"份",fundDays:30,fundReturnBps:500,fundImageUrl:"https://example.test/fund.jpg"}
+      ]});
       if (url === "/api/internal-purchases") return json(200,{positions:[{code:"GOLD",name:"测试黄金",quantity:"3",cost_cents:"12300"}],purchases:[{product_code:"GOLD",product_name:"测试黄金",quantity:"3",unit_price_cents:"4100",total_cents:"12300",created_at:"2026-11-04T12:00:00Z"}]});
       if (url === "/api/account") return json(200, {
         account: { id: "account-1", cashCents: 125000, currency: "USD" },
@@ -97,6 +100,9 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("positions").querySelectorAll(".holding-company").length, 2);
     assert.equal(el("positions").querySelector(".holding-name").textContent, "Apple Inc.");
     assert.equal(el("accountStatus").textContent, "已连接");
+    el("tradeCategories").querySelector('[data-trade-category="FUND"]').click();
+    assert.match(el("internalProductsItems").textContent,/测试基金.*持有 30 天.*固定收益 5%.*到期返还 \$94\.50/);
+    assert.equal(el("internalProductsItems").querySelector("img").getAttribute("referrerpolicy"),"no-referrer");
     assert.equal(el("watchlistToggle").disabled, false);
     assert.match(el("watchlistToggle").textContent, /加入自选/);
     el("watchlistToggle").click();

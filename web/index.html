@@ -59,7 +59,7 @@
 
   <details class="sidebar-section" open><summary class="sidebar-section-title">RESEARCH & DATA</summary>
     <nav class="sidebar-nav" aria-label="研究与数据导航">
-      <a class="sidebar-link" href="#internalProductsPanel"><span>产品购买</span></a>
+      <a class="sidebar-link" href="#internalProductsPanel"><span>大宗交易</span></a>
       <a class="sidebar-link" href="#serviceRequestsPanel"><span>申请与审核记录</span></a>
       <a class="sidebar-link" href="#commodityCatalogPanel"><span>商品目录</span></a>
       <a class="sidebar-link" href="#customerSupportPanel"><span>客户客服</span></a>
@@ -242,7 +242,7 @@
               <div class="account-summary-heading"><h3>账户记录统计 · USD</h3><button type="button" class="secondary-button" id="refreshAnalyticsButton">刷新统计</button></div>
               <dl class="account-facts">
                 <div><dt>全历史买入金额</dt><dd id="analyticsBuyVolume">—</dd></div>
-                <div><dt>全历史卖出金额</dt><dd id="analyticsSellVolume">—</dd></div>
+                <div><dt>全历史卖出与到期返还</dt><dd id="analyticsSellVolume">—</dd></div>
                 <div><dt>剩余持仓成本</dt><dd id="analyticsPositionCost">—</dd></div>
                 <div><dt>今日已实现毛盈亏 · UTC</dt><dd id="dayRealizedPnl">—</dd></div>
                 <div><dt>本月已实现毛盈亏 · UTC</dt><dd id="monthRealizedPnl">—</dd></div>
@@ -255,8 +255,14 @@
         </div>
         <div class="panel order-panel">
           <section id="internalProductsPanel" hidden aria-labelledby="internalProductsTitle">
-       <div class="panel-heading"><h2 id="internalProductsTitle">产品购买</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品</button></div>
+       <div class="panel-heading"><h2 id="internalProductsTitle">大宗交易</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品</button></div>
        <p class="chart-source">股票、基金、IPO 和大宗商品均以 USD 计价。购买后可在交易明细和持仓中查看记录。</p>
+       <div id="tradeCategories" class="trade-categories" aria-label="大宗交易分类">
+        <button type="button" class="secondary-button" data-trade-category="STOCK" aria-pressed="true">股票</button>
+        <button type="button" class="secondary-button" data-trade-category="FUND" aria-pressed="false">基金</button>
+        <button type="button" class="secondary-button" data-trade-category="IPO" aria-pressed="false">IPO</button>
+        <button type="button" class="secondary-button" data-trade-category="COMMODITY" aria-pressed="false">大宗商品</button>
+       </div>
        <p id="internalProductsStatus" role="status"></p><div id="internalProductsItems" class="internal-products-grid"></div>
       </section>
           <form id="orderForm" hidden>

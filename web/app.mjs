@@ -42,6 +42,9 @@ let transactionPageSize = 10;
 let serviceBusy=false,serviceRequests=[];
 let internalProductsSerial=0,internalPurchaseBusy=false,internalPurchaseKeys=new Map();
 let internalHoldings=[];
+let tradeProducts=[],tradeCategory="STOCK";
+let stockTradingConfigured=false;
+const stockSaleKeys=new Map();
 let productOrders=[];
 let internalHoldingsUnavailable=false;
 let privateDataReady=false,privateDataSerial=0;
@@ -345,6 +348,53 @@ async function refreshCatalog() {
     el("catalogFeedback").textContent=error.message;
   }finally{if(sequence===catalogFetchSequence){catalogBusy=false;renderSymbols();renderChart();}}
 }
+function stockSaleForm(item){
+ const form=document.createElement("form");form.className="stock-sale-form";
+ const available=Number(item.unlocked_quantity??0);
+ if(item.manually_locked||item.market!=="US"||available<1||!stockTradingConfigured){
+  form.append(textNode(item.manually_locked?"已人工锁仓":item.market!=="US"?"该市场暂未开放实时卖出":
+    available<1?"持有期未满":"美股实时卖出暂停 · 等待行情授权"));return form;
+ }
+ const label=document.createElement("label");label.textContent="卖出数量";
+ const quantity=document.createElement("input");
+ Object.assign(quantity,{type:"number",min:"1",max:String(Math.min(1000000,available)),step:"1",value:"1",required:true});
+ label.append(quantity);
+ const preview=textNode("可卖 "+available+" 股","");preview.setAttribute("role","status");
+ const refresh=document.createElement("button");refresh.type="button";refresh.textContent="获取卖出报价";
+ const submit=document.createElement("button");submit.type="submit";submit.textContent="确认卖出";submit.disabled=true;
+ let quote=null,busy=false;
+ const update=()=>{
+  const amount=Number(quantity.value)*(quote?.priceCents??0);
+  const valid=Boolean(quote)&&quantity.validity.valid&&Number.isSafeInteger(amount)&&amount>0;
+  submit.disabled=!valid||busy;
+  if(valid)preview.textContent="每股 $"+money(quote.priceCents)+" · 预计到账 $"+money(amount)+" USD · "+transactionTime(quote.timestampMs);
+ };
+ quantity.addEventListener("input",update);
+ refresh.addEventListener("click",async()=>{
+  if(busy)return;
+  quote=null;submit.disabled=true;refresh.disabled=true;preview.textContent="正在获取实时卖出报价…";
+  const usedToken=token;
+  try{const result=await request("/stock-quote?market=US&symbol="+encodeURIComponent(item.symbol));
+   if(usedToken===token&&form.isConnected){quote=result;update();}
+  }catch{if(usedToken===token)preview.textContent="实时股价暂不可用。";}
+  finally{refresh.disabled=false;}
+ });
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  if(!token||!quote||busy||!form.reportValidity())return;
+  const usedToken=token,n=Number(quantity.value),fingerprint=item.symbol+":"+n;
+  const key=stockSaleKeys.get(fingerprint)??crypto.randomUUID();stockSaleKeys.set(fingerprint,key);
+  busy=true;submit.disabled=true;refresh.disabled=true;
+  try{
+   await request("/internal-purchases",{method:"PATCH",headers:{"idempotency-key":key},
+    body:{symbol:item.symbol,quantity:n,confirmedStockPriceCents:quote.priceCents}});
+   if(usedToken===token){stockSaleKeys.delete(fingerprint);await refreshAccount();}
+  }catch(error){
+   if(usedToken===token){quote=null;preview.textContent="未确认卖出："+error.message+"。请刷新报价后重试。";}
+  }finally{busy=false;refresh.disabled=false;update();}
+ });
+ form.append(label,refresh,submit,preview);return form;
+}
 function renderRecords() {
   const positions = Array.isArray(account?.positions) ? account.positions.filter(item =>
     item && MARKETS.some(m => m.code === item.market) && typeof item.symbol === "string" &&
@@ -378,8 +428,9 @@ function renderRecords() {
     const row=document.createElement('div');row.className='record-item holding-row';
     const identity=document.createElement('div');identity.className='holding-company';
     identity.append(textNode(item.name),textNode(item.code+' · 持仓成本 $'+money(item.cost_cents),'holding-name'));
-    row.append(identity,textNode(String(item.quantity)+' 份','holding-quantity-value'));
+    row.append(identity,textNode(String(item.quantity)+(item.item_type==="STOCK"?' 股':' 份'),'holding-quantity-value'));
     posRows.push(row);
+    if(item.item_type==="STOCK")posRows.push(stockSaleForm(item));
   }
   if(account&&internalHoldingsUnavailable)posRows.push(makeEmpty('部分持仓读取失败，请刷新账户数据'));
   el("positions").replaceChildren(...(posRows.length ? posRows : [makeEmpty(account ? "暂无持仓记录" : "登录后查看当前持仓")]));
@@ -515,7 +566,7 @@ function renderTransactionHistory() {
     }
     if(accountAnalytics.historyAvailable){
       el("realizedPnl").textContent="$"+money(accountAnalytics.realizedPnlCents);
-      el("realizedPnlNote").textContent="FIFO 已实现毛盈亏 · 按有卖出记录的订单计算 · 未扣手续费及税费";
+      el("realizedPnlNote").textContent="FIFO 已实现毛盈亏 · 含卖出与基金到期结算 · 未扣手续费及税费";
     }else el("realizedPnlNote").textContent=ANALYTICS_REASONS[accountAnalytics.reason]??"完整成本记录不可用";
   }
   el("internalRecordCount").textContent = account ? String(transactionOrderCount(allOrders.length)) : "—";
@@ -570,7 +621,7 @@ function renderTransactionHistory() {
       name.className = "transaction-name-cell";
       name.textContent = transactionName(item);
       const side = document.createElement("td");
-      const sideLabel = textNode(item.side === "BUY" ? "↑ Buy" : item.side === "SELL" ? "↓ Sell" : "—",
+      const sideLabel = textNode(item.side === "BUY" ? "↑ Buy" : item.side === "SELL" ? "↓ Sell" : item.side==="REDEEM"?"到期返还":"—",
         item.side === "BUY" ? "transaction-side side-buy" : item.side === "SELL" ? "transaction-side side-sell" : "transaction-side");
       side.append(sideLabel);
       const price = document.createElement("td");
@@ -582,7 +633,7 @@ function renderTransactionHistory() {
       amount.className = "transaction-amount-cell";
       amount.textContent = transactionAmount(item);
       const status = document.createElement("td");
-      status.append(textNode("已记录","record-status internal-status"));
+      status.append(textNode(item.settled_at?"已返还":item.due_at?"持有中 · "+transactionTime(item.due_at):"已记录","record-status internal-status"));
       const time = document.createElement("td");
       time.className = "transaction-time-cell";
       time.textContent = transactionTime(item.created_at);
@@ -1161,6 +1212,8 @@ void refreshReferenceFx();
 
 function clearInternalProducts(){
  internalHoldings=[];productOrders=[];internalHoldingsUnavailable=false;
+ tradeProducts=[];tradeCategory="STOCK";stockTradingConfigured=false;
+ stockSaleKeys.clear();
  internalProductsSerial++;internalPurchaseBusy=false;internalPurchaseKeys.clear();
  el('internalProductsPanel').hidden=true;
  el('internalProductsItems').replaceChildren();
@@ -1169,25 +1222,61 @@ function clearInternalProducts(){
 function internalProductCard(item){
  const card=document.createElement('article');card.className='internal-product-card';
  const title=document.createElement('h3');title.textContent=item.name+' · '+item.code;
- const detail=document.createElement('p');const discounted=Number((BigInt(item.internalPriceCents)*BigInt(10000-item.discountBps)+5000n)/10000n);
+ if(item.itemType==="FUND"&&item.fundImageUrl){
+  const cover=document.createElement("img");cover.className="fund-cover";cover.alt="";
+  cover.loading="lazy";cover.setAttribute("referrerpolicy","no-referrer");cover.src=item.fundImageUrl;
+  cover.addEventListener("error",()=>cover.remove(),{once:true});card.append(cover);
+ }
+ const detail=document.createElement('p'),stock=item.itemType==="STOCK";
+ let stockQuote=null;
+ const discounted=()=>Number((BigInt(stock?(stockQuote?.priceCents??0):item.internalPriceCents)*BigInt(10000-item.discountBps)+5000n)/10000n);
  const types={STOCK:'股票',FUND:'基金',IPO:'IPO',COMMODITY:'大宗商品'};
- detail.textContent=(types[item.itemType]??item.itemType)+' · 原价 $'+money(item.internalPriceCents)+' / '+item.unit+' · 优惠 '+(item.discountBps/100)+'% · 购买单价 $'+money(discounted);
+ detail.textContent=stock?'股票 · 优惠 '+(item.discountBps/100)+'% · 买入后持有 '+(item.stockHoldingDays??0)+' 天':
+  (types[item.itemType]??item.itemType)+' · 原价 $'+money(item.internalPriceCents)+' / '+item.unit+' · 优惠 '+(item.discountBps/100)+'% · 购买单价 $'+money(discounted());
  const form=document.createElement('form');form.autocomplete='off';
  const qtyLabel=document.createElement('label');qtyLabel.textContent='参与数量（最低'+item.minimumQuantity+'）';
  const qty=document.createElement('input');qty.type='number';qty.min=String(item.minimumQuantity);qty.max='1000000';qty.step='1';qty.value=String(item.minimumQuantity);qty.required=true;qtyLabel.append(qty);
  const pinLabel=document.createElement('label');pinLabel.textContent='六位商品参与密码';
  const pin=document.createElement('input');pin.type='password';pin.inputMode='numeric';pin.pattern='[0-9]{6}';pin.minLength=6;pin.maxLength=6;pin.autocomplete='off';pin.required=true;pinLabel.append(pin);
+ const fund=item.itemType==="FUND"&&Number.isInteger(item.fundDays);
  const total=document.createElement('output');const updateTotal=()=>{
-  const n=Number(qty.value);total.textContent=Number.isSafeInteger(n)&&n>=item.minimumQuantity&&n<=1000000?'实付 $'+money(discounted*n)+' USD':'请输入有效数量';
+  if(stock&&!stockQuote){total.textContent="请先获取实时股价";return;}
+  const n=Number(qty.value),amount=discounted()*n;
+  const valid=Number.isSafeInteger(n)&&n>=item.minimumQuantity&&n<=1000000&&Number.isSafeInteger(amount)&&amount>0;
+  total.textContent=valid?'实付 $'+money(amount)+' USD':'请输入有效数量';
+  if(fund&&valid){
+   const profit=(BigInt(amount)*BigInt(item.fundReturnBps)+5000n)/10000n;
+   if(BigInt(amount)+profit<=BigInt(Number.MAX_SAFE_INTEGER))total.append(' · 到期返还 $'+money(amount+Number(profit))+' USD');
+  }
  };qty.addEventListener('input',updateTotal);updateTotal();
  const button=document.createElement('button');button.type='submit';button.className='primary-button';button.textContent='确认购买';
+ if(stock){
+  button.disabled=true;
+  const refresh=document.createElement("button");refresh.type="button";refresh.className="secondary-button";refresh.textContent="获取实时股价";
+  refresh.disabled=item.market!=="US"||!stockTradingConfigured;
+  if(refresh.disabled)detail.append(item.market!=="US"?" · 该市场暂未开放实时交易":" · 美股实时买入暂停，等待行情授权");
+  refresh.addEventListener("click",async()=>{
+   const usedToken=token;stockQuote=null;button.disabled=true;refresh.disabled=true;updateTotal();
+   try{
+    const quote=await request("/stock-quote?market=US&symbol="+encodeURIComponent(item.code));
+    if(token!==usedToken||!card.isConnected)return;
+    stockQuote=quote;button.disabled=false;
+    detail.textContent="每股 $"+money(quote.priceCents)+" · 优惠 "+(item.discountBps/100)+"% · 折后 $"+money(discounted())+" · "+transactionTime(quote.timestampMs);
+   }catch{if(token===usedToken)detail.textContent="实时报价暂不可用，请稍后刷新。";}
+   finally{refresh.disabled=false;updateTotal();}
+  });
+  form.append(refresh);
+ }
  const feedback=document.createElement('small');feedback.setAttribute('role','status');
- form.append(qtyLabel,pinLabel,total,button,feedback);card.append(title,detail,form);
+ form.append(qtyLabel,pinLabel,total,button,feedback);card.append(title,detail);
+ if(fund)card.append(textNode('持有 '+item.fundDays+' 天 · 期间固定收益 '+(item.fundReturnBps/100)+'% · 到期一次返还本金与收益',''));
+ card.append(form);
  form.addEventListener('submit',async event=>{
-  event.preventDefault();if(!token||!account||internalPurchaseBusy)return;
+  event.preventDefault();if(!token||!account||internalPurchaseBusy||(stock&&!stockQuote))return;
   const usedToken=token,quantity=Number(qty.value),fingerprint=item.termsId+':'+item.termsVersion+':'+quantity;
   const key=internalPurchaseKeys.get(fingerprint)??crypto.randomUUID();internalPurchaseKeys.set(fingerprint,key);
   const body={termsId:item.termsId,termsVersion:item.termsVersion,quantity,participationPassword:pin.value};pin.value='';
+  if(stock)body.confirmedStockPriceCents=stockQuote.priceCents;
   internalPurchaseBusy=true;button.disabled=true;feedback.textContent='正在处理购买…';
   try{
    const result=await request('/internal-purchases',{method:'POST',headers:{'idempotency-key':key},body});
@@ -1205,6 +1294,19 @@ function internalProductCard(item){
  });
  return card;
 }
+function renderTradeProducts(){
+ for(const button of el("tradeCategories").querySelectorAll("button")){
+  button.setAttribute("aria-pressed",String(button.dataset.tradeCategory===tradeCategory));
+ }
+ const cards=tradeProducts.filter(item=>item.itemType===tradeCategory).map(internalProductCard);
+ el('internalProductsItems').replaceChildren(...(cards.length?cards:[makeEmpty('该分类暂无可购买产品')]));
+}
+el("tradeCategories").addEventListener("click",event=>{
+ const button=event.target.closest("button[data-trade-category]");
+ if(button&&button.dataset.tradeCategory!==tradeCategory&&!internalPurchaseBusy){
+  tradeCategory=button.dataset.tradeCategory;renderTradeProducts();
+ }
+});
 async function refreshInternalProducts(){
  if(!token||!account){clearInternalProducts();return;}
  const usedToken=token,serial=++internalProductsSerial;el('internalProductsPanel').hidden=false;
@@ -1216,13 +1318,22 @@ async function refreshInternalProducts(){
   const products=catalogResult.status==='fulfilled'?catalogResult.value:{};
   const records=recordsResult.value;
   const valid=Array.isArray(products.items)?products.items:[];
-  const cards=valid.map(internalProductCard);el('internalProductsItems').replaceChildren(...cards);
-  if(!cards.length)el('internalProductsItems').append(makeEmpty('暂无已开启购买的产品；管理员需设置价格、折扣与参与密码'));
+  stockTradingConfigured=records.stockQuotesConfigured===true&&products.stockQuotesConfigured===true;
+  tradeProducts=valid;renderTradeProducts();
   internalHoldings=Array.isArray(records.positions)?records.positions:[];
   productOrders=(Array.isArray(records.purchases)?records.purchases:[]).map(item=>({
    symbol:item.product_code,product_name:item.product_name,side:'BUY',quantity:item.quantity,
-   price_cents:item.unit_price_cents,price_currency:'USD',amount_usd_cents:item.total_cents,created_at:item.created_at
+   price_cents:item.unit_price_cents,price_currency:'USD',amount_usd_cents:item.total_cents,created_at:item.created_at,
+   due_at:item.due_at,settled_at:item.settled_at
   }));
+  for(const item of records.settlements??[]){
+   productOrders.push({symbol:item.product_code,product_name:item.product_name,side:"REDEEM",quantity:item.quantity,
+    amount_usd_cents:Number(item.total_cents)+Number(item.profit_cents),created_at:item.settled_at});
+  }
+  for(const item of records.sales??[]){
+   productOrders.push({market:item.market,symbol:item.symbol,side:"SELL",quantity:item.quantity,
+    price_cents:item.unit_price_cents,price_currency:"USD",amount_usd_cents:item.total_cents,created_at:item.created_at});
+  }
   internalHoldingsUnavailable=false;
   renderMarkets();
   el('internalProductsStatus').textContent=catalogResult.status==='rejected'?'商品目录暂不可用，持仓与购买记录已同步。':'已同步 '+valid.length+' 个可参与产品 · 产品单价和支付币种均为USD';
@@ -1231,7 +1342,7 @@ async function refreshInternalProducts(){
   renderAccountAnalytics();
  }catch(error){
   if(usedToken!==token||serial!==internalProductsSerial)return;
-  internalHoldings=[];productOrders=[];internalHoldingsUnavailable=true;renderMarkets();renderRecords();renderTransactionHistory();renderAccountAnalytics();
+  internalHoldings=[];productOrders=[];tradeProducts=[];internalHoldingsUnavailable=true;renderMarkets();renderRecords();renderTransactionHistory();renderAccountAnalytics();
   el('internalProductsItems').replaceChildren();
   el('internalProductsStatus').textContent='购买数据暂不可用：'+error.message;
  }

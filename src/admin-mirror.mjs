@@ -23,7 +23,7 @@ async function ensureMirrorAuditAvailable(db,actor){
   if(!(await getClientMirrorSetupStatus(db,actor)).ready)invalid("Mirror audit schema not installed",503);
 }
 
-export async function purchaseForMirrorClient(db,actor,key,body){
+export async function purchaseForMirrorClient(db,actor,key,body,getStockQuote){
   if(actor?.role!=="MASTER")invalid("Master permission required",403);
   const {clientId,confirmPassword,confirmed,...purchase}=body??{};
   if(!UUID.test(clientId??"")||confirmed!==true||typeof confirmPassword!=="string"||
@@ -35,7 +35,7 @@ export async function purchaseForMirrorClient(db,actor,key,body){
   const account=await db.query(`SELECT id FROM accounts WHERE user_id=$1 AND
     NOT EXISTS(SELECT 1 FROM admin_roles WHERE user_id=$1)`,[clientId]);
   if(account.rows.length!==1)invalid("Client not found",404);
-  return buyInternalProduct(db,account.rows[0].id,key,purchase,{actorId:actor.userId,clientId});
+  return buyInternalProduct(db,account.rows[0].id,key,purchase,{actorId:actor.userId,clientId},{getStockQuote});
 }
 
 export async function getClientAppMirror(db,actor,clientId){

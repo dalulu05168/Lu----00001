@@ -51,6 +51,16 @@ export async function listUnifiedAudit(db,actor,{limit=100}={}){
    'VIEW:'||p.kind,'Private review material viewed',p.created_at
   FROM private_customer_access_audit p LEFT JOIN client_links l ON l.user_id=p.client_user_id
   WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid)
+  UNION ALL
+  SELECT 'STOCK_POSITION_LOCK',p.id::text,a.user_id,p.actor_user_id,
+   (CASE WHEN p.locked THEN 'LOCK:' ELSE 'UNLOCK:' END)||p.market||':'||p.symbol,p.reason,p.recorded_at
+  FROM stock_position_lock_audit p JOIN accounts a ON a.id=p.account_id LEFT JOIN client_links l ON l.user_id=a.user_id
+  WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid)
+  UNION ALL
+  SELECT 'INTERNAL_STOCK_SALE',s.id::text,a.user_id,a.user_id,
+   'SELL:'||s.symbol,'Quantity '||s.quantity::text||', USD cents '||s.total_cents::text,s.created_at
+  FROM internal_stock_sales s JOIN accounts a ON a.id=s.account_id LEFT JOIN client_links l ON l.user_id=a.user_id
+  WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid)
  ) events ORDER BY event_at DESC,event_type,event_id DESC LIMIT $3`;
  const result=await db.query(query,[actor.role,actor.userId,limit]);
  return {items:result.rows.map(x=>({eventType:x.event_type,eventId:x.event_id,clientId:x.client_id,

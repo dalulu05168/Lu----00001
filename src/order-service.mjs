@@ -17,6 +17,11 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId) 
     if (a.rows.length !== 1) throw new Error("Account not found");
     const existing = await client.query("SELECT * FROM orders WHERE account_id=$1 AND idempotency_key=$2", [accountId,key]);
     if (existing.rows.length) { await client.query("COMMIT"); transactionStarted=false; return { replayed:true, order:existing.rows[0] }; }
+    if(input.side==="SELL"){
+      const lock=await client.query("SELECT locked FROM stock_position_locks WHERE account_id=$1 AND market=$2 AND symbol=$3",
+        [accountId,input.market,input.symbol]);
+      if(lock.rows[0]?.locked)throw Object.assign(new Error("Stock position is locked"),{statusCode:409});
+    }
     const p = await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1", [accountId]);
     const account = {cashCents:Number(a.rows[0].cash_cents),positions:Object.fromEntries(p.rows.map(r=>[r.market+":"+r.symbol,Number(r.quantity)])),orders:[]};
     const updated = applyOrder(account,input);

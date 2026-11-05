@@ -64,6 +64,8 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("mirrorCash").textContent,"129.00");
     assert.match(el("mirrorStatus").textContent,/快照已读取/);
     dom.window.document.querySelector('[data-mirror-tab="market"]').click();
+    assert.equal(el("mirrorPageTitle").textContent,"行情");
+    assert.equal(el("mirrorAppScreen").parentElement.dataset.activePage,"market");
     const chartConfig=JSON.parse(el("mirrorAppScreen").querySelector("script").textContent);
     assert.equal(chartConfig.chartType,"area");
     assert.equal(chartConfig.symbols[0][1],"NYSE:AA|1D");

@@ -639,3 +639,10 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
 .internal-product-card form{display:grid;gap:9px}.internal-product-card label{display:grid;gap:5px;font-size:12px}
 .internal-product-card input{min-width:0;width:100%;padding:9px;border-radius:6px;border:1px solid #454b53;background:#171a1e;color:#edf0f4}
 .internal-product-card output{font-size:14px}.internal-product-card small{font-size:11px;color:#a2aab5}
+.trade-categories{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.trade-categories [aria-pressed="true"]{background:#e6e9ed;color:#16191c}
+.fund-cover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;margin-bottom:10px}
+.stock-sale-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 0 12px}
+.stock-sale-form label{display:flex;gap:6px;align-items:center}
+.stock-sale-form input{width:65px}
+.stock-sale-form [role="status"]{flex-basis:100%;font-size:12px}

@@ -7,6 +7,8 @@ import {listAdminSupportThreads,getAdminSupportThread,sendAdminSupportMessage,ch
 import {listUnifiedAudit} from "./operation-audit.mjs";
 import {listPublishedInternalProducts,readAdminProductTerms,updateAdminProductTerms} from './internal-products.mjs';
 import {lookupStocks} from './stock-lookup.mjs';
+import {setStockPositionLock} from './stock-position-locks.mjs';
+import {stockQuotesConfigured} from './us-stock-quotes.mjs';
 import {readPrivateData} from './private-customer-data.mjs';
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
@@ -37,7 +39,8 @@ function safeError(error){
   if(error?.statusCode===401)return {status:401,error:"Invalid admin credentials"};
   if(error?.statusCode===400)return {status:400,error:error.message};
   if(error?.statusCode===404)return {status:404,error:"Client not found"};
-  if(error?.statusCode===403)return {status:403,error:"Master permission required"};
+  if(error?.statusCode===403)return {status:403,error:error.code==="PARTICIPATION_PASSWORD_INCORRECT"
+    ?"Participation password is incorrect":"Master permission required"};
   if(error?.statusCode===409)return {status:409,error:error.message};
   if(error?.statusCode===429)return {status:429,error:error.message};
   if(error?.statusCode===503)return {status:503,error:error.message==="Mirror audit schema not installed"
@@ -45,7 +48,7 @@ function safeError(error){
   if(error?.code==="23505")return {status:409,error:"Record already exists"};
   return {status:500,error:"Internal server error"};
 }
-export async function handleAdminApi(req,res,route,db,resolveSession){
+export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuote){
   if(!route.startsWith("/api/admin/")&&route!=="/api/catalog")return false;
   const allowed={
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
@@ -57,6 +60,8 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/client-history":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/mirror-purchases":["GET","POST"],
+    "/api/admin/stock-position-lock":["PATCH"],
+    "/api/admin/stock-quote":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/stock-lookup":["GET"],"/api/catalog":["GET"],
     "/api/admin/commodities":["GET","POST","PATCH"],"/api/admin/commodity-audit":["GET"],
     "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"],
@@ -98,11 +103,21 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator session required"});return true;}
+    if(route==="/api/admin/stock-quote"){
+      if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
+      const url=new URL(req.url??"/","http://localhost");
+      try{response(res,200,await getStockQuote({market:url.searchParams.get("market"),symbol:url.searchParams.get("symbol")}));}
+      catch{response(res,503,{error:"Verified US stock quote unavailable"});}
+      return true;
+    }
+    if(route==="/api/admin/stock-position-lock"){
+      response(res,200,{item:await setStockPositionLock(db,actor,await input(req))});return true;
+    }
     if(route==="/api/admin/mirror-purchases"){
       if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
-      if(req.method==="GET")response(res,200,{items:await listPublishedInternalProducts(db)});
+      if(req.method==="GET")response(res,200,{items:await listPublishedInternalProducts(db),stockQuotesConfigured:stockQuotesConfigured()});
       else{
-        const result=await purchaseForMirrorClient(db,actor,req.headers["idempotency-key"],await input(req));
+        const result=await purchaseForMirrorClient(db,actor,req.headers["idempotency-key"],await input(req),getStockQuote);
         response(res,result.replayed?200:201,{id:result.purchase.id,replayed:result.replayed});
       }
       return true;

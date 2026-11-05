@@ -207,6 +207,7 @@ test("master console renders edit, publish and withdraw controls",async()=>{
     await new Promise(done=>setTimeout(done,520));
     const match=el("listingLookupResults").querySelector("button");
     assert.match(match.textContent,/香港 · HKEX · 0700 · Tencent Holdings/);
+    assert.equal(el("listingName").value,"Tencent Holdings");
     match.click();
     assert.equal(el("listingMarket").value,"HK");
     assert.equal(el("listingSymbol").value,"0700");

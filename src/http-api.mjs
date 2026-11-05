@@ -12,6 +12,8 @@ import {getCustomerSupport,sendCustomerSupportMessage} from "./support-messages.
 import {getAccountAnalytics} from "./account-analytics.mjs";
 import {listPublishedInternalProducts} from './internal-products.mjs';
 import {buyInternalProduct,internalPurchaseAccount} from './internal-purchases.mjs';
+import {getUsStockQuote,stockQuotesConfigured} from './us-stock-quotes.mjs';
+import {sellInternalStock} from './internal-stock-sales.mjs';
 import {privateDataKey,submitPrivateData,readPrivateData} from './private-customer-data.mjs';
 import {createReferenceFx} from "./reference-fx.mjs";
 
@@ -30,7 +32,7 @@ async function readBody(req,maxBodyBytes){
  return payload;
 }
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
-export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192,referenceFx=createReferenceFx()}){
+export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,getStockQuote=getUsStockQuote,maxBodyBytes=8192,referenceFx=createReferenceFx()}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  let privateUploads=0;
  return createServer(async(req,res)=>{
@@ -56,11 +58,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    try{return send(res,200,await referenceFx());}
    catch{return send(res,503,{error:"Reference FX unavailable"});}
   }
-  if(await handleAdminApi(req,res,route,db,resolveSession))return;
+  if(await handleAdminApi(req,res,route,db,resolveSession,getStockQuote))return;
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/account/analytics","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support","/api/internal-products","/api/internal-purchases","/api/private-data","/api/private-data/status"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/account/analytics","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support","/api/internal-products","/api/internal-purchases","/api/stock-quote","/api/private-data","/api/private-data/status"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
@@ -116,16 +118,26 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
     return send(res,status,{error:status===503?'Private data service unavailable':error.message});
    }finally{if(upload)privateUploads--;}
   }
+  if(route==='/api/stock-quote'){
+   if(req.method!=='GET')return send(res,405,{error:'Method not allowed'});
+   try{return send(res,200,await getStockQuote({market:url.searchParams.get('market'),symbol:url.searchParams.get('symbol')}));}
+   catch{return send(res,503,{error:'Verified US stock quote unavailable'});}
+  }
   if(route==='/api/internal-products'||route==='/api/internal-purchases'){
-   if((route==='/api/internal-products'&&req.method!=='GET')||(route==='/api/internal-purchases'&&!['GET','POST'].includes(req.method)))return send(res,405,{error:'Method not allowed'});
+   if((route==='/api/internal-products'&&req.method!=='GET')||(route==='/api/internal-purchases'&&!['GET','POST','PATCH'].includes(req.method)))return send(res,405,{error:'Method not allowed'});
    try{
-    if(route==='/api/internal-products')return send(res,200,{items:await listPublishedInternalProducts(db)});
-    if(req.method==='GET')return send(res,200,await internalPurchaseAccount(db,session.accountId));
-    const result=await buyInternalProduct(db,session.accountId,req.headers['idempotency-key'],JSON.parse(await readBody(req,maxBodyBytes)));
+    if(route==='/api/internal-products')return send(res,200,{items:await listPublishedInternalProducts(db),stockQuotesConfigured:stockQuotesConfigured()});
+    if(req.method==='GET')return send(res,200,{...await internalPurchaseAccount(db,session.accountId),stockQuotesConfigured:stockQuotesConfigured()});
+    if(req.method==='PATCH'){
+      const result=await sellInternalStock(db,session.accountId,req.headers['idempotency-key'],
+        JSON.parse(await readBody(req,maxBodyBytes)),{getStockQuote});
+      return send(res,result.replayed?200:201,result);
+    }
+    const result=await buyInternalProduct(db,session.accountId,req.headers['idempotency-key'],JSON.parse(await readBody(req,maxBodyBytes)),undefined,{getStockQuote});
     return send(res,result.replayed?200:201,result);
    }catch(error){
     if(error instanceof SyntaxError)return send(res,400,{error:'Invalid JSON'});
-    const status=[400,403,404,409,413,429].includes(error.statusCode)?error.statusCode:500;
+    const status=[400,403,404,409,413,429,503].includes(error.statusCode)?error.statusCode:500;
     return send(res,status,{error:status===500?'Internal purchase service unavailable':error.message});
    }
   }

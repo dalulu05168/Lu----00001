@@ -240,7 +240,7 @@
             </header>
             <div class="mirror-dialog-layout">
           <section class="mirror-phone" aria-label="客户 App 数据快照">
-            <div class="mirror-device">
+            <div class="mirror-device" data-active-page="assets">
               <div class="mirror-status-bar" aria-label="手机状态栏">
                 <time id="mirrorClock">—</time><span class="mirror-camera" aria-hidden="true"></span>
                 <span class="mirror-radio" aria-label="信号、网络和电池示意" title="手机状态图标为界面示意">
@@ -250,24 +250,23 @@
                 </span>
               </div>
               <div class="mirror-top">
-                <span>CN CAPITAL</span><span class="mirror-read-only">客户账户</span>
+                <div><span class="mirror-brand">CN CAPITAL</span><h4 id="mirrorPageTitle">资产</h4></div>
+                <button type="button" id="refreshMirror" class="outline" disabled>刷新</button>
               </div>
               <div class="mirror-account"><span>当前客户</span><output id="mirrorEmail">尚未选择</output><small id="mirrorUpdated">—</small></div>
-              <div class="mirror-balance"><span>账户记录余额</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
-              <div class="mirror-tabs" role="tablist" aria-label="客户 App 页面">
-                <button type="button" role="tab" data-mirror-tab="market" aria-selected="false">行情</button>
-                <button type="button" role="tab" data-mirror-tab="trade" aria-selected="false">交易</button>
-                <button type="button" role="tab" data-mirror-tab="assets" aria-selected="true">资产</button>
-                <button type="button" role="tab" data-mirror-tab="positions" aria-selected="false">持仓</button>
-                <button type="button" role="tab" data-mirror-tab="orders" aria-selected="false">订单</button>
-                <button type="button" role="tab" data-mirror-tab="watchlist" aria-selected="false">自选</button>
-                <button type="button" role="tab" data-mirror-tab="internalProducts" aria-selected="false">产品订单</button>
-              </div>
-              <div class="mirror-screen" id="mirrorAppScreen" role="tabpanel"><p class="muted">从左侧客户名单点击“查看 App 镜像”后，读取该客户实际账户数据。</p></div>
+              <div class="mirror-balance"><span>可用余额</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
+              <div class="mirror-screen" id="mirrorAppScreen" role="tabpanel"><p class="muted">请选择客户。</p></div>
               <div class="mirror-bottom">
-                <span id="mirrorStatus">未选择客户</span><button type="button" id="refreshMirror" class="outline" disabled>刷新快照</button><button type="button" id="mirrorManageClient" class="outline" disabled>账户操作</button>
+                <span id="mirrorStatus" role="status">未选择客户</span><button type="button" id="mirrorManageClient" class="outline" disabled>账户操作</button>
               </div>
-              <p class="mirror-disclosure">交易由主账户确认后提交，订单和持仓记入所选客户账户。</p>
+              <div class="mirror-tabs" role="tablist" aria-label="客户 App 页面">
+                <button type="button" role="tab" data-mirror-tab="watchlist" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3z"/></svg><span>自选</span></button>
+                <button type="button" role="tab" data-mirror-tab="market" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v16h18M6 15l4-5 4 3 5-6"/></svg><span>行情</span></button>
+                <button type="button" role="tab" data-mirror-tab="trade" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4"/></svg><span>交易</span></button>
+                <button type="button" role="tab" data-mirror-tab="positions" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3M4 12h16"/></svg><span>持仓</span></button>
+                <button type="button" role="tab" data-mirror-tab="orders" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6m-6 4h6m-6 4h4"/></svg><span>订单</span></button>
+                <button type="button" role="tab" data-mirror-tab="assets" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v13H3zM3 6l3-3h12l3 3m-5 6h5"/></svg><span>资产</span></button>
+              </div>
               <div class="mirror-home-indicator" aria-hidden="true"></div>
             </div>
           </section>
@@ -323,23 +322,33 @@
         <section class="panel" id="catalogArea">
           <div class="heading"><h3>证券目录</h3><button type="button" id="refreshListings" class="outline">刷新</button></div>
           <form id="listingForm" class="field-grid">
+            <h4 class="listing-step">1. 识别证券</h4>
             <label>类型<select id="listingType"><option value="STOCK">股票</option><option value="FUND">基金</option><option value="IPO">IPO</option></select></label>
+            <label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" placeholder="例如 AAPL、0700、BRD" required></label>
             <label>市场<select id="listingMarket"><option value="US">美国</option><option value="HK">香港</option><option value="CN">中国内地</option><option value="MY">马来西亚</option><option value="RO">罗马尼亚</option></select></label>
-            <label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
+            <label>名称<input id="listingName" maxlength="120" required></label>
             <div id="listingLookup" class="workflow-form-wide">
               <button id="listingLookupButton" class="outline" type="button">搜索股票代码</button>
               <p id="listingLookupStatus" class="muted" role="status">输入股票代码可查看匹配结果。</p>
               <div id="listingLookupResults" class="admin-list"></div>
+              <p id="listingStockQuote" class="muted" role="status"></p>
             </div>
-            <label>名称<input id="listingName" maxlength="120" required></label>
             <label>状态<select id="listingStatus"><option value="DRAFT">草稿</option><option value="PUBLISHED">已发布</option></select></label>
-            <details id="listingQuickPurchase" class="workflow-form-wide">
-              <summary>上架并开启购买</summary>
+            <fieldset id="listingQuickPurchase" class="listing-purchase-fields">
+              <legend>2. 设置交易条件</legend>
               <label><input id="listingQuickEnabled" type="checkbox">保存时发布，并开启购买</label>
-              <label>每份原价（USD）<input id="listingQuickPrice" inputmode="decimal"></label>
+              <label id="listingQuickPriceField" hidden>每份原价（USD）<input id="listingQuickPrice" inputmode="decimal"></label>
+              <label id="listingHoldingDaysField">买入后持仓天数<input id="listingHoldingDays" type="number" min="0" max="3650" step="1" value="0"></label>
               <label>优惠比例（%）<input id="listingQuickDiscount" type="number" min="0" max="99.99" step="0.01" value="0"></label>
+              <label>最低买入数量<input id="listingQuickMinimum" type="number" min="1" max="1000000" step="1" value="1"></label>
               <label>六位参与密码<input id="listingQuickPassword" type="password" maxlength="6" inputmode="numeric" autocomplete="new-password"></label>
-            </details>
+              <fieldset id="listingFundFields" class="fund-fields" hidden>
+                <legend>基金到期设置</legend>
+                <label>封面图片链接（HTTPS，选填）<input id="listingFundImage" type="url" maxlength="2048"></label>
+                <label>持有天数<input id="listingFundDays" type="number" min="1" max="3650" step="1"></label>
+                <label>整个持有期固定收益（%）<input id="listingFundReturn" type="number" min="0" max="10000" step="0.01"></label>
+              </fieldset>
+            </fieldset>
             <button id="listingSubmit" type="submit">保存证券资料</button>
             <button id="listingCancelEdit" type="button" class="outline" hidden>取消编辑</button>
           </form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p>
@@ -469,8 +478,16 @@
 <dialog id="productTermsDialog" class="product-terms-dialog" aria-labelledby="productTermsTitle">
  <h2 id="productTermsTitle">折扣与参与交易设置</h2><p id="productTermsName"></p>
  <form id="productTermsForm" class="field-grid" autocomplete="off">
-  <label>原价（USD）<input id="productTermsPrice" inputmode="decimal" required placeholder="每份原价，例如100.00"></label>
+  <label id="productTermsPriceField">原价（USD）<input id="productTermsPrice" inputmode="decimal" required placeholder="每份原价，例如100.00"></label>
+  <label id="productTermsHoldingDaysField" hidden>买入后持仓天数<input id="productTermsHoldingDays" type="number" min="0" max="3650" step="1" value="0"></label>
   <label>优惠比例（%）<input id="productTermsDiscount" type="number" min="0" max="99.99" step="0.01" value="0" required></label>
+  <label id="productTermsMinimumField" hidden>最低买入数量<input id="productTermsMinimum" type="number" min="1" max="1000000" step="1" value="1"></label>
+  <fieldset id="productTermsFundFields" class="fund-fields" hidden>
+    <legend>基金到期设置</legend>
+    <label>封面图片链接（HTTPS，选填）<input id="productTermsFundImage" type="url" maxlength="2048"></label>
+    <label>持有天数<input id="productTermsFundDays" type="number" min="1" max="3650" step="1"></label>
+    <label>整个持有期固定收益（%）<input id="productTermsFundReturn" type="number" min="0" max="10000" step="0.01"></label>
+  </fieldset>
   <label>六位参与密码<input id="productTermsPassword" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" placeholder="每个产品单独设置；留空保留原密码"></label>
   <label>允许购买<select id="productTermsEnabled"><option value="false">关闭</option><option value="true">开启</option></select></label>
   <label>变更原因（选填）<input id="productTermsReason" maxlength="400"></label>

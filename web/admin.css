@@ -21,6 +21,14 @@ a{color:#dde0e3;text-underline-offset:3px}
 .field-grid details.workflow-form-wide{grid-column:1/-1;padding:12px;border:1px solid var(--border);border-radius:6px}
 .field-grid details.workflow-form-wide summary{cursor:pointer}
 .field-grid details.workflow-form-wide label{margin-top:10px}
+.listing-step,.listing-purchase-fields,#listingLookup{grid-column:1/-1}
+.listing-step{margin:0}
+.listing-purchase-fields:not([hidden]){display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px}
+.listing-purchase-fields{min-width:0;margin:0;padding:12px;border:1px solid var(--border);border-radius:6px}
+.listing-purchase-fields legend{padding:0 6px}
+.listing-purchase-fields label:first-of-type{grid-column:1/-1}
+.fund-fields{grid-column:1/-1;min-width:0;margin:0;padding:12px;border:1px solid var(--border);border-radius:6px}
+.fund-fields:not([hidden]){display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px}
 #adminWorkspace .field-grid details input[type="checkbox"]{width:16px;height:16px}
 .field-grid input,.field-grid select{height:39px;min-width:0;width:100%;background:#202327;border:1px solid #3a3e43;border-radius:5px;padding:8px 10px;font-size:12px}
 .field-grid input:focus,.field-grid select:focus{outline:none;border-color:#a8b0b8}
@@ -922,3 +930,42 @@ html,body{background:var(--ui-canvas);color:var(--ui-text);font-weight:400}
 .product-terms-dialog{width:min(760px,calc(100vw - 32px));max-height:90vh;overflow:auto;background:#1e2024;color:#e5e7eb;border:1px solid #383d43;border-radius:12px;padding:24px}
 .product-terms-dialog::backdrop{background:#000a}
 .product-terms-dialog h2{font-size:20px;margin-top:0}
+
+/* Management typography and mobile mirror */
+#adminWorkspace{--admin-text:14px;--admin-label:12px;--admin-heading:16px;--mirror-accent:#78a8ff}
+#adminWorkspace .admin-main{font-size:var(--admin-text);line-height:1.5}
+#adminWorkspace .panel .heading h3,#adminWorkspace .dashboard-section-heading h3{
+ font-size:var(--admin-heading);font-weight:650;line-height:1.25
+}
+#adminWorkspace .admin-main :is(.field-grid,.policy-form,.workflow-review-form) label{
+ font-size:var(--admin-label);line-height:1.45
+}
+#adminWorkspace .admin-main :is(input,select,textarea){font-size:13px}
+#adminWorkspace .admin-main :is(input,select,textarea,button):focus-visible{
+ outline:2px solid var(--mirror-accent);outline-offset:2px
+}
+#adminWorkspace .admin-list-row strong,#adminWorkspace .record-field strong{font-size:13px}
+#adminWorkspace .admin-list-row small,#adminWorkspace .dashboard-data-status{font-size:var(--admin-label)}
+#adminWorkspace .mirror-dialog-layout .mirror-device{background:#0b0d11;border-color:#464b55}
+#adminWorkspace .mirror-device .mirror-top{padding:7px 13px 9px;border-color:#252a33}
+.mirror-brand{display:block;color:#a1acc0;font-size:9px;letter-spacing:.14em}
+#mirrorPageTitle{margin:2px 0 0;font-size:clamp(19px,4vw,25px);font-weight:650;line-height:1.15}
+#adminWorkspace .mirror-device #refreshMirror{min-height:32px;padding:4px 8px}
+#adminWorkspace .mirror-device .mirror-account{padding:8px 13px 7px;border-bottom:1px solid #252a33}
+.mirror-device .mirror-account output{font-size:12px}
+.mirror-device:not([data-active-page="assets"]) :is(.mirror-balance,.mirror-account>span,.mirror-account>small,#mirrorManageClient){display:none}
+#adminWorkspace .mirror-device .mirror-balance{margin:8px 12px 2px;padding:8px 12px;background:#151922;border:1px solid #2a3242;border-radius:10px}
+#adminWorkspace .mirror-device .mirror-balance output{font:650 clamp(19px,4vw,26px)/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#adminWorkspace .mirror-device .mirror-screen{padding:7px 12px;font-size:12px}
+#adminWorkspace .mirror-device .mirror-record{padding:10px 0;border-color:#262b35;align-items:baseline}
+.mirror-device .mirror-record>span{min-width:0}
+.mirror-device .mirror-record>span:last-child{color:#e4e9f2}
+.mirror-device .mirror-record>span:first-child{color:#aab3c4}
+#adminWorkspace .mirror-device[data-active-page="watchlist"] .mirror-record>span:first-child{font-weight:650;color:#f0f4fa}
+#adminWorkspace .mirror-device .mirror-bottom{grid-template-columns:minmax(0,1fr) auto;padding:4px 12px;border-color:#252a33}
+#adminWorkspace .mirror-device .mirror-bottom #mirrorStatus{grid-column:auto;color:#aab3c4;font-size:10px}
+#adminWorkspace .mirror-device .mirror-tabs{grid-template-columns:repeat(6,minmax(0,1fr));background:#11151d;border-color:#252a33;padding:0 4px}
+#adminWorkspace .mirror-device .mirror-tabs button{display:grid;justify-items:center;align-content:center;gap:3px;min-height:44px;border:0;border-top:2px solid transparent;font-size:10px;white-space:nowrap;color:#adb7c9}
+#adminWorkspace .mirror-device .mirror-tabs svg{width:16px;height:16px}
+#adminWorkspace .mirror-device .mirror-tabs button[aria-selected="true"]{border-color:var(--mirror-accent);color:var(--mirror-accent);background:#182238}
+#adminWorkspace .mirror-device .mirror-home-indicator{background:#c5cddb}

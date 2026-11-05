@@ -205,10 +205,14 @@ export async function updateListing(db,actor,data){
   const changesMetadata=Object.keys(prepared).some(key=>key!=="status");
   const keys=Object.keys(prepared);
   const updates=keys.map((key,index)=>allowedColumns[key]+"=$"+(index+2));
+  const identityChecks=keys.flatMap((key,index)=>["itemType","market","symbol"].includes(key)?
+    [allowedColumns[key]+" IS NOT DISTINCT FROM $"+(index+2)]:[]);
   const params=[id,...keys.map(key=>prepared[key])];
   const sql="UPDATE listings SET "+updates.join(",")+",updated_at=now() WHERE id=$1"+
-    (changesMetadata?" AND status='DRAFT'":"")+" RETURNING id";
+    (changesMetadata?" AND status='DRAFT'":"")+
+    (identityChecks.length?" AND (("+identityChecks.join(" AND ")+") OR NOT EXISTS (SELECT 1 FROM internal_purchases p JOIN internal_product_terms t ON t.id=p.terms_id WHERE t.listing_id=listings.id))":"")+
+    " RETURNING id";
   const r=await db.query(sql,params);
-  if(r.rows.length!==1)invalid(changesMetadata?"Listing not found or not a draft":"Listing not found");
+  if(r.rows.length!==1)invalid(changesMetadata?"Listing not found, not a draft, or traded identity is protected":"Listing not found");
   return {id,...prepared};
 }

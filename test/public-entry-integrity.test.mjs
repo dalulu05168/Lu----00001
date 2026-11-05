@@ -19,7 +19,7 @@ test("customer terminal hides internal implementation disclaimers",()=>{
     "授权行情未接入前","Account activity · 内部账户记录",
     "平台记录不代表券商成交或结算","无券商交易执行功能","INTERNAL ONLY"
   ])assert.equal(html.includes(phrase),false,phrase);
-  assert.match(html,/产品购买/);
+  assert.match(html,/大宗交易/);
 });
 
 test("Node server serves every module needed by the login experience",async()=>{
