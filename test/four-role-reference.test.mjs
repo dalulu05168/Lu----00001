@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {Script} from 'node:vm';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 
 const html=readFileSync(new URL('../web/role-preview.html',import.meta.url),'utf8');
 
@@ -43,5 +45,5 @@ test('real admin layout preserves secure flows and separates capabilities',()=>{
   assert.doesNotMatch(admin,/后端没有资金申请|adminOtp|activateForm|6 位动态验证码|TOTP/);
   assert.match(css,/h1,h2,h3\{font-weight:650/);
   assert.doesNotMatch(css,/\*,\*::before,\*::after\{[^}]*font-weight:400!important/);
-  new Script(js.replace(/^const el.*$/m,'const el=id=>document.getElementById(id);')); // syntax smoke
+  execFileSync(process.execPath,['--check',fileURLToPath(new URL('../web/admin.mjs',import.meta.url))]);
 });
