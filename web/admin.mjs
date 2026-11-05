@@ -1,3 +1,4 @@
+import {mountStockChart,resolveTradingViewSymbol} from "./stock-chart.mjs";
 const el=id=>document.getElementById(id);
 if(document.location?.hostname==="admin.nuvexapro.com"){
   document.querySelectorAll("[data-client-home]").forEach(link=>{
@@ -542,13 +543,34 @@ async function renderMirrorTrade(view,snap){
     view.append(form);
   }catch(error){if(current())notice.textContent="产品读取失败："+error.message;}
 }
+function renderMirrorMarket(view,snap){
+  const instruments=new Map();
+  for(const item of [...(snap.internalProducts?.positions??[]),...(snap.positions??[]),...(snap.watchlist??[])]){
+    const code=resolveTradingViewSymbol(item);
+    if(code&&!instruments.has(code))instruments.set(code,item);
+  }
+  const reference={market:"US",symbol:"AAPL"};
+  const showReference=!instruments.size;
+  if(showReference)instruments.set(resolveTradingViewSymbol(reference),reference);
+  const label=plainNode("label",showReference?"参考标的走势图":"走势图");label.className="mirror-chart-picker";
+  const select=document.createElement("select");label.append(select);
+  const host=document.createElement("div");host.className="mirror-chart";
+  for(const [code,item] of instruments){
+    const option=plainNode("option",item.name?code+" · "+item.name:code);
+    option.value=code;select.append(option);
+  }
+  const renderChart=()=>mountStockChart(host,instruments.get(select.value),{compact:true});
+  select.addEventListener("change",renderChart);
+  view.append(label,host,plainNode("p","公开参考走势图 · 行情可能延迟","muted"));
+  renderChart();
+}
 function setMirrorScreen(){
   const view=el("mirrorAppScreen");view.replaceChildren();
   if(!mirrorSnapshot){view.append(plainNode("p","请选择客户以读取账户快照","muted"));return;}
   const snap=mirrorSnapshot;
   if(mirrorActiveTab==="trade"){void renderMirrorTrade(view,snap);return;}
+  if(mirrorActiveTab==="market"){renderMirrorMarket(view,snap);return;}
   const formats={
-    market:()=>[["当前行情","未经授权的数据源尚未接入"],["自选股票",String(snap.watchlist?.length??0)+" 只"],["K 线图","暂无已核验行情，不展示虚构走势"]],
     assets:()=>[["账户编号",snap.account?.id],["账面币种",snap.account?.currency],["持仓记录",(snap.positions?.length??0)+(snap.internalProducts?.positions?.length??0)],["交易记录",(snap.orders?.length??0)+(snap.internalProducts?.purchases?.length??0)],["自选标的",snap.watchlist?.length??0]],
     positions:()=>[
       ...(snap.positions??[]).map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")+" 股"]),
@@ -754,23 +776,31 @@ el("mirrorReviewForm").addEventListener("submit",async event=>{
  }finally{button.disabled=false;}
 });
 
+let mirrorClockTimer;
 function openMirrorDialog(){
  const dialog=el("mirrorDialog");
  if(dialog.open)return;
  if(typeof dialog.showModal==="function")dialog.showModal();
  else dialog.setAttribute("open","");
+ const updateClock=()=>{el("mirrorClock").textContent=new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit",hour12:false});};
+ updateClock();
+ mirrorClockTimer=document.defaultView.setInterval(updateClock,15000);
 }
 function closeMirrorDialog(){
  const dialog=el("mirrorDialog");
  if(!dialog.open)return;
  clearMirrorTradeCredentials();
+ document.defaultView.clearInterval(mirrorClockTimer);
  if(typeof dialog.close==="function")dialog.close();
  else dialog.removeAttribute("open");
 }
 function clearMirrorTradeCredentials(){
  el("mirrorAppScreen").querySelectorAll('.mirror-trade-form input[type="password"]').forEach(input=>{input.value="";});
 }
-el("mirrorDialog").addEventListener("close",clearMirrorTradeCredentials);
+el("mirrorDialog").addEventListener("close",()=>{
+ clearMirrorTradeCredentials();
+ document.defaultView.clearInterval(mirrorClockTimer);
+});
 el("mirrorDialogClose").addEventListener("click",closeMirrorDialog);
 el("mirrorDialog").addEventListener("click",event=>{
  if(event.target===el("mirrorDialog"))closeMirrorDialog();

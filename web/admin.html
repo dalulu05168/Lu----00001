@@ -235,13 +235,20 @@
           </section>
           <dialog id="mirrorDialog" class="mirror-dialog" aria-label="CN Capital 客户手机镜像与管理操作">
             <header class="mirror-modal-header">
-              <div><span>CN CAPITAL / CLIENT SESSION</span><h3>客户手机镜像</h3>
-                <p>账户数据来自客户授权范围内的服务端快照；管理员操作需要独立授权。</p></div>
+              <div><span>CN CAPITAL / CLIENT SESSION</span><h3>客户手机镜像</h3></div>
               <button id="mirrorDialogClose" class="outline" type="button" aria-label="关闭客户手机镜像">关闭 ✕</button>
             </header>
             <div class="mirror-dialog-layout">
           <section class="mirror-phone" aria-label="客户 App 数据快照">
             <div class="mirror-device">
+              <div class="mirror-status-bar" aria-label="手机状态栏">
+                <time id="mirrorClock">—</time><span class="mirror-camera" aria-hidden="true"></span>
+                <span class="mirror-radio" aria-label="信号、网络和电池示意" title="手机状态图标为界面示意">
+                  <svg viewBox="0 0 18 14" aria-hidden="true"><path d="M2 11v2m4-5v5m4-8v8m4-11v11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  <svg viewBox="0 0 18 14" aria-hidden="true"><path d="M1 4a12 12 0 0 1 16 0M4 7a8 8 0 0 1 10 0M7 10a3 3 0 0 1 4 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="12.5" r="1" fill="currentColor"/></svg>
+                  <svg viewBox="0 0 25 14" aria-hidden="true"><rect x="1" y="2" width="20" height="10" rx="2" fill="none" stroke="currentColor"/><rect x="3" y="4" width="15" height="6" rx="1" fill="currentColor"/><path d="M23 5v4" stroke="currentColor" stroke-width="2"/></svg>
+                </span>
+              </div>
               <div class="mirror-top">
                 <span>CN CAPITAL</span><span class="mirror-read-only">客户账户</span>
               </div>
@@ -261,6 +268,7 @@
                 <span id="mirrorStatus">未选择客户</span><button type="button" id="refreshMirror" class="outline" disabled>刷新快照</button><button type="button" id="mirrorManageClient" class="outline" disabled>账户操作</button>
               </div>
               <p class="mirror-disclosure">交易由主账户确认后提交，订单和持仓记入所选客户账户。</p>
+              <div class="mirror-home-indicator" aria-hidden="true"></div>
             </div>
           </section>
           <section id="mirrorOperations" class="mirror-operations panel" hidden aria-label="所选客户的后台管理操作">

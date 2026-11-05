@@ -32,6 +32,7 @@ test("master can open a scoped client App mirror with account records and clear 
         client:{id:clientId,email:"customer@example.test"},
         account:{id:"acct-id",currency:"USD",cashCents:12900},
         positions:[{market:"US",symbol:"AAPL",quantity:"2"}],
+        internalProducts:{positions:[{market:"US",symbol:"AA",name:"Alcoa",code:"AA",quantity:"10",cost_cents:"102080"}]},
         orders:[{id:"o1",market:"US",symbol:"AAPL",side:"BUY",quantity:"2",amount_usd_cents:10900}],
         watchlist:[{market:"HK",symbol:"9988"}]
       });
@@ -63,7 +64,14 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("mirrorCash").textContent,"129.00");
     assert.match(el("mirrorStatus").textContent,/快照已读取/);
     dom.window.document.querySelector('[data-mirror-tab="market"]').click();
-    assert.match(el("mirrorAppScreen").textContent,/未接入/);
+    const chartConfig=JSON.parse(el("mirrorAppScreen").querySelector("script").textContent);
+    assert.equal(chartConfig.chartType,"area");
+    assert.equal(chartConfig.symbols[0][1],"NYSE:AA|1D");
+    const chartPicker=el("mirrorAppScreen").querySelector("select");
+    chartPicker.value="NASDAQ:AAPL";
+    chartPicker.dispatchEvent(new dom.window.Event("change"));
+    assert.equal(JSON.parse(el("mirrorAppScreen").querySelector("script").textContent).symbols[0][1],"NASDAQ:AAPL|1D");
+    assert.match(el("mirrorClock").textContent,/^\d{2}:\d{2}$/);
     dom.window.document.querySelector('[data-mirror-tab="trade"]').click();
     await pause(40);
     const trade=el("mirrorAppScreen").querySelector("form");

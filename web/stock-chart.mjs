@@ -6,6 +6,7 @@ export const TRADING_VIEW_WIDGET_SCRIPT =
 const LISTED = Object.freeze({
   "US:AAPL": "NASDAQ:AAPL",
   "US:MSFT": "NASDAQ:MSFT",
+  "US:AA": "NYSE:AA",
   // Confirmed by Newmont investor stock information (NYSE listing).
   "US:NEM": "NYSE:NEM",
   "HK:0700": "HKEX:700",
@@ -25,7 +26,7 @@ export function tradingViewSymbolUrl(symbol) {
   return "https://www.tradingview.com/symbols/" + symbol.replace(":", "-") + "/";
 }
 
-export function mountStockChart(host, instrument) {
+export function mountStockChart(host, instrument, {compact=false} = {}) {
   if (!host) throw new Error("Missing chart container");
   const symbol = resolveTradingViewSymbol(instrument);
   if (host.dataset.chartSymbol === symbol) return symbol;
@@ -56,10 +57,16 @@ export function mountStockChart(host, instrument) {
   link.textContent = symbol + " 图表";
   attribution.append(link, doc.createTextNode(" by TradingView"));
   const script = doc.createElement("script");
-  script.src = TRADING_VIEW_WIDGET_SCRIPT;
+  script.src = compact
+    ? "https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js"
+    : TRADING_VIEW_WIDGET_SCRIPT;
   script.type = "text/javascript";
   script.async = true;
-  script.textContent = JSON.stringify({
+  script.textContent = JSON.stringify(compact ? {
+    symbols:[[symbol,symbol+"|1D"]], dateRanges:["1m|30","3m|60","12m|1D"],
+    chartType:"area", lineWidth:2, autosize:true, width:"100%",height:"100%",
+    colorTheme:"dark",backgroundColor:"#191b1e",locale:"zh_CN"
+  } : {
     autosize: true,
     symbol,
     interval: "D",
