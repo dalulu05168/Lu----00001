@@ -633,13 +633,31 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
  .sidebar-section>summary{padding:7px 5px;min-height:30px;margin:0}
  .sidebar-section .sidebar-nav{flex-wrap:wrap}
  .sidebar-section .sidebar-link{white-space:normal;min-width:0}}
-.trade-board{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,34%);gap:14px;align-items:start}
+.trade-board{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,34%);gap:14px;align-items:start;margin-top:20px}
 .trade-board-side{display:grid;gap:14px;min-width:0}
 .trade-board-side .holdings-panel,.trade-board-side .order-panel{min-height:0}
 .trade-board-side .order-panel:has(#internalProductsPanel[hidden]):has(#orderForm[hidden]):has(#feedback:empty){display:none}
 .trade-board-side .order-panel .panel-heading{flex-wrap:wrap;margin-bottom:12px}
-.trade-board .transactions-section{min-width:0}
-.primary-grid{grid-template-columns:minmax(0,1fr)}
+.trade-board .transactions-section{min-width:0;margin-top:0}
+.trade-board .primary-grid{grid-template-columns:minmax(0,1fr);margin-top:14px}
+@media(min-width:761px){
+ .trade-board .transactions-table{min-width:0}
+ .trade-board .transactions-table :is(th,td){padding-inline:8px;white-space:normal;overflow-wrap:anywhere}
+ .trade-board .transaction-symbol-cell{display:table-cell}
+ .trade-board .transaction-market-code{display:inline-block;margin-inline-start:4px}
+}
+@media(max-width:760px){
+ .trade-board .transactions-table{min-width:0}
+ .trade-board .transactions-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ .trade-board .transactions-table tr[data-transaction-row]{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-bottom:1px solid #363a3f;padding:6px
+ }
+ .trade-board .transactions-table tr[data-transaction-row] td{
+  display:block;max-width:none;min-width:0;white-space:normal;overflow-wrap:anywhere;border:0;padding:6px
+ }
+ .trade-board .transactions-table td[data-label]::before{content:attr(data-label);display:block;margin-bottom:3px;color:var(--terminal-muted,#a9a9a9)}
+ .trade-board .transaction-market-code{margin-inline-start:4px}
+}
 .account-grid{grid-template-columns:minmax(0,1fr);align-items:start}
 .account-grid>.panel{min-width:0}
 .account-grid .panel-heading{min-height:40px;margin-bottom:12px}
@@ -654,7 +672,7 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
 #internalProductsStatus{margin:0;color:#abb3bd;font-size:12px;line-height:1.5}
 .internal-products-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin:12px 0 0}
 .internal-product-card h3{margin-top:0}
-@media(max-width:1050px){.trade-board{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1050px){.trade-board{grid-template-columns:minmax(0,1fr);margin-top:14px}}
 @media(max-width:450px){.trade-workspace{padding:12px}}
 .internal-product-card{padding:18px;border:1px solid #363a3f;border-radius:10px;min-width:0;background:#202327}
 .internal-product-card h3{font-size:15px;margin-bottom:8px}.internal-product-card p{font-size:12px;color:#abb3bd;line-height:1.6}

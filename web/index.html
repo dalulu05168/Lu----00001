@@ -143,6 +143,29 @@
             <div class="page-buttons"><button type="button" id="transactionPrev" disabled>← Previous</button><span id="transactionPageNumber">1</span><button type="button" id="transactionNext" disabled>Next →</button></div>
           </div>
         </div>
+        <div class="primary-grid">
+          <section class="panel performance-panel" id="terminal-section" aria-labelledby="performanceTitle">
+            <div class="panel-heading"><h2 id="performanceTitle">Stock Chart / 股票走势</h2><span class="view-label">Third-party chart</span></div>
+            <div class="market-switcher"><span class="filters-label">MARKETS</span><div id="markets" class="market-nav" aria-label="选择市场"></div></div>
+            <div class="instrument-selector">
+              <span id="marketLabel">US MARKET</span><span class="instrument-separator">·</span><span id="symbolTitle">AAPL</span><span class="instrument-name" id="symbolName">Apple Inc.</span>
+              <span class="instrument-price" id="quotePrice">—</span>
+              <button class="secondary-button watchlist-toggle" id="watchlistToggle" type="button" disabled aria-pressed="false">☆ 加入自选</button>
+            </div>
+            <div class="chart chart--unavailable" id="stockChart" role="region" aria-label="股票历史走势图">
+              <div class="stock-chart-empty">历史走势图暂不可用</div>
+            </div>
+            <p class="chart-source">公开图表可能延迟或受市场覆盖限制，不用于订单报价。</p>
+            <section aria-label="日参考汇率">
+              <p id="referenceFxStatus" role="status">正在读取日参考汇率…</p>
+              <p id="referenceFxRates"></p>
+              <p class="chart-source">按 ECB 的 EUR 基准计算 USD 交叉汇率，仅供参考，不用于订单或结算。<a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank" rel="noopener noreferrer">来源：ECB（免费获取）</a></p>
+              <button type="button" class="secondary-button" id="refreshReferenceFx">刷新汇率</button>
+            </section>
+            <p id="watchlistFeedback" class="watchlist-feedback" role="status" aria-live="polite"></p>
+            <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
+          </section>
+        </div>
       </section>
 
       <div class="trade-board-side">
@@ -184,30 +207,6 @@
         <article class="metric-card"><div class="metric-header"><span>Dividend Income</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 6v12M15 9c-2-2-6-1-6 1s6 2 6 4-4 3-6 1"/></svg></span></div><div class="metric-value">—</div><p>暂无股息收入记录</p></article>
         <article class="metric-card"><div class="metric-header"><span>Risk Score</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 3v5c0 5-3 8-8 10-5-2-8-5-8-10V6z"/><path d="M9 12h6"/></svg></span></div><div class="metric-value">—</div><p>风险评分尚未启用</p></article>
       </section>
-
-      <div class="primary-grid">
-        <section class="panel performance-panel" id="terminal-section" aria-labelledby="performanceTitle">
-          <div class="panel-heading"><h2 id="performanceTitle">Stock Chart / 股票走势</h2><span class="view-label">Third-party chart</span></div>
-          <div class="market-switcher"><span class="filters-label">MARKETS</span><div id="markets" class="market-nav" aria-label="选择市场"></div></div>
-          <div class="instrument-selector">
-            <span id="marketLabel">US MARKET</span><span class="instrument-separator">·</span><span id="symbolTitle">AAPL</span><span class="instrument-name" id="symbolName">Apple Inc.</span>
-            <span class="instrument-price" id="quotePrice">—</span>
-            <button class="secondary-button watchlist-toggle" id="watchlistToggle" type="button" disabled aria-pressed="false">☆ 加入自选</button>
-          </div>
-          <div class="chart chart--unavailable" id="stockChart" role="region" aria-label="股票历史走势图">
-            <div class="stock-chart-empty">历史走势图暂不可用</div>
-          </div>
-          <p class="chart-source">公开图表可能延迟或受市场覆盖限制，不用于订单报价。</p>
-          <section aria-label="日参考汇率">
-            <p id="referenceFxStatus" role="status">正在读取日参考汇率…</p>
-            <p id="referenceFxRates"></p>
-            <p class="chart-source">按 ECB 的 EUR 基准计算 USD 交叉汇率，仅供参考，不用于订单或结算。<a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank" rel="noopener noreferrer">来源：ECB（免费获取）</a></p>
-            <button type="button" class="secondary-button" id="refreshReferenceFx">刷新汇率</button>
-          </section>
-          <p id="watchlistFeedback" class="watchlist-feedback" role="status" aria-live="polite"></p>
-          <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
-        </section>
-      </div>
 
       <div class="secondary-grid" id="markets-section">
         <section class="panel allocation-panel" aria-labelledby="allocationTitle">

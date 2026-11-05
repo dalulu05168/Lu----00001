@@ -653,6 +653,9 @@ function renderTransactionHistory() {
       time.className = "transaction-time-cell";
       time.textContent = transactionTime(item.created_at);
       row.append(symbol,name,side,price,quantity,amount,status,time);
+      ["代码","名称","类型","单价","数量","金额（USD）","状态","时间"].forEach((label,index)=>{
+        row.cells[index].dataset.label=label;
+      });
       return row;
     });
     body.replaceChildren(...rows);
