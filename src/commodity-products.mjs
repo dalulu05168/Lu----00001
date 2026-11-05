@@ -1,3 +1,4 @@
+import {optionalReason} from "./optional-reason.mjs";
 import {randomUUID} from "node:crypto";
 import {enableNewProductPurchases} from './internal-products.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -23,8 +24,7 @@ function validate(input,{update=false}={}){
   bad("Invalid indicative price");
  if(Object.hasOwn(input,"status")&&!STATUSES.has(input.status))bad("Invalid commodity status");
  if(!update&&(!input.name||!input.category||!input.unit))bad("Incomplete product");
- if(typeof input.reason!=="string"||input.reason.trim().length<12||input.reason.trim().length>400)bad("Change reason required");
- return input;
+ return {...input,reason:optionalReason(input.reason)};
 }
 function output(r){return {id:r.id,sku:r.sku,name:r.name,category:r.category,unit:r.unit,
  minimumQuantity:r.minimum_quantity,indicativePriceCents:r.indicative_price_cents===null?null:Number(r.indicative_price_cents),
@@ -46,7 +46,7 @@ export async function createCommodityProduct(db,actor,body){
    " VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$9) RETURNING *",
    [id,d.sku,d.name.trim(),d.category,d.unit.trim(),d.minimumQuantity??1,d.indicativePriceCents??null,d.status??"DRAFT",actor.userId]);
   await c.query("INSERT INTO commodity_product_audit(product_id,actor_user_id,action,new_status,reason)"+
-   " VALUES($1,$2,'CREATE',$3,$4)",[id,actor.userId,r.rows[0].status,d.reason.trim()]);
+   " VALUES($1,$2,'CREATE',$3,$4)",[id,actor.userId,r.rows[0].status,d.reason]);
   if(purchaseTerms!==undefined)await enableNewProductPurchases(c,actor,'COMMODITY',id,purchaseTerms,r.rows[0].status);
   return output(r.rows[0]);
  });
@@ -68,7 +68,7 @@ export async function updateCommodityProduct(db,actor,body){
   const next=await c.query("UPDATE commodity_products SET "+sets.join(",")+" WHERE id=$1 RETURNING *",values);
   await c.query("INSERT INTO commodity_product_audit(product_id,actor_user_id,action,previous_status,new_status,reason)"+
    " VALUES($1,$2,'UPDATE',$3,$4,$5)",
-   [d.id,actor.userId,before.rows[0].status,next.rows[0].status,d.reason.trim()]);
+   [d.id,actor.userId,before.rows[0].status,next.rows[0].status,d.reason]);
   return output(next.rows[0]);
  });
 }

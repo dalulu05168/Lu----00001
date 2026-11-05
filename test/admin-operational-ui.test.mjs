@@ -66,7 +66,7 @@ test("master reviews an authorized funding request and sees non-settlement dashb
   el("workflowItems").querySelector("button").click();
   assert.equal(el("workflowDecision").value,"APPROVED");
   assert.equal(el("workflowReason").required,false);
-  assert.equal(el("workflowReason").minLength,0);
+  assert.equal(el("workflowReason").hasAttribute("minlength"),false);
   el("workflowReason").value="";
   el("workflowConfirm").checked=true;
   el("workflowReviewForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));

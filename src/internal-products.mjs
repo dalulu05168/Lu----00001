@@ -1,3 +1,4 @@
+import {optionalReason} from "./optional-reason.mjs";
 import {hashPassword,verifyPassword} from './auth.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export function productError(message,statusCode=400){return Object.assign(new Error(message),{statusCode});}
@@ -69,7 +70,7 @@ export async function updateAdminProductTerms(db,actor,body){
  if(actor?.role!=='MASTER')throw productError('Master permission required',403);
  if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).some(k=>!['kind','id','expectedVersion','tradingEnabled','internalPriceCents','discountBps','participationPassword','reason'].includes(k)))throw productError('Invalid product terms');
  if(!['COMMODITY','LISTING'].includes(body.kind)||!UUID.test(body.id??'')||!Number.isSafeInteger(body.expectedVersion)||body.expectedVersion<0)throw productError('Invalid product reference');
- if(typeof body.reason!=='string'||body.reason.trim().length<12||body.reason.length>400)throw productError('Change reason required');
+ const reason=optionalReason(body.reason);
  if(!['tradingEnabled','internalPriceCents','discountBps','participationPassword'].some(k=>Object.hasOwn(body,k)))throw productError('No terms to update');
  const c=await db.connect();let active=false;
  try{
@@ -79,7 +80,7 @@ export async function updateAdminProductTerms(db,actor,body){
   if(!found.rows.length)throw productError('Product not found',404);
   const previous=await readAdminProductTerms(c,actor,body.kind,body.id);
   if((previous.termsVersion??0)!==body.expectedVersion)throw productError('Product terms changed; refresh before saving',409);
-  const next=await saveAuditedTerms(c,actor,body.kind,body.id,body,body.reason.trim());
+  const next=await saveAuditedTerms(c,actor,body.kind,body.id,body,reason);
   await c.query('COMMIT');active=false;return next;
  }catch(error){if(active)await c.query('ROLLBACK');throw error;}finally{c.release();}
 }

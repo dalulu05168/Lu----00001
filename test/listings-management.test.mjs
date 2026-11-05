@@ -203,8 +203,8 @@ test("master console renders edit, publish and withdraw controls",async()=>{
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.status==="DRAFT"));
     const writes=calls.filter(call=>call.method==="POST"||call.method==="PATCH").length;
     el("listingSymbol").value="0700";
-    el("listingLookupButton").click();
-    await new Promise(done=>setTimeout(done,35));
+    el("listingSymbol").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
+    await new Promise(done=>setTimeout(done,520));
     const match=el("listingLookupResults").querySelector("button");
     assert.match(match.textContent,/香港 · HKEX · 0700 · Tencent Holdings/);
     match.click();

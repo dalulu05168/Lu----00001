@@ -4,7 +4,7 @@ import {lookupStocks} from "../src/stock-lookup.mjs";
 
 const emptyCatalog={query:async()=>({rows:[]})};
 test("reference lookup covers each supported market and preserves numeric codes",async()=>{
-  for(const [code,market,symbol] of [["aapl","US","AAPL"],["700","HK","0700"],["000001","CN","000001"],["1155","MY","1155"]]){
+  for(const [code,market,symbol] of [["aapl","US","AAPL"],["700","HK","0700"],["000001","CN","000001"],["1155","MY","1155"],["brd","RO","BRD"]]){
     const result=await lookupStocks(emptyCatalog,code,{apiKey:""});
     assert.equal(result.provider,"unconfigured");
     assert.ok(result.items.some(item=>item.market===market&&item.symbol===symbol&&item.exchange));

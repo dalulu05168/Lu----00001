@@ -30,7 +30,7 @@ test("subadmin review cannot approve a money request or bypass scoped ownership"
  const body={id:requestId,expectedStatus:"SUBMITTED",status:"APPROVED",reason:"Checked payment request against internal checklist"};
  await assert.rejects(reviewAdminRequest(db,owner,"FUNDING",body),e=>e.statusCode===403);
  await assert.rejects(reviewAdminRequest(db,wrong,"FUNDING",{...body,status:"UNDER_REVIEW"}),e=>e.statusCode===404);
- await assert.rejects(reviewAdminRequest(db,owner,"FUNDING",{...body,status:"UNDER_REVIEW",reason:"short"}),e=>e.statusCode===400);
+ await assert.rejects(reviewAdminRequest(db,owner,"FUNDING",{...body,status:"UNDER_REVIEW",reason:"x".repeat(401)}),e=>e.statusCode===400);
  assert.equal(q.filter(x=>x.sql==="ROLLBACK").length,2);
  assert.equal(q.some(x=>x.sql.includes("UPDATE client_funding_requests")),false);
 });

@@ -19,7 +19,7 @@ test("market distribution uses actual distinct held instruments, not invented ma
   ]);
   assert.equal(result.available, true);
   assert.equal(result.total, 4);
-  assert.deepEqual(Object.fromEntries(Object.entries(result.markets).map(([key,item])=>[key,item.count])), {US:2,HK:1,CN:0,MY:1});
+  assert.deepEqual(Object.fromEntries(Object.entries(result.markets).map(([key,item])=>[key,item.count])), {US:2,HK:1,CN:0,MY:1,RO:0});
   assert.equal(result.markets.US.percent, 50);
   assert.equal(result.markets.HK.percent, 25);
   assert.equal(result.markets.CN.percent, 0);

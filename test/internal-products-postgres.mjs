@@ -26,7 +26,7 @@ export async function verifyInternalProducts(){
   const configured=[];
   for(const entry of entries){
    const before=await readAdminProductTerms(db,actor,entry.kind,entry.id);assert.equal(before.tradingEnabled,false);
-   const item=await updateAdminProductTerms(db,actor,{...entry,expectedVersion:0,tradingEnabled:true,internalPriceCents:10000,discountBps:1000,participationPassword:'001234',reason:'Synthetic exact discount and participation configuration'});
+   const item=await updateAdminProductTerms(db,actor,{...entry,expectedVersion:0,tradingEnabled:true,internalPriceCents:10000,discountBps:1000,participationPassword:'001234',reason:''});
    assert.equal(item.passwordConfigured,true);assert.equal(JSON.stringify(item).includes('hash'),false);assert.equal(JSON.stringify(item).includes('001234'),false);
    configured.push(item);
   }
@@ -86,7 +86,7 @@ export async function verifyInternalProducts(){
   const publicProducts=await (await fetch(origin+'/api/internal-products',{headers:{authorization:'Bearer synthetic-owner'}})).json();
   assert.equal(JSON.stringify(publicProducts).includes('participation_password_hash'),false);
   const purchaseTerms={internalPriceCents:10000,discountBps:1000,participationPassword:'001234'};
-  const listingInput={itemType:'STOCK',market:'US',symbol:'T'+randomUUID().slice(0,8).toUpperCase(),name:'Quick listing',status:'PUBLISHED'};
+  const listingInput={itemType:'STOCK',market:'RO',symbol:'T'+randomUUID().slice(0,8).toUpperCase(),name:'Quick listing',status:'PUBLISHED'};
   const commodityInput={sku:'T'+randomUUID().slice(0,8).toUpperCase(),name:'Quick commodity',unit:'份额',category:'PRECIOUS_METAL',minimumQuantity:1,status:'PUBLISHED',reason:'Synthetic quick commodity creation'};
   const invalidTerms={...purchaseTerms,participationPassword:'12345'};
   await assert.rejects(createListing(db,actor,{...listingInput,purchaseTerms:invalidTerms}),e=>e.statusCode===400);

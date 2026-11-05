@@ -34,7 +34,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql", "012_internal_funding.sql", "013_internal_products.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql", "012_internal_funding.sql", "013_internal_products.sql", "015_romanian_listings_optional_reasons.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -370,7 +370,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const product=await req("/api/admin/commodities",{method:"POST",token:masterToken,body:{
       sku:commoditySku,name:"Gold directory example",category:"PRECIOUS_METAL",unit:"ounce",
       minimumQuantity:1,indicativePriceCents:125500,status:"DRAFT",
-      reason:"Create non-trading reference commodity catalog entry"
+      reason:""
     }});
     assert.equal(product.status,201);
     assert.equal(product.data.item.status,"DRAFT");
@@ -382,7 +382,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     }})).status,403);
     const publishCommodity=await req("/api/admin/commodities",{method:"PATCH",token:masterToken,body:{
       id:product.data.item.id,status:"PUBLISHED",
-      reason:"Approve visible indicative-only commodity directory"
+      reason:"发布"
     }});
     assert.equal(publishCommodity.status,200);
     assert.equal(publishCommodity.data.item.priceSource,"ADMIN_INDICATIVE");
@@ -415,7 +415,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
       body:{threadId,message:"Illegal administrator impersonation"}})).status,403);
     const closeSupport=await req("/api/admin/support",{method:"PATCH",token:masterToken,body:{
       threadId,expectedStatus:"OPEN",status:"CLOSED",
-      reason:"Conversation reviewed and closed by a supervisor"
+      reason:""
     }});
     assert.equal(closeSupport.status,200);
     assert.equal(closeSupport.data.thread.status,"CLOSED");
@@ -479,7 +479,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal((await req(adminWorkflow,{token:clientLogin.data.token})).status,403);
     assert.equal((await req(adminWorkflow)).status,401);
     const workflowChange=(token,category,id,expectedStatus,status)=>req("/api/admin/workflow-requests",{
-      method:"PATCH",token,body:{category,id,expectedStatus,status,reason:"Reviewed against documented internal request procedures"}
+      method:"PATCH",token,body:{category,id,expectedStatus,status}
     });
     assert.equal((await workflowChange(subAdmin.data.token,"FUNDING",deposit.data.item.id,"SUBMITTED","APPROVED")).status,403);
     const intake=await workflowChange(subAdmin.data.token,"FUNDING",deposit.data.item.id,"SUBMITTED","UNDER_REVIEW");
@@ -599,17 +599,17 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal((await req(policyPath,{token:customerAppToken})).status,403);
     assert.equal((await req(policyPath)).status,401);
     const change=(token,body)=>req("/api/admin/client-controls",{method:"PATCH",token,body:{
-      clientId:attached.data.userId,reason:"Verified internal policy adjustment",confirmPassword:recoveredPassword,...body
+      clientId:attached.data.userId,confirmPassword:recoveredPassword,...body
     }});
     assert.equal((await change(subAdmin.data.token,{field:"vipTier",value:"GOLD",expectedVersion:0})).status,403);
     assert.equal((await change(masterToken,{field:"vipTier",value:"GOLD",expectedVersion:0,confirmPassword:"wrong-confirmation"})).status,401);
-    assert.equal((await change(masterToken,{field:"vipTier",value:"GOLD",expectedVersion:0,reason:"short"})).status,400);
+    assert.equal((await change(masterToken,{field:"vipTier",value:"GOLD",expectedVersion:0,reason:"x".repeat(401)})).status,400);
     const vipChanged=await change(masterToken,{field:"vipTier",value:"GOLD",expectedVersion:0});
     assert.equal(vipChanged.status,200);
     assert.equal(vipChanged.data.policy.version,1);
     assert.equal(vipChanged.data.policy.vipTier,"GOLD");
     assert.equal((await change(masterToken,{field:"vipTier",value:"PLATINUM",expectedVersion:0})).status,409);
-    const loanChanged=await change(masterToken,{field:"loanRequestsAllowed",value:true,expectedVersion:1});
+    const loanChanged=await change(masterToken,{field:"loanRequestsAllowed",value:true,expectedVersion:1,reason:"已核" });
     assert.equal(loanChanged.status,200);
     assert.equal(loanChanged.data.policy.version,2);
     const classChanged=await change(masterToken,{field:"accountClass",value:"REAL_PENDING",expectedVersion:2});
@@ -624,6 +624,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const changedAudit=await req(auditPath,{token:masterToken});
     assert.equal(changedAudit.status,200);
     assert.equal(changedAudit.data.items.length,4);
+    assert.equal(changedAudit.data.items.find(x=>x.field==="vipTier").reason,"");
     assert.deepEqual(changedAudit.data.items.map(x=>x.field).sort(),
       ["accountClass","loanRequestsAllowed","vipTier","withdrawalRequestsAllowed"].sort());
     assert.equal((await req(auditPath,{token:otherLogin.data.token})).status,404);
@@ -656,7 +657,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal((await req(subPolicyPath,{token:otherLogin.data.token})).status,404);
     assert.equal((await req(subPolicyPath,{token:customerAppToken})).status,401); // customer session was revoked above
     const subEdit=(body)=>req("/api/admin/subaccount-controls",{method:"PATCH",token:masterToken,body:{
-      userId:sub.data.userId,loginAllowed:false,expectedVersion:0,reason:"Reviewed delegated account access and security requirements",
+      userId:sub.data.userId,loginAllowed:false,expectedVersion:0,
       confirmPassword:recoveredPassword,...body
     }});
     assert.equal((await req("/api/admin/subaccount-controls",{method:"PATCH",token:subAdmin.data.token,body:{
@@ -678,6 +679,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const subHistory=await req(subAuditPath,{token:masterToken});
     assert.equal(subHistory.status,200);
     assert.equal(subHistory.data.items.length,2);
+    assert.equal(subHistory.data.items[0].reason,"");
     assert.equal(subHistory.data.items[0].newLoginAllowed,true);
     assert.equal(subHistory.data.items[1].newLoginAllowed,false);
     assert.equal((await req(subAuditPath,{token:otherLogin.data.token})).status,404);

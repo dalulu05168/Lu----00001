@@ -11,7 +11,7 @@ function matchBootstrapKey(value){
   return a.length===b.length&&timingSafeEqual(a,b);
 }
 const SYMBOL=/^[A-Z0-9][A-Z0-9.-]{0,23}$/;
-const MARKETS=new Set(["US","HK","CN","MY"]);
+const MARKETS=new Set(["US","HK","CN","MY","RO"]);
 const TYPES=new Set(["STOCK","FUND","IPO"]);
 function invalid(message){const error=new Error(message);error.statusCode=400;throw error;}
 function getEmail(value) {

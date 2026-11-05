@@ -4,7 +4,8 @@ const MARKETS = [
   {code:"US",label:"美国市场",exchange:"NYSE / NASDAQ",currency:"USD",icon:"US",sub:"United States"},
   {code:"HK",label:"香港市场",exchange:"HKEX",currency:"HKD",icon:"HK",sub:"Hong Kong"},
   {code:"CN",label:"中国内地",exchange:"SSE / SZSE",currency:"CNY",icon:"CN",sub:"China"},
-  {code:"MY",label:"马来西亚",exchange:"BURSA MALAYSIA",currency:"MYR",icon:"MY",sub:"Malaysia"}
+  {code:"MY",label:"马来西亚",exchange:"BURSA MALAYSIA",currency:"MYR",icon:"MY",sub:"Malaysia"},
+  {code:"RO",label:"罗马尼亚市场",exchange:"BVB",currency:"RON",icon:"RO",sub:"Romania"}
 ];
 const INSTRUMENTS = [
   {market:"US",symbol:"AAPL",name:"Apple Inc."},
@@ -14,7 +15,8 @@ const INSTRUMENTS = [
   {market:"CN",symbol:"600519",name:"贵州茅台"},
   {market:"CN",symbol:"000001",name:"平安银行"},
   {market:"MY",symbol:"1155",name:"Maybank"},
-  {market:"MY",symbol:"1023",name:"CIMB Group"}
+  {market:"MY",symbol:"1023",name:"CIMB Group"},
+  {market:"RO",symbol:"BRD",name:"BRD – Groupe Société Générale"}
 ];
 const el = id => document.getElementById(id);
 let market = "US";

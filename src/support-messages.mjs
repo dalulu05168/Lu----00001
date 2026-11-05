@@ -1,3 +1,4 @@
+import {optionalReason} from "./optional-reason.mjs";
 import {randomUUID} from "node:crypto";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function bad(message,statusCode=400){throw Object.assign(new Error(message),{statusCode});}
@@ -81,14 +82,13 @@ export async function changeAdminSupportStatus(db,actor,body){
   bad("Invalid support status fields");
  const threadId=id(body.threadId),next=body.status,old=body.expectedStatus;
  if(!["OPEN","CLOSED"].includes(next)||!["OPEN","CLOSED"].includes(old)||next===old)bad("Invalid status transition");
- if(typeof body.reason!=="string"||body.reason.trim().length<12||body.reason.trim().length>400)
-  bad("Status reason required");
+ const reason=optionalReason(body.reason);
  return withTransaction(db,async c=>{
   const t=await findScopedThread(c,actor,threadId,true);
   if(t.status!==old)bad("Status changed since refresh",409);
   const r=await c.query("UPDATE support_threads SET status=$2,updated_at=now() WHERE id=$1 RETURNING *",[threadId,next]);
   await c.query("INSERT INTO support_status_audit(thread_id,actor_user_id,previous_status,new_status,reason)"+
-   " VALUES($1,$2,$3,$4,$5)",[threadId,actor.userId,old,next,body.reason.trim()]);
+   " VALUES($1,$2,$3,$4,$5)",[threadId,actor.userId,old,next,reason]);
   return {thread:outThread(r.rows[0])};
  });
 }

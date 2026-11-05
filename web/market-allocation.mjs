@@ -1,4 +1,4 @@
-export const MARKET_CODES = Object.freeze(["US","HK","CN","MY"]);
+export const MARKET_CODES = Object.freeze(["US","HK","CN","MY","RO"]);
 
 /**
  * Count distinct held instruments by market, using only the account's

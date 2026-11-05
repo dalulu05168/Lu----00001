@@ -3,11 +3,12 @@ const reference = [
   ["US","NEM","Newmont Corporation","NYSE"], ["HK","0700","Tencent Holdings","HKEX"],
   ["HK","9988","Alibaba Group","HKEX"], ["CN","600519","贵州茅台","SSE"],
   ["CN","000001","平安银行","SZSE"], ["MY","1155","Maybank","Bursa Malaysia"],
-  ["MY","1023","CIMB Group","Bursa Malaysia"]
+  ["MY","1023","CIMB Group","Bursa Malaysia"],
+  ["RO","BRD","BRD – Groupe Société Générale","BVB"]
 ].map(([market,symbol,name,exchange])=>({market,symbol,name,exchange,source:"reference"}));
 const exchanges = new Map([
   ["XNAS","US"],["XNGS","US"],["XNMS","US"],["XNCM","US"],["XNYS","US"],["ARCX","US"],["XASE","US"],
-  ["XHKG","HK"],["XSHG","CN"],["XSHE","CN"],["XBSE","CN"],["XKLS","MY"]
+  ["XHKG","HK"],["XSHG","CN"],["XSHE","CN"],["BJSE","CN"],["XKLS","MY"],["XBSE","RO"]
 ]);
 const stockTypes = new Set(["COMMON STOCK","PREFERRED STOCK","AMERICAN DEPOSITARY RECEIPT","DEPOSITARY RECEIPT","GLOBAL DEPOSITARY RECEIPT"]);
 

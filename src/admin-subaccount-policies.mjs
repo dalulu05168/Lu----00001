@@ -1,3 +1,4 @@
+import {optionalReason} from "./optional-reason.mjs";
 import {verifyPassword} from "./auth.mjs";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function invalid(message,statusCode=400){throw Object.assign(new Error(message),{statusCode});}
@@ -50,8 +51,7 @@ export async function changeSubadminLogin(db,actor,data){
  check(actor,userId);
  if(typeof loginAllowed!=="boolean")invalid("Invalid login permission");
  if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0)invalid("Invalid version");
- const note=typeof reason==="string"?reason.trim():"";
- if(note.length<12||note.length>400)invalid("Change reason required");
+ const note=optionalReason(reason);
  if(typeof confirmPassword!=="string"||confirmPassword.length<12||confirmPassword.length>1024)
   invalid("Administrator confirmation required",401);
  const r=await db.query("SELECT password_hash FROM app_users WHERE id=$1",[actor.userId]);

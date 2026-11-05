@@ -1,3 +1,4 @@
+import {optionalReason} from "./optional-reason.mjs";
 import {randomUUID} from "node:crypto";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TABLES=Object.freeze({FUNDING:"client_funding_requests",KYC:"client_kyc_requests",BANK_LINK:"client_bank_link_requests"});
@@ -102,10 +103,7 @@ export async function reviewAdminRequest(db,actor,category,data){
  exact(data,["id","expectedStatus","status","reason"]);
  requireUuid(data.id);
  if(typeof data.expectedStatus!=="string"||!STATUS[category].has(data.expectedStatus))bad("Invalid current status");
- const optionalReason=category==="FUNDING"&&data.status==="APPROVED"&&actor.role==="MASTER";
- if(data.reason!==undefined&&typeof data.reason!=="string")bad("Review reason required");
- const reason=data.reason?.trim()|| (optionalReason?"管理员确认平台内部资金入账":"");
- if((!optionalReason&&reason.length<12)||reason.length>400)bad("Review reason required");
+ const reason=optionalReason(data.reason);
  return withTxn(db,async conn=>{
   const q=await conn.query("SELECT r.* FROM "+table+" r LEFT JOIN client_links l ON l.user_id=r.client_user_id "+
    "WHERE r.id=$1 AND ($2::text='MASTER' OR l.subadmin_user_id=$3::uuid) FOR UPDATE OF r",

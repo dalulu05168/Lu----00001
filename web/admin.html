@@ -134,8 +134,8 @@
               <form id="subadminPolicyForm" class="policy-form" hidden>
                 <label>登录权限<select id="subadminLoginAllowed" required>
                   <option value="true">正常登录</option><option value="false">限制登录</option></select></label>
-                <label class="policy-form-wide">变更原因（至少 12 字）
-                  <textarea id="subadminPolicyReason" rows="2" minlength="12" maxlength="400" required></textarea></label>
+                <label class="policy-form-wide">变更原因（选填）
+                  <textarea id="subadminPolicyReason" rows="2" maxlength="400"></textarea></label>
                 <label class="policy-form-wide">再次输入主账户密码
                   <input id="subadminPolicyPassword" type="password" minlength="12" autocomplete="off" required></label>
                 <label class="policy-check policy-form-wide"><input id="subadminPolicyConfirm" type="checkbox" required>
@@ -198,7 +198,7 @@
                   <option value="accountClass">账户类别</option>
                 </select></label>
                 <label>更新为<select id="clientPolicyValue" required></select></label>
-                <label class="policy-form-wide">变更原因（至少 12 字）<textarea id="clientPolicyReason" rows="2" minlength="12" maxlength="400" required placeholder="写明审核依据和变更原因"></textarea></label>
+                <label class="policy-form-wide">变更原因（选填）<textarea id="clientPolicyReason" rows="2" maxlength="400" placeholder="写明审核依据和变更原因"></textarea></label>
                 <label class="policy-form-wide">重新输入主账户登录密码<input id="clientPolicyPassword" type="password" autocomplete="off" required minlength="12"></label>
                 <label class="policy-check policy-form-wide"><input id="clientPolicyConfirm" type="checkbox" required>我确认修改所选客户的管理策略；所有操作会写入审计</label>
                 <button id="clientPolicySubmit" type="submit">确认并保存</button>
@@ -279,7 +279,7 @@
               <form id="mirrorPolicyForm" class="mirror-policy-form" hidden>
                 <h4 id="mirrorPolicyHeading">修改管理策略</h4>
                 <label>修改为<select id="mirrorPolicyValue" required></select></label>
-                <label>操作原因（至少 12 字）<textarea id="mirrorPolicyReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
+                <label>操作原因（选填）<textarea id="mirrorPolicyReason" rows="3" maxlength="400"></textarea></label>
                 <label>重新输入主账号密码<input id="mirrorPolicyPassword" type="password" minlength="12" autocomplete="off" required></label>
                 <label class="mirror-confirm-row"><input id="mirrorPolicyConfirm" type="checkbox" required>确认修改选中客户，并记录变更审计</label>
                 <div class="mirror-policy-actions"><button id="mirrorPolicySave" type="submit">确认保存</button>
@@ -298,7 +298,7 @@
               <form id="mirrorReviewForm" class="mirror-policy-form" hidden>
                 <h4 id="mirrorReviewHeading">处理业务申请</h4>
                 <label>处理状态<select id="mirrorReviewDecision" required></select></label>
-                <label>审核原因（资金同意可留空，其余至少12字）<textarea id="mirrorReviewReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
+                <label>审核原因（选填）<textarea id="mirrorReviewReason" rows="3" maxlength="400"></textarea></label>
                 <label class="mirror-confirm-row"><input id="mirrorReviewConfirm" type="checkbox" required>确认本次处理；资金同意将更新平台内部余额，不发起银行付款</label>
                 <div class="mirror-policy-actions"><button id="mirrorReviewSave" type="submit">保存审核记录</button>
                   <button id="mirrorReviewCancel" type="button" class="outline">取消</button></div>
@@ -316,11 +316,11 @@
           <div class="heading"><h3>证券目录</h3><button type="button" id="refreshListings" class="outline">刷新</button></div>
           <form id="listingForm" class="field-grid">
             <label>类型<select id="listingType"><option value="STOCK">股票</option><option value="FUND">基金</option><option value="IPO">IPO</option></select></label>
-            <label>市场<select id="listingMarket"><option value="US">美国</option><option value="HK">香港</option><option value="CN">中国内地</option><option value="MY">马来西亚</option></select></label>
+            <label>市场<select id="listingMarket"><option value="US">美国</option><option value="HK">香港</option><option value="CN">中国内地</option><option value="MY">马来西亚</option><option value="RO">罗马尼亚</option></select></label>
             <label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
             <div id="listingLookup" class="workflow-form-wide">
-              <button id="listingLookupButton" class="outline" type="button">在四个市场搜索股票代码</button>
-              <p id="listingLookupStatus" class="muted" role="status">输入代码后搜索，或直接填写证券资料。</p>
+              <button id="listingLookupButton" class="outline" type="button">搜索股票代码</button>
+              <p id="listingLookupStatus" class="muted" role="status">输入股票代码可查看匹配结果。</p>
               <div id="listingLookupResults" class="admin-list"></div>
             </div>
             <label>名称<input id="listingName" maxlength="120" required></label>
@@ -342,6 +342,7 @@
           <p>后台可管理商品名称、单位、最低数量和人工参考价格。价格不是实时交易所报价；系统尚未连接商品交易商。</p></div>
         <section class="panel" id="commodityArea">
           <div class="heading"><h3>商品管理</h3><button type="button" id="commodityRefresh" class="outline">刷新</button></div>
+          <p>股票代码请到 <button type="button" id="commodityOpenSecurities" class="outline">证券资料</button> 搜索。</p>
           <form id="commodityForm" class="field-grid">
             <label>商品代码<input id="commoditySku" maxlength="32" pattern="[A-Z0-9._-]{2,32}" placeholder="例如 GOLD-OZ" required></label>
             <label>商品名称<input id="commodityName" maxlength="120" placeholder="例如 黄金参考目录" required></label>
@@ -352,7 +353,7 @@
             <label>人工参考价（USD，可空）<input id="commodityIndicativePrice" inputmode="decimal" placeholder="不是实时报价"></label>
             <label>目录状态<select id="commodityStatus"><option value="DRAFT">草稿</option>
               <option value="PUBLISHED">公开目录</option><option value="ARCHIVED">归档</option></select></label>
-            <label>变更原因<input id="commodityReason" maxlength="400" minlength="12" placeholder="新建可用系统记录；编辑时请填写至少12字"></label>
+            <label>变更原因（选填）<input id="commodityReason" maxlength="400"></label>
             <details id="commodityQuickPurchase" class="workflow-form-wide">
               <summary>上架并开启购买</summary>
               <label><input id="commodityQuickEnabled" type="checkbox">保存时发布，并开启购买</label>
@@ -382,8 +383,8 @@
           <form id="workflowReviewForm" class="workflow-review-form" hidden>
             <h3>处理选中申请</h3><p id="workflowSelection" class="muted"></p>
             <label>处理状态<select id="workflowDecision" required></select></label>
-            <label class="workflow-form-wide">处理原因（资金同意可留空，其余至少12字）
-              <textarea id="workflowReason" rows="3" minlength="12" maxlength="400" required></textarea></label>
+            <label class="workflow-form-wide">处理原因（选填）
+              <textarea id="workflowReason" rows="3" maxlength="400"></textarea></label>
             <label class="workflow-confirm workflow-form-wide">
               <input id="workflowConfirm" type="checkbox" required>确认本次处理；资金同意将更新平台内部余额，不发起银行付款
             </label>
@@ -425,7 +426,7 @@
               <button type="submit">发送回复</button>
             </form>
             <form id="supportStatusForm" hidden>
-              <label>状态变更原因（至少 12 字）<input id="supportStatusReason" maxlength="400" minlength="12" required></label>
+              <label>状态变更原因（选填）<input id="supportStatusReason" maxlength="400"></label>
               <button type="submit" id="supportStatusConfirm">确认状态调整</button>
               <button type="button" class="outline" id="supportStatusCancel">取消</button>
             </form>
@@ -464,7 +465,7 @@
   <label>优惠比例（%）<input id="productTermsDiscount" type="number" min="0" max="99.99" step="0.01" value="0" required></label>
   <label>六位参与密码<input id="productTermsPassword" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" placeholder="每个产品单独设置；留空保留原密码"></label>
   <label>允许购买<select id="productTermsEnabled"><option value="false">关闭</option><option value="true">开启</option></select></label>
-  <label>变更原因（至少12字）<input id="productTermsReason" minlength="12" maxlength="400" required></label>
+  <label>变更原因（选填）<input id="productTermsReason" maxlength="400"></label>
   <div><button type="submit" id="productTermsSave">保存交易设置</button><button type="button" id="productTermsCancel" class="outline">取消</button></div>
  </form><p class="muted">优惠10%代表按原价90%购买。密码不回显；变更价格后客户需重新确认。</p>
  <p id="productTermsFeedback" class="feedback" role="status"></p>

@@ -606,7 +606,6 @@ async function refreshMirrorRequests(){
       const opt=document.createElement("option");opt.value=value;opt.textContent=label;select.append(opt);
      }
      el("mirrorReviewReason").value="";el("mirrorReviewConfirm").checked=false;
-     updateReviewReason('mirrorReviewReason','mirrorReviewDecision',item);
      el("mirrorReviewForm").hidden=false;
     });
     row.append(button);
@@ -780,17 +779,25 @@ async function refreshMirrorStatus(){
 el("mirrorClientSearch").addEventListener("input",()=>renderClientDirectory(mirrorClients));
 let editingListingId=null;
 let listingLookupSerial=0;
-const listingMarketNames={US:"美国",HK:"香港",CN:"中国内地",MY:"马来西亚"};
+let listingLookupTimer;
+const listingMarketNames={US:"美国",HK:"香港",CN:"中国内地",MY:"马来西亚",RO:"罗马尼亚"};
 function clearListingLookup(){
+  clearTimeout(listingLookupTimer);
   listingLookupSerial++;
   el("listingLookup").hidden=el("listingType").value!=="STOCK";
   el("listingLookupButton").disabled=false;
   el("listingLookupResults").replaceChildren();
-  setText("listingLookupStatus","输入代码后搜索，或直接填写证券资料。");
+  setText("listingLookupStatus","输入股票代码可查看匹配结果。");
 }
 el("listingType").addEventListener("change",clearListingLookup);
-el("listingSymbol").addEventListener("input",clearListingLookup);
-el("listingLookupButton").addEventListener("click",async()=>{
+el("listingSymbol").addEventListener("input",()=>{
+  clearListingLookup();
+  if(el("listingType").value==="STOCK"&&/^[A-Z0-9][A-Z0-9.-]{1,23}$/i.test(el("listingSymbol").value.trim())){
+    listingLookupTimer=setTimeout(searchListingCode,450);
+  }
+});
+el("listingLookupButton").addEventListener("click",searchListingCode);
+async function searchListingCode(){
   if(role!=="MASTER"||el("listingType").value!=="STOCK")return;
   clearListingLookup();
   const code=el("listingSymbol").value.trim().toUpperCase();
@@ -800,7 +807,7 @@ el("listingLookupButton").addEventListener("click",async()=>{
   const serial=listingLookupSerial,token=adminToken;
   const current=()=>serial===listingLookupSerial&&token===adminToken&&role==="MASTER";
   el("listingLookupButton").disabled=true;
-  setText("listingLookupStatus","正在搜索四个市场…");
+  setText("listingLookupStatus","正在搜索股票代码…");
   try{
     const {items,provider}=await api("/admin/stock-lookup?code="+encodeURIComponent(code));
     if(!current())return;
@@ -827,7 +834,7 @@ el("listingLookupButton").addEventListener("click",async()=>{
   }finally{
     if(current())el("listingLookupButton").disabled=false;
   }
-});
+}
 function clearListingEditor(){
   editingListingId=null;
   el("listingForm").reset();
@@ -927,14 +934,6 @@ function clearCaseSelection(){
  selectedCase=null;el("workflowReviewForm").hidden=true;
  el("workflowDecision").replaceChildren();el("workflowReason").value="";el("workflowConfirm").checked=false;
 }
-function updateReviewReason(inputId,decisionId,item){
- const input=el(inputId);
- const optional=item?.category==='FUNDING'&&el(decisionId).value==='APPROVED';
- input.required=!optional;input.minLength=optional?0:12;
- input.placeholder=optional?'可不填写，系统自动记录审批人和入账原因':'请填写至少12字处理原因';
-}
-el('workflowDecision').addEventListener('change',()=>updateReviewReason('workflowReason','workflowDecision',selectedCase));
-el('mirrorReviewDecision').addEventListener('change',()=>updateReviewReason('mirrorReviewReason','mirrorReviewDecision',mirrorCase));
 function renderCaseList(){
  const target=el("workflowItems");target.replaceChildren();
  if(!caseRows.length){target.append(plainNode("p","当前权限下暂无此类申请","muted"));return;}
@@ -950,7 +949,6 @@ function renderCaseList(){
     for(const [value,label] of next){
      const option=document.createElement("option");option.value=value;option.textContent=label;select.append(option);
     }
-    updateReviewReason('workflowReason','workflowDecision',item);
     el("workflowReviewForm").hidden=false;
    });
    row.append(action);
@@ -1125,7 +1123,6 @@ el("commodityForm").addEventListener("submit",async event=>{
   };
   if(commodityEditingId)await api("/admin/commodities",{method:"PATCH",body:{id:commodityEditingId,...data}});
   else{
-   data.reason ||= '新建商品目录并记录管理员发布操作';
    includeQuickPurchase('commodity',data);
    await api("/admin/commodities",{method:"POST",body:{sku:el("commoditySku").value.trim().toUpperCase(),...data}});
   }
@@ -1434,6 +1431,10 @@ function activateAdminPane(page) {
 }
 document.querySelectorAll("[data-admin-page]").forEach(button=>{
   button.addEventListener("click",()=>activateAdminPane(button.dataset.adminPage));
+});
+el("commodityOpenSecurities").addEventListener("click",()=>{
+  activateAdminPane("catalog");
+  el("listingSymbol").focus();
 });
 document.querySelectorAll("[data-dashboard-open]").forEach(button=>{
   button.addEventListener("click",()=>activateAdminPane(button.dataset.dashboardOpen));

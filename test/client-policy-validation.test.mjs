@@ -32,7 +32,7 @@ test("client policy validates requested field, value, reason and confirmation be
   await assert.rejects(changeClientPolicy(db,actor,{...base,field:"cashCents"}),e=>e.statusCode===400);
   await assert.rejects(changeClientPolicy(db,actor,{...base,value:"UNSUPPORTED"}),e=>e.statusCode===400);
   await assert.rejects(changeClientPolicy(db,actor,{...base,expectedVersion:-1}),e=>e.statusCode===400);
-  await assert.rejects(changeClientPolicy(db,actor,{...base,reason:"short"}),e=>e.statusCode===400);
+  await assert.rejects(changeClientPolicy(db,actor,{...base,reason:"x".repeat(401)}),e=>e.statusCode===400);
   await assert.rejects(changeClientPolicy(db,actor,{...base,unexpected:true}),e=>e.statusCode===400);
   await assert.rejects(changeClientPolicy(db,actor,{...base,confirmPassword:"wrong"}),e=>e.statusCode===401);
 });

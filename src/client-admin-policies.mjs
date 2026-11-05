@@ -1,3 +1,4 @@
+import {optionalReason} from "./optional-reason.mjs";
 import {verifyPassword} from "./auth.mjs";
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -84,8 +85,7 @@ export async function changeClientPolicy(db,actor,data){
     fail("Invalid client policy request");
   const {clientId,field,value,reason,confirmPassword,expectedVersion}=data;
   checkClientId(clientId);validValue(field,value);
-  const note=typeof reason==="string"?reason.trim():"";
-  if(note.length<12||note.length>400)fail("A change reason of 12 to 400 characters is required");
+  const note=optionalReason(reason);
   if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0)fail("Invalid policy version");
   if(typeof confirmPassword!=="string"||confirmPassword.length<12||confirmPassword.length>1024)
     fail("Administrator confirmation required",401);
