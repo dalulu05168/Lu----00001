@@ -3,18 +3,14 @@
 export const TRADING_VIEW_WIDGET_SCRIPT =
   "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
 
+// HK/CN/MY withdrawn: no working free quote source was found for them, so
+// they are no longer presented as selectable markets anywhere in the app.
 const LISTED = Object.freeze({
   "US:AAPL": "NASDAQ:AAPL",
   "US:MSFT": "NASDAQ:MSFT",
   "US:AA": "NYSE:AA",
   // Confirmed by Newmont investor stock information (NYSE listing).
-  "US:NEM": "NYSE:NEM",
-  "HK:0700": "HKEX:700",
-  "HK:9988": "HKEX:9988",
-  "CN:600519": "SSE:600519",
-  "CN:000001": "SZSE:000001",
-  "MY:1155": "MYX:1155",
-  "MY:1023": "MYX:1023"
+  "US:NEM": "NYSE:NEM"
 });
 
 export function resolveTradingViewSymbol({market,symbol} = {}) {

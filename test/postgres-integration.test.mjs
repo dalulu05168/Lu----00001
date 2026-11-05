@@ -76,24 +76,24 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     assert.equal(initiallyEmpty.status,200);
     assert.deepEqual(initiallyEmpty.value.items,[]);
     const saved = await request("/api/watchlist", {
-      method:"POST",token:tokenA,body:{market:"HK",symbol:"9988"}
+      method:"POST",token:tokenA,body:{market:"US",symbol:"MSFT"}
     });
     assert.equal(saved.status,200);
     const savedA = await request("/api/watchlist", {token:tokenA});
-    assert.deepEqual(savedA.value.items.map(item=>item.market+":"+item.symbol),["HK:9988"]);
+    assert.deepEqual(savedA.value.items.map(item=>item.market+":"+item.symbol),["US:MSFT"]);
     const isolatedB = await request("/api/watchlist", {token:tokenB});
     assert.deepEqual(isolatedB.value.items,[]);
     const persisted = await db.query(
       "SELECT market,symbol FROM watchlist_items WHERE account_id=$1",[registerA.value.accountId]
     );
     assert.equal(persisted.rows.length,1);
-    assert.equal(persisted.rows[0].symbol,"9988");
+    assert.equal(persisted.rows[0].symbol,"MSFT");
     const badInstrument = await request("/api/watchlist", {
-      method:"POST",token:tokenA,body:{market:"HK",symbol:"<script>"}
+      method:"POST",token:tokenA,body:{market:"US",symbol:"<script>"}
     });
     assert.equal(badInstrument.status,400);
     const removeSaved = await request("/api/watchlist", {
-      method:"DELETE",token:tokenA,body:{market:"HK",symbol:"9988"}
+      method:"DELETE",token:tokenA,body:{market:"US",symbol:"MSFT"}
     });
     assert.equal(removeSaved.status,200);
     assert.deepEqual((await request("/api/watchlist",{token:tokenA})).value.items,[]);
@@ -345,12 +345,14 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
       itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",status:"DRAFT"
     }});
     assert.equal(subListings.status,403);
-    const stockLookup="/api/admin/stock-lookup?code=0700";
+    const stockLookup="/api/admin/stock-lookup?code=NEM";
     assert.equal((await req(stockLookup)).status,401);
     assert.equal((await req(stockLookup,{token:subAdmin.data.token})).status,403);
     const lookup=await req(stockLookup,{token:masterToken});
     assert.equal(lookup.status,200);
-    assert.ok(lookup.data.items.some(item=>item.market==="HK"&&item.symbol==="0700"&&item.exchange==="HKEX"));
+    assert.ok(lookup.data.items.some(item=>item.market==="US"&&item.symbol==="NEM"&&item.exchange==="NYSE"));
+    // HK/CN/MY were withdrawn: no local reference entry exists for them any more.
+    assert.ok(!(await req("/api/admin/stock-lookup?code=0700",{token:masterToken})).data.items.some(item=>item.market==="HK"));
     const masterListing=await req("/api/admin/listings",{method:"POST",token:masterToken,body:{
       itemType:"IPO",market:"US",symbol:"IPO123",name:"IPO资料",status:"PUBLISHED"
     }});
@@ -544,7 +546,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal("token" in mirrorFromMaster.data,false);
     // Client writes and administrator reads use the same persisted account.
     assert.equal((await req("/api/watchlist",{method:"POST",token:customerAppToken,
-      body:{market:"HK",symbol:"9988"}})).status,200);
+      body:{market:"US",symbol:"MSFT"}})).status,200);
     const accountView=await req("/api/account",{token:customerAppToken});
     const watchlistView=await req("/api/watchlist",{token:customerAppToken});
     const mirrorFromOwnSub=await req("/api/admin/mirror?clientId="+attached.data.userId,{token:subAdmin.data.token});
@@ -553,7 +555,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.deepEqual(mirrorFromOwnSub.data.positions,accountView.data.positions);
     assert.deepEqual(mirrorFromOwnSub.data.orders,accountView.data.orders);
     assert.deepEqual(mirrorFromOwnSub.data.watchlist,watchlistView.data.items);
-    assert.equal(mirrorFromOwnSub.data.watchlist[0].symbol,"9988");
+    assert.equal(mirrorFromOwnSub.data.watchlist[0].symbol,"MSFT");
     const otherEmail="other-sub-"+randomUUID().slice(0,8)+"@example.test";
     const otherSub=await req("/api/admin/subaccounts",{method:"POST",token:masterToken,body:{email:otherEmail,password:subPassword}});
     assert.equal(otherSub.status,201);

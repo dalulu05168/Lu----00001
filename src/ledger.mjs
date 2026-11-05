@@ -1,4 +1,6 @@
-export const MARKETS = Object.freeze(["US","HK","CN","MY"]);
+// HK/CN/MY withdrawn: no working free quote source was found for them, so
+// /api/orders only accepts US (RO was never accepted here even before this).
+export const MARKETS = Object.freeze(["US"]);
 export function createAccount(initialCashCents = 1_000_000) {
   if (!Number.isSafeInteger(initialCashCents) || initialCashCents < 0) throw new Error("Invalid opening balance");
   return { cashCents: initialCashCents, positions: {}, orders: [] };

@@ -1,4 +1,5 @@
-const MARKETS = new Set(["US", "HK", "CN", "MY", "RO"]);
+// HK/CN/MY withdrawn: no working free quote source was found for them.
+const MARKETS = new Set(["US", "RO"]);
 const SYMBOL_PATTERN = /^[A-Z0-9][A-Z0-9.-]{0,23}$/;
 
 export function validateWatchlistInstrument(value) {

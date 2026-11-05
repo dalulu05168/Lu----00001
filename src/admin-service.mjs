@@ -11,7 +11,10 @@ function matchBootstrapKey(value){
   return a.length===b.length&&timingSafeEqual(a,b);
 }
 const SYMBOL=/^[A-Z0-9][A-Z0-9.-]{0,23}$/;
-const MARKETS=new Set(["US","HK","CN","MY","RO"]);
+// HK/CN/MY withdrawn: no working free quote source was found for them, so
+// no new listings can be published under those markets. Existing rows (if
+// any) in the database are untouched by this change.
+const MARKETS=new Set(["US","RO"]);
 const TYPES=new Set(["STOCK","FUND","IPO"]);
 function invalid(message){const error=new Error(message);error.statusCode=400;throw error;}
 function getEmail(value) {

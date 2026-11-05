@@ -37,7 +37,7 @@ test("master can open a scoped client App mirror with account records and clear 
         positions:[{market:"US",symbol:"AAPL",quantity:"2"}],
         internalProducts:{positions:[{market:"US",symbol:"AA",name:"Alcoa",code:"AA",quantity:"10",cost_cents:"102080"}]},
         orders:[{id:"o1",market:"US",symbol:"AAPL",side:"BUY",quantity:"2",amount_usd_cents:10900}],
-        watchlist:[{market:"HK",symbol:"9988"}]
+        watchlist:[{market:"US",symbol:"MSFT"}]
       });
       throw Error("Unexpected mocked URL: "+url);
     };
@@ -66,12 +66,12 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("mirrorEmail").textContent,"customer@example.test");
     assert.equal(el("mirrorCash").textContent,"129.00");
     assert.equal(el("mirrorPageTitle").textContent,"自选");
-    assert.match(el("mirrorAppScreen").textContent,/9988/);
+    assert.match(el("mirrorAppScreen").textContent,/MSFT/);
     el("mirrorAppScreen").querySelector(".mirror-quote-row").click();
     const chartScript=el("mirrorAppScreen").querySelector(".mirror-chart script");
     assert.match(chartScript.src,/embed-widget-advanced-chart\.js$/);
     const chartOptions=JSON.parse(chartScript.textContent);
-    assert.equal(chartOptions.symbol,"HKEX:9988");
+    assert.equal(chartOptions.symbol,"NASDAQ:MSFT");
     assert.equal(chartOptions.style,"2");
     assert.equal(chartOptions.autosize,true);
     el("mirrorAppScreen").querySelector("select").value="NYSE:AA";
@@ -108,7 +108,7 @@ test("master can open a scoped client App mirror with account records and clear 
     dom.window.document.querySelector('[data-mirror-tab="orders"]').click();
     assert.match(el("mirrorAppScreen").textContent,/买入/);
     dom.window.document.querySelector('[data-mirror-tab="watchlist"]').click();
-    assert.match(el("mirrorAppScreen").textContent,/9988/);
+    assert.match(el("mirrorAppScreen").textContent,/MSFT/);
     assert.ok(requests.some(x=>x.url.includes("/api/admin/mirror?clientId=")&&x.options.headers.authorization==="Bearer admin-test-token"));
     dom.window.document.querySelector('[data-admin-page="audit"]').click();
     await pause(45);

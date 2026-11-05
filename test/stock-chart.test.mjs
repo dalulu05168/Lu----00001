@@ -19,13 +19,10 @@ test("historical chart shows exact price and date at the keyboard-controlled cro
   }finally{dom.window.close();}
 });
 
-test("stock symbols use explicit provider exchange codes across four markets", () => {
+test("stock symbols use explicit provider exchange codes", () => {
   const expected = [
     ["US","AAPL","NASDAQ:AAPL"], ["US","MSFT","NASDAQ:MSFT"],
-    ["US","NEM","NYSE:NEM"],
-    ["HK","0700","HKEX:700"], ["HK","9988","HKEX:9988"],
-    ["CN","600519","SSE:600519"], ["CN","000001","SZSE:000001"],
-    ["MY","1155","MYX:1155"], ["MY","1023","MYX:1023"]
+    ["US","AA","NYSE:AA"], ["US","NEM","NYSE:NEM"]
   ];
   for(const [market,symbol,provider] of expected) {
     assert.equal(resolveTradingViewSymbol({market,symbol}),provider);
@@ -34,6 +31,11 @@ test("stock symbols use explicit provider exchange codes across four markets", (
   assert.equal(resolveTradingViewSymbol({market:"US",symbol:"NOT_LISTED"}),null);
   assert.equal(resolveTradingViewSymbol({market:"US",symbol:"AAPL<script>"}),null);
   assert.equal(tradingViewSymbolUrl("NASDAQ:AAPL<script>"),null);
+  // HK/CN/MY were withdrawn (no working free quote source found for them):
+  // their symbols are no longer mapped, even with an otherwise-known code.
+  assert.equal(resolveTradingViewSymbol({market:"HK",symbol:"0700"}),null);
+  assert.equal(resolveTradingViewSymbol({market:"CN",symbol:"600519"}),null);
+  assert.equal(resolveTradingViewSymbol({market:"MY",symbol:"1155"}),null);
 });
 
 test("official widget is configured with the selected stock, attribution and no fake values", () => {
@@ -58,14 +60,15 @@ test("official widget is configured with the selected stock, attribution and no 
     assert.equal(host.querySelector(".tradingview-widget-copyright a").href,"https://www.tradingview.com/symbols/NASDAQ-AAPL/");
     assert.equal(mountStockChart(host,{market:"US",symbol:"AAPL"}),"NASDAQ:AAPL");
     assert.equal(host.querySelector("script"),first,"account refresh should not repeatedly load external chart");
-    mountStockChart(host,{market:"HK",symbol:"0700"});
-    assert.equal(JSON.parse(host.querySelector("script").textContent).symbol,"HKEX:700");
+    mountStockChart(host,{market:"US",symbol:"MSFT"});
+    assert.equal(JSON.parse(host.querySelector("script").textContent).symbol,"NASDAQ:MSFT");
     assert.notEqual(host.querySelector("script"),first);
     assert.equal(host.querySelector("iframe"),null,"test does not fabricate returned third-party data");
     host.querySelector(".tradingview-widget-container__widget").append(dom.window.document.createElement("iframe"));
     host.querySelector("script").dispatchEvent(new dom.window.Event("load"));
     assert.equal(host.querySelector(".stock-chart-loading"),null);
-    mountStockChart(host,{market:"HK",symbol:"UNKNOWN"});
+    // HK was withdrawn: no symbol under it is mapped, same degrade as an unknown one.
+    mountStockChart(host,{market:"HK",symbol:"0700"});
     assert.equal(host.querySelector("script"),null);
     assert.match(host.textContent,/尚未配置/);
   } finally {dom.window.close();}

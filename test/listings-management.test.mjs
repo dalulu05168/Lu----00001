@@ -12,7 +12,7 @@ test("master edits metadata only while the listing is a draft",async()=>{
     calls.push({sql,params});return {rows:[{id}]};
   }};
   const changed=await updateListing(db,master,{
-    id,itemType:"FUND",market:"HK",symbol:"2800",name:"  Tracker Fund  ",status:"PUBLISHED"
+    id,itemType:"FUND",market:"RO",symbol:"2800",name:"  Tracker Fund  ",status:"PUBLISHED"
   });
   assert.equal(changed.name,"Tracker Fund");
   assert.match(calls[0].sql,/AND status='DRAFT'/);
@@ -81,7 +81,7 @@ test("master publish and withdraw changes what customers can see",async()=>{
   };
   try{
     let created=await call("/api/admin/listings","master","POST",{
-      itemType:"IPO",market:"MY",symbol:"IPO1",name:"IPO Example",status:"DRAFT"
+      itemType:"IPO",market:"RO",symbol:"IPO1",name:"IPO Example",status:"DRAFT"
     });
     assert.equal(created.status,201);
     const id=created.data.id;
@@ -158,8 +158,8 @@ test("master console renders edit, publish and withdraw controls",async()=>{
       if(url==="/api/admin/login")return json(200,{token:"admin-token",role:"MASTER"});
       if(url==="/api/admin/me")return json(200,{role:"MASTER",userId:"master-id"});
       if(url==="/api/admin/mirror-status")return json(200,{ready:false});
-      if(url==="/api/admin/stock-lookup?code=0700")return json(200,{
-        items:[{market:"HK",symbol:"0700",name:"Tencent Holdings",exchange:"HKEX"}],provider:"unconfigured"
+      if(url==="/api/admin/stock-lookup?code=AA")return json(200,{
+        items:[{market:"US",symbol:"AA",name:"Alcoa Corporation",exchange:"NYSE"}],provider:"unconfigured"
       });
       if(url==="/api/admin/listings"){
         if(method==="PATCH"){
@@ -202,16 +202,16 @@ test("master console renders edit, publish and withdraw controls",async()=>{
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.status==="PUBLISHED"));
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.status==="DRAFT"));
     const writes=calls.filter(call=>call.method==="POST"||call.method==="PATCH").length;
-    el("listingSymbol").value="0700";
+    el("listingSymbol").value="AA";
     el("listingSymbol").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
     await new Promise(done=>setTimeout(done,520));
     const match=el("listingLookupResults").querySelector("button");
-    assert.match(match.textContent,/香港 · HKEX · 0700 · Tencent Holdings/);
-    assert.equal(el("listingName").value,"Tencent Holdings");
+    assert.match(match.textContent,/美国 · NYSE · AA · Alcoa Corporation/);
+    assert.equal(el("listingName").value,"Alcoa Corporation");
     match.click();
-    assert.equal(el("listingMarket").value,"HK");
-    assert.equal(el("listingSymbol").value,"0700");
-    assert.equal(el("listingName").value,"Tencent Holdings");
+    assert.equal(el("listingMarket").value,"US");
+    assert.equal(el("listingSymbol").value,"AA");
+    assert.equal(el("listingName").value,"Alcoa Corporation");
     assert.equal(calls.filter(call=>call.method==="POST"||call.method==="PATCH").length,writes);
   }finally{
     globalThis.document=old.document;
