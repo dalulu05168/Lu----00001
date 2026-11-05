@@ -6,21 +6,34 @@ import {validateQuote} from "./market-data.mjs";
 const SYMBOL=/^[A-Z0-9][A-Z0-9.-]{0,23}$/;
 export const stockQuotesConfigured=()=>Boolean(process.env.FINNHUB_API_KEY);
 
+// Logs only to the server's own stdout/stderr (Render's log stream) — never
+// sent to the client, and the key itself is never logged. Kept lightweight
+// (one line per failure) since this runs on every unconfigured/failed quote.
+function logQuoteFailure(endpoint,symbol,detail){
+ console.error("[us-stock-quotes] "+endpoint+" "+symbol+": "+detail);
+}
+
 export async function getUsStockHistory(symbol,{
  apiKey=process.env.FINNHUB_API_KEY,fetchImpl=fetch,now=Date.now
 }={}){
  const unavailable=()=>Object.assign(new Error("US stock history unavailable"),{statusCode:503});
- if(!apiKey||typeof symbol!=="string"||!SYMBOL.test(symbol))throw unavailable();
+ if(!apiKey||typeof symbol!=="string"||!SYMBOL.test(symbol)){
+  logQuoteFailure("history",symbol,!apiKey?"FINNHUB_API_KEY not set":"invalid symbol");
+  throw unavailable();
+ }
  const end=Math.floor(now()/1000),from=end-90*86400;
  const url=new URL("https://finnhub.io/api/v1/stock/candle");
  url.search=new URLSearchParams({symbol,resolution:"D",from:String(from),to:String(end),token:apiKey});
  try{
   const response=await fetchImpl(url,{redirect:"error",signal:AbortSignal.timeout(3000)});
-  if(!response.ok)throw unavailable();
+  if(!response.ok){logQuoteFailure("history",symbol,"HTTP "+response.status);throw unavailable();}
   const data=await response.json();
   // Free keys get {s:"no_data"} or a 403 here; only premium returns candles.
   if(data?.s!=="ok"||!Array.isArray(data.t)||!Array.isArray(data.c)||
-     data.t.length!==data.c.length||data.t.length<2||data.t.length>400)throw unavailable();
+     data.t.length!==data.c.length||data.t.length<2||data.t.length>400){
+   logQuoteFailure("history",symbol,"unexpected shape: "+JSON.stringify(data).slice(0,200));
+   throw unavailable();
+  }
   let previous=from-86400;
   const points=data.t.map((t,i)=>{
    const price=data.c[i];
@@ -29,7 +42,10 @@ export async function getUsStockHistory(symbol,{
    return {time:t*1000,price};
   });
   return {symbol,source:"Finnhub",currency:"USD",points};
- }catch{throw unavailable();}
+ }catch(error){
+  if(error?.statusCode!==503)logQuoteFailure("history",symbol,"fetch/parse error: "+(error?.message??error));
+  throw unavailable();
+ }
 }
 
 // Finnhub's free /quote is a single-venue (IEX) last-trade price, not a
@@ -44,18 +60,35 @@ export async function getUsStockQuote({market,symbol},{
  apiKey=process.env.FINNHUB_API_KEY,fetchImpl=fetch,now=Date.now,maxAgeMs=DEFAULT_MAX_AGE_MS
 }={}){
  const unavailable=()=>Object.assign(new Error("Verified US stock quote unavailable"),{statusCode:503});
- if(market!=="US"||typeof symbol!=="string"||!SYMBOL.test(symbol)||!apiKey)throw unavailable();
+ if(market!=="US"||typeof symbol!=="string"||!SYMBOL.test(symbol)||!apiKey){
+  logQuoteFailure("quote",symbol,market!=="US"?"non-US market":!apiKey?"FINNHUB_API_KEY not set":"invalid symbol");
+  throw unavailable();
+ }
  try{
   const url=new URL("https://finnhub.io/api/v1/quote");
   url.search=new URLSearchParams({symbol,token:apiKey});
   const res=await fetchImpl(url,{redirect:"error",signal:AbortSignal.timeout(3000)});
-  if(!res.ok)throw unavailable();
+  if(!res.ok){logQuoteFailure("quote",symbol,"HTTP "+res.status);throw unavailable();}
   // Finnhub /quote: c=current price, pc=previous close, t=last-trade unix seconds.
-  const {c,t}=await res.json();
-  if(typeof c!=="number"||c<=0||typeof t!=="number"||t<=0)throw unavailable();
+  const body=await res.json();
+  const {c,t}=body;
+  if(typeof c!=="number"||c<=0||typeof t!=="number"||t<=0){
+   logQuoteFailure("quote",symbol,"unexpected shape: "+JSON.stringify(body).slice(0,200));
+   throw unavailable();
+  }
   const timestampMs=Math.floor(t*1000);
-  const quote=validateQuote({market,symbol,priceCents:Math.round(c*100),fxUsdMicros:1000000,
-   timestampMs,source:"Finnhub",entitled:true},{now:now(),maxAgeMs});
+  let quote;
+  try{
+   quote=validateQuote({market,symbol,priceCents:Math.round(c*100),fxUsdMicros:1000000,
+    timestampMs,source:"Finnhub",entitled:true},{now:now(),maxAgeMs});
+  }catch(error){
+   logQuoteFailure("quote",symbol,"validateQuote rejected: "+error.message+
+    " (quote age "+Math.round((now()-timestampMs)/60000)+" min, window "+Math.round(maxAgeMs/60000)+" min)");
+   throw unavailable();
+  }
   return {market,symbol,priceCents:quote.priceCents,timestampMs,source:quote.source,currency:"USD"};
- }catch{throw unavailable();}
+ }catch(error){
+  if(error?.statusCode!==503)logQuoteFailure("quote",symbol,"fetch/parse error: "+(error?.message??error));
+  throw unavailable();
+ }
 }
