@@ -779,9 +779,59 @@ async function refreshMirrorStatus(){
 }
 el("mirrorClientSearch").addEventListener("input",()=>renderClientDirectory(mirrorClients));
 let editingListingId=null;
+let listingLookupSerial=0;
+const listingMarketNames={US:"美国",HK:"香港",CN:"中国内地",MY:"马来西亚"};
+function clearListingLookup(){
+  listingLookupSerial++;
+  el("listingLookup").hidden=el("listingType").value!=="STOCK";
+  el("listingLookupButton").disabled=false;
+  el("listingLookupResults").replaceChildren();
+  setText("listingLookupStatus","输入代码后搜索，或直接填写证券资料。");
+}
+el("listingType").addEventListener("change",clearListingLookup);
+el("listingSymbol").addEventListener("input",clearListingLookup);
+el("listingLookupButton").addEventListener("click",async()=>{
+  if(role!=="MASTER"||el("listingType").value!=="STOCK")return;
+  clearListingLookup();
+  const code=el("listingSymbol").value.trim().toUpperCase();
+  if(!/^[A-Z0-9][A-Z0-9.-]{0,23}$/.test(code)){
+    setText("listingLookupStatus","请先输入有效的股票代码。");return;
+  }
+  const serial=listingLookupSerial,token=adminToken;
+  const current=()=>serial===listingLookupSerial&&token===adminToken&&role==="MASTER";
+  el("listingLookupButton").disabled=true;
+  setText("listingLookupStatus","正在搜索四个市场…");
+  try{
+    const {items,provider}=await api("/admin/stock-lookup?code="+encodeURIComponent(code));
+    if(!current())return;
+    for(const item of items){
+      const option=document.createElement("button");
+      option.type="button";
+      option.className="outline";
+      option.textContent=[listingMarketNames[item.market],item.exchange||"交易所未登记",item.symbol,item.name].join(" · ");
+      option.addEventListener("click",()=>{
+        if(!current())return;
+        el("listingMarket").value=item.market;
+        el("listingSymbol").value=item.symbol;
+        el("listingName").value=item.name;
+        clearListingLookup();
+        setText("listingLookupStatus","已填入 "+listingMarketNames[item.market]+" · "+item.symbol+"。");
+      });
+      el("listingLookupResults").append(option);
+    }
+    const scope=provider==="available"?"数据源目录及平台记录":provider==="unavailable"?
+      "数据源暂不可用，仅查询平台记录和参考标的":"仅查询平台记录和参考标的，尚未接入更广的证券目录";
+    setText("listingLookupStatus",(items.length?"找到 "+items.length+" 条结果，点击填入。":"没有找到匹配代码，可手动填写。")+" "+scope+"。");
+  }catch(error){
+    if(current())setText("listingLookupStatus","搜索失败："+error.message);
+  }finally{
+    if(current())el("listingLookupButton").disabled=false;
+  }
+});
 function clearListingEditor(){
   editingListingId=null;
   el("listingForm").reset();
+  clearListingLookup();
   el('listingQuickPurchase').hidden=false;
   el("listingSubmit").textContent="保存证券资料";
   el("listingCancelEdit").hidden=true;
@@ -798,6 +848,7 @@ function beginListingEdit(item){
   el("listingSymbol").value=item.symbol;
   el("listingName").value=item.name;
   el("listingStatus").value=item.status;
+  clearListingLookup();
   el("listingSubmit").textContent="保存修改";
   el("listingCancelEdit").hidden=false;
   setText("listingFeedback","正在编辑 "+item.market+":"+item.symbol+"（草稿）");

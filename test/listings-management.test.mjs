@@ -158,6 +158,9 @@ test("master console renders edit, publish and withdraw controls",async()=>{
       if(url==="/api/admin/login")return json(200,{token:"admin-token",role:"MASTER"});
       if(url==="/api/admin/me")return json(200,{role:"MASTER",userId:"master-id"});
       if(url==="/api/admin/mirror-status")return json(200,{ready:false});
+      if(url==="/api/admin/stock-lookup?code=0700")return json(200,{
+        items:[{market:"HK",symbol:"0700",name:"Tencent Holdings",exchange:"HKEX"}],provider:"unconfigured"
+      });
       if(url==="/api/admin/listings"){
         if(method==="PATCH"){
           const data=JSON.parse(options.body),item=listings.find(x=>x.id===data.id);
@@ -198,6 +201,17 @@ test("master console renders edit, publish and withdraw controls",async()=>{
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.name==="Apple New"));
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.status==="PUBLISHED"));
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.status==="DRAFT"));
+    const writes=calls.filter(call=>call.method==="POST"||call.method==="PATCH").length;
+    el("listingSymbol").value="0700";
+    el("listingLookupButton").click();
+    await new Promise(done=>setTimeout(done,35));
+    const match=el("listingLookupResults").querySelector("button");
+    assert.match(match.textContent,/香港 · HKEX · 0700 · Tencent Holdings/);
+    match.click();
+    assert.equal(el("listingMarket").value,"HK");
+    assert.equal(el("listingSymbol").value,"0700");
+    assert.equal(el("listingName").value,"Tencent Holdings");
+    assert.equal(calls.filter(call=>call.method==="POST"||call.method==="PATCH").length,writes);
   }finally{
     globalThis.document=old.document;
     globalThis.sessionStorage=old.sessionStorage;

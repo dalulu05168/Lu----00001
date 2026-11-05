@@ -6,6 +6,7 @@ import {listCommodityProducts,createCommodityProduct,updateCommodityProduct,comm
 import {listAdminSupportThreads,getAdminSupportThread,sendAdminSupportMessage,changeAdminSupportStatus} from "./support-messages.mjs";
 import {listUnifiedAudit} from "./operation-audit.mjs";
 import {readAdminProductTerms,updateAdminProductTerms} from './internal-products.mjs';
+import {lookupStocks} from './stock-lookup.mjs';
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -53,7 +54,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/workflow-requests":["GET","PATCH"],"/api/admin/workflow-audit":["GET"],
     "/api/admin/client-history":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
-    "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"],
+    "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/stock-lookup":["GET"],"/api/catalog":["GET"],
     "/api/admin/commodities":["GET","POST","PATCH"],"/api/admin/commodity-audit":["GET"],
     "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"],
     "/api/admin/audit-events":["GET"]
@@ -93,6 +94,11 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator session required"});return true;}
+    if(route==="/api/admin/stock-lookup"){
+      if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,await lookupStocks(db,url.searchParams.get("code")));return true;
+    }
     if(route==='/api/admin/product-terms'){
       const url=new URL(req.url??'/','http://localhost');
       response(res,200,{item:req.method==='GET'?await readAdminProductTerms(db,actor,url.searchParams.get('kind'),url.searchParams.get('id')):await updateAdminProductTerms(db,actor,await input(req))});return true;

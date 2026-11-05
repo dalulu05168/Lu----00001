@@ -344,6 +344,12 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
       itemType:"STOCK",market:"US",symbol:"AAPL",name:"Apple Inc.",status:"DRAFT"
     }});
     assert.equal(subListings.status,403);
+    const stockLookup="/api/admin/stock-lookup?code=0700";
+    assert.equal((await req(stockLookup)).status,401);
+    assert.equal((await req(stockLookup,{token:subAdmin.data.token})).status,403);
+    const lookup=await req(stockLookup,{token:masterToken});
+    assert.equal(lookup.status,200);
+    assert.ok(lookup.data.items.some(item=>item.market==="HK"&&item.symbol==="0700"&&item.exchange==="HKEX"));
     const masterListing=await req("/api/admin/listings",{method:"POST",token:masterToken,body:{
       itemType:"IPO",market:"US",symbol:"IPO123",name:"IPO资料",status:"PUBLISHED"
     }});
