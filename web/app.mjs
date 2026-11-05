@@ -86,7 +86,8 @@ function renderChart(){
   mountStockChart(host,selected);
 }
 function renderMarkets() {
-  const allocation = summarizeMarketHoldings(account?.positions ?? null);
+  const allocation = summarizeMarketHoldings(account&&!internalHoldingsUnavailable?
+    [...(account.positions??[]),...internalHoldings]:null);
   const marketButtons = MARKETS.map(item => {
     const button = document.createElement("button");
     button.type = "button";
@@ -408,7 +409,7 @@ function transactionOrders(){
   return [...orders,...productOrders].sort((a,b)=>(Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0));
 }
 function transactionOrderCount(loadedCount){
-  return productOrders.length||internalHoldingsUnavailable ? loadedCount : accountAnalytics?.orderCount??loadedCount;
+  return accountAnalytics?.orderCount??loadedCount;
 }
 function transactionPrice(item) {
   const marketInfo = MARKETS.find(entry => entry.code === item.market);
@@ -507,7 +508,7 @@ function renderTransactionHistory() {
   el("realizedPnl").textContent = "—";
   el("realizedPnlNote").textContent = "缺少逐笔成本匹配数据，暂不计算";
   if(account&&accountAnalytics){
-    if(!productOrders.length&&!internalHoldingsUnavailable&&Number.isSafeInteger(accountAnalytics.volumeCents)){
+    if(Number.isSafeInteger(accountAnalytics.volumeCents)){
       el("transactionVolume").textContent="$"+money(accountAnalytics.volumeCents);
       el("transactionVolumeNote").textContent=accountAnalytics.orderCount+" 笔 · 完整历史 · USD 等值";
     }
@@ -521,7 +522,7 @@ function renderTransactionHistory() {
 
   const range = "all";
   el("transactionRangeLabel").textContent = TRANSACTION_RANGE_LABELS[range] ?? "All time";
-  const totalHistory=productOrders.length||internalHoldingsUnavailable?undefined:accountAnalytics?.orderCount;
+  const totalHistory=internalHoldingsUnavailable?undefined:accountAnalytics?.orderCount;
   el("transactionHistoryScope").textContent=!account?"登录后查看记录范围":Number.isSafeInteger(totalHistory)
     ?"统计基于完整历史 "+totalHistory+" 笔；列表已加载 "+allOrders.length+" 笔，筛选、分页和导出仅作用于已加载记录。"
     :internalHoldingsUnavailable?"部分交易记录读取失败，请刷新账户数据。":"筛选、分页和导出适用于已加载的最近记录。";
@@ -1210,12 +1211,13 @@ async function refreshInternalProducts(){
    price_cents:item.unit_price_cents,price_currency:'USD',amount_usd_cents:item.total_cents,created_at:item.created_at
   }));
   internalHoldingsUnavailable=false;
+  renderMarkets();
   el('internalProductsStatus').textContent=catalogResult.status==='rejected'?'商品目录暂不可用，持仓与购买记录已同步。':'已同步 '+valid.length+' 个可参与产品 · 产品单价和支付币种均为USD';
   renderRecords();
   renderAccountAnalytics();
  }catch(error){
   if(usedToken!==token||serial!==internalProductsSerial)return;
-  internalHoldings=[];productOrders=[];internalHoldingsUnavailable=true;renderRecords();renderAccountAnalytics();
+  internalHoldings=[];productOrders=[];internalHoldingsUnavailable=true;renderMarkets();renderRecords();renderAccountAnalytics();
   el('internalProductsItems').replaceChildren();
   el('internalProductsStatus').textContent='购买数据暂不可用：'+error.message;
  }

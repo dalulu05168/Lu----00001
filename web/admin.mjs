@@ -18,12 +18,13 @@ el("closeAdminSetup").addEventListener("click",()=>{el("bootstrapPanel").hidden=
 
 
 const setText=(id,value)=>{el(id).textContent=value};
-async function api(path,{method="GET",body,token=adminToken}={}){
+async function api(path,{method="GET",body,token=adminToken,idempotencyKey}={}){
   let res,answer;
   try{
     res=await fetch("/api"+path,{
       method,cache:"no-store",
-      headers:{"content-type":"application/json",...(token?{authorization:"Bearer "+token}:{})},
+      headers:{"content-type":"application/json",...(token?{authorization:"Bearer "+token}:{}),
+        ...(idempotencyKey?{"idempotency-key":idempotencyKey}:{})},
       ...(body?{body:JSON.stringify(body)}:{})
     });
     answer=await res.json().catch(()=>({}));
@@ -469,17 +470,96 @@ function renderClientDirectory(items){
   if(selectedClientDetailId&&!mirrorClients.some(c=>c.id===selectedClientDetailId))closeClientDetail();
 }
 el("clientDirectorySearch").addEventListener("input",()=>renderClientDirectory(mirrorClients));
+let mirrorPurchaseBusy=false;
+const mirrorPurchaseKeys=new Map();
+async function renderMirrorTrade(view,snap){
+  if(role!=="MASTER"){view.append(plainNode("p","由主账户提交交易。","muted"));return;}
+  const token=adminToken;
+  const current=()=>token===adminToken&&mirrorSnapshot===snap&&mirrorActiveTab==="trade"&&el("mirrorDialog").open;
+  const notice=plainNode("p","正在读取可购买产品…","muted");view.append(notice);
+  try{
+    const {items}=await api("/admin/mirror-purchases");
+    if(!current())return;
+    if(!items.length){notice.textContent="暂无可购买产品";return;}
+    notice.textContent="使用所选客户的平台余额购买，订单和持仓记入该客户账户。";
+    const form=document.createElement("form");form.className="mirror-trade-form";
+    function field(labelText,control){
+      const label=plainNode("label",labelText);label.append(control);form.append(label);return control;
+    }
+    const product=field("购买产品",document.createElement("select"));
+    items.forEach((item,i)=>{
+      const option=plainNode("option",item.code+" · "+item.name);
+      option.value=String(i);product.append(option);
+    });
+    const quantity=field("数量",document.createElement("input"));
+    Object.assign(quantity,{type:"number",max:"1000000",step:"1",required:true});
+    const total=plainNode("output","");form.append(total);
+    const pin=field("六位商品参与密码",document.createElement("input"));
+    Object.assign(pin,{type:"password",inputMode:"numeric",pattern:"[0-9]{6}",maxLength:6,autocomplete:"off",required:true});
+    const password=field("主账户登录密码",document.createElement("input"));
+    Object.assign(password,{type:"password",minLength:12,autocomplete:"off",required:true});
+    const confirm=field("确认使用 "+snap.client.email+" 的余额购买",document.createElement("input"));
+    Object.assign(confirm,{type:"checkbox",required:true});
+    const submit=plainNode("button","确认购买");submit.type="submit";form.append(submit);
+    const status=plainNode("p","","muted");status.setAttribute("role","status");form.append(status);
+    const refreshQuote=(reset=false)=>{
+      const item=items[Number(product.value)];
+      quantity.min=String(item.minimumQuantity);
+      if(reset)quantity.value=quantity.min;
+      const unit=Number((BigInt(item.internalPriceCents)*BigInt(10000-item.discountBps)+5000n)/10000n);
+      const amount=unit*Number(quantity.value);
+      total.textContent="单价 "+cashFmt(unit)+" USD · 实付 "+(Number.isSafeInteger(amount)&&amount>0?cashFmt(amount)+" USD":"—");
+      confirm.checked=false;
+    };
+    product.addEventListener("change",()=>refreshQuote(true));
+    quantity.addEventListener("input",()=>refreshQuote());
+    refreshQuote(true);
+    form.addEventListener("submit",async event=>{
+      event.preventDefault();
+      if(!current()||!form.reportValidity()||mirrorPurchaseBusy)return;
+      const item=items[Number(product.value)];
+      const body={clientId:snap.client.id,termsId:item.termsId,termsVersion:item.termsVersion,quantity:Number(quantity.value),
+        participationPassword:pin.value,confirmPassword:password.value,confirmed:confirm.checked};
+      const fingerprint=[body.clientId,body.termsId,body.termsVersion,body.quantity].join(":");
+      const key=mirrorPurchaseKeys.get(fingerprint)??crypto.randomUUID();
+      mirrorPurchaseKeys.set(fingerprint,key);
+      pin.value="";password.value="";confirm.checked=false;
+      mirrorPurchaseBusy=true;submit.disabled=true;status.textContent="正在提交购买…";
+      try{
+        const result=await api("/admin/mirror-purchases",{method:"POST",body,idempotencyKey:key});
+        mirrorPurchaseKeys.delete(fingerprint);
+        if(token!==adminToken||selectedMirrorClientId!==snap.client.id||!el("mirrorDialog").open)return;
+        await selectMirrorClient(snap.client.id);
+        if(token===adminToken&&selectedMirrorClientId===snap.client.id)
+          el("mirrorStatus").textContent="购买已记录 · 订单 "+result.id;
+      }catch(error){
+        if(current())status.textContent="购买未确认："+error.message+"。重试同一笔购买会沿用请求编号。";
+      }finally{
+        body.confirmPassword="";body.participationPassword="";
+        mirrorPurchaseBusy=false;submit.disabled=false;
+      }
+    });
+    view.append(form);
+  }catch(error){if(current())notice.textContent="产品读取失败："+error.message;}
+}
 function setMirrorScreen(){
   const view=el("mirrorAppScreen");view.replaceChildren();
   if(!mirrorSnapshot){view.append(plainNode("p","请选择客户以读取账户快照","muted"));return;}
   const snap=mirrorSnapshot;
+  if(mirrorActiveTab==="trade"){void renderMirrorTrade(view,snap);return;}
   const formats={
     market:()=>[["当前行情","未经授权的数据源尚未接入"],["自选股票",String(snap.watchlist?.length??0)+" 只"],["K 线图","暂无已核验行情，不展示虚构走势"]],
-    trade:()=>[["委托入口","不可操作"],["证券实时价格","未接入"],["券商连接状态","未连接"],["已有内部订单",String(snap.orders?.length??0)+" 笔"]],
-    assets:()=>[["账户编号",snap.account?.id],["账面币种",snap.account?.currency],["持仓记录",snap.positions?.length??0],["内部历史订单",snap.orders?.length??0],["自选标的",snap.watchlist?.length??0]],
-    positions:()=>snap.positions?.map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")+" 股（内部记录）"])??[],
-    orders:()=>snap.orders?.map(o=>[(o.side==="BUY"?"买入":"卖出")+" · "+o.market+":"+o.symbol,
-      "数量 "+o.quantity+" · 内部金额 "+cashFmt(o.amount_usd_cents)+" USD"+(o.created_at?" · "+new Date(o.created_at).toLocaleDateString("zh-CN"):"")])??[],
+    assets:()=>[["账户编号",snap.account?.id],["账面币种",snap.account?.currency],["持仓记录",(snap.positions?.length??0)+(snap.internalProducts?.positions?.length??0)],["交易记录",(snap.orders?.length??0)+(snap.internalProducts?.purchases?.length??0)],["自选标的",snap.watchlist?.length??0]],
+    positions:()=>[
+      ...(snap.positions??[]).map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")+" 股"]),
+      ...(snap.internalProducts?.positions??[]).map(p=>[p.name+" · "+p.code,"数量 "+p.quantity+" · 成本 "+cashFmt(p.cost_cents)+" USD"])
+    ],
+    orders:()=>[
+      ...(snap.orders??[]).map(o=>({name:(o.side==="BUY"?"买入":"卖出")+" · "+o.market+":"+o.symbol,
+        detail:"数量 "+o.quantity+" · "+cashFmt(o.amount_usd_cents)+" USD",at:o.created_at})),
+      ...(snap.internalProducts?.purchases??[]).map(p=>({name:"买入 · "+p.product_name+" · "+p.product_code,
+        detail:"数量 "+p.quantity+" · 实付 "+cashFmt(p.total_cents)+" USD",at:p.created_at}))
+    ].sort((a,b)=>(Date.parse(b.at)||0)-(Date.parse(a.at)||0)).map(o=>[o.name,o.detail+(o.at?" · "+dateLabel(o.at):"")]),
     watchlist:()=>snap.watchlist?.map(w=>[w.market+" · "+w.symbol,"已保存（无实时价格）"])??[],
     internalProducts:()=>[
      ...(snap.internalProducts?.positions??[]).map(p=>['持仓 · '+p.name+' · '+p.code,'数量 '+p.quantity+' · 成本 '+cashFmt(p.cost_cents)+' USD']),
@@ -682,9 +762,14 @@ function openMirrorDialog(){
 function closeMirrorDialog(){
  const dialog=el("mirrorDialog");
  if(!dialog.open)return;
+ clearMirrorTradeCredentials();
  if(typeof dialog.close==="function")dialog.close();
  else dialog.removeAttribute("open");
 }
+function clearMirrorTradeCredentials(){
+ el("mirrorAppScreen").querySelectorAll('.mirror-trade-form input[type="password"]').forEach(input=>{input.value="";});
+}
+el("mirrorDialog").addEventListener("close",clearMirrorTradeCredentials);
 el("mirrorDialogClose").addEventListener("click",closeMirrorDialog);
 el("mirrorDialog").addEventListener("click",event=>{
  if(event.target===el("mirrorDialog"))closeMirrorDialog();
@@ -1343,6 +1428,7 @@ function resetAdminSession(message){
   closeProductTerms();
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
+  mirrorPurchaseKeys.clear();
   clearMirrorOperations();closeMirrorDialog();
   subadminDirectory=[];closeClientDetail();closeSubadminDetail();
   caseSerial++;fundingSerial++;caseRows=[];clearCaseSelection();

@@ -40,9 +40,10 @@ export async function listUnifiedAudit(db,actor,{limit=100}={}){
    'CONFIGURE:v'||a.version::text,a.reason,a.created_at
   FROM internal_product_terms_audit a WHERE $1::text='MASTER'
   UNION ALL
-  SELECT 'INTERNAL_PURCHASE',p.id::text,a.user_id,a.user_id,
+  SELECT 'INTERNAL_PURCHASE',p.id::text,a.user_id,COALESCE(m.actor_user_id,a.user_id),
    'BUY:'||p.product_code,'Quantity '||p.quantity::text||', USD cents '||p.total_cents::text,p.created_at
   FROM internal_purchases p JOIN accounts a ON a.id=p.account_id
+   LEFT JOIN admin_mirror_purchase_audit m ON m.purchase_id=p.id
    LEFT JOIN client_links l ON l.user_id=a.user_id
   WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid)
  ) events ORDER BY event_at DESC,event_type,event_id DESC LIMIT $3`;

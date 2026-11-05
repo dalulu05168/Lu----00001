@@ -23,6 +23,10 @@ test("master can open a scoped client App mirror with account records and clear 
       if(url==="/api/admin/mirror-audit")return reply(200,{items:[{clientEmail:"customer@example.test",actorEmail:"master@example.test",viewedAt:"2026-11-03T00:00:00Z"}]});
       if(url==="/api/admin/subaccounts")return reply(200,{items:[]});
       if(url==="/api/admin/listings")return reply(200,{items:[]});
+      if(url==="/api/admin/mirror-purchases"){
+        if(options.method==="POST")return reply(201,{id:"test-purchase"});
+        return reply(200,{items:[{code:"NEM",name:"Newmont",minimumQuantity:1,termsId:"test-terms",termsVersion:1,internalPriceCents:1000,discountBps:1000}]});
+      }
       if(url==="/api/admin/mirror?clientId="+clientId)return reply(200,{
         mode:"READ_ONLY",checkedAt:"2026-11-03T00:00:00Z",
         client:{id:clientId,email:"customer@example.test"},
@@ -61,7 +65,18 @@ test("master can open a scoped client App mirror with account records and clear 
     dom.window.document.querySelector('[data-mirror-tab="market"]').click();
     assert.match(el("mirrorAppScreen").textContent,/未接入/);
     dom.window.document.querySelector('[data-mirror-tab="trade"]').click();
-    assert.match(el("mirrorAppScreen").textContent,/不可操作/);
+    await pause(40);
+    const trade=el("mirrorAppScreen").querySelector("form");
+    assert.match(trade.textContent,/NEM.*实付 9\.00 USD/);
+    const [pin,password]=trade.querySelectorAll('input[type="password"]');
+    pin.value="001234";password.value="synthetic-admin-password";
+    trade.querySelector('input[type="checkbox"]').checked=true;
+    trade.dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+    await pause(40);
+    const post=requests.find(x=>x.url==="/api/admin/mirror-purchases"&&x.options.method==="POST");
+    assert.ok(post.options.headers["idempotency-key"]);
+    assert.equal(JSON.parse(post.options.body).clientId,clientId);
+    assert.match(el("mirrorStatus").textContent,/购买已记录/);
     dom.window.document.querySelector('[data-mirror-tab="positions"]').click();
     assert.match(el("mirrorAppScreen").textContent,/AAPL/);
     dom.window.document.querySelector('[data-mirror-tab="orders"]').click();

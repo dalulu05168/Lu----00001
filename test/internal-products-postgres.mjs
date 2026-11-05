@@ -8,6 +8,7 @@ import {readAdminProductTerms,updateAdminProductTerms,listPublishedInternalProdu
 import {buyInternalProduct,internalPurchaseAccount} from '../src/internal-purchases.mjs';
 import {getClientAppMirror} from '../src/admin-mirror.mjs';
 import {listUnifiedAudit} from '../src/operation-audit.mjs';
+import {getAccountAnalytics} from '../src/account-analytics.mjs';
 export async function verifyInternalProducts(){
  const db=new Pool({connectionString:process.env.TEST_DATABASE_URL,max:5});
  let app;
@@ -46,6 +47,11 @@ export async function verifyInternalProducts(){
   for(const item of configured.slice(1))await buyInternalProduct(db,accountId,randomUUID(),{...request,termsId:item.termsId});
   assert.equal((await db.query('SELECT cash_cents FROM accounts WHERE id=$1',[accountId])).rows[0].cash_cents,'28000');
   const records=await internalPurchaseAccount(db,accountId);assert.equal(records.positions.length,4);assert.equal(records.purchases.length,4);
+  const analytics=await getAccountAnalytics(db,accountId);
+  assert.equal(analytics.orderCount,4);
+  assert.equal(analytics.historyAvailable,true);
+  assert.equal(analytics.buyVolumeCents,72000);
+  assert.equal(analytics.positionCostCents,72000);
   assert.deepEqual(new Set(records.purchases.map(x=>x.item_type)),new Set(['COMMODITY','STOCK','FUND','IPO']));
   assert.ok(records.purchases.every(x=>x.total_cents==='18000'&&x.unit_price_cents==='9000'));
   const changed=await updateAdminProductTerms(db,actor,{...entries[0],expectedVersion:1,discountBps:2000,reason:'Synthetic version update preserving existing participation hash'});
@@ -78,7 +84,7 @@ export async function verifyInternalProducts(){
   assert.ok(audit.items.some(x=>x.eventType==='INTERNAL_PURCHASE'&&x.clientId===userId));
   assert.equal((await listUnifiedAudit(db,{role:'SUBADMIN',userId:otherId},{limit:200})).items.some(x=>x.eventType==='PRODUCT_TERMS'||x.clientId===userId),false);
   // Actual HTTP ownership boundary, without logging or exporting a production credential.
-  app=createApi({db,resolveSession:async token=>token==='synthetic-owner'?{userId,accountId}:token==='synthetic-other'?{userId:otherId,accountId:otherId}:null});
+  app=createApi({db,resolveSession:async token=>token==='synthetic-master'?{userId:masterId,adminVerified:true}:token==='synthetic-owner'?{userId,accountId}:token==='synthetic-other'?{userId:otherId,accountId:otherId}:null});
   await new Promise(done=>app.listen(0,'127.0.0.1',done));const origin='http://127.0.0.1:'+app.address().port;
   assert.equal((await fetch(origin+'/api/internal-purchases')).status,401);
   const other=await (await fetch(origin+'/api/internal-purchases',{headers:{authorization:'Bearer synthetic-other'}})).json();
@@ -102,5 +108,22 @@ export async function verifyInternalProducts(){
    assert.equal(terms.passwordConfigured,true);
    assert.ok(available.some(product=>product.termsId===terms.termsId));
   }
+  const terms=await readAdminProductTerms(db,actor,'LISTING',quickListing.id);
+  const keyForMirror=randomUUID();
+  const mirrorOrder={clientId:userId,termsId:terms.termsId,termsVersion:terms.termsVersion,quantity:1,
+   participationPassword:'001234',confirmed:true,confirmPassword:'replacement-master-password-2026'};
+  const submitMirror=(body,token='synthetic-master')=>fetch(origin+'/api/admin/mirror-purchases',{method:'POST',
+   headers:{authorization:'Bearer '+token,'content-type':'application/json','idempotency-key':keyForMirror},body:JSON.stringify(body)});
+  assert.equal((await submitMirror(mirrorOrder,'synthetic-owner')).status,403);
+  assert.equal((await submitMirror({...mirrorOrder,confirmPassword:'synthetic-invalid-password'})).status,401);
+  assert.equal((await submitMirror({...mirrorOrder,clientId:masterId})).status,404);
+  const placed=await submitMirror(mirrorOrder);assert.equal(placed.status,201);
+  const {id}=await placed.json();
+  assert.equal((await submitMirror(mirrorOrder)).status,200);
+  assert.equal((await db.query('SELECT cash_cents FROM accounts WHERE id=$1',[accountId])).rows[0].cash_cents,'19000');
+  assert.deepEqual((await db.query('SELECT actor_user_id,client_user_id FROM admin_mirror_purchase_audit WHERE purchase_id=$1',[id])).rows,
+   [{actor_user_id:masterId,client_user_id:userId}]);
+  const delegated=(await listUnifiedAudit(db,actor,{limit:200})).items.find(item=>item.eventId===id);
+  assert.equal(delegated.actorId,masterId);
  }finally{if(app)await new Promise(done=>app.close(done));await db.end();}
 }

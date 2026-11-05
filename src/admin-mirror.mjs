@@ -1,6 +1,7 @@
 import {getAccountSnapshot} from "./account-service.mjs";
 import {listWatchlist} from "./watchlist-service.mjs";
-import {readInternalPurchaseRows} from './internal-purchases.mjs';
+import {buyInternalProduct,readInternalPurchaseRows} from './internal-purchases.mjs';
+import {verifyPassword} from './auth.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function invalid(message,statusCode){const e=new Error(message);e.statusCode=statusCode;throw e;}
@@ -20,6 +21,21 @@ export async function getClientMirrorSetupStatus(db,actor){
 }
 async function ensureMirrorAuditAvailable(db,actor){
   if(!(await getClientMirrorSetupStatus(db,actor)).ready)invalid("Mirror audit schema not installed",503);
+}
+
+export async function purchaseForMirrorClient(db,actor,key,body){
+  if(actor?.role!=="MASTER")invalid("Master permission required",403);
+  const {clientId,confirmPassword,confirmed,...purchase}=body??{};
+  if(!UUID.test(clientId??"")||confirmed!==true||typeof confirmPassword!=="string"||
+    confirmPassword.length<12||confirmPassword.length>1024)invalid("Invalid trade confirmation",400);
+  const operator=await db.query(`SELECT u.password_hash FROM app_users u
+    JOIN admin_roles r ON r.user_id=u.id WHERE u.id=$1 AND r.role='MASTER'`,[actor.userId]);
+  if(operator.rows.length!==1||!await verifyPassword(confirmPassword,operator.rows[0].password_hash))
+    invalid("Invalid admin credentials",401);
+  const account=await db.query(`SELECT id FROM accounts WHERE user_id=$1 AND
+    NOT EXISTS(SELECT 1 FROM admin_roles WHERE user_id=$1)`,[clientId]);
+  if(account.rows.length!==1)invalid("Client not found",404);
+  return buyInternalProduct(db,account.rows[0].id,key,purchase,{actorId:actor.userId,clientId});
 }
 
 export async function getClientAppMirror(db,actor,clientId){

@@ -91,12 +91,18 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 @media(max-width:1000px){.mirror-layout{grid-template-columns:1fr}.mirror-client-panel{max-height:350px}.mirror-device{max-width:500px}}
 @media(max-width:500px){.mirror-customer{flex-wrap:wrap}.mirror-open{margin:8px 0 0}.mirror-device{border-radius:14px}.mirror-account,.mirror-balance{padding:13px 14px}.mirror-screen{min-height:170px}}
 
-/* Additional client-screen tabs and auditable mirror reads remain legible at phone sizes. */
-.mirror-tabs{overflow-x:auto;justify-content:flex-start;scrollbar-width:thin}
-.mirror-tabs button{min-width:62px;flex:1 0 auto}
+/* Keep phone navigation reachable without horizontal scrolling. */
+.mirror-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.mirror-tabs button{min-width:0;min-height:44px;white-space:normal}
+.mirror-screen{overflow-x:hidden}
+.mirror-trade-form,.mirror-trade-form label{display:grid;gap:8px;min-width:0}
+.mirror-trade-form{gap:12px}
+.mirror-trade-form input,.mirror-trade-form select,.mirror-trade-form button{min-height:44px;min-width:0}
+.mirror-trade-form label:has(input[type="checkbox"]){display:flex;align-items:center;justify-content:space-between}
+.mirror-trade-form input[type="checkbox"]{min-height:0}
 .mirror-audit-row{padding:13px 0}
 .mirror-audit-row small{color:#92979e}
-@media(max-width:520px){.mirror-tabs button{min-width:57px;font-size:11px}}
+@media(max-width:520px){.mirror-tabs button{font-size:11px}}
 
 /* Client mirror: searchable directory and explicit fail-closed readiness state. */
 .mirror-search-label{display:block;font-size:11px;color:#92979e;margin:12px 0 6px}

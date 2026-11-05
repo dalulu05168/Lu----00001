@@ -1,11 +1,11 @@
-import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus} from "./admin-mirror.mjs";
+import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus,purchaseForMirrorClient} from "./admin-mirror.mjs";
 import {getClientPolicy,changeClientPolicy,listClientPolicyAudit} from "./client-admin-policies.mjs";
 import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit,listAdminClientHistoryPage} from "./operational-workflows.mjs";
 import {getSubadminPolicy,changeSubadminLogin,listSubadminControlAudit} from "./admin-subaccount-policies.mjs";
 import {listCommodityProducts,createCommodityProduct,updateCommodityProduct,commodityProductAudit} from "./commodity-products.mjs";
 import {listAdminSupportThreads,getAdminSupportThread,sendAdminSupportMessage,changeAdminSupportStatus} from "./support-messages.mjs";
 import {listUnifiedAudit} from "./operation-audit.mjs";
-import {readAdminProductTerms,updateAdminProductTerms} from './internal-products.mjs';
+import {listPublishedInternalProducts,readAdminProductTerms,updateAdminProductTerms} from './internal-products.mjs';
 import {lookupStocks} from './stock-lookup.mjs';
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
@@ -38,6 +38,7 @@ function safeError(error){
   if(error?.statusCode===404)return {status:404,error:"Client not found"};
   if(error?.statusCode===403)return {status:403,error:"Master permission required"};
   if(error?.statusCode===409)return {status:409,error:error.message};
+  if(error?.statusCode===429)return {status:429,error:error.message};
   if(error?.statusCode===503)return {status:503,error:error.message==="Mirror audit schema not installed"
     ?"Mirror audit schema not installed":"Account policies unavailable"};
   if(error?.code==="23505")return {status:409,error:"Record already exists"};
@@ -54,6 +55,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/workflow-requests":["GET","PATCH"],"/api/admin/workflow-audit":["GET"],
     "/api/admin/client-history":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
+    "/api/admin/mirror-purchases":["GET","POST"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/stock-lookup":["GET"],"/api/catalog":["GET"],
     "/api/admin/commodities":["GET","POST","PATCH"],"/api/admin/commodity-audit":["GET"],
     "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"],
@@ -94,6 +96,15 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator session required"});return true;}
+    if(route==="/api/admin/mirror-purchases"){
+      if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
+      if(req.method==="GET")response(res,200,{items:await listPublishedInternalProducts(db)});
+      else{
+        const result=await purchaseForMirrorClient(db,actor,req.headers["idempotency-key"],await input(req));
+        response(res,result.replayed?200:201,{id:result.purchase.id,replayed:result.replayed});
+      }
+      return true;
+    }
     if(route==="/api/admin/stock-lookup"){
       if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
       const url=new URL(req.url??"/","http://localhost");

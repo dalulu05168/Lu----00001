@@ -9,6 +9,8 @@ function integer(value,{positive=false}={}){
  return result;
 }
 function identity(row){
+ if(row?.market==="PRODUCT"&&typeof row.symbol==="string"&&/^[0-9a-f-]{36}$/i.test(row.symbol))
+  return "PRODUCT:"+row.symbol;
  if(!row||!MARKETS.has(row.market)||typeof row.symbol!=="string"||!/^[A-Z0-9][A-Z0-9.-]{0,23}$/.test(row.symbol))
   unavailable("INVALID_RECORDS");
  return row.market+":"+row.symbol;
@@ -108,11 +110,15 @@ export async function getAccountAnalytics(db,accountId,{now}={}){
   await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");active=true;
   const account=await client.query("SELECT cash_cents,clock_timestamp() AS as_of FROM accounts WHERE id=$1",[accountId]);
   if(account.rows.length!==1)throw Object.assign(new Error("Account not found"),{statusCode:404});
-  const positions=await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1 AND quantity>0",[accountId]);
+  const positions=await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1 AND quantity>0 "+
+   "UNION ALL SELECT 'PRODUCT',terms_id::text,quantity FROM internal_product_positions WHERE account_id=$1",[accountId]);
   const orders=await client.query("SELECT o.market,o.symbol,o.side,o.quantity,o.amount_usd_cents,o.created_at,"+
    "l.id AS ledger_sequence,l.delta_cents AS ledger_delta_cents FROM orders o "+
    "LEFT JOIN cash_ledger l ON l.order_id=o.id AND l.account_id=o.account_id "+
-   "WHERE o.account_id=$1 ORDER BY l.id ASC NULLS LAST",[accountId]);
+   "WHERE o.account_id=$1 UNION ALL "+
+   "SELECT 'PRODUCT',p.terms_id::text,'BUY',p.quantity,p.total_cents,p.created_at,l.id,l.delta_cents "+
+   "FROM internal_purchases p LEFT JOIN cash_ledger l ON l.internal_purchase_id=p.id AND l.account_id=p.account_id "+
+   "WHERE p.account_id=$1 ORDER BY ledger_sequence ASC NULLS LAST",[accountId]);
   const result=calculateAccountAnalytics({cashCents:account.rows[0].cash_cents,positions:positions.rows,orders:orders.rows,
    now:now??account.rows[0].as_of??new Date()});
   await client.query("COMMIT");active=false;return result;

@@ -254,8 +254,11 @@
           <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>
         </div>
         <div class="panel order-panel">
-          <div class="panel-heading"><h2>购买产品</h2><a href="#internalProductsPanel" class="subtle-link">查看可购买产品 →</a></div>
-          <p class="panel-caption">选择产品，确认价格和数量后提交。</p>
+          <section id="internalProductsPanel" hidden aria-labelledby="internalProductsTitle">
+       <div class="panel-heading"><h2 id="internalProductsTitle">产品购买</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品</button></div>
+       <p class="chart-source">股票、基金、IPO 和大宗商品均以 USD 计价。购买后可在交易明细和持仓中查看记录。</p>
+       <p id="internalProductsStatus" role="status"></p><div id="internalProductsItems" class="internal-products-grid"></div>
+      </section>
           <form id="orderForm" hidden>
             <div class="order-fields"><label class="form-field"><span>Side</span><select id="side"><option value="BUY">买入 BUY</option><option value="SELL">卖出 SELL</option></select></label>
               <label class="form-field"><span>Quantity</span><input id="quantity" type="number" min="1" step="1" value="1" required></label></div>
@@ -337,11 +340,6 @@
         <div id="orders" class="record-list">登录后查看订单记录</div>
       </section>
 
-      <section class="panel" id="internalProductsPanel" hidden aria-labelledby="internalProductsTitle">
-       <div class="panel-heading"><h2 id="internalProductsTitle">产品购买</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品</button></div>
-       <p class="chart-source">股票、基金、IPO 和大宗商品均以 USD 计价。购买后可在交易明细和持仓中查看记录。</p>
-       <p id="internalProductsStatus" role="status"></p><div id="internalProductsItems" class="internal-products-grid"></div>
-      </section>
       <footer class="app-footer"><span>CN Capital · CN Capital Markets</span></footer>
     </div>
   </main>

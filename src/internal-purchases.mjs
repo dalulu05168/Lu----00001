@@ -1,17 +1,27 @@
 import {randomUUID} from 'node:crypto';
 import {purchaseQuote,checkParticipationPassword,productError} from './internal-products.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export async function buyInternalProduct(db,accountId,key,body){
+export async function buyInternalProduct(db,accountId,key,body,delegation){
  if(!UUID.test(accountId??'')||typeof key!=='string'||key.length<8||key.length>128)throw productError('Invalid purchase reference');
  if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).some(k=>!['termsId','quantity','termsVersion','participationPassword'].includes(k)))throw productError('Invalid purchase fields');
  if(!UUID.test(body.termsId??'')||!Number.isSafeInteger(body.quantity)||body.quantity<1||body.quantity>1000000||!Number.isSafeInteger(body.termsVersion)||body.termsVersion<1||typeof body.participationPassword!=='string'||!/^\d{6}$/.test(body.participationPassword))throw productError('Invalid purchase fields');
  const c=await db.connect();let active=false;
  try{
   await c.query('BEGIN');active=true;
+  if(delegation){
+   const target=await c.query(`SELECT a.id FROM accounts a JOIN app_users u ON u.id=a.user_id
+    WHERE a.id=$1 AND u.id=$2 AND NOT EXISTS (SELECT 1 FROM admin_roles WHERE user_id=u.id)
+    FOR SHARE OF u`,[accountId,delegation.clientId]);
+   if(target.rows.length!==1)throw productError('Client not found',404);
+  }
   const account=(await c.query('SELECT cash_cents FROM accounts WHERE id=$1 FOR UPDATE',[accountId])).rows[0];
   if(!account)throw productError('Account not found',404);
   const old=(await c.query('SELECT * FROM internal_purchases WHERE account_id=$1 AND idempotency_key=$2',[accountId,key])).rows[0];
   if(old){
+   if(delegation){
+    const audit=await c.query('SELECT 1 FROM admin_mirror_purchase_audit WHERE purchase_id=$1 AND actor_user_id=$2',[old.id,delegation.actorId]);
+    if(!audit.rows.length)throw productError('Purchase key already used',409);
+   }
    if(old.terms_id!==body.termsId||Number(old.quantity)!==body.quantity||Number(old.terms_version)!==body.termsVersion)throw productError('Idempotency key already used for another purchase',409);
    await c.query('COMMIT');active=false;return {replayed:true,purchase:old};
   }
@@ -53,13 +63,15 @@ export async function buyInternalProduct(db,accountId,key,body){
   await c.query(`INSERT INTO internal_product_positions(account_id,terms_id,quantity,cost_cents) VALUES($1,$2,$3,$4)
    ON CONFLICT(account_id,terms_id) DO UPDATE SET quantity=internal_product_positions.quantity+EXCLUDED.quantity,cost_cents=internal_product_positions.cost_cents+EXCLUDED.cost_cents`,[accountId,body.termsId,body.quantity,quote.totalCents]);
   await c.query('INSERT INTO cash_ledger(account_id,internal_purchase_id,delta_cents,balance_after_cents) VALUES($1,$2,$3,$4)',[accountId,purchase.id,-quote.totalCents,balance.toString()]);
+  if(delegation)await c.query('INSERT INTO admin_mirror_purchase_audit(purchase_id,actor_user_id,client_user_id) VALUES($1,$2,$3)',
+   [purchase.id,delegation.actorId,delegation.clientId]);
   await c.query('DELETE FROM internal_purchase_attempts WHERE account_id=$1',[accountId]);
   await c.query('COMMIT');active=false;return {replayed:false,purchase,cashCents:Number(balance)};
  }catch(error){if(active)await c.query('ROLLBACK');throw error;}finally{c.release();}
 }
 export async function readInternalPurchaseRows(db,accountId){
   const positions=await db.query(`SELECT v.terms_id,v.quantity,v.cost_cents,COALESCE(p.name,l.display_name) AS name,
-   COALESCE(p.sku,l.symbol) AS code FROM internal_product_positions v JOIN internal_product_terms t ON t.id=v.terms_id
+   COALESCE(p.sku,l.symbol) AS code,l.market,l.symbol FROM internal_product_positions v JOIN internal_product_terms t ON t.id=v.terms_id
    LEFT JOIN commodity_products p ON p.id=t.commodity_id LEFT JOIN listings l ON l.id=t.listing_id WHERE v.account_id=$1 ORDER BY v.terms_id`,[accountId]);
   const purchases=await db.query('SELECT * FROM internal_purchases WHERE account_id=$1 ORDER BY created_at DESC,id DESC LIMIT 100',[accountId]);
   return {positions:positions.rows,purchases:purchases.rows,execution:'INTERNAL_ONLY'};
