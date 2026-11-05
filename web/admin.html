@@ -64,7 +64,6 @@
         <button type="button" data-admin-page="treasury">资金申请记录 / Treasury</button>
         <button type="button" data-admin-page="support">客户客服 / Support</button>
         </details><details open data-required-role="MASTER"><summary class="admin-nav-group">GOVERNANCE / 治理审计</summary>
-        <button type="button" data-admin-page="risk" data-required-role="MASTER">风险与权限 / Risk</button>
         <button type="button" data-admin-page="audit" data-required-role="MASTER">审计与报表 / Audit</button>
       </details></nav>
       <button type="button" id="adminLogout" class="outline logout">退出管理后台</button>
@@ -87,7 +86,7 @@
           <div class="summary-card"><span>客户账户 / Clients</span><output id="adminClientCount">—</output><small>真实客户归属列表</small></div>
           <div class="summary-card"><span>子管理员 / Subaccounts</span><output id="adminSubadminCount">—</output><small>仅限权限范围</small></div>
           <div class="summary-card"><span>证券目录 / Listings</span><output id="adminListingCount">—</output><small>现有资料记录</small></div>
-          <div class="summary-card"><span>券商交易 / Broker</span><output class="pending">未接入</output></div>
+          <div class="summary-card"><span>订单处理</span><output>平台内记账</output><small>订单、余额与持仓记入平台账户</small></div>
         </div>
         <section class="dashboard-funding" aria-label="资金申请概览">
           <div class="dashboard-section-heading"><div><h3>资金申请概览</h3><p>充值与提现申请记录 · USD</p></div><button id="refreshDashboardFunding" type="button" class="outline">刷新资金数据</button></div>
@@ -103,7 +102,7 @@
             <section class="panel dashboard-funding-detail"><div class="dashboard-section-heading"><h3>近期进出资金申请明细</h3><button type="button" class="outline" id="dashboardOpenTreasury">查看全部</button></div>
               <div class="dashboard-table-scroll"><table class="dashboard-funding-table"><thead><tr><th>类型</th><th>申请金额 USD</th><th>客户编号</th><th>审核状态</th><th>提交时间</th></tr></thead><tbody id="dashboardFundingRows"></tbody></table></div>
             </section>
-            <section class="panel dashboard-tasks"><h3>待办与处理分布</h3><div id="dashboardFundingBreakdown"></div><button type="button" class="outline" id="dashboardOpenApprovals">进入审批中心</button><p>实际入金、出金及银行到账明细尚未接入。</p></section>
+            <section class="panel dashboard-tasks"><h3>待办与处理分布</h3><div id="dashboardFundingBreakdown"></div><button type="button" class="outline" id="dashboardOpenApprovals">进入审批中心</button></section>
           </div>
         </section>
         <details class="panel operations-overview"><summary>系统运行与接入状态</summary>
@@ -453,10 +452,6 @@
             <p id="supportActionStatus" class="feedback" role="status" aria-live="polite"></p>
           </section>
         </div>
-      </section>
-      <section class="admin-pane" data-pane="risk" hidden>
-        <div class="pane-title"><span>RISK & PERMISSIONS</span><h2>风险与权限</h2></div>
-        <div class="panel unavailable" role="status"><h3>部分能力待开发</h3><p>交易限额、合规审查和权限调整功能暂未开放。</p></div>
       </section>
       <section class="admin-pane" data-pane="audit" hidden>
         <div class="pane-title"><span>AUDIT & REPORTS</span><h2>审计与报表</h2></div>

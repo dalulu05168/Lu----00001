@@ -37,7 +37,8 @@ test('real admin layout preserves secure flows and separates capabilities',()=>{
   assert.match(admin,/data-role-choice="MASTER"/);
   assert.match(admin,/data-role-choice="SUBADMIN"/);
   assert.match(js,/data-required-role/);
-  for(const page of ['dashboard','clients','catalog','approvals','treasury','risk','audit'])assert.match(admin,new RegExp('data-pane="'+page+'"'));
+  for(const page of ['dashboard','clients','catalog','approvals','treasury','audit'])assert.match(admin,new RegExp('data-pane="'+page+'"'));
+  assert.doesNotMatch(admin,/data-pane="risk"/);
   for(const id of ['workflowCategory','workflowRefresh','workflowReviewForm','workflowDecision','workflowReason','fundingRequestRows'])
     assert.match(admin,new RegExp('id="'+id+'"'));
   assert.match(admin,/资金同意后更新平台内部余额，不执行银行付款/);

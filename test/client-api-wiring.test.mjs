@@ -84,6 +84,25 @@ test('an unavailable product catalog does not disable selling an eligible holdin
  submit.click();await flush();
  assert.deepEqual(sale,{symbol:'AA',quantity:1,confirmedStockPriceCents:1200});
 }));
+test('a rejected stock price disables purchase until a fresh quote is fetched',()=>page('buy-requote',async({el,state,login})=>{
+ state.override=(url,options)=>{
+  if(url==='/api/internal-products')return json(200,{stockQuotesConfigured:true,items:[
+   {itemType:'STOCK',market:'US',code:'AA',name:'Alcoa',minimumQuantity:1,termsId:'aa',termsVersion:1,discountBps:0}
+  ]});
+  if(url==='/api/stock-quote?market=US&symbol=AA')return json(200,{priceCents:1200,timestampMs:Date.now()});
+  if(url==='/api/internal-purchases'&&options.method==='POST')return json(409,{error:'Stock price changed; refresh the quote and confirm again'});
+  if(url==='/api/internal-purchases')return json(200,{positions:[]});
+ };
+ await login();
+ const form=el('internalProductsItems').querySelector('form');
+ const quote=form.querySelector('button[type="button"]'),submit=form.querySelector('button[type="submit"]');
+ quote.click();await flush();assert.equal(submit.disabled,false);
+ form.querySelector('input[type="password"]').value='123456';
+ submit.click();await flush();
+ assert.equal(submit.disabled,true);
+ assert.match(form.querySelector('[role="status"]').textContent,/重新获取报价/);
+ quote.click();await flush();assert.equal(submit.disabled,false);
+}));
 test('published catalog entry selects the chart while public chart never enables trading',()=>page('chart',async({el,login})=>{
  assert.equal(el('stockChart').querySelector('script'),null);
  await login();

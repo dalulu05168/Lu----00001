@@ -20,7 +20,7 @@ test("dashboard follows the supplied dark charcoal transactions visual direction
   assert.match(html, /class="metrics"/);
   assert.match(html, /class="primary-grid"/);
   assert.match(html, /class="secondary-grid"/);
-  assert.equal((html.match(/class="metric-icon"/g) || []).length, 5);
+  assert.equal((html.match(/class="metric-icon"/g) || []).length, 3);
   assert.ok(!html.includes("$256,430.80"), "Reference figures must not be treated as real data");
   assert.ok(!html.includes("BBCA"), "Reference tickers must not be copied into the live app");
 });

@@ -349,6 +349,7 @@ async function refreshCatalog() {
     el("catalogFeedback").textContent=error.message;
   }finally{if(sequence===catalogFetchSequence){catalogBusy=false;renderSymbols();renderChart();}}
 }
+const STOCK_QUOTE_ERRORS=new Set(["Stock price changed; refresh the quote and confirm again","Verified US stock quote unavailable"]);
 function stockSaleForm(item){
  const available=Number(item.unlocked_quantity??0);
  if(item.manually_locked||item.market!=="US"||available<1||!stockSaleConfigured){
@@ -393,10 +394,18 @@ function stockSaleForm(item){
     body:{symbol:item.symbol,quantity:n,confirmedStockPriceCents:quote.priceCents}});
    if(usedToken===token){stockSaleKeys.delete(fingerprint);await refreshAccount();}
   }catch(error){
-   if(usedToken===token){quote=null;preview.textContent="未确认卖出："+error.message+"。请刷新报价后重试。";}
+   if(usedToken===token){
+    quote=null;
+    const reason=STOCK_QUOTE_ERRORS.has(error.message)?"报价已变化或暂不可用，请重新获取报价。":
+      error.message==="Stock position is locked"?"该持仓已锁仓，请刷新持仓查看状态。":
+      error.message==="Insufficient unlocked stock quantity"?"可卖数量不足，请刷新持仓后调整数量。":
+      "暂未确认卖出结果。请先查看交易记录，再决定是否重试。";
+    preview.textContent=reason;
+   }
   }finally{busy=false;refresh.disabled=false;update();}
  });
- form.append(label,refresh,preview,submit);return form;
+ const scope=textNode("确认后将更新账户余额和持仓，订单不会提交交易所。","stock-sale-note");
+ form.append(label,refresh,preview,scope,submit);return form;
 }
 function appendPublicChartButton(container,item){
  if(!resolveTradingViewSymbol(item))return;
@@ -585,7 +594,6 @@ function renderTransactionHistory() {
     }else el("realizedPnlNote").textContent=ANALYTICS_REASONS[accountAnalytics.reason]??"完整成本记录不可用";
   }
   el("internalRecordCount").textContent = account ? String(transactionOrderCount(allOrders.length)) : "—";
-  el("brokerExecutionStatus").textContent = "未连接";
 
   const range = "all";
   el("transactionRangeLabel").textContent = TRANSACTION_RANGE_LABELS[range] ?? "All time";
@@ -1001,7 +1009,7 @@ function serviceDescription(item){
   if(item.bound)status='绑定已确认（人工审核）';
   else if(item.detailsStored&&item.status==='PENDING_VERIFICATION')status='待人工审核';
  }
- if(item.category==='FUNDING'&&item.settlementStatus==='INTERNAL_POSTED')status='成功 · 平台内部入账';
+ if(item.category==='FUNDING'&&item.settlementStatus==='INTERNAL_POSTED')status=item.kind==='WITHDRAWAL'?'已从余额扣账':'已计入账户余额';
  if(item.category==="FUNDING"){
   const cents=Number(item.amountCents);
   const amount=Number.isSafeInteger(cents)?money(cents):"—";
@@ -1290,7 +1298,9 @@ function internalProductCard(item){
   form.append(refresh);
  }
  const feedback=document.createElement('small');feedback.setAttribute('role','status');
- form.append(qtyLabel,pinLabel,total,button,feedback);
+ form.append(qtyLabel,pinLabel,total);
+ if(stock)form.append(textNode("确认后将更新账户余额和持仓，订单不会提交交易所。","stock-sale-note"));
+ form.append(button,feedback);
  if(fund)card.append(textNode('持有 '+item.fundDays+' 天 · 期间固定收益 '+(item.fundReturnBps/100)+'% · 到期一次返还本金与收益',''));
  card.append(form);
  form.addEventListener('submit',async event=>{
@@ -1311,8 +1321,19 @@ function internalProductCard(item){
     if(internalHoldingsUnavailable){status.append(' 持仓读取失败，请刷新账户数据。');}
     else{const link=document.createElement('a');link.href='#holdings-section';link.textContent='查看持仓';status.append(' ',link);}
    }
-  }catch(error){if(usedToken===token)feedback.textContent='购买未确认：'+error.message+'。若网络中断，重试将使用同一请求编号。';}
-  finally{body.participationPassword='';if(usedToken===token){internalPurchaseBusy=false;button.disabled=false;}}
+  }catch(error){
+   if(usedToken===token){
+    if(stock&&STOCK_QUOTE_ERRORS.has(error.message)){
+     stockQuote=null;updateTotal();
+     feedback.textContent='报价已变化或暂不可用，请重新获取报价后确认。';
+    }else{
+     feedback.textContent='购买未确认：'+error.message+'。若网络中断，重试将使用同一请求编号。';
+    }
+   }
+  }finally{
+   body.participationPassword='';
+   if(usedToken===token){internalPurchaseBusy=false;button.disabled=stock&&!stockQuote;}
+  }
  });
  return card;
 }

@@ -85,7 +85,7 @@ test("dark transactions workspace renders real account orders with filtering, pa
     assert.equal(el("realizedPnl").textContent,"—");
     assert.equal(el("internalRecordCount").textContent,"13");
     assert.match(el("transactionVolumeNote").textContent,/12 笔有效金额/);
-    assert.match(el("brokerExecutionStatus").textContent,/未连接/);
+    assert.match(el("transactions-section").querySelector(".execution-summary").textContent,/订单记录/);
     assert.equal(el("transactionRows").querySelectorAll("tr[data-transaction-row]").length,10);
     assert.match(el("transactionRows").textContent,/已记录/);
     assert.match(el("transactionPageSummary").textContent,/13/);
