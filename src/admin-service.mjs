@@ -1,5 +1,5 @@
 import {randomUUID,randomInt,timingSafeEqual} from "node:crypto";
-import {hashPassword,verifyPassword,createSession} from "./auth.mjs";
+import {hashPassword,verifyPassword,createSession,rejectUnknownAccount} from "./auth.mjs";
 import {enableNewProductPurchases} from './internal-products.mjs';
 
 
@@ -86,7 +86,8 @@ export async function adminLogin(db,{email,password}){
     JOIN admin_roles r ON r.user_id=u.id
     LEFT JOIN admin_subaccount_policies sp ON sp.user_id=u.id
     WHERE u.email=$1 AND COALESCE(sp.login_allowed,true)=true`,[getEmail(email)]);
-  if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash))){
+  const valid=r.rows.length===1?await verifyPassword(password,r.rows[0].password_hash):await rejectUnknownAccount(password);
+  if(!valid){
     const error=new Error("Invalid admin credentials");error.statusCode=401;throw error;
   }
   const row=r.rows[0];

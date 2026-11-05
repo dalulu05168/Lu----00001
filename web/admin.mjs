@@ -1195,6 +1195,9 @@ function caseOptions(item){
   if(item.status==="PENDING_VERIFICATION")return role==="MASTER"
    ?[...(item.detailsStored?[["MANUALLY_REVIEWED","人工确认绑定"]]:[]),["NEEDS_INFORMATION","要求补充资料"],["REJECTED","拒绝登记"]]
    :[["NEEDS_INFORMATION","要求补充资料"]];
+  if(item.status==="NEEDS_INFORMATION")return role==="MASTER"
+   ?[["PENDING_VERIFICATION","资料已补充，重新核实"],["REJECTED","拒绝登记"]]
+   :[["PENDING_VERIFICATION","资料已补充，重新核实"]];
  }
  return [];
 }

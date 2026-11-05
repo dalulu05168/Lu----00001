@@ -24,6 +24,11 @@ async function recordAudit(db,category,id,userId,actorId,oldStatus,newStatus,rea
  await db.query("INSERT INTO client_workflow_audit(category,request_id,client_user_id,actor_user_id,old_status,new_status,reason)"+
  " VALUES($1,$2,$3,$4,$5,$6,$7)",[category,id,userId,actorId,oldStatus,newStatus,reason]);
 }
+// A withdrawal can only be paid to a bank account the master has reviewed and bound.
+async function requireBoundBankAccount(conn,userId){
+ const bound=await conn.query("SELECT id FROM client_bank_link_requests WHERE client_user_id=$1 AND status='MANUALLY_REVIEWED' LIMIT 1",[userId]);
+ if(!bound.rows.length)bad("Withdrawal requires a bound bank account",409);
+}
 async function withTxn(db,action){
  const conn=await db.connect();let active=false;
  try{await conn.query("BEGIN");active=true;const value=await action(conn);await conn.query("COMMIT");active=false;return value;}
@@ -45,6 +50,7 @@ export async function submitClientRequest(db,userId,category,data){
   if(category==="FUNDING"&&data.kind==="WITHDRAWAL"){
    const p=await conn.query("SELECT withdrawal_requests_allowed FROM client_admin_policies WHERE user_id=$1 FOR SHARE",[userId]);
    if(p.rows[0]?.withdrawal_requests_allowed===false)bad("Withdrawal requests disabled",403);
+   await requireBoundBankAccount(conn,userId);
   }
   const id=randomUUID();let item;
   if(category==="FUNDING"){
@@ -96,6 +102,9 @@ function nextStatus(category,role,current,target){
   if(role==="MASTER"&&current==="PENDING_VERIFICATION"&&target==="MANUALLY_REVIEWED")return;
   if(current==="PENDING_VERIFICATION"&&target==="NEEDS_INFORMATION")return;
   if(role==="MASTER"&&current==="PENDING_VERIFICATION"&&target==="REJECTED")return;
+  // Leave "needs information" once the customer has responded, or close it out.
+  if(current==="NEEDS_INFORMATION"&&target==="PENDING_VERIFICATION")return;
+  if(role==="MASTER"&&current==="NEEDS_INFORMATION"&&target==="REJECTED")return;
  }
  bad("Review transition not permitted",403);
 }
@@ -117,6 +126,7 @@ export async function reviewAdminRequest(db,actor,category,data){
   if(category==="FUNDING"&&data.status==="APPROVED"){
    const account=(await conn.query("SELECT id,cash_cents FROM accounts WHERE user_id=$1 FOR UPDATE",[previous.client_user_id])).rows[0];
    if(!account)bad("Account not found",409);
+   if(previous.kind==="WITHDRAWAL")await requireBoundBankAccount(conn,previous.client_user_id);
    const delta=BigInt(previous.amount_cents)*(previous.kind==="DEPOSIT"?1n:-1n);
    const balance=BigInt(account.cash_cents)+delta;
    if(balance<0n)bad("Insufficient internal balance",409);

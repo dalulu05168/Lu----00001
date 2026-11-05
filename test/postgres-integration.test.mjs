@@ -435,6 +435,10 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(deposit.status,201);
     assert.equal(deposit.data.item.status,"SUBMITTED");
     assert.equal(deposit.data.item.settlementStatus,"NOT_EXECUTED");
+    const unboundWithdrawal=await ownReq("FUNDING",{kind:"WITHDRAWAL",amountCents:2700});
+    assert.equal(unboundWithdrawal.status,409);
+    // Withdrawals need a bank account the master has already reviewed and bound.
+    await db.query("INSERT INTO client_bank_link_requests(id,client_user_id,bank_label,account_last4,status,bank_details_stored) VALUES($1,$2,'Bound Bank','9876','MANUALLY_REVIEWED',true)",[randomUUID(),attached.data.userId]);
     const withdrawal=await ownReq("FUNDING",{kind:"WITHDRAWAL",amountCents:2700});
     assert.equal(withdrawal.status,201);
     assert.equal(withdrawal.data.item.settlementStatus,"NOT_EXECUTED");
@@ -498,6 +502,10 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
       "PENDING_VERIFICATION","NEEDS_INFORMATION");
     assert.equal(bankNeedsInfo.status,200);
     assert.equal(bankNeedsInfo.data.item.verified,false);
+    const bankResumed=await workflowChange(subAdmin.data.token,"BANK_LINK",bank.data.item.id,
+      "NEEDS_INFORMATION","PENDING_VERIFICATION");
+    assert.equal(bankResumed.status,200);
+    assert.equal(bankResumed.data.item.status,"PENDING_VERIFICATION");
     const auditTrail=await req("/api/admin/workflow-audit?clientId="+attached.data.userId,{token:masterToken});
     assert.equal(auditTrail.status,200);
     assert.ok(auditTrail.data.items.some(e=>e.category==="FUNDING"&&e.new_status==="APPROVED"));

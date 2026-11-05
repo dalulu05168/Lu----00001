@@ -10,6 +10,7 @@ import {lookupStocks} from './stock-lookup.mjs';
 import {setStockPositionLock} from './stock-position-locks.mjs';
 import {getUsStockHistory,stockQuotesConfigured} from './us-stock-quotes.mjs';
 import {readPrivateData} from './private-customer-data.mjs';
+import {createAuthRateLimiter,clientAddress,normalizedEmailKey,sendRateLimited} from "./auth-rate-limit.mjs";
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -48,7 +49,8 @@ function safeError(error){
   if(error?.code==="23505")return {status:409,error:"Record already exists"};
   return {status:500,error:"Internal server error"};
 }
-export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuote){
+const sharedAuthLimiter=createAuthRateLimiter();
+export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuote,authLimiter=sharedAuthLimiter){
   if(!route.startsWith("/api/admin/")&&route!=="/api/catalog")return false;
   const allowed={
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
@@ -73,16 +75,26 @@ export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuo
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
   try{
-    if(route==="/api/admin/login"){
+    if(["/api/admin/login","/api/admin/bootstrap","/api/admin/recover-pending-master"].includes(route)){
+      const ip=clientAddress(req);
       const data=await input(req);
-      response(res,200,await adminLogin(db,data));return true;
-    }
-    if(route==="/api/admin/bootstrap"){
-      const data=await input(req);
-      response(res,201,await bootstrapMaster(db,data));return true;
-    }
-    if(route==="/api/admin/recover-pending-master"){
-      response(res,200,await recoverPendingMaster(db,await input(req)));return true;
+      const emailKey=route==="/api/admin/login"?normalizedEmailKey("admin",data?.email):null;
+      const wait=authLimiter.blocked([["ipFailures",ip],["accountFailures",emailKey]]);
+      if(wait){sendRateLimited(res,wait);return true;}
+      try{
+        if(route==="/api/admin/login"){
+          const login=await adminLogin(db,data);
+          authLimiter.reset("accountFailures",emailKey);
+          response(res,200,login);return true;
+        }
+        if(route==="/api/admin/bootstrap"){response(res,201,await bootstrapMaster(db,data));return true;}
+        response(res,200,await recoverPendingMaster(db,data));return true;
+      }catch(error){
+        // Count wrong passwords and wrong setup proofs; malformed input is not a guess.
+        if(error?.statusCode===401||error?.message==="Invalid setup proof")
+          authLimiter.record([["ipFailures",ip],["accountFailures",emailKey]]);
+        throw error;
+      }
     }
     const authorization=req.headers.authorization??"";
     if(!authorization.startsWith("Bearer ")){

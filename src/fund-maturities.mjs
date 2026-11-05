@@ -42,10 +42,16 @@ async function settleFund(db,{purchase_id:purchaseId,account_id:accountId}){
  }finally{c.release();}
 }
 
-export async function settleDueFunds(db){
+/**
+ * Settles due fund maturities. The long-running server sweeps all accounts on a
+ * timer; account reads pass accountId so serverless deployments (no timer) and
+ * instances that were asleep still pay out as soon as the customer looks.
+ */
+export async function settleDueFunds(db,{accountId=null}={}){
  const {rows}=await db.query(`SELECT m.purchase_id,p.account_id FROM fund_maturities m
   JOIN internal_purchases p ON p.id=m.purchase_id WHERE m.settled_at IS NULL AND m.due_at<=now()
-  ORDER BY m.due_at,m.purchase_id LIMIT 100`);
+  AND ($1::uuid IS NULL OR p.account_id=$1::uuid)
+  ORDER BY m.due_at,m.purchase_id LIMIT 100`,[accountId]);
  let settled=0,failed=0;
  for(const row of rows){
   try{if(await settleFund(db,row))settled++;}

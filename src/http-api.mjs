@@ -16,7 +16,18 @@ import {getUsStockQuote,stockQuotesConfigured} from './us-stock-quotes.mjs';
 import {sellInternalStock} from './internal-stock-sales.mjs';
 import {privateDataKey,submitPrivateData,readPrivateData} from './private-customer-data.mjs';
 import {createReferenceFx} from "./reference-fx.mjs";
+import {settleDueFunds} from "./fund-maturities.mjs";
+import {createAuthRateLimiter,clientAddress,normalizedEmailKey,sendRateLimited} from "./auth-rate-limit.mjs";
 
+// Render serves this process directly, so vercel.json headers do not apply there.
+// frame-ancestors blocks clickjacking without restricting scripts the pages load.
+export const SECURITY_HEADERS=Object.freeze({
+ "x-content-type-options":"nosniff",
+ "x-frame-options":"DENY",
+ "content-security-policy":"frame-ancestors 'none'",
+ "referrer-policy":"strict-origin-when-cross-origin",
+ "permissions-policy":"camera=(), microphone=(), geolocation=()"
+});
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
 async function readBody(req,maxBodyBytes){
  if(req.body!==undefined){
@@ -32,10 +43,11 @@ async function readBody(req,maxBodyBytes){
  return payload;
 }
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
-export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,getStockQuote=getUsStockQuote,maxBodyBytes=8192,referenceFx=createReferenceFx()}){
+export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,getStockQuote=getUsStockQuote,maxBodyBytes=8192,referenceFx=createReferenceFx(),authLimiter=createAuthRateLimiter()}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  let privateUploads=0;
  return createServer(async(req,res)=>{
+  if(typeof res.setHeader==="function")for(const [name,value] of Object.entries(SECURITY_HEADERS))res.setHeader(name,value);
   const url=new URL(req.url??"/","http://localhost");
   // A single Render web service hosts both branded entrances. Only the two
   // exact custom hostnames have distinct landing pages; preview URLs stay intact.
@@ -58,7 +70,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    try{return send(res,200,await referenceFx());}
    catch{return send(res,503,{error:"Reference FX unavailable"});}
   }
-  if(await handleAdminApi(req,res,route,db,resolveSession,getStockQuote))return;
+  if(await handleAdminApi(req,res,route,db,resolveSession,getStockQuote,authLimiter))return;
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
@@ -77,11 +89,25 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
     const payload=await readBody(req,maxBodyBytes);
     const body=JSON.parse(payload);
     if(!body||typeof body!=="object"||Array.isArray(body)||Object.keys(body).some(k=>!["email","password","inviteCode"].includes(k)))return send(res,400,{error:"Invalid body"});
+    const ip=clientAddress(req);
     if(route==="/api/auth/register"){
-      const account=await registerAccount(db,{email:body.email,password:body.password,openingCashCents:0,inviteCode:body.inviteCode});
+      // Throttle before password hashing so enrollment cannot be used to exhaust CPU
+      // or to enumerate six-digit invitation codes.
+      const wait=authLimiter.blocked([["registrations",ip],["ipFailures",ip]]);
+      if(wait)return sendRateLimited(res,wait);
+      authLimiter.record([["registrations",ip]]);
+      let account;
+      try{account=await registerAccount(db,{email:body.email,password:body.password,openingCashCents:0,inviteCode:body.inviteCode});}
+      catch(err){if(err.message==="Invalid invitation code")authLimiter.record([["ipFailures",ip]]);throw err;}
       return send(res,201,{userId:account.userId,accountId:account.accountId});
     }
-    const login=await loginAccount(db,{email:body.email,password:body.password});
+    const emailKey=normalizedEmailKey("client",body.email);
+    const wait=authLimiter.blocked([["ipFailures",ip],["accountFailures",emailKey]]);
+    if(wait)return sendRateLimited(res,wait);
+    let login;
+    try{login=await loginAccount(db,{email:body.email,password:body.password});}
+    catch(err){if(err.message==="Invalid credentials")authLimiter.record([["ipFailures",ip],["accountFailures",emailKey]]);throw err;}
+    authLimiter.reset("accountFailures",emailKey);
     return send(res,200,login);
    }catch(err){
     if(err.statusCode===413)return send(res,413,{error:"Request too large"});
@@ -98,6 +124,10 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   try{session=await resolveSession(auth.slice(7));}catch{return send(res,401,{error:"Authentication failed"});}
   if(!session?.accountId)return send(res,401,{error:"Authentication required"});
   if(session.adminVerified===true)return send(res,403,{error:"Use the administrator console"});
+  if(req.method==="GET"&&["/api/account","/api/account/analytics","/api/internal-purchases"].includes(route)){
+   // Best effort: a failed settlement stays due and is retried by the sweep or the next read.
+   try{await settleDueFunds(db,{accountId:session.accountId});}catch{}
+  }
   if(route==='/api/private-data/status'){
    if(req.method!=='GET')return send(res,405,{error:'Method not allowed'});
    try{privateDataKey();return send(res,200,{ready:true});}catch{return send(res,200,{ready:false});}

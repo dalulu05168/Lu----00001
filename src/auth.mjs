@@ -16,6 +16,13 @@ export async function verifyPassword(password,stored){
  const actual=await scrypt(password,Buffer.from(salt,"hex"),expected.length);
  return timingSafeEqual(actual,expected);
 }
+let dummyHash;
+/** Spend the same scrypt work when no account matches, so response time does not reveal registered emails. */
+export async function rejectUnknownAccount(password){
+ dummyHash??=hashPassword(randomBytes(24).toString("hex"));
+ await verifyPassword(typeof password==="string"?password:"",await dummyHash);
+ return false;
+}
 export function generateSessionToken(){return randomBytes(32).toString("base64url");}
 export function sessionTokenHash(token){
  if(typeof token!=="string"||token.length<32||token.length>256)throw new Error("Invalid session token");

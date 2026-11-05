@@ -1072,7 +1072,7 @@ async function submitService(category,body,button){
   el("serviceRequestFeedback").textContent="申请 "+String(item.id).slice(0,8)+" 已提交。尚无实际资金划转或第三方验证。";
   await refreshServiceRequests();
   return usedToken===token;
- }catch(error){if(usedToken===token)el("serviceRequestFeedback").textContent="申请未提交："+error.message;return false;}
+ }catch(error){if(usedToken===token)el("serviceRequestFeedback").textContent="申请未提交："+(error.message==="Withdrawal requires a bound bank account"?"提现前需要先绑定银行卡，并等待后台审核通过。":error.message);return false;}
  finally{if(usedToken===token){serviceBusy=false;button.disabled=false;}}
 }
 
