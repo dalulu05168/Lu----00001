@@ -253,7 +253,8 @@ async function refreshClients(){
   }catch(e){if(token===adminToken)setText("clients",e.message)}
 }
 
-let mirrorClients=[],selectedMirrorClientId=null,mirrorSnapshot=null,mirrorActiveTab="assets",mirrorSerial=0;
+let mirrorClients=[],selectedMirrorClientId=null,mirrorSnapshot=null,mirrorActiveTab="watchlist",mirrorSerial=0;
+let mirrorChartSymbol=null;
 let mirrorPolicy=null,mirrorPolicyField=null,mirrorOpsSerial=0,mirrorRequestsSerial=0,mirrorCase=null;
 let mirrorBackendReady=false;
 const cashFmt=cents=>(Number(cents??0)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -587,10 +588,42 @@ function renderMirrorMarket(view,snap){
     const option=plainNode("option",item.name?code+" · "+item.name:code);
     option.value=code;select.append(option);
   }
+  if(instruments.has(mirrorChartSymbol))select.value=mirrorChartSymbol;
   const renderChart=()=>mountStockChart(host,instruments.get(select.value),{compact:true});
-  select.addEventListener("change",renderChart);
+  select.addEventListener("change",()=>{
+    mirrorChartSymbol=select.value;
+    renderChart();
+  });
   view.append(label,host,plainNode("p","公开参考走势图 · 行情可能延迟","muted"));
   renderChart();
+}
+function renderMirrorWatchlist(view,snap){
+  const held=new Map((snap.internalProducts?.positions??[]).filter(item=>item.item_type==="STOCK")
+    .map(item=>[item.market+":"+item.symbol,item]));
+  for(const item of snap.positions??[]){
+    const key=item.market+":"+item.symbol;
+    if(!held.has(key))held.set(key,item);
+  }
+  const watchlist=snap.watchlist??[];
+  if(!watchlist.length){
+    view.append(plainNode("p","此账户尚未添加自选。","mirror-market-hint"));
+    if(held.size)view.append(plainNode("h5","账户持仓","mirror-market-section"));
+  }
+  for(const record of watchlist.length?watchlist:held.values()){
+    const position=held.get(record.market+":"+record.symbol),chart=resolveTradingViewSymbol(record);
+    const row=document.createElement(chart?"button":"div");row.className="mirror-quote-row";
+    if(chart){
+      row.type="button";
+      row.addEventListener("click",()=>{mirrorChartSymbol=chart;activateMirrorTab("market");});
+    }
+    const icon=plainNode("span",record.symbol.slice(0,2),"mirror-symbol-mark");icon.setAttribute("aria-hidden","true");
+    const identity=plainNode("span","","mirror-symbol-info");
+    identity.append(plainNode("strong",record.symbol),plainNode("small",position?.name??record.market));
+    const value=plainNode("span","","mirror-symbol-value");
+    value.append(plainNode("strong",position?position.quantity+" 股":"—"),
+      plainNode("small",position?"账户持仓":chart?"查看走势":"暂无走势"));
+    row.append(icon,identity,value);view.append(row);
+  }
 }
 function appendMirrorStockLocks(view,snap){
   const stocks=new Map((snap.internalProducts?.positions??[]).filter(p=>p.item_type==="STOCK")
@@ -631,8 +664,9 @@ function setMirrorScreen(){
   const snap=mirrorSnapshot;
   if(mirrorActiveTab==="trade"){void renderMirrorTrade(view,snap);return;}
   if(mirrorActiveTab==="market"){renderMirrorMarket(view,snap);return;}
+  if(mirrorActiveTab==="watchlist"){renderMirrorWatchlist(view,snap);return;}
   const formats={
-    assets:()=>[["账户编号",snap.account?.id],["账面币种",snap.account?.currency],["持仓记录",(snap.positions?.length??0)+(snap.internalProducts?.positions?.length??0)],["交易记录",(snap.orders?.length??0)+(snap.internalProducts?.purchases?.length??0)],["自选标的",snap.watchlist?.length??0]],
+    assets:()=>[["账户编号",snap.account?.id?"•••• "+snap.account.id.slice(-8):"—"],["账面币种",snap.account?.currency],["持仓记录",(snap.positions?.length??0)+(snap.internalProducts?.positions?.length??0)],["交易记录",(snap.orders?.length??0)+(snap.internalProducts?.purchases?.length??0)+(snap.internalProducts?.sales?.length??0)+(snap.internalProducts?.settlements?.length??0)],["自选标的",snap.watchlist?.length??0]],
     positions:()=>[
       ...(snap.positions??[]).map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")+" 股"]),
       ...(snap.internalProducts?.positions??[]).map(p=>[p.name+" · "+p.code,"数量 "+p.quantity+" · 成本 "+cashFmt(p.cost_cents)+" USD"+
@@ -647,8 +681,7 @@ function setMirrorScreen(){
         detail:"数量 "+p.quantity+" · 到账 "+cashFmt(p.total_cents)+" USD",at:p.created_at})),
       ...(snap.internalProducts?.settlements??[]).map(p=>({name:"到期返还 · "+p.product_name+" · "+p.product_code,
         detail:"本金 "+cashFmt(p.total_cents)+" USD · 收益 "+cashFmt(p.profit_cents)+" USD",at:p.settled_at}))
-    ].sort((a,b)=>(Date.parse(b.at)||0)-(Date.parse(a.at)||0)).map(o=>[o.name,o.detail+(o.at?" · "+dateLabel(o.at):"")]),
-    watchlist:()=>snap.watchlist?.map(w=>[w.symbol,w.market+" · 已加入自选"])??[]
+    ].sort((a,b)=>(Date.parse(b.at)||0)-(Date.parse(a.at)||0)).map(o=>[o.name,o.detail+(o.at?" · "+dateLabel(o.at):"")])
   };
   const rows=formats[mirrorActiveTab]?.()??[];
   if(!rows.length){view.append(plainNode("p","该客户暂无对应记录","muted"));return;}
@@ -871,6 +904,9 @@ el("mirrorDialog").addEventListener("click",event=>{
 async function selectMirrorClient(clientId){
   const match=mirrorClients.find(x=>x.id===clientId);
   if(!match)return;
+  if(selectedMirrorClientId!==clientId||!el("mirrorDialog").open){
+    mirrorChartSymbol=null;activateMirrorTab("watchlist");
+  }
   selectedMirrorClientId=clientId;mirrorSnapshot=null;
   activateAdminPane("mirror");
   openMirrorDialog();
@@ -900,12 +936,14 @@ async function selectMirrorClient(clientId){
     el("mirrorStatus").textContent="快照不可用："+error.message+"；右侧管理操作可独立使用";setMirrorScreen();
   }
 }
+function activateMirrorTab(page){
+  mirrorActiveTab=page;
+  document.querySelectorAll("[data-mirror-tab]").forEach(button=>
+    button.setAttribute("aria-selected",String(button.dataset.mirrorTab===page)));
+  setMirrorScreen();
+}
 document.querySelectorAll("[data-mirror-tab]").forEach(button=>{
-  button.addEventListener("click",()=>{
-    mirrorActiveTab=button.dataset.mirrorTab;
-    document.querySelectorAll("[data-mirror-tab]").forEach(b=>b.setAttribute("aria-selected",b===button?"true":"false"));
-    setMirrorScreen();
-  });
+  button.addEventListener("click",()=>activateMirrorTab(button.dataset.mirrorTab));
 });
 el("refreshMirror").addEventListener("click",()=>{if(selectedMirrorClientId)selectMirrorClient(selectedMirrorClientId)});
 el("refreshMirrorClients").addEventListener("click",refreshClients);

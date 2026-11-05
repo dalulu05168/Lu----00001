@@ -62,6 +62,12 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(dom.window.document.querySelector('[data-pane="mirror"]').hidden,false);
     assert.equal(el("mirrorEmail").textContent,"customer@example.test");
     assert.equal(el("mirrorCash").textContent,"129.00");
+    assert.equal(el("mirrorPageTitle").textContent,"自选");
+    assert.match(el("mirrorAppScreen").textContent,/9988/);
+    el("mirrorAppScreen").querySelector(".mirror-quote-row").click();
+    assert.match(el("mirrorAppScreen").querySelector("script").textContent,/HKEX:9988/);
+    el("mirrorAppScreen").querySelector("select").value="NYSE:AA";
+    el("mirrorAppScreen").querySelector("select").dispatchEvent(new dom.window.Event("change"));
     assert.match(el("mirrorStatus").textContent,/快照已读取/);
     dom.window.document.querySelector('[data-mirror-tab="market"]').click();
     assert.equal(el("mirrorPageTitle").textContent,"行情");

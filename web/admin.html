@@ -240,7 +240,7 @@
             </header>
             <div class="mirror-dialog-layout">
           <section class="mirror-phone" aria-label="客户 App 数据快照">
-            <div class="mirror-device" data-active-page="assets">
+            <div class="mirror-device" data-active-page="watchlist">
               <div class="mirror-status-bar" aria-label="手机状态栏">
                 <time id="mirrorClock">—</time><span class="mirror-camera" aria-hidden="true"></span>
                 <span class="mirror-radio" aria-label="信号、网络和电池示意" title="手机状态图标为界面示意">
@@ -250,8 +250,10 @@
                 </span>
               </div>
               <div class="mirror-top">
-                <div><span class="mirror-brand">CN CAPITAL</span><h4 id="mirrorPageTitle">资产</h4></div>
-                <button type="button" id="refreshMirror" class="outline" disabled>刷新</button>
+                <h4 id="mirrorPageTitle">自选</h4>
+                <button type="button" id="refreshMirror" class="outline" aria-label="刷新镜像" title="刷新镜像" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"/></svg>
+                </button>
               </div>
               <div class="mirror-account"><span>当前客户</span><output id="mirrorEmail">尚未选择</output><small id="mirrorUpdated">—</small></div>
               <div class="mirror-balance"><span>可用余额</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
@@ -260,12 +262,12 @@
                 <span id="mirrorStatus" role="status">未选择客户</span><button type="button" id="mirrorManageClient" class="outline" disabled>账户操作</button>
               </div>
               <div class="mirror-tabs" role="tablist" aria-label="客户 App 页面">
-                <button type="button" role="tab" data-mirror-tab="watchlist" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3z"/></svg><span>自选</span></button>
+                <button type="button" role="tab" data-mirror-tab="watchlist" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3z"/></svg><span>自选</span></button>
                 <button type="button" role="tab" data-mirror-tab="market" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v16h18M6 15l4-5 4 3 5-6"/></svg><span>行情</span></button>
                 <button type="button" role="tab" data-mirror-tab="trade" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4"/></svg><span>交易</span></button>
                 <button type="button" role="tab" data-mirror-tab="positions" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3M4 12h16"/></svg><span>持仓</span></button>
                 <button type="button" role="tab" data-mirror-tab="orders" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6m-6 4h6m-6 4h4"/></svg><span>订单</span></button>
-                <button type="button" role="tab" data-mirror-tab="assets" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v13H3zM3 6l3-3h12l3 3m-5 6h5"/></svg><span>资产</span></button>
+                <button type="button" role="tab" data-mirror-tab="assets" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18v13H3zM3 6l3-3h12l3 3m-5 6h5"/></svg><span>资产</span></button>
               </div>
               <div class="mirror-home-indicator" aria-hidden="true"></div>
             </div>
