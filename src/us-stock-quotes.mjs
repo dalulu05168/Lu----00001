@@ -32,8 +32,16 @@ export async function getUsStockHistory(symbol,{
  }catch{throw unavailable();}
 }
 
+// Finnhub's free /quote is a single-venue (IEX) last-trade price, not a
+// continuously ticking SIP feed: it only moves while IEX itself trades, and
+// stops updating entirely outside market hours and on weekends/holidays. A
+// short freshness window (originally copied from a continuous-SIP provider)
+// would make every quote "unavailable" most of the day. Six days comfortably
+// spans any holiday weekend while still rejecting genuinely broken data.
+const DEFAULT_MAX_AGE_MS=6*86400000;
+
 export async function getUsStockQuote({market,symbol},{
- apiKey=process.env.FINNHUB_API_KEY,fetchImpl=fetch,now=Date.now,maxAgeMs=120000
+ apiKey=process.env.FINNHUB_API_KEY,fetchImpl=fetch,now=Date.now,maxAgeMs=DEFAULT_MAX_AGE_MS
 }={}){
  const unavailable=()=>Object.assign(new Error("Verified US stock quote unavailable"),{statusCode:503});
  if(market!=="US"||typeof symbol!=="string"||!SYMBOL.test(symbol)||!apiKey)throw unavailable();

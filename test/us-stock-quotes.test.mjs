@@ -19,15 +19,24 @@ test("historical prices require a key and ordered candles for the requested stoc
  await assert.rejects(getUsStockHistory("AAPL",{...options,fetchImpl:response({s:"ok",t:[candles.t[1],candles.t[0]],c:[1,2]})}),{statusCode:503});
 });
 
-test("US quote requires a key, US market and a fresh price",async()=>{
+test("US quote requires a key, US market and a price inside the staleness window",async()=>{
  const now=()=>1700000000000;
  const req={market:"US",symbol:"AA"};
  const response=body=>async()=>({ok:true,json:async()=>body});
  const quote={c:102.12,pc:101.0,t:now()/1000-5};
  const options={apiKey:"synthetic",now,fetchImpl:response(quote)};
  assert.equal((await getUsStockQuote(req,options)).priceCents,10212);
+ // Finnhub's free /quote is a single-venue last-trade price that stops moving
+ // outside market hours: a 15-minute-old trade (still well inside the trading
+ // session) must be accepted, not treated as stale.
+ const stillFresh=await getUsStockQuote(req,{...options,fetchImpl:response({...quote,t:now()/1000-900})});
+ assert.equal(stillFresh.priceCents,10212);
+ // Friday's close carried through a weekend must still be usable Monday.
+ const overWeekend=await getUsStockQuote(req,{...options,fetchImpl:response({...quote,t:now()/1000-3*86400})});
+ assert.equal(overWeekend.priceCents,10212);
  for(const settings of [{apiKey:undefined},{fetchImpl:response({...quote,c:0})},
-   {fetchImpl:response({...quote,t:now()/1000-900})}]){
+   // Genuinely stale (older than any holiday weekend) is still rejected.
+   {fetchImpl:response({...quote,t:now()/1000-9*86400})}]){
   await assert.rejects(getUsStockQuote(req,{...options,...settings}),error=>error.statusCode===503);
  }
  await assert.rejects(getUsStockQuote({...req,market:"HK"},options),error=>error.statusCode===503);

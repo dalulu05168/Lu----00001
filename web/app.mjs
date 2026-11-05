@@ -85,6 +85,9 @@ function appendLiveValuation(container,item){
       line.classList.toggle("pnl-down",pnl<0);
       text+=" · 浮动 "+(pnl>=0?"+":"-")+"$"+money(Math.abs(pnl))+" ("+(pnl>=0?"+":"")+pct.toFixed(2)+"%)";
     }
+    // Finnhub's free quote is a last-trade price, not a continuous tick: label
+    // its time so a weekend/after-hours value is never mistaken for "right now".
+    if(Number.isFinite(quote?.timestampMs))text+=" · 报价时间 "+transactionTime(quote.timestampMs);
     line.textContent=text;
   }).catch(()=>{if(usedToken===token&&serial===internalProductsSerial)line.textContent="现价暂不可用（行情未配置或休市）";});
 }
