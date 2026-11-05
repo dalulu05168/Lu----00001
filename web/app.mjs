@@ -1,5 +1,5 @@
 import { summarizeMarketHoldings } from "./market-allocation.mjs";
-import { mountStockChart } from "./stock-chart.mjs";
+import { mountStockChart, resolveTradingViewSymbol } from "./stock-chart.mjs";
 const MARKETS = [
   {code:"US",label:"美国市场",exchange:"NYSE / NASDAQ",currency:"USD",icon:"US",sub:"United States"},
   {code:"HK",label:"香港市场",exchange:"HKEX",currency:"HKD",icon:"HK",sub:"Hong Kong"},
@@ -235,7 +235,7 @@ function selectWatchlistInstrument(item) {
   if(!MARKETS.some(m=>m.code===item.market)||typeof item.symbol!=="string")return;
   market=item.market;
   selected=selectionInstruments().find(s=>s.market===item.market&&s.symbol===item.symbol) ||
-    {market:item.market,symbol:item.symbol,name:"自选代码（未验证行情）"};
+    {market:item.market,symbol:item.symbol,name:item.name??"证券名称暂不可用"};
   el("search").value="";
   el("watchlistFeedback").textContent="自选列表保存于当前账户";
   render();
@@ -398,6 +398,16 @@ function stockSaleForm(item){
  });
  form.append(label,refresh,preview,submit);return form;
 }
+function appendPublicChartButton(container,item){
+ if(!resolveTradingViewSymbol(item))return;
+ const button=document.createElement("button");
+ button.type="button";
+ button.className="secondary-button holding-chart-link";
+ button.textContent="查看走势";
+ button.setAttribute("aria-label","查看 "+item.symbol+" 公开走势");
+ button.addEventListener("click",()=>selectWatchlistInstrument(item));
+ container.append(button);
+}
 function renderRecords() {
   const positions = Array.isArray(account?.positions) ? account.positions.filter(item =>
     item && MARKETS.some(m => m.code === item.market) && typeof item.symbol === "string" &&
@@ -419,6 +429,7 @@ function renderRecords() {
     code.textContent = item.symbol;
     const name = textNode(selectionInstruments().find(s=>s.market === item.market && s.symbol === item.symbol)?.name || item.market + " MARKET","holding-name");
     stock.append(code,name);
+    appendPublicChartButton(stock,item);
     left.append(icon,stock);
     const right = document.createElement("div");
     right.className = "holding-quantity";
@@ -431,6 +442,7 @@ function renderRecords() {
     const row=document.createElement('div');row.className='record-item holding-row';
     const identity=document.createElement('div');identity.className='holding-company';
     identity.append(textNode(item.name),textNode(item.code+' · 持仓成本 $'+money(item.cost_cents),'holding-name'));
+    if(item.item_type==="STOCK")appendPublicChartButton(identity,{...item,symbol:item.symbol??item.code});
     row.append(identity,textNode(String(item.quantity)+(item.item_type==="STOCK"?' 股':' 份'),'holding-quantity-value'));
     posRows.push(row);
     if(item.item_type==="STOCK")posRows.push(stockSaleForm(item));
@@ -1239,6 +1251,7 @@ function internalProductCard(item){
  card.append(title,detail);
  if(stock&&(item.market!=="US"||!stockTradingConfigured)){
   card.append(textNode(item.market!=="US"?"该市场暂未开放实时交易":"美股实时买入暂停 · 等待行情授权","stock-sale-note"));
+  appendPublicChartButton(card,{...item,symbol:item.code});
   return card;
  }
  const form=document.createElement('form');form.autocomplete='off';

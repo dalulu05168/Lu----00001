@@ -44,10 +44,10 @@
       </a>
     </nav></details>
 
-  <details class="sidebar-section" open><summary class="sidebar-section-title">MY PORTFOLIO</summary>
+  <details class="sidebar-section" open><summary class="sidebar-section-title">投资组合</summary>
     <nav class="sidebar-nav" aria-label="投资组合导航">
       <a class="sidebar-link" href="#holdings-section">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7.5h16v12H4z"/><path d="M8 7.5V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2.5M8 12h8"/></svg><span>Holdings</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7.5h16v12H4z"/><path d="M8 7.5V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2.5M8 12h8"/></svg><span>持仓</span>
       </a>
       <a class="sidebar-link" href="#terminal-section">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19h18M5 16l4-5 3 2 6-8 2 2"/></svg><span>Performance</span>
@@ -98,6 +98,7 @@
     </header>
 
     <div class="workspace">
+      <div class="trade-board">
       <section class="transactions-section" id="transactions-section" aria-labelledby="transactionsTitle">
         <h2 id="transactionsTitle" class="sr-only">交易明细</h2>
 
@@ -144,6 +145,38 @@
         </div>
       </section>
 
+      <div class="trade-board-side">
+        <section class="panel holdings-panel" id="holdings-section" aria-labelledby="holdingsTitle">
+          <div class="panel-heading"><h2 id="holdingsTitle">持仓与卖出 <small>(<span id="positionCount">—</span>)</small></h2></div>
+          <div class="holdings-table-head"><span>Stock / Company</span><span>Quantity</span></div>
+          <div id="positions" class="record-list holdings-list">登录后查看持仓</div>
+          <div class="holdings-note"></div>
+        </section>
+        <div class="panel order-panel">
+          <section id="internalProductsPanel" hidden aria-labelledby="internalProductsTitle">
+       <div class="panel-heading"><h2 id="internalProductsTitle">大宗交易 · 买入</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品</button></div>
+       <div class="trade-workspace">
+       <p class="chart-source">股票、基金、IPO 和大宗商品均以 USD 计价。购买后可在交易明细和持仓中查看记录。<a class="trade-holdings-link" href="#holdings-section">查看持仓与卖出状态 →</a></p>
+       <div id="tradeCategories" class="trade-categories" aria-label="大宗交易分类">
+        <button type="button" class="secondary-button" data-trade-category="STOCK" aria-pressed="true">股票</button>
+        <button type="button" class="secondary-button" data-trade-category="FUND" aria-pressed="false">基金</button>
+        <button type="button" class="secondary-button" data-trade-category="IPO" aria-pressed="false">IPO</button>
+        <button type="button" class="secondary-button" data-trade-category="COMMODITY" aria-pressed="false">大宗商品</button>
+       </div>
+       <p id="internalProductsStatus" role="status"></p><div id="internalProductsItems" class="internal-products-grid"></div>
+       </div>
+      </section>
+          <form id="orderForm" hidden>
+            <div class="order-fields"><label class="form-field"><span>Side</span><select id="side"><option value="BUY">买入 BUY</option><option value="SELL">卖出 SELL</option></select></label>
+              <label class="form-field"><span>Quantity</span><input id="quantity" type="number" min="1" step="1" value="1" required></label></div>
+            <div class="order-details"><span>Selected instrument</span><span id="orderSymbol">US · AAPL</span></div>
+            <button class="primary-button order-submit" type="submit" disabled>下单功能未开放</button>
+          </form>
+          <p class="form-feedback" id="feedback" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+      </div>
+
       <section class="metrics" id="overview-metrics" aria-label="组合指标">
         <article class="metric-card"><div class="metric-header"><span>Total Portfolio Value</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5 12 5l8 4.5-8 4.5L4 9.5zM4 14l8 4.5 8-4.5M4 18l8 4.5 8-4.5"/></svg></span></div><div class="metric-value" id="portfolioValue">—</div><p id="portfolioValueNote">暂无估值数据</p></article>
         <article class="metric-card"><div class="metric-header"><span>今日已实现毛盈亏</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" aria-hidden="true"><path d="M4 20v-8M9 20V8M14 20V4M19 20v-11"/></svg></span></div><div class="metric-value" id="overviewDayRealizedPnl">—</div><p>USD · UTC · 未扣手续费与税费</p></article>
@@ -173,12 +206,6 @@
           </section>
           <p id="watchlistFeedback" class="watchlist-feedback" role="status" aria-live="polite"></p>
           <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
-        </section>
-        <section class="panel holdings-panel" id="holdings-section" aria-labelledby="holdingsTitle">
-          <div class="panel-heading"><h2 id="holdingsTitle">Holdings <small>(<span id="positionCount">—</span>)</small></h2></div>
-          <div class="holdings-table-head"><span>Stock / Company</span><span>Quantity</span></div>
-          <div id="positions" class="record-list holdings-list">登录后查看持仓</div>
-          <div class="holdings-note"></div>
         </section>
       </div>
 
@@ -252,28 +279,6 @@
           </section>
           <button class="secondary-button logout-button" type="button" id="logout" hidden>退出账户</button>
           <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>
-        </div>
-        <div class="panel order-panel">
-          <section id="internalProductsPanel" hidden aria-labelledby="internalProductsTitle">
-       <div class="panel-heading"><h2 id="internalProductsTitle">大宗交易</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品</button></div>
-       <div class="trade-workspace">
-       <p class="chart-source">股票、基金、IPO 和大宗商品均以 USD 计价。购买后可在交易明细和持仓中查看记录。</p>
-       <div id="tradeCategories" class="trade-categories" aria-label="大宗交易分类">
-        <button type="button" class="secondary-button" data-trade-category="STOCK" aria-pressed="true">股票</button>
-        <button type="button" class="secondary-button" data-trade-category="FUND" aria-pressed="false">基金</button>
-        <button type="button" class="secondary-button" data-trade-category="IPO" aria-pressed="false">IPO</button>
-        <button type="button" class="secondary-button" data-trade-category="COMMODITY" aria-pressed="false">大宗商品</button>
-       </div>
-       <p id="internalProductsStatus" role="status"></p><div id="internalProductsItems" class="internal-products-grid"></div>
-       </div>
-      </section>
-          <form id="orderForm" hidden>
-            <div class="order-fields"><label class="form-field"><span>Side</span><select id="side"><option value="BUY">买入 BUY</option><option value="SELL">卖出 SELL</option></select></label>
-              <label class="form-field"><span>Quantity</span><input id="quantity" type="number" min="1" step="1" value="1" required></label></div>
-            <div class="order-details"><span>Selected instrument</span><span id="orderSymbol">US · AAPL</span></div>
-            <button class="primary-button order-submit" type="submit" disabled>下单功能未开放</button>
-          </form>
-          <p class="form-feedback" id="feedback" role="status" aria-live="polite"></p>
         </div>
       </section>
 

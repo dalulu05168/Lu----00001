@@ -110,6 +110,11 @@ test('holdings and transaction names use current published backend metadata',()=
   orders:[{id:'order',market:'US',symbol:'MSFT',side:'BUY',quantity:1,price_cents:10000,amount_usd_cents:10000,created_at:'2026-11-04T00:00:00Z'}]
  }):undefined;
  await login();assert.match(el('positions').textContent,/Published Microsoft/);
+ const chartLink=el('positions').querySelector('button[aria-label="查看 MSFT 公开走势"]');
+ assert.ok(chartLink);
+ chartLink.click();
+ assert.equal(JSON.parse(el('stockChart').querySelector('script').textContent).symbol,'NASDAQ:MSFT');
+ assert.equal(el('internalProductsPanel').querySelector('.trade-holdings-link').getAttribute('href'),'#holdings-section');
  el('transactionSearch').value='Published Microsoft';
  el('transactionSearch').dispatchEvent(new dom.window.Event('input'));
  assert.match(el('transactionRows').textContent,/Published Microsoft/);

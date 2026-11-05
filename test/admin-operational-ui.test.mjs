@@ -44,6 +44,8 @@ test("master reviews an authorized funding request and sees non-settlement dashb
   assert.equal(el('dashboardDepositAmount').textContent,'$120.00');
   assert.equal(el('dashboardWithdrawAmount').textContent,'$0.00');
   assert.equal(el('dashboardPendingCount').textContent,'1');
+  assert.equal(el('dashboardDepositPosted').textContent,'$0.00');
+  assert.equal(el('dashboardWithdrawPosted').textContent,'$0.00');
   assert.match(el('dashboardFundingRows').textContent,/120\.00/);
   assert.match(el('dashboardFundingStatus').textContent,/300/);
   dom.window.document.querySelector('[data-admin-page="approvals"]').click();

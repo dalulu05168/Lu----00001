@@ -633,7 +633,14 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
  .sidebar-section>summary{padding:7px 5px;min-height:30px;margin:0}
  .sidebar-section .sidebar-nav{flex-wrap:wrap}
  .sidebar-section .sidebar-link{white-space:normal;min-width:0}}
-.account-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.trade-board{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,34%);gap:14px;align-items:start}
+.trade-board-side{display:grid;gap:14px;min-width:0}
+.trade-board-side .holdings-panel,.trade-board-side .order-panel{min-height:0}
+.trade-board-side .order-panel:has(#internalProductsPanel[hidden]):has(#orderForm[hidden]):has(#feedback:empty){display:none}
+.trade-board-side .order-panel .panel-heading{flex-wrap:wrap;margin-bottom:12px}
+.trade-board .transactions-section{min-width:0}
+.primary-grid{grid-template-columns:minmax(0,1fr)}
+.account-grid{grid-template-columns:minmax(0,1fr);align-items:start}
 .account-grid>.panel{min-width:0}
 .account-grid .panel-heading{min-height:40px;margin-bottom:12px}
 .account-grid .panel-heading h2{font-size:16px}
@@ -642,10 +649,12 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
 .account-analytics h3{font-size:14px;margin:0}
 .trade-workspace{background:#22262a;border:1px solid #3b4247;border-radius:11px;padding:16px;min-width:0}
 .trade-workspace>.chart-source{margin:0}
+.trade-holdings-link{display:block;width:fit-content;margin-top:8px;color:var(--terminal-accent,#ff8a24);text-underline-offset:3px}
+#overview .holding-chart-link{align-self:flex-start;min-height:28px;margin-top:5px;padding:4px 8px;font-size:11px}
 #internalProductsStatus{margin:0;color:#abb3bd;font-size:12px;line-height:1.5}
 .internal-products-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin:12px 0 0}
 .internal-product-card h3{margin-top:0}
-@media(max-width:760px){.account-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1050px){.trade-board{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:450px){.trade-workspace{padding:12px}}
 .internal-product-card{padding:18px;border:1px solid #363a3f;border-radius:10px;min-width:0;background:#202327}
 .internal-product-card h3{font-size:15px;margin-bottom:8px}.internal-product-card p{font-size:12px;color:#abb3bd;line-height:1.6}

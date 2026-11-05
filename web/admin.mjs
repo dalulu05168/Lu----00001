@@ -1242,22 +1242,32 @@ function fundingMoney(cents){
  const amount=BigInt(cents);return '$'+(amount/100n).toLocaleString('en-US')+'.'+String(amount%100n).padStart(2,'0');
 }
 function clearFundingDashboard(message='正在读取资金申请'){
- for(const id of ['dashboardDepositAmount','dashboardWithdrawAmount','dashboardPendingCount','dashboardApprovedCount','dashboardDepositCount','dashboardWithdrawCount'])el(id).textContent='—';
+ for(const id of ['dashboardDepositAmount','dashboardWithdrawAmount','dashboardPendingCount','dashboardDepositPosted','dashboardWithdrawPosted','dashboardDepositCount','dashboardWithdrawCount'])el(id).textContent='—';
  el('dashboardFundingRows').replaceChildren();el('dashboardFundingBreakdown').replaceChildren();el('dashboardFundingStatus').textContent=message;
 }
 function renderFundingDashboard(rows){
- const sum=kind=>rows.filter(x=>x.kind===kind).reduce((total,x)=>total+BigInt(x.amountCents),0n);
+ const sum=(kind,source=rows)=>source.filter(x=>x.kind===kind).reduce((total,x)=>total+BigInt(x.amountCents),0n);
  for(const x of rows)if(x.category!=='FUNDING'||!['DEPOSIT','WITHDRAWAL'].includes(x.kind)||x.currency!=='USD'||!Number.isSafeInteger(x.amountCents)||x.amountCents<=0)throw Error('资金申请金额或币种不正确');
  el('dashboardDepositAmount').textContent=fundingMoney(sum('DEPOSIT'));
  el('dashboardWithdrawAmount').textContent=fundingMoney(sum('WITHDRAWAL'));
  el('dashboardDepositCount').textContent=rows.filter(x=>x.kind==='DEPOSIT').length+' 笔充值申请';
  el('dashboardWithdrawCount').textContent=rows.filter(x=>x.kind==='WITHDRAWAL').length+' 笔提现申请';
  el('dashboardPendingCount').textContent=String(rows.filter(x=>['SUBMITTED','UNDER_REVIEW'].includes(x.status)).length);
- el('dashboardApprovedCount').textContent=String(rows.filter(x=>x.status==='APPROVED').length);
+ const posted=rows.filter(x=>x.settlementStatus==='INTERNAL_POSTED');
+ el('dashboardDepositPosted').textContent=fundingMoney(sum('DEPOSIT',posted));
+ el('dashboardWithdrawPosted').textContent=fundingMoney(sum('WITHDRAWAL',posted));
  const target=el('dashboardFundingRows');target.replaceChildren();
  for(const x of rows.slice(0,10)){
   const row=document.createElement('tr');
-  for(const value of [x.kind==='DEPOSIT'?'充值申请':'提现申请',fundingMoney(x.amountCents),x.clientId,x.settlementStatus==='INTERNAL_POSTED'?'成功 · 内部已记账':CASE_STATUS[x.status]??x.status,dateLabel(x.createdAt)])row.append(plainNode('td',value));
+  const client=plainNode('td',x.clientId);
+  if(mirrorClients.some(item=>item.id===x.clientId)){
+   const open=plainNode('button',x.clientId,'dashboard-client-link');
+   open.type='button';open.setAttribute('aria-label','查看客户 '+x.clientId);
+   open.addEventListener('click',()=>{activateAdminPane('clients');openClientDetail(x.clientId);});
+   client.replaceChildren(open);
+  }
+  row.append(plainNode('td',x.kind==='DEPOSIT'?'充值申请':'提现申请'),plainNode('td',fundingMoney(x.amountCents)),client,
+   plainNode('td',x.settlementStatus==='INTERNAL_POSTED'?'成功 · 内部已记账':CASE_STATUS[x.status]??x.status),plainNode('td',dateLabel(x.createdAt)));
   target.append(row);
  }
  if(!rows.length){const row=document.createElement('tr'),cell=plainNode('td','暂无进出资金申请');cell.colSpan=5;row.append(cell);target.append(row);}
@@ -1265,9 +1275,8 @@ function renderFundingDashboard(rows){
  for(const [status,label] of [['SUBMITTED','待受理'],['UNDER_REVIEW','审核中'],['APPROVED','已通过'],['REJECTED','已拒绝']]){
   const line=plainNode('div','', 'dashboard-status-row');line.append(plainNode('span',label),plainNode('strong',String(rows.filter(x=>x.status===status).length)));breakdown.append(line);
  }
- const posted=rows.filter(x=>x.settlementStatus==='INTERNAL_POSTED');
  const totals=plainNode('div','', 'dashboard-status-row');totals.append(plainNode('span','内部已记账'),plainNode('strong',String(posted.length)));breakdown.append(totals);
- el('dashboardFundingStatus').textContent='当前权限最近最多 300 条申请，共 '+rows.length+' 条；明细显示最近 10 条。金额含各审核状态的申请，不是实际到账。更新于 '+dateLabel(new Date().toISOString());
+ el('dashboardFundingStatus').textContent='汇总当前权限内最近最多 300 条申请，共 '+rows.length+' 条。明细显示最近 10 条。已入账金额为平台账面记录。更新于 '+dateLabel(new Date().toISOString());
 }
 async function refreshFundingOverview(){
  if(!adminToken)return;
