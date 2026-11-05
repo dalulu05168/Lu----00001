@@ -59,6 +59,31 @@ test('late catalog response cannot replace another customer session',()=>page('l
  assert.doesNotMatch(el('catalogItems').textContent,/OLD-PRIVATE/);
  assert.match(el('catalogItems').textContent,/Published Microsoft/);
 }));
+test('an unavailable product catalog does not disable selling an eligible holding',()=>page('sell',async({el,state,login})=>{
+ let sale;
+ state.override=(url,options)=>{
+  if(url==='/api/internal-products')return json(503,{error:'Catalog unavailable'});
+  if(url==='/api/internal-purchases'&&options.method==='PATCH'){
+   sale=JSON.parse(options.body);
+   assert.ok(options.headers['idempotency-key']);
+   return json(200,{id:'sale'});
+  }
+  if(url==='/api/internal-purchases')return json(200,{stockQuotesConfigured:true,positions:[
+   {item_type:'STOCK',market:'US',symbol:'AA',code:'AA',name:'Alcoa',quantity:2,unlocked_quantity:2,cost_cents:2000}
+  ]});
+  if(url==='/api/stock-quote?market=US&symbol=AA')return json(200,{priceCents:1200,timestampMs:Date.now()});
+ };
+ await login();
+ const form=el('positions').querySelector('form[aria-label="AA 股票卖出"]');
+ assert.ok(form);
+ const submit=form.querySelector('button[type="submit"]');
+ assert.equal(submit.disabled,true);
+ form.querySelector('button[type="button"]').click();await flush();
+ assert.match(form.querySelector('[role="status"]').textContent,/预计到账.*12\.00/);
+ assert.equal(submit.disabled,false);
+ submit.click();await flush();
+ assert.deepEqual(sale,{symbol:'AA',quantity:1,confirmedStockPriceCents:1200});
+}));
 test('published catalog entry selects the chart while public chart never enables trading',()=>page('chart',async({el,login})=>{
  assert.equal(el('stockChart').querySelector('script'),null);
  await login();

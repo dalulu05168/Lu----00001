@@ -1,4 +1,4 @@
-import {mountStockChart,resolveTradingViewSymbol} from "./stock-chart.mjs";
+import {mountStockChart,mountStockHistory,resolveTradingViewSymbol} from "./stock-chart.mjs";
 const el=id=>document.getElementById(id);
 if(document.location?.hostname==="admin.nuvexapro.com"){
   document.querySelectorAll("[data-client-home]").forEach(link=>{
@@ -589,12 +589,25 @@ function renderMirrorMarket(view,snap){
     option.value=code;select.append(option);
   }
   if(instruments.has(mirrorChartSymbol))select.value=mirrorChartSymbol;
-  const renderChart=()=>mountStockChart(host,instruments.get(select.value),{compact:true});
+  let chartSerial=0;
+  const renderChart=()=>{
+    const item=instruments.get(select.value),serial=++chartSerial;
+    mountStockChart(host,item,{mobile:true});
+    if(item.market!=="US")return;
+    const token=adminToken,symbol=item.symbol;
+    void api("/admin/stock-history?symbol="+encodeURIComponent(symbol)).then(data=>{
+      if(serial!==chartSerial||token!==adminToken||!host.isConnected||data.symbol!==symbol||!Array.isArray(data.points)||data.points.length<2)return;
+      mountStockHistory(host,data.points);
+      note.textContent="Massive · 历史日收盘价（复权）";
+    }).catch(()=>{});
+  };
+  const note=plainNode("p","公开参考行情 · 可能延迟","mirror-chart-note");
   select.addEventListener("change",()=>{
     mirrorChartSymbol=select.value;
+    note.textContent="公开参考行情 · 可能延迟";
     renderChart();
   });
-  view.append(label,host,plainNode("p","公开参考走势图 · 行情可能延迟","muted"));
+  view.append(label,host,note);
   renderChart();
 }
 function renderMirrorWatchlist(view,snap){

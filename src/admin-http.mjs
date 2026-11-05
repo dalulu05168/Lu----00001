@@ -8,7 +8,7 @@ import {listUnifiedAudit} from "./operation-audit.mjs";
 import {listPublishedInternalProducts,readAdminProductTerms,updateAdminProductTerms} from './internal-products.mjs';
 import {lookupStocks} from './stock-lookup.mjs';
 import {setStockPositionLock} from './stock-position-locks.mjs';
-import {stockQuotesConfigured} from './us-stock-quotes.mjs';
+import {getUsStockHistory,stockQuotesConfigured} from './us-stock-quotes.mjs';
 import {readPrivateData} from './private-customer-data.mjs';
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
@@ -62,6 +62,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuo
     "/api/admin/mirror-purchases":["GET","POST"],
     "/api/admin/stock-position-lock":["PATCH"],
     "/api/admin/stock-quote":["GET"],
+    "/api/admin/stock-history":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/stock-lookup":["GET"],"/api/catalog":["GET"],
     "/api/admin/commodities":["GET","POST","PATCH"],"/api/admin/commodity-audit":["GET"],
     "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"],
@@ -103,6 +104,12 @@ export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuo
     }
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator session required"});return true;}
+    if(route==="/api/admin/stock-history"){
+      const url=new URL(req.url??"/","http://localhost");
+      try{response(res,200,await getUsStockHistory(url.searchParams.get("symbol")));}
+      catch{response(res,503,{error:"US stock history unavailable"});}
+      return true;
+    }
     if(route==="/api/admin/stock-quote"){
       if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
       const url=new URL(req.url??"/","http://localhost");

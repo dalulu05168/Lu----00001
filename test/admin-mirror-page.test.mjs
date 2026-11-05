@@ -20,6 +20,9 @@ test("master can open a scoped client App mirror with account records and clear 
       if(url==="/api/admin/me")return reply(200,{role:"MASTER",userId:"admin-id"});
       if(url==="/api/admin/clients")return reply(200,{items:[{id:clientId,email:"customer@example.test",subadmin_user_id:"sub-id"}]});
       if(url==="/api/admin/mirror-status")return reply(200,{ready:true,mode:"READ_ONLY"});
+      if(url==="/api/admin/stock-history?symbol=AAPL")return reply(200,{symbol:"AAPL",points:[
+        {time:Date.UTC(2026,9,1),price:98.75},{time:Date.UTC(2026,9,2),price:100.25}
+      ]});
       if(url==="/api/admin/mirror-audit")return reply(200,{items:[{clientEmail:"customer@example.test",actorEmail:"master@example.test",viewedAt:"2026-11-03T00:00:00Z"}]});
       if(url==="/api/admin/subaccounts")return reply(200,{items:[]});
       if(url==="/api/admin/listings")return reply(200,{items:[]});
@@ -65,7 +68,12 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("mirrorPageTitle").textContent,"自选");
     assert.match(el("mirrorAppScreen").textContent,/9988/);
     el("mirrorAppScreen").querySelector(".mirror-quote-row").click();
-    assert.match(el("mirrorAppScreen").querySelector("script").textContent,/HKEX:9988/);
+    const chartScript=el("mirrorAppScreen").querySelector(".mirror-chart script");
+    assert.match(chartScript.src,/embed-widget-advanced-chart\.js$/);
+    const chartOptions=JSON.parse(chartScript.textContent);
+    assert.equal(chartOptions.symbol,"HKEX:9988");
+    assert.equal(chartOptions.style,"2");
+    assert.equal(chartOptions.autosize,true);
     el("mirrorAppScreen").querySelector("select").value="NYSE:AA";
     el("mirrorAppScreen").querySelector("select").dispatchEvent(new dom.window.Event("change"));
     assert.match(el("mirrorStatus").textContent,/快照已读取/);
@@ -73,12 +81,14 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("mirrorPageTitle").textContent,"行情");
     assert.equal(el("mirrorAppScreen").parentElement.dataset.activePage,"market");
     const chartConfig=JSON.parse(el("mirrorAppScreen").querySelector("script").textContent);
-    assert.equal(chartConfig.chartType,"area");
-    assert.equal(chartConfig.symbols[0][1],"NYSE:AA|1D");
+    assert.equal(chartConfig.symbol,"NYSE:AA");
+    assert.equal(chartConfig.locale,"zh_CN");
     const chartPicker=el("mirrorAppScreen").querySelector("select");
     chartPicker.value="NASDAQ:AAPL";
     chartPicker.dispatchEvent(new dom.window.Event("change"));
-    assert.equal(JSON.parse(el("mirrorAppScreen").querySelector("script").textContent).symbols[0][1],"NASDAQ:AAPL|1D");
+    assert.equal(JSON.parse(el("mirrorAppScreen").querySelector("script").textContent).symbol,"NASDAQ:AAPL");
+    await pause(20);
+    assert.match(el("mirrorAppScreen").querySelector(".history-cursor").textContent,/100\.25.*2026-10-02/);
     assert.match(el("mirrorClock").textContent,/^\d{2}:\d{2}$/);
     dom.window.document.querySelector('[data-mirror-tab="trade"]').click();
     await pause(40);

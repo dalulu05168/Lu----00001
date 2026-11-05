@@ -3,8 +3,21 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 import {
   resolveTradingViewSymbol, tradingViewSymbolUrl, TRADING_VIEW_WIDGET_SCRIPT,
-  mountStockChart
+  mountStockChart, mountStockHistory
 } from "../web/stock-chart.mjs";
+
+test("historical chart shows exact price and date at the keyboard-controlled crosshair",()=>{
+  const dom=new JSDOM('<div id="chart"></div>');
+  try{
+    const host=dom.window.document.getElementById("chart");
+    mountStockHistory(host,[{time:Date.UTC(2026,9,1),price:98.75},{time:Date.UTC(2026,9,2),price:100.25}]);
+    const svg=host.querySelector("svg");
+    assert.match(svg.querySelector(".history-cursor").textContent,/100\.25.*2026-10-02/);
+    svg.dispatchEvent(new dom.window.KeyboardEvent("keydown",{key:"ArrowLeft"}));
+    assert.match(svg.querySelector(".history-cursor").textContent,/98\.75.*2026-10-01/);
+    assert.match(host.querySelector("output").textContent,/2026-10-01.*98\.75/);
+  }finally{dom.window.close();}
+});
 
 test("stock symbols use explicit provider exchange codes across four markets", () => {
   const expected = [
@@ -40,7 +53,7 @@ test("official widget is configured with the selected stock, attribution and no 
     first.dispatchEvent(new dom.window.Event("error"));
     assert.match(host.querySelector(".stock-chart-loading").textContent,/加载失败/);
     first.dispatchEvent(new dom.window.Event("load"));
-    assert.equal(host.querySelector(".stock-chart-loading"),null);
+    assert.match(host.querySelector(".stock-chart-loading").textContent,/加载失败/);
     assert.match(host.querySelector(".tradingview-widget-copyright a").textContent,/TradingView|NASDAQ:AAPL/);
     assert.equal(host.querySelector(".tradingview-widget-copyright a").href,"https://www.tradingview.com/symbols/NASDAQ-AAPL/");
     assert.equal(mountStockChart(host,{market:"US",symbol:"AAPL"}),"NASDAQ:AAPL");
@@ -49,6 +62,9 @@ test("official widget is configured with the selected stock, attribution and no 
     assert.equal(JSON.parse(host.querySelector("script").textContent).symbol,"HKEX:700");
     assert.notEqual(host.querySelector("script"),first);
     assert.equal(host.querySelector("iframe"),null,"test does not fabricate returned third-party data");
+    host.querySelector(".tradingview-widget-container__widget").append(dom.window.document.createElement("iframe"));
+    host.querySelector("script").dispatchEvent(new dom.window.Event("load"));
+    assert.equal(host.querySelector(".stock-chart-loading"),null);
     mountStockChart(host,{market:"HK",symbol:"UNKNOWN"});
     assert.equal(host.querySelector("script"),null);
     assert.match(host.textContent,/尚未配置/);

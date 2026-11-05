@@ -44,6 +44,7 @@ let internalProductsSerial=0,internalPurchaseBusy=false,internalPurchaseKeys=new
 let internalHoldings=[];
 let tradeProducts=[],tradeCategory="STOCK";
 let stockTradingConfigured=false;
+let stockSaleConfigured=false;
 const stockSaleKeys=new Map();
 let productOrders=[];
 let internalHoldingsUnavailable=false;
@@ -349,25 +350,27 @@ async function refreshCatalog() {
   }finally{if(sequence===catalogFetchSequence){catalogBusy=false;renderSymbols();renderChart();}}
 }
 function stockSaleForm(item){
- const form=document.createElement("form");form.className="stock-sale-form";
  const available=Number(item.unlocked_quantity??0);
- if(item.manually_locked||item.market!=="US"||available<1||!stockTradingConfigured){
-  form.append(textNode(item.manually_locked?"已人工锁仓":item.market!=="US"?"该市场暂未开放实时卖出":
-    available<1?"持有期未满":"美股实时卖出暂停 · 等待行情授权"));return form;
+ if(item.manually_locked||item.market!=="US"||available<1||!stockSaleConfigured){
+  return textNode(item.manually_locked?"已人工锁仓":item.market!=="US"?"该市场暂未开放实时卖出":
+    available<1?"暂无可卖数量 · 持仓仍在锁定期":"美股实时卖出暂停 · 等待行情授权","stock-sale-note");
  }
- const label=document.createElement("label");label.textContent="卖出数量";
+ const form=document.createElement("form");form.className="stock-sale-form";
+ form.setAttribute("aria-label",item.symbol+" 股票卖出");
+ const label=document.createElement("label");label.textContent="卖出数量 · 可卖 "+available+" 股";
  const quantity=document.createElement("input");
  Object.assign(quantity,{type:"number",min:"1",max:String(Math.min(1000000,available)),step:"1",value:"1",required:true});
  label.append(quantity);
- const preview=textNode("可卖 "+available+" 股","");preview.setAttribute("role","status");
- const refresh=document.createElement("button");refresh.type="button";refresh.textContent="获取卖出报价";
- const submit=document.createElement("button");submit.type="submit";submit.textContent="确认卖出";submit.disabled=true;
+ const preview=textNode("获取实时报价后显示预计到账金额","");preview.setAttribute("role","status");
+ const refresh=document.createElement("button");refresh.type="button";refresh.className="secondary-button";refresh.textContent="获取卖出报价";
+ const submit=document.createElement("button");submit.type="submit";submit.className="primary-button";submit.textContent="确认卖出";submit.disabled=true;
  let quote=null,busy=false;
  const update=()=>{
   const amount=Number(quantity.value)*(quote?.priceCents??0);
   const valid=Boolean(quote)&&quantity.validity.valid&&Number.isSafeInteger(amount)&&amount>0;
   submit.disabled=!valid||busy;
   if(valid)preview.textContent="每股 $"+money(quote.priceCents)+" · 预计到账 $"+money(amount)+" USD · "+transactionTime(quote.timestampMs);
+  else if(quote)preview.textContent="请输入有效卖出数量";
  };
  quantity.addEventListener("input",update);
  refresh.addEventListener("click",async()=>{
@@ -393,7 +396,7 @@ function stockSaleForm(item){
    if(usedToken===token){quote=null;preview.textContent="未确认卖出："+error.message+"。请刷新报价后重试。";}
   }finally{busy=false;refresh.disabled=false;update();}
  });
- form.append(label,refresh,submit,preview);return form;
+ form.append(label,refresh,preview,submit);return form;
 }
 function renderRecords() {
   const positions = Array.isArray(account?.positions) ? account.positions.filter(item =>
@@ -1212,7 +1215,7 @@ void refreshReferenceFx();
 
 function clearInternalProducts(){
  internalHoldings=[];productOrders=[];internalHoldingsUnavailable=false;
- tradeProducts=[];tradeCategory="STOCK";stockTradingConfigured=false;
+ tradeProducts=[];tradeCategory="STOCK";stockTradingConfigured=false;stockSaleConfigured=false;
  stockSaleKeys.clear();
  internalProductsSerial++;internalPurchaseBusy=false;internalPurchaseKeys.clear();
  el('internalProductsPanel').hidden=true;
@@ -1233,6 +1236,11 @@ function internalProductCard(item){
  const types={STOCK:'股票',FUND:'基金',IPO:'IPO',COMMODITY:'大宗商品'};
  detail.textContent=stock?'股票 · 优惠 '+(item.discountBps/100)+'% · 买入后持有 '+(item.stockHoldingDays??0)+' 天':
   (types[item.itemType]??item.itemType)+' · 原价 $'+money(item.internalPriceCents)+' / '+item.unit+' · 优惠 '+(item.discountBps/100)+'% · 购买单价 $'+money(discounted());
+ card.append(title,detail);
+ if(stock&&(item.market!=="US"||!stockTradingConfigured)){
+  card.append(textNode(item.market!=="US"?"该市场暂未开放实时交易":"美股实时买入暂停 · 等待行情授权","stock-sale-note"));
+  return card;
+ }
  const form=document.createElement('form');form.autocomplete='off';
  const qtyLabel=document.createElement('label');qtyLabel.textContent='参与数量（最低'+item.minimumQuantity+'）';
  const qty=document.createElement('input');qty.type='number';qty.min=String(item.minimumQuantity);qty.max='1000000';qty.step='1';qty.value=String(item.minimumQuantity);qty.required=true;qtyLabel.append(qty);
@@ -1253,8 +1261,6 @@ function internalProductCard(item){
  if(stock){
   button.disabled=true;
   const refresh=document.createElement("button");refresh.type="button";refresh.className="secondary-button";refresh.textContent="获取实时股价";
-  refresh.disabled=item.market!=="US"||!stockTradingConfigured;
-  if(refresh.disabled)detail.append(item.market!=="US"?" · 该市场暂未开放实时交易":" · 美股实时买入暂停，等待行情授权");
   refresh.addEventListener("click",async()=>{
    const usedToken=token;stockQuote=null;button.disabled=true;refresh.disabled=true;updateTotal();
    try{
@@ -1268,7 +1274,7 @@ function internalProductCard(item){
   form.append(refresh);
  }
  const feedback=document.createElement('small');feedback.setAttribute('role','status');
- form.append(qtyLabel,pinLabel,total,button,feedback);card.append(title,detail);
+ form.append(qtyLabel,pinLabel,total,button,feedback);
  if(fund)card.append(textNode('持有 '+item.fundDays+' 天 · 期间固定收益 '+(item.fundReturnBps/100)+'% · 到期一次返还本金与收益',''));
  card.append(form);
  form.addEventListener('submit',async event=>{
@@ -1318,7 +1324,8 @@ async function refreshInternalProducts(){
   const products=catalogResult.status==='fulfilled'?catalogResult.value:{};
   const records=recordsResult.value;
   const valid=Array.isArray(products.items)?products.items:[];
-  stockTradingConfigured=records.stockQuotesConfigured===true&&products.stockQuotesConfigured===true;
+  stockTradingConfigured=products.stockQuotesConfigured===true;
+  stockSaleConfigured=records.stockQuotesConfigured===true;
   tradeProducts=valid;renderTradeProducts();
   internalHoldings=Array.isArray(records.positions)?records.positions:[];
   productOrders=(Array.isArray(records.purchases)?records.purchases:[]).map(item=>({
@@ -1342,6 +1349,7 @@ async function refreshInternalProducts(){
   renderAccountAnalytics();
  }catch(error){
   if(usedToken!==token||serial!==internalProductsSerial)return;
+  stockTradingConfigured=false;stockSaleConfigured=false;
   internalHoldings=[];productOrders=[];tradeProducts=[];internalHoldingsUnavailable=true;renderMarkets();renderRecords();renderTransactionHistory();renderAccountAnalytics();
   el('internalProductsItems').replaceChildren();
   el('internalProductsStatus').textContent='购买数据暂不可用：'+error.message;

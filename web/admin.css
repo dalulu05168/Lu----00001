@@ -748,14 +748,25 @@ body{font-size:13px;-webkit-font-smoothing:antialiased}
 .mirror-device .mirror-tabs button{min-height:40px;padding:2px;font-size:11px}
 .mirror-device .mirror-disclosure{padding:5px 13px!important}
 .mirror-home-indicator{width:32%;height:4px;border-radius:4px;background:#d8dbe1;margin:5px auto 7px}
-.mirror-chart-picker{display:grid;gap:6px;margin-bottom:8px}
-.mirror-chart-picker select{width:100%;min-width:0}
-.mirror-chart{height:clamp(180px,35dvh,320px);min-width:0}
+.mirror-chart-picker{display:grid;gap:4px;color:#a3a7af;font-size:11px}
+.mirror-chart-picker select{width:100%;min-width:0;font-size:13px}
+.mirror-chart{flex:1;min-height:200px;min-width:0}
+.mirror-chart-note{margin:0;color:#a3a7af;font-size:11px;line-height:1.4}
 .mirror-chart .tradingview-widget-container{height:100%;display:flex;flex-direction:column}
 .mirror-chart .tradingview-widget-container__widget{flex:1;min-height:0}
 .mirror-chart .tradingview-widget-copyright{font-size:10px;text-align:right;padding:3px}
 .mirror-chart .tradingview-widget-copyright a{color:#d9dde0}
 .mirror-chart .stock-chart-loading{font-size:11px;color:#aeb4ba;margin:3px 0}
+.mirror-history{display:block;width:100%;height:calc(100% - 20px);touch-action:pan-y;cursor:crosshair}
+.mirror-history text{fill:#b9c4d4;font:12px system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.mirror-history line,.mirror-history polyline{vector-effect:non-scaling-stroke}
+.mirror-history .history-grid{stroke:#272b34;stroke-width:1}
+.mirror-history .history-trend{fill:none;stroke:#78a8ff;stroke-width:2;stroke-linejoin:round}
+.mirror-history .history-cursor line{stroke:#a3b2c7;stroke-width:1;stroke-dasharray:4 4}
+.mirror-history .history-cursor circle{fill:#78a8ff;stroke:#050506}
+.mirror-history .history-cursor rect{fill:#263850}
+.mirror-history .history-cursor text{fill:#f0f4fc;font-weight:600}
+.mirror-chart>output{display:block;text-align:center;font-variant-numeric:tabular-nums}
 @media(max-width:920px){
  #adminWorkspace .mirror-dialog-layout{grid-template-columns:1fr;gap:18px;padding:16px}
  #adminWorkspace .mirror-dialog-layout .mirror-operations{max-height:none}
@@ -933,6 +944,9 @@ html,body{background:var(--ui-canvas);color:var(--ui-text);font-weight:400}
 
 /* Management typography and mobile mirror */
 #adminWorkspace{--admin-text:14px;--admin-label:12px;--admin-heading:16px;--mirror-accent:#78a8ff}
+#adminTopbar,#adminWorkspace .admin-main{padding-inline:clamp(16px,2.5vw,28px);min-width:0}
+#adminWorkspace .admin-main .panel{min-width:0}
+#adminWorkspace .admin-main .panel .heading{gap:12px;flex-wrap:wrap}
 #adminWorkspace .admin-main{font-size:var(--admin-text);line-height:1.5}
 #adminWorkspace .panel .heading h3,#adminWorkspace .dashboard-section-heading h3{
  font-size:var(--admin-heading);font-weight:650;line-height:1.25
@@ -971,6 +985,13 @@ html,body{background:var(--ui-canvas);color:var(--ui-text);font-weight:400}
 #adminWorkspace .mirror-device .mirror-balance{margin:8px 12px 2px;padding:8px 12px;background:#151922;border:1px solid #2a3242;border-radius:10px}
 #adminWorkspace .mirror-device .mirror-balance output{font:650 clamp(19px,4vw,26px)/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 #adminWorkspace .mirror-device .mirror-screen{padding:7px 12px;font-size:12px}
+#adminWorkspace .mirror-device[data-active-page="market"] .mirror-screen{display:flex;flex-direction:column;gap:7px}
+@media(min-width:340px){
+ #adminWorkspace .mirror-dialog-layout .mirror-device[data-active-page="market"]{
+  width:min(100%,390px,max(300px,calc(var(--mirror-phone-height) * 390 / 844)));
+  height:min(var(--mirror-phone-height),calc(min(100vw - 26px,390px) * 844 / 390))
+ }
+}
 #adminWorkspace .mirror-device .mirror-record{padding:10px 0;border-color:#262b35;align-items:baseline}
 .mirror-device .mirror-record>span{min-width:0}
 .mirror-device .mirror-record>span:last-child{color:#e4e9f2}

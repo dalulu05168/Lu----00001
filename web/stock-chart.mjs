@@ -26,7 +26,67 @@ export function tradingViewSymbolUrl(symbol) {
   return "https://www.tradingview.com/symbols/" + symbol.replace(":", "-") + "/";
 }
 
-export function mountStockChart(host, instrument, {compact=false} = {}) {
+export function mountStockHistory(host,points){
+  const width=280,height=260,left=8,right=211,top=16,bottom=225;
+  const prices=points.map(point=>point.price);
+  const min=Math.min(...prices),max=Math.max(...prices);
+  const padding=Math.max((max-min)*.08,max*.001);
+  const low=Math.max(0,min-padding),high=max+padding;
+  const x=index=>left+(right-left)*index/(points.length-1);
+  const y=price=>bottom-(bottom-top)*(price-low)/(high-low);
+  const priceLabel=price=>price.toFixed(price<1?4:2);
+  const date=index=>new Date(points[index].time).toISOString().slice(0,10);
+  const doc=host.ownerDocument;
+  const node=(tag,attributes,text)=>{
+    const element=doc.createElementNS("http://www.w3.org/2000/svg",tag);
+    for(const [key,value] of Object.entries(attributes))element.setAttribute(key,value);
+    if(text!==undefined)element.textContent=text;
+    return element;
+  };
+  const svg=node("svg",{viewBox:`0 0 ${width} ${height}`,class:"mirror-history",tabindex:"0",
+    "aria-label":"历史收盘价走势图，使用左右方向键查看日期和价格"});
+  for(let step=0;step<=4;step++){
+    const price=high-(high-low)*step/4;
+    svg.append(node("line",{x1:left,x2:right,y1:y(price),y2:y(price),class:"history-grid"}),
+      node("text",{x:right+6,y:y(price)+4},priceLabel(price)));
+  }
+  svg.append(node("polyline",{points:points.map((point,index)=>x(index)+","+y(point.price)).join(" "),class:"history-trend"}),
+    node("text",{x:left,y:bottom+22},date(0)),
+    node("text",{x:right,y:bottom+22,"text-anchor":"end"},date(points.length-1)));
+  const cursor=node("g",{class:"history-cursor","aria-hidden":"true"});
+  const status=doc.createElement("output");
+  status.className="mirror-chart-note";status.setAttribute("aria-live","polite");
+  svg.append(cursor);
+  let selected=points.length-1;
+  const show=index=>{
+    selected=Math.max(0,Math.min(points.length-1,index));
+    const px=x(selected),py=y(points[selected].price);
+    const dateX=Math.max(42,Math.min(right-42,px));
+    cursor.replaceChildren(node("line",{x1:px,x2:px,y1:top,y2:bottom}),
+      node("line",{x1:left,x2:right,y1:py,y2:py}),
+      node("circle",{cx:px,cy:py,r:3}),
+      node("rect",{x:right+2,y:py-10,width:width-right-2,height:20,rx:3}),
+      node("text",{x:right+6,y:py+4},priceLabel(points[selected].price)),
+      node("rect",{x:dateX-41,y:bottom+5,width:82,height:20,rx:3}),
+      node("text",{x:dateX,y:bottom+19,"text-anchor":"middle"},date(selected)));
+    status.textContent=date(selected)+" · 收盘 $"+priceLabel(points[selected].price);
+  };
+  svg.addEventListener("pointermove",event=>{
+    const matrix=svg.getScreenCTM();
+    if(!matrix)return;
+    const point=svg.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
+    show(Math.round((point.matrixTransform(matrix.inverse()).x-left)/(right-left)*(points.length-1)));
+  });
+  svg.addEventListener("keydown",event=>{
+    if(!["ArrowLeft","ArrowRight"].includes(event.key))return;
+    event.preventDefault();show(selected+(event.key==="ArrowLeft"?-1:1));
+  });
+  show(selected);
+  delete host.dataset.chartSymbol;
+  host.replaceChildren(svg,status);
+}
+
+export function mountStockChart(host, instrument, {mobile=false} = {}) {
   if (!host) throw new Error("Missing chart container");
   const symbol = resolveTradingViewSymbol(instrument);
   if (host.dataset.chartSymbol === symbol) return symbol;
@@ -57,38 +117,36 @@ export function mountStockChart(host, instrument, {compact=false} = {}) {
   link.textContent = symbol + " 图表";
   attribution.append(link, doc.createTextNode(" by TradingView"));
   const script = doc.createElement("script");
-  script.src = compact
-    ? "https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js"
-    : TRADING_VIEW_WIDGET_SCRIPT;
+  script.src = TRADING_VIEW_WIDGET_SCRIPT;
   script.type = "text/javascript";
   script.async = true;
-  script.textContent = JSON.stringify(compact ? {
-    symbols:[[symbol,symbol+"|1D"]], dateRanges:["1m|30","3m|60","12m|1D"],
-    chartType:"area", lineWidth:2, autosize:true, width:"100%",height:"100%",
-    colorTheme:"dark",backgroundColor:"#191b1e",locale:"zh_CN"
-  } : {
+  script.textContent = JSON.stringify({
     autosize: true,
     symbol,
     interval: "D",
     timezone: "Etc/UTC",
     theme: "dark",
-    style: "1",
-    locale: "en",
-    backgroundColor: "#1b1e21",
+    style: mobile ? "2" : "1",
+    locale: mobile ? "zh_CN" : "en",
+    backgroundColor: mobile ? "#050506" : "#1b1e21",
     gridColor: "rgba(174, 180, 186, 0.08)",
     allow_symbol_change: false,
     hide_top_toolbar: true,
     hide_side_toolbar: true,
-    hide_legend: false,
+    hide_legend: mobile,
     hide_volume: true,
     save_image: false,
-    withdateranges: true,
+    withdateranges: !mobile,
     calendar: false
   });
-  script.addEventListener("load", () => loading.remove(), {once:true});
-  script.addEventListener("error", () => {
+  const showUnavailable = () => {
     loading.textContent = "图表加载失败，请使用下方数据源链接查看";
+  };
+  script.addEventListener("load", () => {
+    if (host.querySelector("iframe")) loading.remove();
+    else showUnavailable();
   }, {once:true});
+  script.addEventListener("error", showUnavailable, {once:true});
   // Retain the official widget container/branding; the script creates an iframe.
   wrapper.append(chart, loading, attribution, script);
   host.replaceChildren(wrapper);

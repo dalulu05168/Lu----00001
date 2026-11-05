@@ -220,7 +220,7 @@
 
       <section class="account-grid" id="account-section" aria-label="账户与订单记录">
         <div class="panel account-panel">
-          <div class="panel-heading"><h2>Account Overview</h2><span class="view-label">ACCOUNT</span></div>
+          <div class="panel-heading"><h2>账户概览</h2><span class="view-label">ACCOUNT</span></div>
           <div class="auth-panel" id="authPanel"><form id="authForm" autocomplete="on">
             <label class="form-field"><span>Email</span><input id="email" type="email" placeholder="you@example.com" autocomplete="email" required></label>
             <label class="form-field"><span>Password</span><input id="password" type="password" placeholder="至少 12 个字符" minlength="12" autocomplete="current-password" required></label>
@@ -256,6 +256,7 @@
         <div class="panel order-panel">
           <section id="internalProductsPanel" hidden aria-labelledby="internalProductsTitle">
        <div class="panel-heading"><h2 id="internalProductsTitle">大宗交易</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品</button></div>
+       <div class="trade-workspace">
        <p class="chart-source">股票、基金、IPO 和大宗商品均以 USD 计价。购买后可在交易明细和持仓中查看记录。</p>
        <div id="tradeCategories" class="trade-categories" aria-label="大宗交易分类">
         <button type="button" class="secondary-button" data-trade-category="STOCK" aria-pressed="true">股票</button>
@@ -264,6 +265,7 @@
         <button type="button" class="secondary-button" data-trade-category="COMMODITY" aria-pressed="false">大宗商品</button>
        </div>
        <p id="internalProductsStatus" role="status"></p><div id="internalProductsItems" class="internal-products-grid"></div>
+       </div>
       </section>
           <form id="orderForm" hidden>
             <div class="order-fields"><label class="form-field"><span>Side</span><select id="side"><option value="BUY">买入 BUY</option><option value="SELL">卖出 SELL</option></select></label>

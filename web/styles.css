@@ -633,7 +633,20 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
  .sidebar-section>summary{padding:7px 5px;min-height:30px;margin:0}
  .sidebar-section .sidebar-nav{flex-wrap:wrap}
  .sidebar-section .sidebar-link{white-space:normal;min-width:0}}
-.internal-products-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px;margin:14px 0 24px}
+.account-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.account-grid>.panel{min-width:0}
+.account-grid .panel-heading{min-height:40px;margin-bottom:12px}
+.account-grid .panel-heading h2{font-size:16px}
+.account-grid .account-summary{margin-top:0}
+.account-analytics{border-top:1px solid var(--nx-edge);padding-top:14px}
+.account-analytics h3{font-size:14px;margin:0}
+.trade-workspace{background:#22262a;border:1px solid #3b4247;border-radius:11px;padding:16px;min-width:0}
+.trade-workspace>.chart-source{margin:0}
+#internalProductsStatus{margin:0;color:#abb3bd;font-size:12px;line-height:1.5}
+.internal-products-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin:12px 0 0}
+.internal-product-card h3{margin-top:0}
+@media(max-width:760px){.account-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:450px){.trade-workspace{padding:12px}}
 .internal-product-card{padding:18px;border:1px solid #363a3f;border-radius:10px;min-width:0;background:#202327}
 .internal-product-card h3{font-size:15px;margin-bottom:8px}.internal-product-card p{font-size:12px;color:#abb3bd;line-height:1.6}
 .internal-product-card form{display:grid;gap:9px}.internal-product-card label{display:grid;gap:5px;font-size:12px}
@@ -642,7 +655,8 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
 .trade-categories{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
 .trade-categories [aria-pressed="true"]{background:#e6e9ed;color:#16191c}
 .fund-cover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;margin-bottom:10px}
-.stock-sale-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 0 12px}
-.stock-sale-form label{display:flex;gap:6px;align-items:center}
-.stock-sale-form input{width:65px}
-.stock-sale-form [role="status"]{flex-basis:100%;font-size:12px}
+.stock-sale-form{display:grid;gap:10px;padding:12px;border:1px solid var(--nx-edge);border-radius:8px;background:#22262a;min-width:0}
+.stock-sale-form label{display:grid;gap:5px;font-size:12px}
+.stock-sale-form input{width:100%;min-width:0;padding:8px 10px;border:1px solid #454b53;border-radius:6px;background:#171a1e;color:var(--nx-text);font:inherit}
+.stock-sale-form [role="status"],.stock-sale-note{margin:0;color:#abb3bd;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.stock-sale-note{padding:0 0 10px}
