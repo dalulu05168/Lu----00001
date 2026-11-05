@@ -2,7 +2,7 @@
 
 Restored from the user's previously supplied `NuvexaPro_平台交互预览_四页面.html` (original 4-role visual reference).
 
-This file is a **self-contained UI reference**, not a production trading system. It is labeled paper/demo mode, contains illustrative sample figures, and performs no backend writes. Do not treat sample approval buttons as completed payment/approval functionality. The existing /admin/ TOTP, permission checks and customer API remain unchanged.
+This file is a **self-contained UI reference**, not a production trading system. It is labeled paper/demo mode, contains illustrative sample figures, and performs no backend writes. Do not treat sample approval buttons as completed payment/approval functionality. The existing /admin/ password login (TOTP was removed in migration 007), permission checks and customer API remain unchanged.
 
 ## Page roles recovered
 
@@ -13,7 +13,7 @@ This file is a **self-contained UI reference**, not a production trading system.
 
 ## Real functionality already in source tree
 
-Customer register/login/logout; auth sessions; watchlist; account records, positions and internal order records. Master/subadmin TOTP login, invite creation, client ownership lists and listing catalog administration. **Do not conflate the visual preview with these APIs**.
+Customer register/login/logout; auth sessions; watchlist; account records, positions and internal order records. Master/subadmin password login (no TOTP since migration 007), invite creation, client ownership lists and listing catalog administration. **Do not conflate the visual preview with these APIs**.
 
 ## Explicitly missing or blocked
 

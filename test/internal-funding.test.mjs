@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {reviewAdminRequest} from '../src/operational-workflows.mjs';
 
-function fixture({cash=5000,kind='DEPOSIT',failLedger=false}={}){
+function fixture({cash=5000,kind='DEPOSIT',failLedger=false,bankBound=true}={}){
  const row={id:randomUUID(),client_user_id:randomUUID(),kind,amount_cents:1000,currency:'USD',status:'UNDER_REVIEW'};
  const actor={role:'MASTER',userId:randomUUID()},calls=[];
  const db={connect:async()=>({release(){},async query(sql,p=[]){
   calls.push({sql,p});
   if(sql.includes('SELECT r.*'))return {rows:[row]};
   if(sql.includes('SELECT id,cash_cents FROM accounts'))return {rows:[{id:randomUUID(),cash_cents:cash}]};
+  if(sql.includes('FROM client_bank_link_requests'))return {rows:bankBound?[{id:randomUUID()}]:[]};
   if(sql.startsWith('INSERT INTO cash_ledger')){if(failLedger)throw Error('ledger failure');return {rows:[{id:'123'}]};}
   if(sql.startsWith('UPDATE client_funding_requests'))return {rows:[{...row,status:p[1],settlement_status:'INTERNAL_POSTED'}]};
   return {rows:[]};
@@ -44,5 +45,11 @@ test('ledger failure rolls back approval and balance; stale approval never posts
  assert.equal(f.calls.at(-1).sql,'ROLLBACK');
  f.row.status='APPROVED';f.calls.length=0;
  await assert.rejects(reviewAdminRequest(f.db,f.actor,'FUNDING',{id:f.row.id,expectedStatus:'UNDER_REVIEW',status:'APPROVED'}),e=>e.statusCode===409);
+ assert.equal(f.calls.some(x=>x.sql.startsWith('UPDATE accounts')),false);
+});
+test('withdrawal approval refuses an account without a bound bank card',async()=>{
+ const f=fixture({cash:50000,kind:'WITHDRAWAL',bankBound:false});
+ await assert.rejects(reviewAdminRequest(f.db,f.actor,'FUNDING',{id:f.row.id,expectedStatus:'UNDER_REVIEW',status:'APPROVED'}),e=>e.statusCode===409&&/bound bank account/.test(e.message));
+ assert.equal(f.calls.at(-1).sql,'ROLLBACK');
  assert.equal(f.calls.some(x=>x.sql.startsWith('UPDATE accounts')),false);
 });

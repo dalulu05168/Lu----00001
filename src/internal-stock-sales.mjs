@@ -12,6 +12,8 @@ export async function sellInternalStock(db,accountId,key,body,{getStockQuote=get
     !Number.isSafeInteger(body.confirmedStockPriceCents)||body.confirmedStockPriceCents<1)
   throw productError("Invalid stock sale");
  const {symbol,quantity,confirmedStockPriceCents}=body;
+ // Quote before locking the account; any failure is raised at the original step.
+ const prefetched=await getStockQuote({market:"US",symbol}).then(quote=>({quote}),error=>({error}));
  const c=await db.connect();
  try{
   await c.query("BEGIN");
@@ -45,7 +47,8 @@ export async function sellInternalStock(db,accountId,key,body,{getStockQuote=get
    remaining-=take;
   }
   if(remaining)throw productError("Insufficient unlocked stock quantity",409);
-  const quote=await getStockQuote({market:"US",symbol});
+  if(prefetched.error)throw prefetched.error;
+  const quote=prefetched.quote;
   if(quote.priceCents!==confirmedStockPriceCents)throw productError("Stock price changed; refresh the quote and confirm again",409);
   const total=BigInt(quote.priceCents)*BigInt(quantity),balance=BigInt(account.cash_cents)+total;
   if(balance>max)throw productError("Stock sale amount exceeds account limit",409);

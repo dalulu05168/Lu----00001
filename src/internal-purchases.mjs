@@ -9,6 +9,13 @@ export async function buyInternalProduct(db,accountId,key,body,delegation,{getSt
  if(!UUID.test(body.termsId??'')||!Number.isSafeInteger(body.quantity)||body.quantity<1||body.quantity>1000000||!Number.isSafeInteger(body.termsVersion)||body.termsVersion<1||typeof body.participationPassword!=='string'||!/^\d{6}$/.test(body.participationPassword))throw productError('Invalid purchase fields');
  const c=await db.connect();let active=false;
  try{
+  // Fetch any live stock quote before taking row locks, so a slow quote provider
+  // never holds the customer's account lock. Errors surface where the quote is used.
+  const identity=(await c.query(`SELECT l.item_type,l.market,l.symbol FROM internal_product_terms t
+   JOIN listings l ON l.id=t.listing_id WHERE t.id=$1`,[body.termsId])).rows[0];
+  const prefetched=identity?.item_type==='STOCK'&&identity.market==='US'
+   ?await getStockQuote({market:identity.market,symbol:identity.symbol}).then(quote=>({...identity,quote}),error=>({...identity,error}))
+   :null;
   await c.query('BEGIN');active=true;
   if(delegation){
    const target=await c.query(`SELECT a.id FROM accounts a JOIN app_users u ON u.id=a.user_id
@@ -57,7 +64,14 @@ export async function buyInternalProduct(db,accountId,key,body,delegation,{getSt
    throw Object.assign(productError('Participation password is incorrect',403),{code:'PARTICIPATION_PASSWORD_INCORRECT'});
   }
   if(terms.item_type==='STOCK'&&published.rows[0].market!=='US')throw productError('This stock market is not enabled for real-time trading',503);
-  const stockQuote=terms.item_type==='STOCK'?await getStockQuote({market:published.rows[0].market,symbol:terms.product_code}):null;
+  let stockQuote=null;
+  if(terms.item_type==='STOCK'){
+   const market=published.rows[0].market,symbol=terms.product_code;
+   // Listing identity changed after the prefetch: fall back to a fresh quote.
+   if(prefetched?.market!==market||prefetched?.symbol!==symbol)stockQuote=await getStockQuote({market,symbol});
+   else if(prefetched.error)throw prefetched.error;
+   else stockQuote=prefetched.quote;
+  }
   if(stockQuote&&body.confirmedStockPriceCents!==stockQuote.priceCents)throw productError('Stock price changed; refresh the quote and confirm again',409);
   const quote=purchaseQuote(stockQuote?.priceCents??Number(terms.price_cents),Number(terms.discount_bps),body.quantity);
   const balance=BigInt(account.cash_cents)-BigInt(quote.totalCents);

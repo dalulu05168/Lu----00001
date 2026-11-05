@@ -15,7 +15,7 @@ function invalid(message,statusCode){const e=new Error(message);e.statusCode=sta
  */
 
 export async function getClientMirrorSetupStatus(db,actor){
-  if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))invalid("Administrator 2FA session required",403);
+  if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))invalid("Administrator session required",403);
   const result=await db.query("SELECT to_regclass('public.admin_mirror_access_log') IS NOT NULL AS ready");
   return {ready:result.rows[0]?.ready===true,mode:"READ_ONLY"};
 }
@@ -40,7 +40,7 @@ export async function purchaseForMirrorClient(db,actor,key,body,getStockQuote){
 
 export async function getClientAppMirror(db,actor,clientId){
   if(!UUID.test(clientId??""))invalid("Invalid client id",400);
-  if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))invalid("Administrator 2FA session required",403);
+  if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))invalid("Administrator session required",403);
   const allowed=await db.query(`SELECT u.id AS user_id,u.email,a.id AS account_id,c.subadmin_user_id
       FROM app_users u
       JOIN accounts a ON a.user_id=u.id

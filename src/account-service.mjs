@@ -1,5 +1,5 @@
 import {randomUUID} from "node:crypto";
-import {hashPassword,verifyPassword,createSession,revokeSession} from "./auth.mjs";
+import {hashPassword,verifyPassword,createSession,revokeSession,rejectUnknownAccount} from "./auth.mjs";
 const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function registerAccount(db,{email,password,openingCashCents=0,inviteCode}){
  if(typeof email!=="string"||email.length>254||!emailPattern.test(email))throw new Error("Invalid email");
@@ -47,7 +47,8 @@ export async function loginAccount(db,{email,password}){
  LEFT JOIN admin_roles r ON r.user_id=u.id
  LEFT JOIN client_admin_policies p ON p.user_id=u.id
  WHERE u.email=$1 AND r.user_id IS NULL AND COALESCE(p.login_allowed,true)=true`,[email.trim().toLowerCase()]);
- if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash)))throw new Error("Invalid credentials");
+ const valid=r.rows.length===1?await verifyPassword(password,r.rows[0].password_hash):await rejectUnknownAccount(password);
+ if(!valid)throw new Error("Invalid credentials");
  const expiresAt=new Date(Date.now()+24*60*60*1000);
  const token=await createSession(db,{userId:r.rows[0].id,accountId:r.rows[0].account_id,expiresAt});
  return {token,expiresAt:expiresAt.toISOString()};

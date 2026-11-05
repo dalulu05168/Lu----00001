@@ -25,6 +25,8 @@ export async function verifyInternalFunding(){
   assert.equal(snapshot.rows[0].cash_cents,'25000');
   const ledger=await db.query('SELECT delta_cents,balance_after_cents FROM cash_ledger WHERE funding_request_id=$1',[request.id]);
   assert.deepEqual(ledger.rows,[{delta_cents:'25000',balance_after_cents:'25000'}]);
+  await assert.rejects(submitClientRequest(db,userId,'FUNDING',{kind:'WITHDRAWAL',amountCents:1000}),e=>e.statusCode===409);
+  await db.query("INSERT INTO client_bank_link_requests(id,client_user_id,bank_label,account_last4,status,bank_details_stored) VALUES($1,$2,'Synthetic Bank','4321','MANUALLY_REVIEWED',true)",[randomUUID(),userId]);
   const withdrawal=await submitClientRequest(db,userId,'FUNDING',{kind:'WITHDRAWAL',amountCents:30000});
   await reviewAdminRequest(db,actor,'FUNDING',{id:withdrawal.id,expectedStatus:'SUBMITTED',status:'UNDER_REVIEW',reason:'Synthetic local withdrawal test review'});
   await assert.rejects(reviewAdminRequest(db,actor,'FUNDING',{id:withdrawal.id,expectedStatus:'UNDER_REVIEW',status:'APPROVED'}),e=>e.statusCode===409);
