@@ -18,8 +18,10 @@
 ## Not yet implemented or verified
 - Registration/login HTTP routes, CSRF protection for cookie-based sessions, session rotation.
 - Rate-limit counters are per instance and reset on restart; multi-instance or serverless
-  deployments need a shared store. The client address is the right-most X-Forwarded-For entry
-  unless AUTH_CLIENT_IP_HEADER names a trusted edge header (for example cf-connecting-ip behind Cloudflare).
+  deployments need a shared store. The client address is AUTH_CLIENT_IP_HEADER when set, else
+  cf-connecting-ip (written by Render's Cloudflare edge), else the left-most X-Forwarded-For entry.
+  The left-most entry can be forged, which lets that client evade the per-address cap but never
+  merges unrelated visitors; Render's exact forwarding behaviour has not been verified here.
 - Abuse detection, email verification and password reset.
 - PostgreSQL deployment and migrations execution against a real database.
 - Licensed quote provider and server-side quote entitlement verification.

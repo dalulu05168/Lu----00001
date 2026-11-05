@@ -15,21 +15,25 @@ export const DEFAULT_AUTH_LIMITS = Object.freeze({
 });
 
 /**
- * Client address used for throttling. Render and Vercel append the connecting
- * address to X-Forwarded-For, so the right-most entry is the one the platform
- * proxy observed; left-most entries can be supplied by the caller.
- * AUTH_CLIENT_IP_HEADER can name a header set by a trusted edge proxy
- * (for example cf-connecting-ip when Cloudflare fronts the service).
+ * Client address used for per-address throttling.
+ * 1. AUTH_CLIENT_IP_HEADER, when set, names a header written by a trusted edge proxy.
+ * 2. cf-connecting-ip: Render's edge is Cloudflare, which overwrites any client-supplied
+ *    value, so when present it is the real connecting address.
+ * 3. Otherwise the left-most X-Forwarded-For entry. A client can forge it, which only lets
+ *    that client dodge the per-address cap; it never merges unrelated visitors into one
+ *    shared bucket (the right-most entry may be a proxy address shared by everyone).
+ * Per-email lockouts do not depend on the address at all.
  */
 export function clientAddress(req, headerName = process.env.AUTH_CLIENT_IP_HEADER) {
   const headers = req.headers ?? {};
-  if (headerName) {
-    const value = String(headers[headerName.toLowerCase()] ?? "").trim();
+  for (const name of [headerName, "cf-connecting-ip"]) {
+    if (!name) continue;
+    const value = String(headers[name.toLowerCase()] ?? "").trim();
     if (value) return value.slice(0, 64);
   }
   const forwarded = String(headers["x-forwarded-for"] ?? "")
     .split(",").map(part => part.trim()).filter(Boolean);
-  if (forwarded.length) return forwarded.at(-1).slice(0, 64);
+  if (forwarded.length) return forwarded[0].slice(0, 64);
   return String(req.socket?.remoteAddress ?? "unknown").slice(0, 64);
 }
 

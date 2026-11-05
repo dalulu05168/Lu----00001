@@ -30,8 +30,9 @@ test("rate limiter locks one identity after repeated failures and clears on succ
   assert.equal(limiter.blocked(checks),0);
 });
 
-test("client address uses the proxy-observed right-most forwarded entry",()=>{
-  assert.equal(clientAddress({headers:{"x-forwarded-for":"6.6.6.6, 203.0.113.9"}},undefined),"203.0.113.9");
+test("client address prefers trusted edge headers and never collapses visitors into a proxy address",()=>{
+  assert.equal(clientAddress({headers:{"x-forwarded-for":"203.0.113.9, 10.0.0.1"}},undefined),"203.0.113.9");
+  assert.equal(clientAddress({headers:{"cf-connecting-ip":"198.51.100.7","x-forwarded-for":"6.6.6.6, 10.0.0.1"}},undefined),"198.51.100.7");
   assert.equal(clientAddress({headers:{"cf-connecting-ip":"198.51.100.4","x-forwarded-for":"1.1.1.1"}},"cf-connecting-ip"),"198.51.100.4");
   assert.equal(clientAddress({headers:{},socket:{remoteAddress:"127.0.0.1"}},undefined),"127.0.0.1");
 });
