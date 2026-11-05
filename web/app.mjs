@@ -1268,7 +1268,7 @@ function internalProductCard(item){
   (types[item.itemType]??item.itemType)+' · 原价 $'+money(item.internalPriceCents)+' / '+item.unit+' · 优惠 '+(item.discountBps/100)+'% · 购买单价 $'+money(discounted());
  card.append(title,detail);
  if(stock&&(item.market!=="US"||!stockTradingConfigured)){
-  card.append(textNode(item.market!=="US"?"该市场暂未开放实时交易":"美股实时买入暂停 · 等待行情授权","stock-sale-note"));
+  card.append(textNode(item.market!=="US"?"该市场暂未接入行情，模拟买卖未开放":"美股模拟买卖暂停 · 行情源未配置","stock-sale-note"));
   appendPublicChartButton(card,{...item,symbol:item.code});
   return card;
  }
