@@ -158,8 +158,8 @@ test("master console renders edit, publish and withdraw controls",async()=>{
       if(url==="/api/admin/login")return json(200,{token:"admin-token",role:"MASTER"});
       if(url==="/api/admin/me")return json(200,{role:"MASTER",userId:"master-id"});
       if(url==="/api/admin/mirror-status")return json(200,{ready:false});
-      if(url==="/api/admin/stock-lookup?code=AA")return json(200,{
-        items:[{market:"US",symbol:"AA",name:"Alcoa Corporation",exchange:"NYSE"}],provider:"unconfigured"
+      if(url==="/api/admin/stock-lookup?code=BRD")return json(200,{
+        items:[{market:"RO",symbol:"BRD",name:"BRD Groupe Societe Generale",exchange:"BVB"}],provider:"unconfigured"
       });
       if(url==="/api/admin/listings"){
         if(method==="PATCH"){
@@ -202,16 +202,16 @@ test("master console renders edit, publish and withdraw controls",async()=>{
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.status==="PUBLISHED"));
     assert.ok(calls.some(x=>x.method==="PATCH"&&x.body.status==="DRAFT"));
     const writes=calls.filter(call=>call.method==="POST"||call.method==="PATCH").length;
-    el("listingSymbol").value="AA";
+    el("listingSymbol").value="BRD";
     el("listingSymbol").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
     await new Promise(done=>setTimeout(done,520));
     const match=el("listingLookupResults").querySelector("button");
-    assert.match(match.textContent,/美国 · NYSE · AA · Alcoa Corporation/);
-    assert.equal(el("listingName").value,"Alcoa Corporation");
+    assert.match(match.textContent,/罗马尼亚 · BVB · BRD · BRD Groupe Societe Generale/);
+    assert.equal(el("listingName").value,"BRD Groupe Societe Generale");
     match.click();
-    assert.equal(el("listingMarket").value,"US");
-    assert.equal(el("listingSymbol").value,"AA");
-    assert.equal(el("listingName").value,"Alcoa Corporation");
+    assert.equal(el("listingMarket").value,"RO");
+    assert.equal(el("listingSymbol").value,"BRD");
+    assert.equal(el("listingName").value,"BRD Groupe Societe Generale");
     assert.equal(calls.filter(call=>call.method==="POST"||call.method==="PATCH").length,writes);
   }finally{
     globalThis.document=old.document;

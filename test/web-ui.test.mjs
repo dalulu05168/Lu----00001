@@ -62,8 +62,8 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("entryGate").hidden,false,"customer must see login first");
     assert.equal(el("overview").hidden,true,"workspace must be inaccessible before login");
     assert.match(el("entryGate").textContent,/CN Capital/);
-    assert.equal(el("markets").querySelectorAll("button").length, 5);
-    assert.equal(el("marketCards").querySelectorAll("button").length, 5);
+    assert.equal(el("markets").querySelectorAll("button").length, 2);
+    assert.equal(el("marketCards").querySelectorAll("button").length, 2);
     assert.equal(el("quotePrice").textContent, "—");
     assert.equal(el("performanceTitle").textContent,"Stock Chart / 股票走势");
     assert.equal(el("stockChart").querySelector("script"),null);
@@ -75,13 +75,17 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("accountSummary").hidden, true);
     assert.equal(el("refreshAccountButton").hidden, true);
     assert.equal(el("orderForm").querySelector('button[type="submit"]').disabled, true);
+    // HK/CN/MY were withdrawn: only US and RO remain, so this exercises
+    // cross-market switching via RO, then within-market switching via US's
+    // two instruments.
     el("markets").querySelectorAll("button")[1].click();
-    assert.equal(el("symbolTitle").textContent, "0700");
+    assert.equal(el("symbolTitle").textContent, "BRD");
+    el("markets").querySelectorAll("button")[0].click();
     el("symbols").querySelectorAll("button")[1].click();
-    assert.equal(el("symbolTitle").textContent, "9988");
+    assert.equal(el("symbolTitle").textContent, "MSFT");
     assert.equal(el("stockChart").querySelector("script"),null);
     assert.equal(el("quotePrice").textContent,"—");
-    assert.equal(el("orderSymbol").textContent, "HK · 9988");
+    assert.equal(el("orderSymbol").textContent, "US · MSFT");
     el("entryEmail").value = "user@example.com";
     el("entryPassword").value = "a-long-test-password";
     el("entryForm").dispatchEvent(new dom.window.SubmitEvent("submit", {
@@ -111,12 +115,12 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.match(el("watchlistToggle").textContent,/已加入自选/);
     assert.equal(el("savedWatchlistCount").textContent,"1");
     assert.equal(el("savedWatchlist").querySelectorAll(".saved-watchlist-row").length,1);
-    assert.match(el("savedWatchlist").textContent,/9988/);
-    el("markets").querySelectorAll("button")[0].click();
+    assert.match(el("savedWatchlist").textContent,/MSFT/);
+    el("symbols").querySelectorAll("button")[0].click();
     assert.equal(el("symbolTitle").textContent,"AAPL");
     el("savedWatchlist").querySelector(".saved-watchlist-open").click();
-    assert.equal(el("symbolTitle").textContent,"9988");
-    assert.equal(JSON.parse(el("stockChart").querySelector("script").textContent).symbol,"HKEX:9988");
+    assert.equal(el("symbolTitle").textContent,"MSFT");
+    assert.equal(JSON.parse(el("stockChart").querySelector("script").textContent).symbol,"NASDAQ:MSFT");
     el("refreshWatchlistButton").click();
     await new Promise(resolve=>setTimeout(resolve,20));
     assert.equal(el("savedWatchlistCount").textContent,"1");
