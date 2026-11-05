@@ -712,8 +712,13 @@ body{font-size:13px;-webkit-font-smoothing:antialiased}
 #adminWorkspace .mirror-modal-header p{font-size:11px;color:#acbacb;margin:3px 0}
 #adminWorkspace .mirror-modal-header button{min-width:95px;flex:none}
 #adminWorkspace .mirror-dialog-layout{display:grid;grid-template-columns:minmax(335px,.88fr) minmax(380px,1.12fr);gap:24px;padding:24px;align-items:start}
-#adminWorkspace .mirror-dialog-layout .mirror-phone{min-width:0;display:grid;justify-items:center}
-#adminWorkspace .mirror-dialog-layout .mirror-device{width:min(100%,390px);height:min(720px,calc(94dvh - 130px));
+#adminWorkspace .mirror-dialog-layout .mirror-phone{
+ --mirror-phone-height:calc(94dvh - 130px);
+ min-width:0;display:grid;justify-items:center
+}
+#adminWorkspace .mirror-dialog-layout .mirror-device{
+ box-sizing:border-box;width:min(100%,390px,calc(var(--mirror-phone-height) * 390 / 844));
+ height:auto;min-height:0;aspect-ratio:390 / 844;
  display:flex;flex-direction:column;border:6px solid #36414e;border-radius:35px;
  overflow:hidden;background:#131c27;box-shadow:0 0 0 1px #7b8999,0 16px 32px #0006}
 #adminWorkspace .mirror-dialog-layout .mirror-operations{grid-column:auto;max-height:calc(94dvh - 130px);min-height:0;width:100%;overflow:auto;margin:0;scrollbar-width:none}
@@ -754,7 +759,7 @@ body{font-size:13px;-webkit-font-smoothing:antialiased}
  #adminWorkspace .mirror-modal-header p{font-size:10px}
  #adminWorkspace .mirror-dialog-layout{padding:12px;gap:12px}
  #adminWorkspace .mirror-dialog-layout .mirror-device{border-width:4px;border-radius:26px}
- #adminWorkspace .mirror-dialog-layout .mirror-device{height:min(720px,calc(100dvh - 96px))}
+ #adminWorkspace .mirror-dialog-layout .mirror-phone{--mirror-phone-height:calc(100dvh - 96px)}
  #adminWorkspace .mirror-modal-header button{min-width:75px;padding:7px 9px}
 }
 
