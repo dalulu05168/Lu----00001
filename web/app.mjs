@@ -44,6 +44,7 @@ let internalProductsSerial=0,internalPurchaseBusy=false,internalPurchaseKeys=new
 let internalHoldings=[];
 let productOrders=[];
 let internalHoldingsUnavailable=false;
+let privateDataReady=false,privateDataSerial=0;
 let customerCommodityItems=[],customerCommoditySerial=0,customerSupportSerial=0;
 let customerSupportClosed=false;
 let accountAnalytics=null,accountAnalyticsSerial=0,accountAnalyticsState="idle",accountAnalyticsError="";
@@ -691,6 +692,7 @@ function render() {
   syncClientGate();
 }
 function resetClientSession(message){
+  clearPrivateInputs();
   clearInternalProducts();
   sessionStorage.removeItem("gsp_token");token=null;account=null;lastSyncedAt=null;accountRefreshing=false;
   watchlist=[];watchlistLoaded=false;watchlistBusy=false;watchlistFetching=false;watchlistFetchSequence++;
@@ -753,7 +755,7 @@ async function refreshAccount() {
     account = data;
     lastSyncedAt = new Date();
     await Promise.all([refreshWatchlist(),refreshCatalog(),refreshServiceRequests(),refreshAccountAnalytics(),
-      refreshCustomerCommodities(),refreshCustomerSupport(),refreshInternalProducts()]);
+      refreshCustomerCommodities(),refreshCustomerSupport(),refreshInternalProducts(),refreshPrivateStatus()]);
     if(requestedToken!==token)return;
     el("authFeedback").textContent = "账户数据已同步";
   } catch(error) {
@@ -869,6 +871,7 @@ el("entryForm").addEventListener("submit",async event=>{
     const session=await request("/auth/login",{method:"POST",body:{email,password}});
     if(!session?.token)throw new Error("登录未返回有效会话");
     token=session.token;
+    clearPrivateInputs();
     clearInternalProducts();
     serviceRequests=[];el("serviceRequestHistory").replaceChildren();
     sessionStorage.setItem("gsp_token",token);
@@ -903,6 +906,7 @@ el("authForm").addEventListener("submit",async event => {
     const session = await request("/auth/login",{method:"POST",body:{email,password}});
     if (!session.token) throw new Error("登录接口未返回有效会话");
     token = session.token;
+    clearPrivateInputs();
     clearInternalProducts();
     serviceRequests=[];el("serviceRequestHistory").replaceChildren();
     sessionStorage.setItem("gsp_token",token);
@@ -923,7 +927,12 @@ const SERVICE_STATUS={
  MANUALLY_REVIEWED:"人工已审阅（未实名认证）",PENDING_VERIFICATION:"待第三方银行验证"
 };
 function serviceDescription(item){
- const status=item.category==='FUNDING'&&item.settlementStatus==='INTERNAL_POSTED'?'成功 · 平台内部入账':SERVICE_STATUS[item.status]??item.status;
+ let status=SERVICE_STATUS[item.status]??item.status;
+ if(item.category==='BANK_LINK'){
+  if(item.bound)status='绑定已确认（人工审核）';
+  else if(item.detailsStored&&item.status==='PENDING_VERIFICATION')status='待人工审核';
+ }
+ if(item.category==='FUNDING'&&item.settlementStatus==='INTERNAL_POSTED')status='成功 · 平台内部入账';
  if(item.category==="FUNDING"){
   const cents=Number(item.amountCents);
   const amount=Number.isSafeInteger(cents)?money(cents):"—";
@@ -1073,6 +1082,10 @@ el("fundingRequestForm").addEventListener("submit",async event=>{
 });
 el("bankLinkRequestForm").addEventListener("submit",async event=>{
  event.preventDefault();
+ if(privateDataReady){
+  await submitPrivateMaterial('BANK_LINK',{bankName:el('bankRequestName').value.trim(),accountNumber:el('bankRequestNumber').value},event.currentTarget.querySelector('button[type="submit"]'),token);
+  return;
+ }
  const ok=await submitService("BANK_LINK",{
   bankLabel:el("bankRequestName").value.trim(),accountLast4:el("bankRequestLast4").value.trim()
  },event.currentTarget.querySelector('button[type="submit"]'));
@@ -1214,12 +1227,63 @@ async function refreshInternalProducts(){
   renderMarkets();
   el('internalProductsStatus').textContent=catalogResult.status==='rejected'?'商品目录暂不可用，持仓与购买记录已同步。':'已同步 '+valid.length+' 个可参与产品 · 产品单价和支付币种均为USD';
   renderRecords();
+  renderTransactionHistory();
   renderAccountAnalytics();
  }catch(error){
   if(usedToken!==token||serial!==internalProductsSerial)return;
-  internalHoldings=[];productOrders=[];internalHoldingsUnavailable=true;renderMarkets();renderRecords();renderAccountAnalytics();
+  internalHoldings=[];productOrders=[];internalHoldingsUnavailable=true;renderMarkets();renderRecords();renderTransactionHistory();renderAccountAnalytics();
   el('internalProductsItems').replaceChildren();
   el('internalProductsStatus').textContent='购买数据暂不可用：'+error.message;
  }
 }
 el('refreshInternalProducts').addEventListener('click',()=>void refreshInternalProducts());
+
+function clearPrivateInputs(){
+ privateDataSerial++;privateDataReady=false;
+ for(const id of ['identityFront','identityBack','bankRequestNumber'])el(id).value='';
+ el('identityUploadForm').hidden=true;el('startKycRequest').hidden=false;
+ el('bankFullField').hidden=true;el('bankMaskedField').hidden=false;
+ el('bankRequestNumber').required=false;el('bankRequestLast4').required=true;
+}
+async function refreshPrivateStatus(){
+ if(!token||!account)return;
+ const usedToken=token,serial=++privateDataSerial;
+ try{
+  const result=await request('/private-data/status');if(usedToken!==token||serial!==privateDataSerial)return;
+  privateDataReady=result.ready===true;
+ }catch{if(usedToken!==token||serial!==privateDataSerial)return;privateDataReady=false;}
+ el('identityUploadForm').hidden=!privateDataReady;el('startKycRequest').hidden=privateDataReady;
+ el('bankFullField').hidden=!privateDataReady;el('bankMaskedField').hidden=privateDataReady;
+ el('bankRequestNumber').required=privateDataReady;el('bankRequestLast4').required=!privateDataReady;
+ el('identityUploadStatus').textContent=privateDataReady?'身份证正反面加密保存，提交后由授权人员人工审核。':'安全上传未启用，当前只能创建资料审核工单。';
+ el('bankPrivacyStatus').textContent=privateDataReady?'完整号码加密保存，列表仅显示末四位；人工确认绑定不等于银行验证。绝不填写网银密码、验证码或CVV。':'安全绑定未启用，当前只登记末四位，不接收完整号码、网银密码或验证码。';
+}
+async function imagePayload(file){
+ if(!file||!['image/png','image/jpeg'].includes(file.type)||file.size>2*1024*1024)throw Error('请选择2MB以内的PNG/JPEG图片');
+ const bytes=new Uint8Array(await file.arrayBuffer());let raw='';
+ for(let i=0;i<bytes.length;i+=32768)raw+=String.fromCharCode(...bytes.subarray(i,i+32768));
+ return {mime:file.type,base64:btoa(raw)};
+}
+async function submitPrivateMaterial(kind,payload,button,usedToken){
+ if(!privateDataReady||!account||!token||usedToken!==token||serviceBusy)return;
+ serviceBusy=true;button.disabled=true;el('serviceRequestFeedback').textContent='正在加密提交审核资料…';
+ try{
+  const {item}=await request('/private-data?kind='+kind,{method:'POST',body:payload});
+  if(usedToken!==token)return;
+  await refreshServiceRequests();
+  if(usedToken===token)el('serviceRequestFeedback').textContent='加密资料已保存，申请 '+String(item.id).slice(0,8)+' 等待人工审核。';
+ }catch(error){if(usedToken===token)el('serviceRequestFeedback').textContent='资料未确认保存：'+error.message;}
+ finally{
+  if(kind==='BANK_LINK')payload.accountNumber='';else {payload.front.base64='';payload.back.base64='';}
+  if(usedToken===token){serviceBusy=false;button.disabled=false;for(const id of ['identityFront','identityBack','bankRequestNumber'])el(id).value='';}
+ }
+}
+el('identityUploadForm').addEventListener('submit',async event=>{
+ event.preventDefault();if(!privateDataReady||serviceBusy)return;
+ const usedToken=token,button=event.currentTarget.querySelector('button');button.disabled=true;
+ try{
+  const [front,back]=await Promise.all([imagePayload(el('identityFront').files[0]),imagePayload(el('identityBack').files[0])]);
+  if(usedToken===token)await submitPrivateMaterial('KYC',{front,back},button,usedToken);
+ }catch(error){if(usedToken===token)el('serviceRequestFeedback').textContent=error.message;}
+ finally{if(usedToken===token)button.disabled=false;}
+});

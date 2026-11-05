@@ -7,6 +7,7 @@ import {listAdminSupportThreads,getAdminSupportThread,sendAdminSupportMessage,ch
 import {listUnifiedAudit} from "./operation-audit.mjs";
 import {listPublishedInternalProducts,readAdminProductTerms,updateAdminProductTerms} from './internal-products.mjs';
 import {lookupStocks} from './stock-lookup.mjs';
+import {readPrivateData} from './private-customer-data.mjs';
 import {
   roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
@@ -61,6 +62,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/support":["GET","POST","PATCH"],"/api/admin/support-thread":["GET"],
     "/api/admin/audit-events":["GET"]
     ,"/api/admin/product-terms":["GET","PATCH"]
+    ,"/api/admin/private-data":["GET"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
@@ -109,6 +111,10 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
       if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
       const url=new URL(req.url??"/","http://localhost");
       response(res,200,await lookupStocks(db,url.searchParams.get("code")));return true;
+    }
+    if(route==='/api/admin/private-data'){
+     const url=new URL(req.url??'/','http://localhost'),kind=url.searchParams.get('kind');
+     response(res,200,{kind,payload:await readPrivateData(db,actor,kind,url.searchParams.get('id'))});return true;
     }
     if(route==='/api/admin/product-terms'){
       const url=new URL(req.url??'/','http://localhost');

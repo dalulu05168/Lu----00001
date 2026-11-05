@@ -5,7 +5,7 @@ const TABLES=Object.freeze({FUNDING:"client_funding_requests",KYC:"client_kyc_re
 const STATUS=Object.freeze({
  FUNDING:new Set(["SUBMITTED","UNDER_REVIEW","APPROVED","REJECTED"]),
  KYC:new Set(["AWAITING_EVIDENCE","UNDER_REVIEW","NEEDS_INFORMATION","MANUALLY_REVIEWED","REJECTED"]),
- BANK_LINK:new Set(["PENDING_VERIFICATION","NEEDS_INFORMATION","REJECTED"])
+ BANK_LINK:new Set(["PENDING_VERIFICATION","NEEDS_INFORMATION","REJECTED","MANUALLY_REVIEWED"])
 });
 function bad(message,statusCode=400){throw Object.assign(new Error(message),{statusCode});}
 function requireUuid(value){if(typeof value!=="string"||!UUID.test(value))bad("Invalid reference");return value;}
@@ -16,8 +16,8 @@ function publicItem(category,row){
  const x={id:row.id,clientId:row.client_user_id,status:row.status,createdAt:row.created_at,updatedAt:row.updated_at,
   category,reviewerId:row.review_actor_user_id??null,reviewReason:row.review_reason??null};
  if(category==="FUNDING")Object.assign(x,{kind:row.kind,amountCents:Number(row.amount_cents),currency:row.currency,settlementStatus:row.settlement_status??"NOT_EXECUTED"});
- if(category==="BANK_LINK")Object.assign(x,{bankLabel:row.bank_label,accountLast4:row.account_last4,verified:false});
- if(category==="KYC")Object.assign(x,{identityVerified:false,documentsStored:false});
+ if(category==="BANK_LINK")Object.assign(x,{bankLabel:row.bank_label,accountLast4:row.account_last4,verified:false,bound:row.status==='MANUALLY_REVIEWED',detailsStored:row.bank_details_stored===true});
+ if(category==="KYC")Object.assign(x,{identityVerified:false,documentsStored:row.documents_stored===true});
  return x;
 }
 async function recordAudit(db,category,id,userId,actorId,oldStatus,newStatus,reason=null){
@@ -93,6 +93,7 @@ function nextStatus(category,role,current,target){
   if(current==="NEEDS_INFORMATION"&&target==="UNDER_REVIEW")return;
   if(role==="MASTER"&&current==="UNDER_REVIEW"&&["MANUALLY_REVIEWED","REJECTED"].includes(target))return;
  }else if(category==="BANK_LINK"){
+  if(role==="MASTER"&&current==="PENDING_VERIFICATION"&&target==="MANUALLY_REVIEWED")return;
   if(current==="PENDING_VERIFICATION"&&target==="NEEDS_INFORMATION")return;
   if(role==="MASTER"&&current==="PENDING_VERIFICATION"&&target==="REJECTED")return;
  }
@@ -112,6 +113,7 @@ export async function reviewAdminRequest(db,actor,category,data){
   const previous=q.rows[0];
   if(previous.status!==data.expectedStatus)bad("Request state changed",409);
   nextStatus(category,actor.role,previous.status,data.status);
+  if(category==='BANK_LINK'&&data.status==='MANUALLY_REVIEWED'&&!previous.bank_details_stored)bad('Full bank details must be submitted before binding',409);
   if(category==="FUNDING"&&data.status==="APPROVED"){
    const account=(await conn.query("SELECT id,cash_cents FROM accounts WHERE user_id=$1 FOR UPDATE",[previous.client_user_id])).rows[0];
    if(!account)bad("Account not found",409);
@@ -165,15 +167,15 @@ export async function listAdminClientHistoryPage(db,actor,clientId,{cursor=null,
  if(access.rows.length!==1)bad("Client not found",404);
  const sql=String.raw`SELECT h.* FROM (
  SELECT id,client_user_id,'FUNDING'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
-        kind,amount_cents,currency,NULL::text AS bank_label,NULL::char(4) AS account_last4,settlement_status
+        kind,amount_cents,currency,NULL::text AS bank_label,NULL::char(4) AS account_last4,settlement_status,false AS documents_stored,false AS bank_details_stored
  FROM client_funding_requests WHERE client_user_id=$1
  UNION ALL
  SELECT id,client_user_id,'KYC'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
-        NULL::text,NULL::bigint,NULL::char(3),NULL::text,NULL::char(4),NULL::text
+        NULL::text,NULL::bigint,NULL::char(3),NULL::text,NULL::char(4),NULL::text,documents_stored,false
  FROM client_kyc_requests WHERE client_user_id=$1
  UNION ALL
  SELECT id,client_user_id,'BANK_LINK'::text AS category,status,created_at,updated_at,review_actor_user_id,review_reason,
-        NULL::text,NULL::bigint,NULL::char(3),bank_label,account_last4,NULL::text
+        NULL::text,NULL::bigint,NULL::char(3),bank_label,account_last4,NULL::text,false,bank_details_stored
  FROM client_bank_link_requests WHERE client_user_id=$1
 ) h WHERE ($3::timestamptz IS NULL OR
   (h.created_at,h.id,h.category) < ($3::timestamptz,$4::uuid,$5::text))

@@ -19,6 +19,8 @@ services:
         sync: false
       - key: ADMIN_BOOTSTRAP_SECRET
         generateValue: true
+      - key: CUSTOMER_DATA_KEY
+        generateValue: true
 
 # Future custom domains after QA rollout is approved:
 # domains:

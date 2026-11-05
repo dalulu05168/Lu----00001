@@ -78,7 +78,7 @@ test('analytics reads only the requested account in a read-only consistent trans
  const result=await getAccountAnalytics(db,'account-A',{now});assert.equal(result.portfolioValueCents,1000);
  assert.match(calls[0].sql,/REPEATABLE READ READ ONLY/);
  for(const call of calls.filter(call=>call.sql.includes('FROM ')))assert.deepEqual(call.params,['account-A']);
- const history=calls.find(call=>call.sql.includes('FROM orders'));assert.match(history.sql,/ORDER BY l.id ASC/);
+ const history=calls.find(call=>call.sql.includes('FROM orders'));assert.match(history.sql,/ORDER BY ledger_sequence ASC/);
  assert.match(history.sql,/LEFT JOIN cash_ledger/);
  assert.doesNotMatch(history.sql,/LIMIT/i);assert.equal(calls.at(-1).sql,'COMMIT');assert.equal(released,true);
  calls.length=0;released=false;client.query=async(sql)=>{calls.push({sql});if(sql.includes('FROM accounts'))throw Error('offline');return {rows:[]}};

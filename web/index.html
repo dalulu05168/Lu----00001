@@ -211,9 +211,9 @@
           <div class="panel-heading"><h2 id="intelligenceTitle">Market Intelligence</h2><span class="view-label">Insights</span></div>
           <p class="panel-caption">Market insights · 市场洞察</p>
           <div class="intelligence-items">
-            <div class="intelligence-item"><span class="intelligence-category">AMERICAS · US</span><p>美国市场资讯源尚未连接</p></div>
-            <div class="intelligence-item"><span class="intelligence-category">ASIA · HK / CN</span><p>香港与内地市场资讯源尚未连接</p></div>
-            <div class="intelligence-item"><span class="intelligence-category">ASIA · MY</span><p>马来西亚市场资讯源尚未连接</p></div>
+            <div class="intelligence-item"><span class="intelligence-category">美国 · US</span><p><a href="https://www.nasdaq.com/market-activity/quotes/press-releases" target="_blank" rel="noopener noreferrer">查看 Nasdaq 公司新闻</a></p></div>
+            <div class="intelligence-item"><span class="intelligence-category">香港及中国内地 · HK / CN</span><p><a href="https://www.hkexnews.hk/index.htm?sc_lang=en" target="_blank" rel="noopener noreferrer">查看港交所披露</a> · <a href="https://www.sse.com.cn/disclosure/listedinfo/announcement/" target="_blank" rel="noopener noreferrer">查看上交所公告</a></p></div>
+            <div class="intelligence-item"><span class="intelligence-category">马来西亚 · MY</span><p><a href="https://www.bursamalaysia.com/market_information/announcements/company_announcement" target="_blank" rel="noopener noreferrer">查看 Bursa Malaysia 公司公告</a></p></div>
           </div>
         </section>
       </div>
@@ -287,17 +287,24 @@
           </form>
           <div class="service-request-form">
             <h3>身份资料审核</h3>
-            <p class="service-disclosure">这里仅创建审核工单。身份证明材料须经独立安全验证渠道提交，当前页面不接收证件照片。</p>
+            <p class="service-disclosure" id="identityUploadStatus">安全上传尚未启用；当前仅可创建审核工单。</p>
+            <form id="identityUploadForm" hidden>
+             <label class="form-field">身份证正面<input type="file" id="identityFront" accept="image/jpeg,image/png" required></label>
+             <label class="form-field">身份证反面<input type="file" id="identityBack" accept="image/jpeg,image/png" required></label>
+             <button class="secondary-button" type="submit">加密上传并提交审核</button>
+             <p class="service-disclosure">仅PNG/JPEG，每张最多2MB；仅授权审核人员可查看，查看会留存审计。</p>
+            </form>
             <button class="secondary-button" id="startKycRequest" type="button">创建身份审核工单</button>
             <p class="service-disclosure">人工审阅不等于完成实名认证。</p>
           </div>
           <form id="bankLinkRequestForm" class="service-request-form">
             <h3>收付款银行账户登记</h3>
             <label class="form-field">银行名称<input id="bankRequestName" type="text" maxlength="80" required placeholder="银行名称"></label>
-            <label class="form-field">账户末四位<input id="bankRequestLast4" inputmode="numeric" type="text" maxlength="4"
+            <label class="form-field" id="bankMaskedField">账户末四位<input id="bankRequestLast4" inputmode="numeric" type="text" maxlength="4"
               pattern="[0-9]{4}" placeholder="仅填写 4 位数字" required></label>
+            <label class="form-field" id="bankFullField" hidden>银行卡／账户号码<input id="bankRequestNumber" type="text" inputmode="numeric" maxlength="50" autocomplete="off" placeholder="填写完整号码，不填写密码或验证码"></label>
             <button class="secondary-button" type="submit">提交登记申请</button>
-            <p class="service-disclosure">不收集完整卡号、网银密码或验证码；登记不等于银行已验证。</p>
+            <p class="service-disclosure" id="bankPrivacyStatus">安全绑定尚未启用，当前只登记末四位。不接收网银密码或验证码。</p>
           </form>
         </div>
         <p id="serviceRequestFeedback" class="form-feedback" role="status" aria-live="polite">请选择操作或刷新申请。</p>

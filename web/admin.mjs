@@ -675,6 +675,7 @@ async function refreshMirrorRequests(){
    const meta=document.createElement("div");meta.className="mirror-control-info";
    meta.append(plainNode("strong",caseSummary(item)),plainNode("small",dateLabel(item.createdAt)));
    row.append(meta);
+   appendPrivateViewButton(row,item);
    const options=caseOptions(item);
    if(options.length){
     const button=document.createElement("button");button.type="button";button.className="outline";
@@ -991,7 +992,12 @@ const CASE_STATUS={
 };
 let caseRows=[],selectedCase=null,caseSerial=0,fundingSerial=0;
 function caseSummary(item){
- const status=item.category==='FUNDING'&&item.settlementStatus==='INTERNAL_POSTED'?'已完成平台内部入账':CASE_STATUS[item.status]??item.status;
+ let status=CASE_STATUS[item.status]??item.status;
+ if(item.category==='BANK_LINK'){
+  if(item.bound)status='绑定已确认（人工审核）';
+  else if(item.detailsStored&&item.status==='PENDING_VERIFICATION')status='待人工审核';
+ }
+ if(item.category==='FUNDING'&&item.settlementStatus==='INTERNAL_POSTED')status='已完成平台内部入账';
  if(item.category==="FUNDING"){
   const dollars=Number(item.amountCents)/100;
   const amount=Number.isFinite(dollars)?dollars.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}):"—";
@@ -1010,7 +1016,7 @@ function caseOptions(item){
   if(item.status==="UNDER_REVIEW"&&role==="MASTER")return [["MANUALLY_REVIEWED","人工已审阅（非实名认证）"],["REJECTED","拒绝工单"]];
  }else if(item.category==="BANK_LINK"){
   if(item.status==="PENDING_VERIFICATION")return role==="MASTER"
-   ?[["NEEDS_INFORMATION","要求补充资料"],["REJECTED","拒绝登记"]]
+   ?[...(item.detailsStored?[["MANUALLY_REVIEWED","人工确认绑定"]]:[]),["NEEDS_INFORMATION","要求补充资料"],["REJECTED","拒绝登记"]]
    :[["NEEDS_INFORMATION","要求补充资料"]];
  }
  return [];
@@ -1024,6 +1030,7 @@ function renderCaseList(){
  if(!caseRows.length){target.append(plainNode("p","当前权限下暂无此类申请","muted"));return;}
  for(const item of caseRows){
   const row=itemRow(caseSummary(item),"客户编号："+item.clientId+" · 提交："+dateLabel(item.createdAt));
+  appendPrivateViewButton(row,item);
   row.classList.add("workflow-row");
   const next=caseOptions(item);
   if(next.length){
@@ -1425,6 +1432,7 @@ el("refreshSubadmins").addEventListener("click",refreshSubadmins);
 el("refreshClients").addEventListener("click",refreshClients);
 el("refreshListings").addEventListener("click",refreshListings);
 function resetAdminSession(message){
+  closePrivateData();
   closeProductTerms();
   sessionStorage.removeItem("gsp_admin_token");adminToken=null;role=null;
   mirrorSerial++;mirrorSnapshot=null;selectedMirrorClientId=null;mirrorClients=[];mirrorBackendReady=false;
@@ -1527,6 +1535,34 @@ document.querySelectorAll("[data-dashboard-open]").forEach(button=>{
 });
 
 let productTermsState=null,productTermsSerial=0;
+let privateViewSerial=0;
+function closePrivateData(){
+ privateViewSerial++;el('privateDataContent').replaceChildren();el('privateDataFeedback').textContent='';
+ const dialog=el('privateDataDialog');if(dialog.open&&typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');
+}
+function appendPrivateViewButton(row,item){
+ if(!item.documentsStored&&!item.detailsStored)return;
+ const button=document.createElement('button');button.type='button';button.className='outline';button.textContent='查看加密审核资料';
+ button.addEventListener('click',()=>void viewPrivateData(item));row.append(button);
+}
+async function viewPrivateData(item){
+ closePrivateData();const serial=++privateViewSerial,usedToken=adminToken;
+ const dialog=el('privateDataDialog');if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+ el('privateDataFeedback').textContent='正在读取授权范围内的资料…';
+ try{
+  const result=await api('/admin/private-data?kind='+item.category+'&id='+encodeURIComponent(item.id));
+  if(serial!==privateViewSerial||usedToken!==adminToken)return;
+  const root=el('privateDataContent');
+  if(item.category==='BANK_LINK')root.append(plainNode('p','银行：'+result.payload.bankName),plainNode('p','银行卡／账户号码：'+result.payload.accountNumber));
+  else for(const [side,label] of [['front','身份证正面'],['back','身份证反面']]){
+   const value=result.payload[side];if(!['image/png','image/jpeg'].includes(value?.mime)||typeof value.base64!=='string')throw Error('资料格式不正确');
+   const image=document.createElement('img');image.alt=label;image.style.cssText='display:block;max-width:100%;max-height:420px;object-fit:contain;margin:10px 0 20px';image.src='data:'+value.mime+';base64,'+value.base64;root.append(plainNode('h3',label),image);
+  }
+  el('privateDataFeedback').textContent='资料已读取，查看已记录审计。请人工核对后处理申请。';
+ }catch(error){if(serial===privateViewSerial&&usedToken===adminToken){el('privateDataContent').replaceChildren();el('privateDataFeedback').textContent='无法读取资料：'+error.message;}}
+}
+el('closePrivateData').addEventListener('click',closePrivateData);
+el('privateDataDialog').addEventListener('cancel',()=>{privateViewSerial++;el('privateDataContent').replaceChildren();});
 function closeProductTerms(){
  productTermsSerial++;productTermsState=null;el('productTermsPassword').value='';el('productTermsForm').reset();
  const dialog=el('productTermsDialog');if(dialog.open&&typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');

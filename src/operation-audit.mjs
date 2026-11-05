@@ -46,6 +46,11 @@ export async function listUnifiedAudit(db,actor,{limit=100}={}){
    LEFT JOIN admin_mirror_purchase_audit m ON m.purchase_id=p.id
    LEFT JOIN client_links l ON l.user_id=a.user_id
   WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid)
+  UNION ALL
+  SELECT 'PRIVATE_DATA_READ',p.id::text,p.client_user_id,p.actor_user_id,
+   'VIEW:'||p.kind,'Private review material viewed',p.created_at
+  FROM private_customer_access_audit p LEFT JOIN client_links l ON l.user_id=p.client_user_id
+  WHERE ($1::text='MASTER' OR l.subadmin_user_id=$2::uuid)
  ) events ORDER BY event_at DESC,event_type,event_id DESC LIMIT $3`;
  const result=await db.query(query,[actor.role,actor.userId,limit]);
  return {items:result.rows.map(x=>({eventType:x.event_type,eventId:x.event_id,clientId:x.client_id,

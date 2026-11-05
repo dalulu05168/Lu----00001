@@ -12,6 +12,7 @@ import {getCustomerSupport,sendCustomerSupportMessage} from "./support-messages.
 import {getAccountAnalytics} from "./account-analytics.mjs";
 import {listPublishedInternalProducts} from './internal-products.mjs';
 import {buyInternalProduct,internalPurchaseAccount} from './internal-purchases.mjs';
+import {privateDataKey,submitPrivateData,readPrivateData} from './private-customer-data.mjs';
 import {createReferenceFx} from "./reference-fx.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
@@ -31,6 +32,7 @@ async function readBody(req,maxBodyBytes){
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
 export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192,referenceFx=createReferenceFx()}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
+ let privateUploads=0;
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
   // A single Render web service hosts both branded entrances. Only the two
@@ -58,7 +60,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/account/analytics","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support","/api/internal-products","/api/internal-purchases"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/account/analytics","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support","/api/internal-products","/api/internal-purchases","/api/private-data","/api/private-data/status"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
@@ -94,6 +96,26 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   try{session=await resolveSession(auth.slice(7));}catch{return send(res,401,{error:"Authentication failed"});}
   if(!session?.accountId)return send(res,401,{error:"Authentication required"});
   if(session.adminVerified===true)return send(res,403,{error:"Use the administrator console"});
+  if(route==='/api/private-data/status'){
+   if(req.method!=='GET')return send(res,405,{error:'Method not allowed'});
+   try{privateDataKey();return send(res,200,{ready:true});}catch{return send(res,200,{ready:false});}
+  }
+  if(route==='/api/private-data'){
+   if(!['GET','POST'].includes(req.method))return send(res,405,{error:'Method not allowed'});
+   const upload=req.method==='POST';
+   if(upload&&privateUploads>=2)return send(res,429,{error:'Private upload service busy; retry shortly'});
+   if(upload)privateUploads++;
+   try{
+    const key=privateDataKey(),kind=url.searchParams.get('kind');
+    if(!upload)return send(res,200,{kind,payload:await readPrivateData(db,{role:'CLIENT',userId:session.userId},kind,url.searchParams.get('id'),{key})});
+    const body=JSON.parse(await readBody(req,6*1024*1024));
+    return send(res,201,{item:await submitPrivateData(db,session.userId,kind,body,{key})});
+   }catch(error){
+    if(error instanceof SyntaxError)return send(res,400,{error:'Invalid JSON'});
+    const status=[400,403,404,413,429].includes(error.statusCode)?error.statusCode:503;
+    return send(res,status,{error:status===503?'Private data service unavailable':error.message});
+   }finally{if(upload)privateUploads--;}
+  }
   if(route==='/api/internal-products'||route==='/api/internal-purchases'){
    if((route==='/api/internal-products'&&req.method!=='GET')||(route==='/api/internal-purchases'&&!['GET','POST'].includes(req.method)))return send(res,405,{error:'Method not allowed'});
    try{
