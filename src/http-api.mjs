@@ -237,8 +237,8 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    const allowed=["side","market","symbol","quantity"];
    if(Object.keys(data).some(k=>!allowed.includes(k)))return send(res,400,{error:"Unexpected fields"});
    // Do not trust a browser-supplied execution price or FX rate.
-   // Until a licensed read-only quote service and pricing policy are configured,
-   // the HTTP endpoint is disabled instead of creating misleading orders.
+   // resolveExecutionPrice is the only source of truth for price/FX/timestamp;
+   // when absent (no provider wired at all), fail closed instead of guessing.
    if(typeof resolveExecutionPrice!=="function")return send(res,503,{error:"Verified market pricing unavailable"});
    // Platform publication is distinct from exchange listing and trading eligibility.
    // IPO directory entries never become order-eligible merely by being published.
@@ -246,9 +246,12 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
      AND status='PUBLISHED' AND item_type IN ('STOCK','FUND') LIMIT 1`,[data.market,data.symbol]);
    if(!eligible.rows.length)return send(res,409,{error:"Security not available for orders"});
    const verified=await resolveExecutionPrice({market:data.market,symbol:data.symbol,side:data.side,quantity:data.quantity});
+   // Staleness is the provider's own responsibility (it knows its feed's real
+   // cadence); a second, shorter window here previously duplicated and
+   // disagreed with it. Only a basic sanity/clock-skew check stays here.
    if(!verified||!Number.isSafeInteger(verified.priceCents)||verified.priceCents<=0||
       !Number.isSafeInteger(verified.fxUsdMicros)||verified.fxUsdMicros<=0||
-      !Number.isFinite(verified.timestampMs)||Date.now()-verified.timestampMs>60000||
+      !Number.isFinite(verified.timestampMs)||
       verified.timestampMs>Date.now()+5000)
       return send(res,503,{error:"Verified market pricing unavailable"});
    const result=await placeInternalOrder(db,session.accountId,key,{

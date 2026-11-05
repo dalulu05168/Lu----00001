@@ -19,7 +19,10 @@ This repository is configured for Railway via `railway.toml`.
 3. Confirm the PostgreSQL backup/restore policy before using persistent account records.
 4. Deploy this branch to a non-production environment first.
 5. Confirm migration history, `/health`, `/ready`, registration/login, and account isolation.
-6. Keep order submission disabled until a licensed read-only quote provider and FX policy are configured.
+6. `/api/orders` is an internal-only simulated order ledger; it is wired for
+   the US market via the free Finnhub quote feed (`FINNHUB_API_KEY`) and
+   fails closed for any other market or when that key is absent. It never
+   contacts a broker or exchange regardless.
 7. Do not add broker credentials or any live order-routing integration.
 
 The currently connected Railway project in the workspace is linked to a different repository and application. Do not repoint or reuse it for this service. A separate project and database are required; provisioning them may incur hosting charges and must be explicitly approved by the account owner.

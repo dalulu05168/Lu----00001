@@ -2,13 +2,17 @@ import {Pool} from "pg";
 import {createApi} from "./http-api.mjs";
 import {createSessionResolver} from "./auth.mjs";
 import {settleDueFunds} from "./fund-maturities.mjs";
+import {resolveOrderExecutionPrice,stockQuotesConfigured} from "./us-stock-quotes.mjs";
 
 if(!process.env.DATABASE_URL)throw new Error("DATABASE_URL required");
 const db=new Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.PGSSL==="require"?{rejectUnauthorized:true}:undefined});
 const resolveSession=createSessionResolver(db);
-// A licensed provider adapter is mandatory for internal order execution.
-// No dummy provider is supplied and no live brokerage order API exists.
-const resolveExecutionPrice=undefined;
+// Internal-only order ledger: no broker or exchange is ever contacted (see
+// order-service.mjs/ledger.mjs). Price comes from the same free, read-only
+// Finnhub feed already used for simulated buy/sell. Without a configured
+// FINNHUB_API_KEY, resolveExecutionPrice stays undefined and the endpoint
+// fails closed, same as before.
+const resolveExecutionPrice=stockQuotesConfigured()?resolveOrderExecutionPrice:undefined;
 const api=createApi({db,resolveSession,resolveExecutionPrice});
 const port=Number(process.env.PORT??3001);
 if(!Number.isInteger(port)||port<1||port>65535)throw new Error("Invalid PORT");

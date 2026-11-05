@@ -598,7 +598,7 @@ function renderMirrorMarket(view,snap){
     void api("/admin/stock-history?symbol="+encodeURIComponent(symbol)).then(data=>{
       if(serial!==chartSerial||token!==adminToken||!host.isConnected||data.symbol!==symbol||!Array.isArray(data.points)||data.points.length<2)return;
       mountStockHistory(host,data.points);
-      note.textContent="Massive · 历史日收盘价（复权）";
+      note.textContent="Twelve Data · 历史日收盘价";
     }).catch(()=>{});
   };
   const note=plainNode("p","公开参考行情 · 可能延迟","mirror-chart-note");

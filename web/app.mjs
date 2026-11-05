@@ -799,7 +799,13 @@ function render() {
   el("commodityCatalogPanel").hidden = !account;
   el("customerSupportPanel").hidden = !account;
   el("logout").hidden = !token;
-  el("orderForm").querySelector('button[type="submit"]').disabled = !token || !account || !pricingConnected;
+  el("orderForm").hidden = !account;
+  const orderSubmit = el("orderForm").querySelector('button[type="submit"]');
+  orderSubmit.disabled = !token || !account || !pricingConnected;
+  // Internal-only simulated order: no broker or exchange ever receives it.
+  // Only wired for the US market today; other markets still fail at submit
+  // time with an accurate message rather than being silently allowed here.
+  orderSubmit.textContent = pricingConnected ? "提交模拟订单" : "下单功能未开放";
   renderRecords();
   renderTransactionHistory();
   renderAccountAnalytics();
@@ -849,7 +855,7 @@ async function request(path,options = {}) {
     if(response.status===401&&usedToken&&usedToken===token&&!path.startsWith("/auth/"))
       resetClientSession("账户认证失败或会话已失效，请重新登录");
     if (response.status === 503 && ["/auth/login","/auth/register"].includes(path)) throw new Error("账户数据库尚未连接，登录服务暂不可用");
-    if (response.status === 503 && path === "/orders") throw new Error("可信报价服务尚未接入，订单未执行");
+    if (response.status === 503 && path === "/orders") throw new Error("该品种暂无可信报价（可能该市场尚未接入行情或暂时休市），订单未提交");
     if (response.status === 401) throw new Error("账户认证失败或会话已失效");
     throw new Error(result.error || "请求失败（HTTP " + response.status + "）");
   }
@@ -1234,6 +1240,10 @@ el("orderForm").addEventListener("submit",async event => {
   }
   if (!pricingConnected) {
     el("feedback").textContent = "可信报价未连接，订单没有提交";
+    return;
+  }
+  if (selected.market !== "US") {
+    el("feedback").textContent = "该市场暂未接入实时行情，订单没有提交";
     return;
   }
   const button = el("orderForm").querySelector('button[type="submit"]');

@@ -2,6 +2,7 @@ import { isDatabaseReady } from "../src/readiness.mjs";
 import { Pool } from "pg";
 import { createApi } from "../src/http-api.mjs";
 import { createSessionResolver } from "../src/auth.mjs";
+import { resolveOrderExecutionPrice, stockQuotesConfigured } from "../src/us-stock-quotes.mjs";
 
 let runtime;
 
@@ -18,8 +19,11 @@ function getRuntime() {
     const api = createApi({
       db,
       resolveSession: createSessionResolver(db),
-      // No broker order transport or execution-price provider is configured.
-      resolveExecutionPrice: undefined
+      // Internal-only order ledger: no broker or exchange is ever contacted.
+      // Price comes from the same free, read-only Finnhub feed already used
+      // for simulated buy/sell. Without FINNHUB_API_KEY this stays undefined
+      // and the endpoint fails closed, same as before.
+      resolveExecutionPrice: stockQuotesConfigured() ? resolveOrderExecutionPrice : undefined
     });
     runtime = { db, requestHandler: api.listeners("request")[0] };
   }
@@ -36,7 +40,7 @@ function send(res, status, body) {
 export default async function handler(req, res) {
   const path = (req.url || "/").split("?")[0];
   if (req.method === "GET" && path === "/api/health") {
-    return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: false });
+    return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: stockQuotesConfigured() });
   }
 
   const current = getRuntime();

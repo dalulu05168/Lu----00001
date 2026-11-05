@@ -1,10 +1,13 @@
 import {validateQuote} from "./market-data.mjs";
 
 // Finnhub free tier: real-time US quotes (/quote), no credit card, ~60 req/min.
-// Historical candles (/stock/candle) are premium-only, so the history chart
-// stays unavailable on the free tier and the UI degrades to a notice.
+// Finnhub's free tier does not include historical candles, so daily history
+// comes from Twelve Data's /time_series instead (also free, no card; already
+// used in this codebase for symbol search in stock-lookup.mjs, same
+// TWELVE_DATA_API_KEY and the same lowercase "apikey" query param it uses).
 const SYMBOL=/^[A-Z0-9][A-Z0-9.-]{0,23}$/;
 export const stockQuotesConfigured=()=>Boolean(process.env.FINNHUB_API_KEY);
+export const stockHistoryConfigured=()=>Boolean(process.env.TWELVE_DATA_API_KEY);
 
 // Logs only to the server's own stdout/stderr (Render's log stream) — never
 // sent to the client, and the key itself is never logged. Kept lightweight
@@ -14,34 +17,34 @@ function logQuoteFailure(endpoint,symbol,detail){
 }
 
 export async function getUsStockHistory(symbol,{
- apiKey=process.env.FINNHUB_API_KEY,fetchImpl=fetch,now=Date.now
+ apiKey=process.env.TWELVE_DATA_API_KEY,fetchImpl=fetch,now=Date.now
 }={}){
  const unavailable=()=>Object.assign(new Error("US stock history unavailable"),{statusCode:503});
  if(!apiKey||typeof symbol!=="string"||!SYMBOL.test(symbol)){
-  logQuoteFailure("history",symbol,!apiKey?"FINNHUB_API_KEY not set":"invalid symbol");
+  logQuoteFailure("history",symbol,!apiKey?"TWELVE_DATA_API_KEY not set":"invalid symbol");
   throw unavailable();
  }
- const end=Math.floor(now()/1000),from=end-90*86400;
- const url=new URL("https://finnhub.io/api/v1/stock/candle");
- url.search=new URLSearchParams({symbol,resolution:"D",from:String(from),to:String(end),token:apiKey});
+ const end=now();
+ const url=new URL("https://api.twelvedata.com/time_series");
+ url.search=new URLSearchParams({symbol,interval:"1day",outputsize:"90",apikey:apiKey});
  try{
-  const response=await fetchImpl(url,{redirect:"error",signal:AbortSignal.timeout(3000)});
+  const response=await fetchImpl(url,{redirect:"error",signal:AbortSignal.timeout(4000)});
   if(!response.ok){logQuoteFailure("history",symbol,"HTTP "+response.status);throw unavailable();}
   const data=await response.json();
-  // Free keys get {s:"no_data"} or a 403 here; only premium returns candles.
-  if(data?.s!=="ok"||!Array.isArray(data.t)||!Array.isArray(data.c)||
-     data.t.length!==data.c.length||data.t.length<2||data.t.length>400){
+  if(data?.status!=="ok"||!Array.isArray(data.values)||data.values.length<2||data.values.length>400){
    logQuoteFailure("history",symbol,"unexpected shape: "+JSON.stringify(data).slice(0,200));
    throw unavailable();
   }
-  let previous=from-86400;
-  const points=data.t.map((t,i)=>{
-   const price=data.c[i];
-   if(!Number.isSafeInteger(t)||t<=previous||t>end||!Number.isFinite(price)||price<=0)throw unavailable();
-   previous=t;
-   return {time:t*1000,price};
-  });
-  return {symbol,source:"Finnhub",currency:"USD",points};
+  // Twelve Data's own ordering isn't relied on; sort ascending by date so the
+  // chart always receives oldest-to-newest, same contract as before.
+  const parsed=data.values.map(row=>{
+   const time=Date.parse(String(row?.datetime)+"T00:00:00Z");
+   const price=Number(row?.close);
+   if(!Number.isFinite(time)||time>end||!Number.isFinite(price)||price<=0)throw unavailable();
+   return {time,price};
+  }).sort((a,b)=>a.time-b.time);
+  for(let i=1;i<parsed.length;i++)if(parsed[i].time<=parsed[i-1].time)throw unavailable();
+  return {symbol,source:"Twelve Data",currency:"USD",points:parsed};
  }catch(error){
   if(error?.statusCode!==503)logQuoteFailure("history",symbol,"fetch/parse error: "+(error?.message??error));
   throw unavailable();
@@ -91,4 +94,17 @@ export async function getUsStockQuote({market,symbol},{
   if(error?.statusCode!==503)logQuoteFailure("quote",symbol,"fetch/parse error: "+(error?.message??error));
   throw unavailable();
  }
+}
+
+/**
+ * Adapter for the order endpoint's resolveExecutionPrice hook. This is still
+ * an internal-only order ledger (see order-service.mjs/ledger.mjs): placing
+ * an order never contacts a broker or exchange, it only records a row here,
+ * the same as the already-live simulated buy/sell flow. Only the US market
+ * has a wired quote source today; other markets correctly surface pricing as
+ * unavailable (the caller's generic 503 handling) until one is connected.
+ */
+export async function resolveOrderExecutionPrice({market,symbol},options={}){
+ const quote=await getUsStockQuote({market,symbol},options);
+ return {priceCents:quote.priceCents,fxUsdMicros:1000000,timestampMs:quote.timestampMs};
 }
