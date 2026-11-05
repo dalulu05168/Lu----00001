@@ -352,10 +352,11 @@ async function refreshCatalog() {
 const STOCK_QUOTE_ERRORS=new Set(["Stock price changed; refresh the quote and confirm again","Verified US stock quote unavailable"]);
 function stockSaleForm(item){
  const available=Number(item.unlocked_quantity??0);
- if(item.manually_locked||item.market!=="US"||available<1||!stockSaleConfigured){
+ if(item.manually_locked||item.market!=="US"||available<1){
   return textNode(item.manually_locked?"已人工锁仓":item.market!=="US"?"该市场暂未开放实时卖出":
-    available<1?"暂无可卖数量 · 持仓仍在锁定期":"美股实时卖出暂停 · 等待行情授权","stock-sale-note");
+    "暂无可卖数量 · 持仓仍在锁定期","stock-sale-note");
  }
+ if(!stockSaleConfigured)return null;
  const form=document.createElement("form");form.className="stock-sale-form";
  form.setAttribute("aria-label",item.symbol+" 股票卖出");
  const label=document.createElement("label");label.textContent="卖出数量 · 可卖 "+available+" 股";
@@ -424,6 +425,9 @@ function renderRecords() {
   ) : [];
   const orders = Array.isArray(account?.orders) ? account.orders : [];
   const productPositions = account ? internalHoldings : [];
+  const saleStatus=el("holdingsSaleStatus");
+  saleStatus.hidden=stockSaleConfigured||!productPositions.some(item=>item.item_type==="STOCK"&&item.market==="US");
+  saleStatus.textContent=saleStatus.hidden?"":"美股实时卖出暂停 · 暂无可用报价";
   el("positionCount").textContent = account && !internalHoldingsUnavailable ? String(positions.length + productPositions.length) : "—";
   el("orderCount").textContent = account ? String(transactionOrderCount(orders.length+productOrders.length)) : "—";
   const posRows = positions.map(item => {
@@ -454,7 +458,10 @@ function renderRecords() {
     if(item.item_type==="STOCK")appendPublicChartButton(identity,{...item,symbol:item.symbol??item.code});
     row.append(identity,textNode(String(item.quantity)+(item.item_type==="STOCK"?' 股':' 份'),'holding-quantity-value'));
     posRows.push(row);
-    if(item.item_type==="STOCK")posRows.push(stockSaleForm(item));
+    if(item.item_type==="STOCK"){
+      const sale=stockSaleForm(item);
+      if(sale)posRows.push(sale);
+    }
   }
   if(account&&internalHoldingsUnavailable)posRows.push(makeEmpty('部分持仓读取失败，请刷新账户数据'));
   el("positions").replaceChildren(...(posRows.length ? posRows : [makeEmpty(account ? "暂无持仓记录" : "登录后查看当前持仓")]));
