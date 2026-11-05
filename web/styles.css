@@ -688,3 +688,7 @@ section[aria-label="日参考汇率"] .chart-source{font-size:10px;line-height:1
 .stock-sale-form input{width:100%;min-width:0;padding:8px 10px;border:1px solid #454b53;border-radius:6px;background:#171a1e;color:var(--nx-text);font:inherit}
 .stock-sale-form [role="status"],.stock-sale-note{margin:0;color:#abb3bd;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
 .stock-sale-note{padding:0 0 10px}
+.holding-live-value{display:block;margin-top:3px;font-size:11px;color:#555555;font-variant-numeric:tabular-nums}
+.holding-live-value.pnl-up{color:#1f7a4d}
+.holding-live-value.pnl-down{color:#b23636}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .holding-live-value{color:#9ca4ac}:root:not([data-theme="light"]) .holding-live-value.pnl-up{color:#4ec98a}:root:not([data-theme="light"]) .holding-live-value.pnl-down{color:#e07a7a}}
