@@ -1,5 +1,6 @@
 import {randomUUID,randomInt,timingSafeEqual} from "node:crypto";
 import {hashPassword,verifyPassword,createSession} from "./auth.mjs";
+import {enableNewProductPurchases} from './internal-products.mjs';
 
 
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -154,12 +155,23 @@ export async function listClients(db,actor){
 }
 export async function createListing(db,actor,data){
   if(actor?.role!=="MASTER")invalid("Only master can publish listings");
-  const item=safeListing(data);
+  const {purchaseTerms,...metadata}=data??{};
+  const item=safeListing(metadata);
   // Legacy non-null purchase_password_hash is retained in the database schema,
   // but no purchase flow reads it. Store an unreachable random hash, not a user credential.
   const hash=await hashPassword(randomUUID()),id=randomUUID();
-  await db.query(`INSERT INTO listings(id,item_type,market,symbol,display_name,discount_bps,purchase_password_hash,status,created_by)
+  const insert=target=>target.query(`INSERT INTO listings(id,item_type,market,symbol,display_name,discount_bps,purchase_password_hash,status,created_by)
     VALUES($1,$2,$3,$4,$5,0,$6,$7,$8)`,[id,item.itemType,item.market,item.symbol,item.name,hash,item.status,actor.userId]);
+  if(purchaseTerms===undefined)await insert(db);
+  else{
+    const client=await db.connect();
+    try{
+      await client.query('BEGIN');await insert(client);
+      await enableNewProductPurchases(client,actor,'LISTING',id,purchaseTerms,item.status);
+      await client.query('COMMIT');
+    }catch(error){await client.query('ROLLBACK');throw error;}
+    finally{client.release();}
+  }
   return {id,itemType:item.itemType,market:item.market,symbol:item.symbol,name:item.name,status:item.status};
 }
 export async function listListings(db,actor){

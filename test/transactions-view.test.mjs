@@ -87,7 +87,7 @@ test("dark transactions workspace renders real account orders with filtering, pa
     assert.match(el("transactionVolumeNote").textContent,/12 笔有效金额/);
     assert.match(el("brokerExecutionStatus").textContent,/未连接/);
     assert.equal(el("transactionRows").querySelectorAll("tr[data-transaction-row]").length,10);
-    assert.match(el("transactionRows").textContent,/INTERNAL/);
+    assert.match(el("transactionRows").textContent,/已记录/);
     assert.match(el("transactionPageSummary").textContent,/13/);
     assert.equal(el("exportHistoryButton").disabled,false);
 
@@ -111,7 +111,7 @@ test("dark transactions workspace renders real account orders with filtering, pa
     assert.match(downloadedName,/transactions-.*\.csv/);
     const filteredCsv = await exportedBlob.text();
     assert.match(filteredCsv,/MSFT/);
-    assert.match(filteredCsv,/INTERNAL/);
+    assert.match(filteredCsv,/RECORDED/);
     el("transactionSearch").value = "";
     el("transactionSearch").dispatchEvent(new dom.window.Event("input",{bubbles:true}));
      el("exportHistoryButton").click();

@@ -39,7 +39,9 @@ let transactionPage = 1;
 let transactionPageSize = 10;
 let serviceBusy=false,serviceRequests=[];
 let internalProductsSerial=0,internalPurchaseBusy=false,internalPurchaseKeys=new Map();
-let internalProductPositionCount=0;
+let internalHoldings=[];
+let productOrders=[];
+let internalHoldingsUnavailable=false;
 let customerCommodityItems=[],customerCommoditySerial=0,customerSupportSerial=0;
 let customerSupportClosed=false;
 let accountAnalytics=null,accountAnalyticsSerial=0,accountAnalyticsState="idle",accountAnalyticsError="";
@@ -345,8 +347,9 @@ function renderRecords() {
     item.symbol.trim() && Number.isFinite(Number(item.quantity)) && Number(item.quantity) > 0
   ) : [];
   const orders = Array.isArray(account?.orders) ? account.orders : [];
-  el("positionCount").textContent = account ? String(positions.length) : "—";
-  el("orderCount").textContent = account ? String(accountAnalytics?.orderCount??orders.length) : "—";
+  const productPositions = account ? internalHoldings : [];
+  el("positionCount").textContent = account && !internalHoldingsUnavailable ? String(positions.length + productPositions.length) : "—";
+  el("orderCount").textContent = account ? String(transactionOrderCount(orders.length+productOrders.length)) : "—";
   const posRows = positions.map(item => {
     const node = document.createElement("div");
     node.className = "record-item holding-row";
@@ -367,6 +370,14 @@ function renderRecords() {
     node.append(left,right);
     return node;
   });
+  for(const item of productPositions){
+    const row=document.createElement('div');row.className='record-item holding-row';
+    const identity=document.createElement('div');identity.className='holding-company';
+    identity.append(textNode(item.name),textNode(item.code+' · 持仓成本 $'+money(item.cost_cents),'holding-name'));
+    row.append(identity,textNode(String(item.quantity)+' 份','holding-quantity-value'));
+    posRows.push(row);
+  }
+  if(account&&internalHoldingsUnavailable)posRows.push(makeEmpty('部分持仓读取失败，请刷新账户数据'));
   el("positions").replaceChildren(...(posRows.length ? posRows : [makeEmpty(account ? "暂无持仓记录" : "登录后查看当前持仓")]));
   const orderRows = orders.slice(0,8).map(item => {
     const node = document.createElement("div");
@@ -386,16 +397,26 @@ const TRANSACTION_RANGE_LABELS = Object.freeze({
   all:"All time", "7d":"Last 7 days", "30d":"Last 30 days", "90d":"Last 90 days"
 });
 function transactionName(item) {
-  return selectionInstruments().find(stock => stock.market === item.market && stock.symbol === item.symbol)?.name || "名称未登记";
+  return item.product_name || selectionInstruments().find(stock => stock.market === item.market && stock.symbol === item.symbol)?.name || "名称未登记";
+}
+function transactionOrders(){
+  if(!account)return [];
+  const orders=Array.isArray(account.orders)?account.orders:[];
+  if(!productOrders.length)return orders;
+  return [...orders,...productOrders].sort((a,b)=>(Date.parse(b.created_at)||0)-(Date.parse(a.created_at)||0));
+}
+function transactionOrderCount(loadedCount){
+  return productOrders.length||internalHoldingsUnavailable ? loadedCount : accountAnalytics?.orderCount??loadedCount;
 }
 function transactionPrice(item) {
   const marketInfo = MARKETS.find(entry => entry.code === item.market);
+  const currency = item.price_currency ?? marketInfo?.currency;
   const rawCents = item?.price_cents;
-  if (!marketInfo || rawCents === null || rawCents === undefined || rawCents === "") return "—";
+  if (!currency || rawCents === null || rawCents === undefined || rawCents === "") return "—";
   const cents = Number(rawCents);
   if (!Number.isSafeInteger(cents) || cents < 0) return "—";
   return new Intl.NumberFormat("en-US", {
-    style:"currency", currency:marketInfo.currency, minimumFractionDigits:2, maximumFractionDigits:2
+    style:"currency", currency, minimumFractionDigits:2, maximumFractionDigits:2
   }).format(cents / 100);
 }
 function transactionAmount(item) {
@@ -414,7 +435,7 @@ function transactionTime(value) {
   }).format(date);
 }
 function filteredTransactions() {
-  const orders = Array.isArray(account?.orders) ? account.orders : [];
+  const orders = transactionOrders();
   const query = el("transactionSearch").value.trim().toLocaleLowerCase();
   const range = "all";
   const days = range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 0;
@@ -445,8 +466,8 @@ function exportTransactionHistory() {
       const marketInfo = MARKETS.find(entry => entry.code === item.market);
       return [
         item.market,item.symbol,transactionName(item),item.side,
-        transactionPrice(item),marketInfo?.currency ?? "",
-        item.quantity,transactionAmount(item),"INTERNAL",item.created_at ?? ""
+        transactionPrice(item),item.price_currency ?? marketInfo?.currency ?? "",
+        item.quantity,transactionAmount(item),"RECORDED",item.created_at ?? ""
       ];
     })
   ];
@@ -462,7 +483,7 @@ function exportTransactionHistory() {
   URL.revokeObjectURL(url);
 }
 function renderTransactionHistory() {
-  const allOrders = Array.isArray(account?.orders) ? account.orders : [];
+  const allOrders = transactionOrders();
   let volumeCents = 0;
   let volumeCount = 0;
   let volumeSafe = true;
@@ -484,24 +505,24 @@ function renderTransactionHistory() {
   el("realizedPnl").textContent = "—";
   el("realizedPnlNote").textContent = "缺少逐笔成本匹配数据，暂不计算";
   if(account&&accountAnalytics){
-    if(Number.isSafeInteger(accountAnalytics.volumeCents)){
+    if(!productOrders.length&&!internalHoldingsUnavailable&&Number.isSafeInteger(accountAnalytics.volumeCents)){
       el("transactionVolume").textContent="$"+money(accountAnalytics.volumeCents);
       el("transactionVolumeNote").textContent=accountAnalytics.orderCount+" 笔 · 完整历史 · USD 等值";
     }
     if(accountAnalytics.historyAvailable){
       el("realizedPnl").textContent="$"+money(accountAnalytics.realizedPnlCents);
-      el("realizedPnlNote").textContent="FIFO 已实现毛盈亏 · 未扣手续费及税费";
+      el("realizedPnlNote").textContent="FIFO 已实现毛盈亏 · 按有卖出记录的订单计算 · 未扣手续费及税费";
     }else el("realizedPnlNote").textContent=ANALYTICS_REASONS[accountAnalytics.reason]??"完整成本记录不可用";
   }
-  el("internalRecordCount").textContent = account ? String(accountAnalytics?.orderCount??allOrders.length) : "—";
+  el("internalRecordCount").textContent = account ? String(transactionOrderCount(allOrders.length)) : "—";
   el("brokerExecutionStatus").textContent = "未连接";
 
   const range = "all";
   el("transactionRangeLabel").textContent = TRANSACTION_RANGE_LABELS[range] ?? "All time";
-  const totalHistory=accountAnalytics?.orderCount;
+  const totalHistory=productOrders.length||internalHoldingsUnavailable?undefined:accountAnalytics?.orderCount;
   el("transactionHistoryScope").textContent=!account?"登录后查看记录范围":Number.isSafeInteger(totalHistory)
     ?"统计基于完整历史 "+totalHistory+" 笔；列表已加载 "+allOrders.length+" 笔，筛选、分页和导出仅作用于已加载记录。"
-    :"列表为最近最多 100 笔；筛选、分页和导出仅作用于已加载记录，完整历史统计待同步。";
+    :internalHoldingsUnavailable?"部分交易记录读取失败，请刷新账户数据。":"筛选、分页和导出适用于已加载的最近记录。";
   if(Number.isSafeInteger(totalHistory)&&totalHistory>allOrders.length)
     el("transactionRangeLabel").textContent="最近 "+allOrders.length+" 笔";
   const filtered = filteredTransactions();
@@ -557,7 +578,7 @@ function renderTransactionHistory() {
       amount.className = "transaction-amount-cell";
       amount.textContent = transactionAmount(item);
       const status = document.createElement("td");
-      status.append(textNode("INTERNAL","record-status internal-status"));
+      status.append(textNode("已记录","record-status internal-status"));
       const time = document.createElement("td");
       time.className = "transaction-time-cell";
       time.textContent = transactionTime(item.created_at);
@@ -595,7 +616,7 @@ function renderAccountAnalytics(){
  el("portfolioValueNote").textContent=Number.isSafeInteger(data?.portfolioValueCents)
   ?"仅现金，无持仓 · USD 账户记录":data?.holdingCount>0?"缺少持仓报价，无法计算总市值":
    !account?"登录后查看账户估值":"等待完整账户统计";
- if(account&&internalProductPositionCount>0){el('portfolioValue').textContent='—';el('portfolioValueNote').textContent='存在内部产品持仓，无法计算完整市值；数量与成本见产品参与区';}
+ if(account&&(internalHoldings.length||internalHoldingsUnavailable)){el('portfolioValue').textContent='—';el('portfolioValueNote').textContent='完整市值暂不可用，数量与成本请查看持仓';}
  el("refreshAnalyticsButton").disabled=!account||accountAnalyticsState==="loading";
  el("accountAnalyticsStatus").textContent=!account?"登录后读取统计":accountAnalyticsState==="loading"
   ?"正在读取完整账户历史":accountAnalyticsState==="error"?"统计不可用："+accountAnalyticsError:
@@ -1123,18 +1144,18 @@ el('refreshReferenceFx').addEventListener('click',()=>void refreshReferenceFx())
 void refreshReferenceFx();
 
 function clearInternalProducts(){
- internalProductPositionCount=0;
+ internalHoldings=[];productOrders=[];internalHoldingsUnavailable=false;
  internalProductsSerial++;internalPurchaseBusy=false;internalPurchaseKeys.clear();
  el('internalProductsPanel').hidden=true;
- for(const id of ['internalProductsItems','internalProductPositions','internalPurchaseHistory'])el(id).replaceChildren();
+ el('internalProductsItems').replaceChildren();
  el('internalProductsStatus').textContent='';
 }
 function internalProductCard(item){
  const card=document.createElement('article');card.className='internal-product-card';
  const title=document.createElement('h3');title.textContent=item.name+' · '+item.code;
  const detail=document.createElement('p');const discounted=Number((BigInt(item.internalPriceCents)*BigInt(10000-item.discountBps)+5000n)/10000n);
- const types={STOCK:'股票',FUND:'基金',IPO:'IPO内部参与',COMMODITY:'大宗商品'};
- detail.textContent=(types[item.itemType]??item.itemType)+' · 原价 $'+money(item.internalPriceCents)+' / '+item.unit+' · 优惠 '+(item.discountBps/100)+'% · 内部单价 $'+money(discounted);
+ const types={STOCK:'股票',FUND:'基金',IPO:'IPO',COMMODITY:'大宗商品'};
+ detail.textContent=(types[item.itemType]??item.itemType)+' · 原价 $'+money(item.internalPriceCents)+' / '+item.unit+' · 优惠 '+(item.discountBps/100)+'% · 购买单价 $'+money(discounted);
  const form=document.createElement('form');form.autocomplete='off';
  const qtyLabel=document.createElement('label');qtyLabel.textContent='参与数量（最低'+item.minimumQuantity+'）';
  const qty=document.createElement('input');qty.type='number';qty.min=String(item.minimumQuantity);qty.max='1000000';qty.step='1';qty.value=String(item.minimumQuantity);qty.required=true;qtyLabel.append(qty);
@@ -1143,7 +1164,7 @@ function internalProductCard(item){
  const total=document.createElement('output');const updateTotal=()=>{
   const n=Number(qty.value);total.textContent=Number.isSafeInteger(n)&&n>=item.minimumQuantity&&n<=1000000?'实付 $'+money(discounted*n)+' USD':'请输入有效数量';
  };qty.addEventListener('input',updateTotal);updateTotal();
- const button=document.createElement('button');button.type='submit';button.className='primary-button';button.textContent='确认内部购买';
+ const button=document.createElement('button');button.type='submit';button.className='primary-button';button.textContent='确认购买';
  const feedback=document.createElement('small');feedback.setAttribute('role','status');
  form.append(qtyLabel,pinLabel,total,button,feedback);card.append(title,detail,form);
  form.addEventListener('submit',async event=>{
@@ -1151,12 +1172,18 @@ function internalProductCard(item){
   const usedToken=token,quantity=Number(qty.value),fingerprint=item.termsId+':'+item.termsVersion+':'+quantity;
   const key=internalPurchaseKeys.get(fingerprint)??crypto.randomUUID();internalPurchaseKeys.set(fingerprint,key);
   const body={termsId:item.termsId,termsVersion:item.termsVersion,quantity,participationPassword:pin.value};pin.value='';
-  internalPurchaseBusy=true;button.disabled=true;feedback.textContent='正在处理内部购买…';
+  internalPurchaseBusy=true;button.disabled=true;feedback.textContent='正在处理购买…';
   try{
    const result=await request('/internal-purchases',{method:'POST',headers:{'idempotency-key':key},body});
    if(usedToken!==token)return;
-   internalPurchaseKeys.delete(fingerprint);await refreshAccount();
-   if(usedToken===token)el('internalProductsStatus').textContent=result.replayed?'已读取原购买记录，没有重复扣款':'内部购买成功，余额、订单与持仓已同步';
+   internalPurchaseKeys.delete(fingerprint);
+   if(accountRefreshing)await refreshInternalProducts();else await refreshAccount();
+   if(usedToken===token){
+    const status=el('internalProductsStatus');
+    status.textContent=result.replayed?'已读取原购买记录。':'购买成功。';
+    if(internalHoldingsUnavailable){status.append(' 持仓读取失败，请刷新账户数据。');}
+    else{const link=document.createElement('a');link.href='#holdings-section';link.textContent='查看持仓';status.append(' ',link);}
+   }
   }catch(error){if(usedToken===token)feedback.textContent='购买未确认：'+error.message+'。若网络中断，重试将使用同一请求编号。';}
   finally{body.participationPassword='';if(usedToken===token){internalPurchaseBusy=false;button.disabled=false;}}
  });
@@ -1165,26 +1192,30 @@ function internalProductCard(item){
 async function refreshInternalProducts(){
  if(!token||!account){clearInternalProducts();return;}
  const usedToken=token,serial=++internalProductsSerial;el('internalProductsPanel').hidden=false;
- el('internalProductsStatus').textContent='正在读取内部产品、订单和持仓…';
+ el('internalProductsStatus').textContent='正在读取产品、交易记录和持仓…';
  try{
-  const [products,records]=await Promise.all([request('/internal-products'),request('/internal-purchases')]);
+  const [catalogResult,recordsResult]=await Promise.allSettled([request('/internal-products'),request('/internal-purchases')]);
   if(usedToken!==token||serial!==internalProductsSerial)return;
+  if(recordsResult.status==='rejected')throw recordsResult.reason;
+  const products=catalogResult.status==='fulfilled'?catalogResult.value:{};
+  const records=recordsResult.value;
   const valid=Array.isArray(products.items)?products.items:[];
   const cards=valid.map(internalProductCard);el('internalProductsItems').replaceChildren(...cards);
   if(!cards.length)el('internalProductsItems').append(makeEmpty('暂无已开启购买的产品；管理员需设置价格、折扣与参与密码'));
-  const pos=el('internalProductPositions');pos.replaceChildren();
-  internalProductPositionCount=(records.positions??[]).length;
-  for(const item of records.positions??[]){const row=document.createElement('p');row.textContent=item.name+' · '+item.code+' · 数量 '+item.quantity+' · 持仓成本 $'+money(Number(item.cost_cents))+' USD';pos.append(row);}
-  if(!pos.childElementCount)pos.append(makeEmpty('暂无内部产品持仓'));
-  const history=el('internalPurchaseHistory');history.replaceChildren();
-  for(const item of records.purchases??[]){const row=document.createElement('p');row.textContent=item.product_name+' · '+item.product_code+' · 数量 '+item.quantity+' · 优惠 '+(item.discount_bps/100)+'% · 实付 $'+money(Number(item.total_cents))+' USD · '+new Date(item.created_at).toLocaleString('zh-CN')+' · 平台内部记录';history.append(row);}
-  if(!history.childElementCount)history.append(makeEmpty('暂无内部购买记录'));
-  el('internalProductsStatus').textContent='已同步 '+valid.length+' 个可参与产品 · 产品单价和支付币种均为USD';
+  internalHoldings=Array.isArray(records.positions)?records.positions:[];
+  productOrders=(Array.isArray(records.purchases)?records.purchases:[]).map(item=>({
+   symbol:item.product_code,product_name:item.product_name,side:'BUY',quantity:item.quantity,
+   price_cents:item.unit_price_cents,price_currency:'USD',amount_usd_cents:item.total_cents,created_at:item.created_at
+  }));
+  internalHoldingsUnavailable=false;
+  el('internalProductsStatus').textContent=catalogResult.status==='rejected'?'商品目录暂不可用，持仓与购买记录已同步。':'已同步 '+valid.length+' 个可参与产品 · 产品单价和支付币种均为USD';
+  renderRecords();
   renderAccountAnalytics();
  }catch(error){
   if(usedToken!==token||serial!==internalProductsSerial)return;
-  for(const id of ['internalProductsItems','internalProductPositions','internalPurchaseHistory'])el(id).replaceChildren();
-  el('internalProductsStatus').textContent='内部购买数据暂不可用：'+error.message;
+  internalHoldings=[];productOrders=[];internalHoldingsUnavailable=true;renderRecords();renderAccountAnalytics();
+  el('internalProductsItems').replaceChildren();
+  el('internalProductsStatus').textContent='购买数据暂不可用：'+error.message;
  }
 }
 el('refreshInternalProducts').addEventListener('click',()=>void refreshInternalProducts());

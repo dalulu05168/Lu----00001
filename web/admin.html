@@ -254,7 +254,7 @@
                 <button type="button" role="tab" data-mirror-tab="positions" aria-selected="false">持仓</button>
                 <button type="button" role="tab" data-mirror-tab="orders" aria-selected="false">订单</button>
                 <button type="button" role="tab" data-mirror-tab="watchlist" aria-selected="false">自选</button>
-                <button type="button" role="tab" data-mirror-tab="internalProducts" aria-selected="false">内部产品</button>
+                <button type="button" role="tab" data-mirror-tab="internalProducts" aria-selected="false">产品订单</button>
               </div>
               <div class="mirror-screen" id="mirrorAppScreen" role="tabpanel"><p class="muted">从左侧客户名单点击“查看 App 镜像”后，读取该客户实际账户数据。</p></div>
               <div class="mirror-bottom">
@@ -320,6 +320,13 @@
             <label>证券代码<input id="listingSymbol" pattern="[A-Z0-9.-]{1,24}" required></label>
             <label>名称<input id="listingName" maxlength="120" required></label>
             <label>状态<select id="listingStatus"><option value="DRAFT">草稿</option><option value="PUBLISHED">已发布</option></select></label>
+            <details id="listingQuickPurchase" class="workflow-form-wide">
+              <summary>上架并开启购买</summary>
+              <label><input id="listingQuickEnabled" type="checkbox">保存时发布，并开启购买</label>
+              <label>每份原价（USD）<input id="listingQuickPrice" inputmode="decimal"></label>
+              <label>优惠比例（%）<input id="listingQuickDiscount" type="number" min="0" max="99.99" step="0.01" value="0"></label>
+              <label>六位参与密码<input id="listingQuickPassword" type="password" maxlength="6" inputmode="numeric" autocomplete="new-password"></label>
+            </details>
             <button id="listingSubmit" type="submit">保存证券资料</button>
             <button id="listingCancelEdit" type="button" class="outline" hidden>取消编辑</button>
           </form><div id="listings"></div><p id="listingFeedback" class="feedback" role="status"></p>
@@ -340,7 +347,14 @@
             <label>人工参考价（USD，可空）<input id="commodityIndicativePrice" inputmode="decimal" placeholder="不是实时报价"></label>
             <label>目录状态<select id="commodityStatus"><option value="DRAFT">草稿</option>
               <option value="PUBLISHED">公开目录</option><option value="ARCHIVED">归档</option></select></label>
-            <label>变更原因（至少 12 字）<input id="commodityReason" maxlength="400" minlength="12" required placeholder="请填写上架或修改原因"></label>
+            <label>变更原因<input id="commodityReason" maxlength="400" minlength="12" placeholder="新建可用系统记录；编辑时请填写至少12字"></label>
+            <details id="commodityQuickPurchase" class="workflow-form-wide">
+              <summary>上架并开启购买</summary>
+              <label><input id="commodityQuickEnabled" type="checkbox">保存时发布，并开启购买</label>
+              <label>每份原价（USD）<input id="commodityQuickPrice" inputmode="decimal"></label>
+              <label>优惠比例（%）<input id="commodityQuickDiscount" type="number" min="0" max="99.99" step="0.01" value="0"></label>
+              <label>六位参与密码<input id="commodityQuickPassword" type="password" maxlength="6" inputmode="numeric" autocomplete="new-password"></label>
+            </details>
             <button id="commoditySubmit" type="submit">创建商品</button>
             <button id="commodityCancel" type="button" class="outline" hidden>取消编辑</button>
           </form>
@@ -441,13 +455,13 @@
 <dialog id="productTermsDialog" class="product-terms-dialog" aria-labelledby="productTermsTitle">
  <h2 id="productTermsTitle">折扣与参与交易设置</h2><p id="productTermsName"></p>
  <form id="productTermsForm" class="field-grid" autocomplete="off">
-  <label>内部原价（USD）<input id="productTermsPrice" inputmode="decimal" required placeholder="每份原价，例如100.00"></label>
+  <label>原价（USD）<input id="productTermsPrice" inputmode="decimal" required placeholder="每份原价，例如100.00"></label>
   <label>优惠比例（%）<input id="productTermsDiscount" type="number" min="0" max="99.99" step="0.01" value="0" required></label>
   <label>六位参与密码<input id="productTermsPassword" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" placeholder="每个产品单独设置；留空保留原密码"></label>
-  <label>允许内部购买<select id="productTermsEnabled"><option value="false">关闭</option><option value="true">开启</option></select></label>
+  <label>允许购买<select id="productTermsEnabled"><option value="false">关闭</option><option value="true">开启</option></select></label>
   <label>变更原因（至少12字）<input id="productTermsReason" minlength="12" maxlength="400" required></label>
   <div><button type="submit" id="productTermsSave">保存交易设置</button><button type="button" id="productTermsCancel" class="outline">取消</button></div>
- </form><p class="muted">优惠10%代表按原价90%购买。密码不回显；变更价格后客户需重新确认。仅生成平台内部记录。</p>
+ </form><p class="muted">优惠10%代表按原价90%购买。密码不回显；变更价格后客户需重新确认。</p>
  <p id="productTermsFeedback" class="feedback" role="status"></p>
 </dialog>
 <script type="module" src="/portal.mjs"></script><script type="module" src="/admin.mjs"></script>

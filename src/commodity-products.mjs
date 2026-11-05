@@ -1,4 +1,5 @@
 import {randomUUID} from "node:crypto";
+import {enableNewProductPurchases} from './internal-products.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CATEGORIES=new Set(["PRECIOUS_METAL","ENERGY","AGRICULTURE","INDUSTRIAL_METAL","OTHER"]);
 const STATUSES=new Set(["DRAFT","PUBLISHED","ARCHIVED"]);
@@ -38,13 +39,15 @@ export async function listCommodityProducts(db,actor,{publishedOnly=false}={}){
  return {items:q.rows.map(output),dataOrigin:"ADMIN_INDICATIVE",brokerConnected:false};
 }
 export async function createCommodityProduct(db,actor,body){
- master(actor);const d=validate(body),id=randomUUID();
+ master(actor);const {purchaseTerms,...metadata}=body??{};
+ const d=validate(metadata),id=randomUUID();
  return txn(db,async c=>{
   const r=await c.query("INSERT INTO commodity_products(id,sku,name,category,unit,minimum_quantity,indicative_price_cents,status,created_by,updated_by)"+
    " VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$9) RETURNING *",
    [id,d.sku,d.name.trim(),d.category,d.unit.trim(),d.minimumQuantity??1,d.indicativePriceCents??null,d.status??"DRAFT",actor.userId]);
   await c.query("INSERT INTO commodity_product_audit(product_id,actor_user_id,action,new_status,reason)"+
    " VALUES($1,$2,'CREATE',$3,$4)",[id,actor.userId,r.rows[0].status,d.reason.trim()]);
+  if(purchaseTerms!==undefined)await enableNewProductPurchases(c,actor,'COMMODITY',id,purchaseTerms,r.rows[0].status);
   return output(r.rows[0]);
  });
 }

@@ -43,6 +43,8 @@ test("trading terminal renders, switches markets, and handles account session wi
         return json(200,{item});
       }
       if (url === "/api/catalog") return json(200,{items:[{id:"test",itemType:"IPO",market:"US",symbol:"TESTIPO",name:"IPO资料"}]});
+      if (url === "/api/internal-products") return json(200,{items:[]});
+      if (url === "/api/internal-purchases") return json(200,{positions:[{code:"GOLD",name:"测试黄金",quantity:"3",cost_cents:"12300"}],purchases:[{product_code:"GOLD",product_name:"测试黄金",quantity:"3",unit_price_cents:"4100",total_cents:"12300",created_at:"2026-11-04T12:00:00Z"}]});
       if (url === "/api/account") return json(200, {
         account: { id: "account-1", cashCents: 125000, currency: "USD" },
         positions: [{ market: "US", symbol: "AAPL", quantity: "2" }],
@@ -86,11 +88,13 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("entryGate").hidden,true,"signed-in user sees workspace");
     assert.equal(el("overview").hidden,false,"workspace requires verified account");
     assert.equal(el("cash").textContent, "1,250.00");
-    assert.equal(el("positionCount").textContent, "1");
+    assert.equal(el("positionCount").textContent, "2");
+    assert.match(el("positions").textContent,/测试黄金.*GOLD.*123\.00.*3 份/);
+    assert.match(el("transactionRows").textContent,/GOLD.*测试黄金.*\$41\.00.*\$123\.00.*已记录/);
     assert.equal(el("marketCards").querySelectorAll(".market-card-ratio")[0].textContent, "100%");
     assert.equal(el("marketCards").querySelectorAll(".market-card-detail")[0].textContent, "1 只标的");
     assert.equal(el("marketCards").querySelectorAll(".market-card-ratio")[1].textContent, "0%");
-    assert.equal(el("positions").querySelectorAll(".holding-company").length, 1);
+    assert.equal(el("positions").querySelectorAll(".holding-company").length, 2);
     assert.equal(el("positions").querySelector(".holding-name").textContent, "Apple Inc.");
     assert.equal(el("accountStatus").textContent, "已连接");
     assert.equal(el("watchlistToggle").disabled, false);

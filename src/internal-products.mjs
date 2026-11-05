@@ -54,6 +54,17 @@ export async function readAdminProductTerms(db,actor,kind,id){
  if(!r.rows.length)throw productError('Product not found',404);
  return publicTerms(r.rows[0]);
 }
+async function saveAuditedTerms(db,actor,kind,id,input,reason){
+ await saveProductTerms(db,kind,id,input);
+ const next=await readAdminProductTerms(db,actor,kind,id);
+ await db.query(`INSERT INTO internal_product_terms_audit(terms_id,actor_user_id,version,price_cents,discount_bps,trading_enabled,password_changed,reason)
+  VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,[next.termsId,actor.userId,next.termsVersion,next.internalPriceCents,next.discountBps,next.tradingEnabled,Boolean(input.participationPassword),reason]);
+ return next;
+}
+export async function enableNewProductPurchases(db,actor,kind,id,terms,status){
+ if(status!=='PUBLISHED'||!terms||typeof terms!=='object'||Array.isArray(terms)||Object.keys(terms).some(k=>!['internalPriceCents','discountBps','participationPassword'].includes(k)))throw productError('Invalid purchase settings for new product');
+ return saveAuditedTerms(db,actor,kind,id,{...terms,tradingEnabled:true},'创建并发布产品，同时开启内部购买');
+}
 export async function updateAdminProductTerms(db,actor,body){
  if(actor?.role!=='MASTER')throw productError('Master permission required',403);
  if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).some(k=>!['kind','id','expectedVersion','tradingEnabled','internalPriceCents','discountBps','participationPassword','reason'].includes(k)))throw productError('Invalid product terms');
@@ -68,10 +79,7 @@ export async function updateAdminProductTerms(db,actor,body){
   if(!found.rows.length)throw productError('Product not found',404);
   const previous=await readAdminProductTerms(c,actor,body.kind,body.id);
   if((previous.termsVersion??0)!==body.expectedVersion)throw productError('Product terms changed; refresh before saving',409);
-  await saveProductTerms(c,body.kind,body.id,body);
-  const next=await readAdminProductTerms(c,actor,body.kind,body.id);
-  await c.query(`INSERT INTO internal_product_terms_audit(terms_id,actor_user_id,version,price_cents,discount_bps,trading_enabled,password_changed,reason)
-   VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,[next.termsId,actor.userId,next.termsVersion,next.internalPriceCents,next.discountBps,next.tradingEnabled,Boolean(body.participationPassword),body.reason.trim()]);
+  const next=await saveAuditedTerms(c,actor,body.kind,body.id,body,body.reason.trim());
   await c.query('COMMIT');active=false;return next;
  }catch(error){if(active)await c.query('ROLLBACK');throw error;}finally{c.release();}
 }

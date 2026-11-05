@@ -59,7 +59,7 @@
 
   <details class="sidebar-section" open><summary class="sidebar-section-title">RESEARCH & DATA</summary>
     <nav class="sidebar-nav" aria-label="研究与数据导航">
-      <a class="sidebar-link" href="#internalProductsPanel"><span>产品参与与内部持仓</span></a>
+      <a class="sidebar-link" href="#internalProductsPanel"><span>产品购买</span></a>
       <a class="sidebar-link" href="#serviceRequestsPanel"><span>申请与审核记录</span></a>
       <a class="sidebar-link" href="#commodityCatalogPanel"><span>商品目录</span></a>
       <a class="sidebar-link" href="#customerSupportPanel"><span>客户客服</span></a>
@@ -175,7 +175,7 @@
           <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
         </section>
         <section class="panel holdings-panel" id="holdings-section" aria-labelledby="holdingsTitle">
-          <div class="panel-heading"><h2 id="holdingsTitle">Holdings <small>(<span id="positionCount">—</span>)</small></h2><a href="#transactions-section" class="subtle-link">View All <span>→</span></a></div>
+          <div class="panel-heading"><h2 id="holdingsTitle">Holdings <small>(<span id="positionCount">—</span>)</small></h2></div>
           <div class="holdings-table-head"><span>Stock / Company</span><span>Quantity</span></div>
           <div id="positions" class="record-list holdings-list">登录后查看持仓</div>
           <div class="holdings-note"></div>
@@ -254,9 +254,9 @@
           <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>
         </div>
         <div class="panel order-panel">
-          <div class="panel-heading"><h2>Order Entry</h2><span class="view-label">暂不可用</span></div>
-          <p class="panel-caption">交易服务暂不可用</p>
-          <form id="orderForm">
+          <div class="panel-heading"><h2>购买产品</h2><a href="#internalProductsPanel" class="subtle-link">查看可购买产品 →</a></div>
+          <p class="panel-caption">选择产品，确认价格和数量后提交。</p>
+          <form id="orderForm" hidden>
             <div class="order-fields"><label class="form-field"><span>Side</span><select id="side"><option value="BUY">买入 BUY</option><option value="SELL">卖出 SELL</option></select></label>
               <label class="form-field"><span>Quantity</span><input id="quantity" type="number" min="1" step="1" value="1" required></label></div>
             <div class="order-details"><span>Selected instrument</span><span id="orderSymbol">US · AAPL</span></div>
@@ -338,11 +338,9 @@
       </section>
 
       <section class="panel" id="internalProductsPanel" hidden aria-labelledby="internalProductsTitle">
-       <div class="panel-heading"><h2 id="internalProductsTitle">产品参与 · 平台内部购买</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品与持仓</button></div>
-       <p class="chart-source">股票、基金、IPO与大宗商品按管理员设置的USD内部价格参与，优惠按每份原价计算。生成平台内部订单与持仓，不代表券商成交或IPO配售。</p>
+       <div class="panel-heading"><h2 id="internalProductsTitle">产品购买</h2><button type="button" id="refreshInternalProducts" class="secondary-button">刷新产品</button></div>
+       <p class="chart-source">股票、基金、IPO 和大宗商品均以 USD 计价。购买后可在交易明细和持仓中查看记录。</p>
        <p id="internalProductsStatus" role="status"></p><div id="internalProductsItems" class="internal-products-grid"></div>
-       <h3>内部产品持仓</h3><div id="internalProductPositions" class="record-list"></div>
-       <h3>内部购买记录</h3><p class="chart-source">显示最近100笔内部购买；完整记录保留在账户流水中。</p><div id="internalPurchaseHistory" class="record-list"></div>
       </section>
       <footer class="app-footer"><span>CN Capital · CN Capital Markets</span></footer>
     </div>

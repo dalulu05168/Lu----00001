@@ -190,6 +190,7 @@ a{color:inherit;text-decoration:none}
 @media(max-width:450px){.account-facts{grid-template-columns:1fr 1fr}.account-facts>div:last-child{grid-column:1/-1}.account-summary{padding:12px}}
 .logout-button{margin-top:10px}
 #orderForm{display:grid;gap:12px}
+#orderForm[hidden]{display:none}
 .order-fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .order-details{display:flex;justify-content:space-between;gap:9px;font-size:11px;padding:7px 0;border-bottom:1px solid #eceef0;color:#444444}
 .order-details #orderSymbol{color:#000000}

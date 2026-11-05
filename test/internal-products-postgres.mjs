@@ -85,5 +85,22 @@ export async function verifyInternalProducts(){
   assert.deepEqual(other.purchases,[]);assert.deepEqual(other.positions,[]);
   const publicProducts=await (await fetch(origin+'/api/internal-products',{headers:{authorization:'Bearer synthetic-owner'}})).json();
   assert.equal(JSON.stringify(publicProducts).includes('participation_password_hash'),false);
+  const purchaseTerms={internalPriceCents:10000,discountBps:1000,participationPassword:'001234'};
+  const listingInput={itemType:'STOCK',market:'US',symbol:'T'+randomUUID().slice(0,8).toUpperCase(),name:'Quick listing',status:'PUBLISHED'};
+  const commodityInput={sku:'T'+randomUUID().slice(0,8).toUpperCase(),name:'Quick commodity',unit:'份额',category:'PRECIOUS_METAL',minimumQuantity:1,status:'PUBLISHED',reason:'Synthetic quick commodity creation'};
+  const invalidTerms={...purchaseTerms,participationPassword:'12345'};
+  await assert.rejects(createListing(db,actor,{...listingInput,purchaseTerms:invalidTerms}),e=>e.statusCode===400);
+  await assert.rejects(createCommodityProduct(db,actor,{...commodityInput,purchaseTerms:invalidTerms}),e=>e.statusCode===400);
+  assert.equal((await db.query('SELECT id FROM listings WHERE symbol=$1',[listingInput.symbol])).rowCount,0);
+  assert.equal((await db.query('SELECT id FROM commodity_products WHERE sku=$1',[commodityInput.sku])).rowCount,0);
+  const quickListing=await createListing(db,actor,{...listingInput,purchaseTerms});
+  const quickCommodity=await createCommodityProduct(db,actor,{...commodityInput,purchaseTerms});
+  const available=await listPublishedInternalProducts(db);
+  for(const [kind,id] of [['LISTING',quickListing.id],['COMMODITY',quickCommodity.id]]){
+   const terms=await readAdminProductTerms(db,actor,kind,id);
+   assert.equal(terms.tradingEnabled,true);
+   assert.equal(terms.passwordConfigured,true);
+   assert.ok(available.some(product=>product.termsId===terms.termsId));
+  }
  }finally{if(app)await new Promise(done=>app.close(done));await db.end();}
 }

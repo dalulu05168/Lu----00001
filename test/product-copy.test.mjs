@@ -14,7 +14,7 @@ test("client and admin screens use concise product labels rather than internal d
   assert.match(admin,/账户数据快照/);
    assert.match(admin,/id="mirrorPolicyForm"/);
    assert.match(admin,/id="mirrorReviewForm"/);
-  assert.match(client,/交易服务暂不可用/);
+  assert.match(client,/查看可购买产品/);
   assert.match(client,/CN Capital/);
   assert.match(admin,/CN Capital/);
 });

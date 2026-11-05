@@ -782,6 +782,7 @@ let editingListingId=null;
 function clearListingEditor(){
   editingListingId=null;
   el("listingForm").reset();
+  el('listingQuickPurchase').hidden=false;
   el("listingSubmit").textContent="保存证券资料";
   el("listingCancelEdit").hidden=true;
 }
@@ -791,6 +792,7 @@ function beginListingEdit(item){
     setText("listingFeedback","请先撤回为草稿，再编辑证券资料。");return;
   }
   editingListingId=item.id;
+  el('listingQuickPurchase').hidden=true;
   el("listingType").value=item.itemType;
   el("listingMarket").value=item.market;
   el("listingSymbol").value=item.symbol;
@@ -1012,12 +1014,14 @@ function commodityCents(value){
 }
 function resetCommodityEditor(){
  commodityEditingId=null;el("commodityForm").reset();
+ el('commodityQuickPurchase').hidden=false;
  el("commoditySku").disabled=false;el("commoditySubmit").textContent="创建商品";
  el("commodityCancel").hidden=true;el("commodityMinQty").value="1";
 }
 function openCommodityEditor(item){
  if(role!=="MASTER")return;
  commodityEditingId=item.id;
+ el('commodityQuickPurchase').hidden=true;
  el("commoditySku").value=item.sku;el("commoditySku").disabled=true;
  el("commodityName").value=item.name;el("commodityCategory").value=item.category;
  el("commodityUnit").value=item.unit;el("commodityMinQty").value=String(item.minimumQuantity);
@@ -1069,9 +1073,13 @@ el("commodityForm").addEventListener("submit",async event=>{
    status:el("commodityStatus").value,reason:el("commodityReason").value.trim()
   };
   if(commodityEditingId)await api("/admin/commodities",{method:"PATCH",body:{id:commodityEditingId,...data}});
-  else await api("/admin/commodities",{method:"POST",body:{sku:el("commoditySku").value.trim().toUpperCase(),...data}});
+  else{
+   data.reason ||= '新建商品目录并记录管理员发布操作';
+   includeQuickPurchase('commodity',data);
+   await api("/admin/commodities",{method:"POST",body:{sku:el("commoditySku").value.trim().toUpperCase(),...data}});
+  }
   resetCommodityEditor();await refreshCommodityItems();
-  el("commodityFeedback").textContent="商品目录已保存；价格为人工参考价，不是实时市场报价";
+  el("commodityFeedback").textContent=data.purchaseTerms?'商品已上架，前台可购买':'商品目录已保存';
  }catch(error){el("commodityFeedback").textContent="保存失败："+error.message;}
  finally{btn.disabled=false;}
 });
@@ -1262,11 +1270,12 @@ el("listingForm").addEventListener("submit",async event=>{
       symbol:el("listingSymbol").value.toUpperCase().trim(),
       name:el("listingName").value.trim(),status:el("listingStatus").value
     };
-    const result=await api("/admin/listings",editingListingId
+    if(!editingListingId)includeQuickPurchase('listing',body);
+    await api("/admin/listings",editingListingId
       ?{method:"PATCH",body:{id:editingListingId,...body}}
       :{method:"POST",body});
     clearListingEditor();
-    setText("listingFeedback","已保存证券资料 "+body.symbol+" · "+(body.status==="PUBLISHED"?"已发布":"草稿"));
+    setText("listingFeedback","已保存证券资料 "+body.symbol+" · "+(body.purchaseTerms?'已发布并开启购买':body.status==="PUBLISHED"?"已发布":"草稿"));
     await refreshListings();
   }catch(error){setText("listingFeedback",error.message)}
   finally{button.disabled=false;}
@@ -1407,6 +1416,14 @@ function discountInputBps(value){
  if(!/^\d{1,2}(?:\.\d{1,2})?$/.test(value))throw Error('优惠比例应在0至99.99%之间');
  const [whole,part='']=value.split('.');return Number(whole)*100+Number(part.padEnd(2,'0'));
 }
+function includeQuickPurchase(prefix,body){
+ if(!el(prefix+'QuickEnabled').checked)return;
+ const password=el(prefix+'QuickPassword').value;
+ const price=commodityCents(el(prefix+'QuickPrice').value);
+ if(!price||!/^\d{6}$/.test(password))throw Error('开启购买需要有效原价和六位参与密码');
+ body.status='PUBLISHED';
+ body.purchaseTerms={internalPriceCents:price,discountBps:discountInputBps(el(prefix+'QuickDiscount').value),participationPassword:password};
+}
 el('productTermsEnabled').addEventListener('change',updateProductPasswordRequirement);
 el('productTermsCancel').addEventListener('click',closeProductTerms);
 el('productTermsDialog').addEventListener('cancel',()=>{productTermsSerial++;productTermsState=null;el('productTermsPassword').value='';});
@@ -1421,7 +1438,7 @@ el('productTermsForm').addEventListener('submit',async event=>{
   const {item}=await api('/admin/product-terms',{method:'PATCH',body});
   if(usedToken!==adminToken||serial!==productTermsSerial)return;
   productTermsState={...state,...item};el('productTermsPassword').value='';updateProductPasswordRequirement();
-  el('productTermsFeedback').textContent='交易设置已保存 · 优惠 '+(item.discountBps/100)+'% · '+(item.tradingEnabled?'内部购买已开启':'内部购买已关闭');
+  el('productTermsFeedback').textContent='交易设置已保存 · 优惠 '+(item.discountBps/100)+'% · '+(item.tradingEnabled?'购买已开启':'购买已关闭');
  }catch(error){if(usedToken===adminToken&&serial===productTermsSerial)el('productTermsFeedback').textContent='未保存：'+error.message;}
  finally{el('productTermsPassword').value='';if(serial===productTermsSerial)button.disabled=false;}
 });
