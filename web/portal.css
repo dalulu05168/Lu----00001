@@ -116,3 +116,4 @@ body {background:var(--terminal-canvas);color:var(--terminal-ink);font-family:va
 .mirror-history .history-trend {stroke:var(--terminal-ink)}
 .mirror-history .history-cursor circle {fill:var(--terminal-accent)}
 .mirror-history .history-cursor rect {fill:var(--terminal-selected)}
+.portal-sim-note{margin:16px 0 0;padding:11px 13px;border:1px solid #6a6252;border-radius:11px;background:#2a241896;font-size:11px;line-height:1.6;color:#e7cfa0;text-align:left}

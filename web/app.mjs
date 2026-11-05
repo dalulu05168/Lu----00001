@@ -62,6 +62,32 @@ const money = cents => {
   if (!Number.isSafeInteger(value)) return "—";
   return (value / 100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 };
+// Live market value for a US stock holding. Simulation only: the price comes
+// from the read-only quote feed; nothing here routes a real order. When the
+// market is closed or the feed is unconfigured the quote endpoint returns 503
+// and the row keeps showing cost basis only.
+function appendLiveValuation(container,item){
+  const quantity=Number(item.quantity),cost=Number(item.cost_cents);
+  if(!Number.isSafeInteger(quantity)||quantity<=0)return;
+  const line=textNode("读取现价…","holding-live-value");
+  container.append(line);
+  const serial=internalProductsSerial,usedToken=token,symbol=item.symbol??item.code;
+  request("/stock-quote?market=US&symbol="+encodeURIComponent(symbol)).then(quote=>{
+    if(usedToken!==token||serial!==internalProductsSerial)return;
+    const price=Number(quote?.priceCents);
+    if(!Number.isSafeInteger(price)||price<=0){line.textContent="现价暂不可用";return;}
+    const value=price*quantity;
+    let text="现价 $"+money(price)+" · 市值 $"+money(value);
+    if(Number.isSafeInteger(cost)){
+      const pnl=value-cost;
+      const pct=cost>0?(pnl/cost*100):0;
+      line.classList.toggle("pnl-up",pnl>0);
+      line.classList.toggle("pnl-down",pnl<0);
+      text+=" · 浮动 "+(pnl>=0?"+":"-")+"$"+money(Math.abs(pnl))+" ("+(pnl>=0?"+":"")+pct.toFixed(2)+"%)";
+    }
+    line.textContent=text;
+  }).catch(()=>{if(usedToken===token&&serial===internalProductsSerial)line.textContent="现价暂不可用（行情未配置或休市）";});
+}
 function textNode(label, cls) {
   const node = document.createElement("span");
   node.textContent = label;
@@ -455,7 +481,10 @@ function renderRecords() {
     const row=document.createElement('div');row.className='record-item holding-row';
     const identity=document.createElement('div');identity.className='holding-company';
     identity.append(textNode(item.name),textNode(item.code+' · 持仓成本 $'+money(item.cost_cents),'holding-name'));
-    if(item.item_type==="STOCK")appendPublicChartButton(identity,{...item,symbol:item.symbol??item.code});
+    if(item.item_type==="STOCK"){
+      appendPublicChartButton(identity,{...item,symbol:item.symbol??item.code});
+      if((item.market??"US")==="US")appendLiveValuation(identity,item);
+    }
     row.append(identity,textNode(String(item.quantity)+(item.item_type==="STOCK"?' 股':' 份'),'holding-quantity-value'));
     posRows.push(row);
     if(item.item_type==="STOCK"){
@@ -1268,7 +1297,7 @@ function internalProductCard(item){
   (types[item.itemType]??item.itemType)+' · 原价 $'+money(item.internalPriceCents)+' / '+item.unit+' · 优惠 '+(item.discountBps/100)+'% · 购买单价 $'+money(discounted());
  card.append(title,detail);
  if(stock&&(item.market!=="US"||!stockTradingConfigured)){
-  card.append(textNode(item.market!=="US"?"该市场暂未开放实时交易":"美股实时买入暂停 · 等待行情授权","stock-sale-note"));
+  card.append(textNode(item.market!=="US"?"该市场暂未接入行情，模拟买卖未开放":"美股模拟买卖暂停 · 行情源未配置","stock-sale-note"));
   appendPublicChartButton(card,{...item,symbol:item.code});
   return card;
  }

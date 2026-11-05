@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { JSDOM } from "jsdom";
 
-test("public trading pages avoid synthetic claims while administrative account classifications are explicit",async()=>{
-  for(const file of ["index.html","app.mjs","admin.html"]){
-    const source=await readFile(new URL("../web/"+file,import.meta.url),"utf8");
-    assert.doesNotMatch(source,/模拟|虚拟|测试|simulation|mock|sandbox|demo/i,file);
-  }
+test("public trading pages disclose the simulation plainly to customers",async()=>{
+  const index=await readFile(new URL("../web/index.html",import.meta.url),"utf8");
+  // The customer must be told, on the login screen and inside the app, that this is a
+  // simulation: no real money, no real securities, no broker/exchange order routing.
+  assert.match(index,/模拟交易平台/,"login/app must state it is a simulation");
+  assert.match(index,/不涉及真实资金/);
+  assert.match(index,/不向(任何)?(交易所|券商)/);
   const admin=await readFile(new URL("../web/admin.mjs",import.meta.url),"utf8");
   assert.match(admin,/模拟账户（无实盘）/);
   assert.match(admin,/真实账户（待接券商）/);
@@ -16,8 +18,6 @@ test("public trading pages avoid synthetic claims while administrative account c
 
 test("trading terminal renders, switches markets, and handles account session without invented prices", async () => {
   const html = await readFile(new URL("../web/index.html", import.meta.url), "utf8");
-  assert.doesNotMatch(html, /账户仅记录内部账面数据，不能代表真实证券或可提现资产。/);
-  assert.doesNotMatch(html, /仅显示本账户数据库记录。未连接授权行情，不代表可提现资金或证券所有权。/);
   const dom = new JSDOM(html, { url: "https://platform.example/" });
   const old = { document: globalThis.document, sessionStorage: globalThis.sessionStorage, fetch: globalThis.fetch };
   const calls = [];
