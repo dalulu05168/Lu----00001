@@ -17,7 +17,11 @@ test("graphite terminal visual hierarchy preserves information architecture and 
  assert.ok(dashboard.querySelector(".dashboard-hero"));
  assert.ok(dashboard.querySelector(".dashboard-hero-art"));
  assert.deepEqual([...dashboard.querySelectorAll("[data-dashboard-open]")].map(x=>x.dataset.dashboardOpen),["clients","mirror"]);
- assert.equal(dashboard.querySelectorAll(".summary-card output").length,4);
+ // The hero row (first .stats in document order) and the funding panel
+ // below it both reuse the same .sc card style for their own metrics, so
+ // scope to the hero row's own element rather than counting every .sc on
+ // the page.
+ assert.equal(dashboard.querySelector(".stats").querySelectorAll(".sc em").length,4);
  assert.ok(doc.querySelector("#clientDirectorySearch"));
  assert.ok(doc.querySelector("#clientDetailHeadline"));
  assert.ok(doc.querySelector("#mirrorOperations"));

@@ -69,48 +69,50 @@
       <button type="button" id="adminLogout" class="outline logout">退出管理后台</button>
     </aside>
     <div class="admin-main">
-      <section class="admin-pane" data-pane="dashboard" aria-label="真实数据概览">
+      <section class="admin-pane v4" data-pane="dashboard" aria-label="真实数据概览">
         <div class="pane-title dashboard-hero">
           <div class="dashboard-hero-copy">
             <span>COMMAND CENTER / OPERATIONS OVERVIEW</span>
             <h2>全局运营总览</h2>
             <p>一站式管理客户、子账户与业务申请。所有指标只展示当前权限下可核验的系统记录。</p>
-            <div class="dashboard-hero-actions">
-              <button type="button" class="dashboard-primary-action" data-dashboard-open="clients">进入客户管理</button>
-              <button type="button" class="dashboard-secondary-action" data-dashboard-open="mirror">打开 APP 管理镜像</button>
+            <div class="bar dashboard-hero-actions">
+              <button type="button" class="btn p" data-dashboard-open="clients">进入客户管理</button>
+              <button type="button" class="btn" data-dashboard-open="mirror">打开 APP 管理镜像</button>
             </div>
           </div>
           <div class="dashboard-hero-art" aria-hidden="true"><span>CN</span><small>CAPITAL / 01</small></div>
         </div>
-        <div class="summary-grid">
-          <div class="summary-card"><span>客户账户 / Clients</span><output id="adminClientCount">—</output><small>真实客户归属列表</small></div>
-          <div class="summary-card"><span>子管理员 / Subaccounts</span><output id="adminSubadminCount">—</output><small>仅限权限范围</small></div>
-          <div class="summary-card"><span>证券目录 / Listings</span><output id="adminListingCount">—</output><small>现有资料记录</small></div>
-          <div class="summary-card"><span>订单处理</span><output>平台内记账</output><small>订单、余额与持仓记入平台账户</small></div>
+        <div class="stats">
+          <div class="sc"><span>客户账户 / Clients</span><em id="adminClientCount">—</em><small>真实客户归属列表</small></div>
+          <div class="sc"><span>子管理员 / Subaccounts</span><em id="adminSubadminCount">—</em><small>仅限权限范围</small></div>
+          <div class="sc"><span>证券目录 / Listings</span><em id="adminListingCount">—</em><small>现有资料记录</small></div>
+          <div class="sc gold"><span>订单处理</span><em style="font-size:19px">平台内记账</em><small>订单、余额与持仓记入平台账户</small></div>
         </div>
-        <section class="dashboard-funding" aria-label="资金申请概览">
-          <div class="dashboard-section-heading"><div><h3>资金申请概览</h3><p>充值与提现申请记录 · USD</p></div><button id="refreshDashboardFunding" type="button" class="outline">刷新资金数据</button></div>
-          <div class="funding-metric-grid">
-            <article class="funding-metric"><span>充值申请金额</span><output id="dashboardDepositAmount">—</output><small id="dashboardDepositCount">—</small></article>
-            <article class="funding-metric"><span>提现申请金额</span><output id="dashboardWithdrawAmount">—</output><small id="dashboardWithdrawCount">—</small></article>
-            <article class="funding-metric"><span>待处理申请</span><output id="dashboardPendingCount">—</output><small>已提交或审核中</small></article>
-            <article class="funding-metric"><span>充值已入账</span><output id="dashboardDepositPosted">—</output><small>平台余额增加 · USD</small></article>
-            <article class="funding-metric"><span>提现已扣账</span><output id="dashboardWithdrawPosted">—</output><small>平台余额减少 · USD</small></article>
+        <section class="pn" aria-label="资金申请概览" style="margin-top:16px">
+          <div class="ph"><span>资金申请概览<small>充值与提现申请记录 · USD</small></span><button id="refreshDashboardFunding" type="button" class="btn">刷新资金数据</button></div>
+          <div class="pb stats" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+            <div class="sc"><span>充值申请金额</span><em id="dashboardDepositAmount" style="font-size:18px">—</em><small id="dashboardDepositCount">—</small></div>
+            <div class="sc"><span>提现申请金额</span><em id="dashboardWithdrawAmount" style="font-size:18px">—</em><small id="dashboardWithdrawCount">—</small></div>
+            <div class="sc"><span>待处理申请</span><em id="dashboardPendingCount" style="font-size:18px">—</em><small>已提交或审核中</small></div>
+            <div class="sc"><span>充值已入账</span><em id="dashboardDepositPosted" style="font-size:18px">—</em><small>平台余额增加 · USD</small></div>
+            <div class="sc"><span>提现已扣账</span><em id="dashboardWithdrawPosted" style="font-size:18px">—</em><small>平台余额减少 · USD</small></div>
           </div>
-          <p id="dashboardFundingStatus" class="dashboard-data-status" role="status" aria-live="polite">正在读取资金申请</p>
-          <div class="dashboard-detail-grid">
-            <section class="panel dashboard-funding-detail"><div class="dashboard-section-heading"><h3>近期进出资金申请明细</h3><button type="button" class="outline" id="dashboardOpenTreasury">查看全部</button></div>
-              <div class="dashboard-table-scroll"><table class="dashboard-funding-table"><thead><tr><th>类型</th><th>申请金额 USD</th><th>客户编号</th><th>审核状态</th><th>提交时间</th></tr></thead><tbody id="dashboardFundingRows"></tbody></table></div>
+          <p id="dashboardFundingStatus" class="pb mut" role="status" aria-live="polite" style="font-size:12px">正在读取资金申请</p>
+          <div class="pb" style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start">
+            <section class="pn"><div class="ph"><span>近期进出资金申请明细</span><button type="button" class="btn" id="dashboardOpenTreasury">查看全部</button></div>
+              <div style="overflow-x:auto"><table><thead><tr><th>类型</th><th>申请金额 USD</th><th>客户编号</th><th>审核状态</th><th>提交时间</th></tr></thead><tbody id="dashboardFundingRows"></tbody></table></div>
             </section>
-            <section class="panel dashboard-tasks"><h3>待办与处理分布</h3><div id="dashboardFundingBreakdown"></div><button type="button" class="outline" id="dashboardOpenApprovals">进入审批中心</button></section>
+            <section class="pn"><div class="ph"><span>待办与处理分布</span></div><div class="pb" id="dashboardFundingBreakdown"></div><div class="pb"><button type="button" class="btn" id="dashboardOpenApprovals">进入审批中心</button></div></section>
           </div>
+          <style>@media(max-width:1000px){#adminWorkspace .v4 .pn>.pb[style*="grid-template-columns:minmax"]{grid-template-columns:1fr!important}}</style>
         </section>
-        <details class="panel operations-overview"><summary>系统运行与接入状态</summary>
-          <div class="operations-overview-title"><div><span>PLATFORM STATUS / SCOPE</span><h3>系统运行与管理边界</h3></div><small>已核实的权限与接入范围</small></div>
-          <div class="info-line"><span>登录保护</span><span>管理员账号密码登录</span></div>
-          <div class="info-line"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
-          <div class="info-line"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
-          <div class="info-line"><span>资金申请审核</span><span>同意后完成平台内部记账；银行收付款未接通</span></div>
+        <details class="pn" style="margin-top:16px"><summary class="ph" style="cursor:pointer">系统运行与接入状态</summary>
+          <div class="pb">
+            <div class="kv"><span>登录保护</span><span>管理员账号密码登录</span></div>
+            <div class="kv"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
+            <div class="kv"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
+            <div class="kv"><span>资金申请审核</span><span>同意后完成平台内部记账；银行收付款未接通</span></div>
+          </div>
         </details>
       </section>
       <section class="admin-pane" data-pane="accounts" hidden>
