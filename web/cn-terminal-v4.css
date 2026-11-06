@@ -1,0 +1,211 @@
+/* CN Capital 2026 computer terminal — visual presentation of the EXISTING authenticated client DOM.
+   Every account, watchlist, quote, chart, ledger, KYC, bank, support and catalog element stays hooked
+   up to the original app.mjs. Do not fabricate account data or order execution.
+*/
+#overview{
+ --cn-bg:#0a0d09;--cn-surface:#181d16;--cn-card:#1d241a;--cn-hover:#283222;
+ --cn-stroke:#364332;--cn-stroke2:rgba(221,249,201,.15);
+ --cn-text:#f4f6ef;--cn-muted:#b4c2ad;--cn-lime:#d7ff00;--cn-teal:#25babc;
+ --cn-up:#56d69a;--cn-down:#ff675c;--cn-amber:#ffca66;
+ --nx-bg:#0a0d09;--nx-panel:#1d241a;--nx-edge:#364332;--nx-text:#f4f6ef;
+ --terminal-canvas:#0a0d09;--terminal-nav:#121810;--terminal-card:#1d241a;
+ --terminal-raised:#283222;--terminal-edge:#364332;--terminal-ink:#f4f6ef;
+ --terminal-muted:#b4c2ad;--terminal-accent:#d7ff00;--terminal-selected:rgba(215,255,0,.10);
+ display:flex;flex-direction:column;min-height:100dvh;background:var(--cn-bg);
+ color:var(--cn-text);font-family:Inter,"Noto Sans SC",system-ui,sans-serif;
+ font-variant-numeric:tabular-nums;
+}
+#overview[hidden]{display:none!important}
+#overview,#overview *{box-sizing:border-box}
+#overview :is(h1,h2,h3,h4){color:#f4f6ef;letter-spacing:-.025em}
+#overview :is(.panel,.metric-card,.account-summary,.trade-workspace,.transaction-summary-card,
+ .account-panel,.secondary-grid>*,.allocation-card,.symbol-card){
+ background:linear-gradient(150deg,rgba(255,255,255,.06),rgba(255,255,255,.028));
+ border-color:var(--cn-stroke);color:var(--cn-text);
+ box-shadow:none;border-radius:13px;
+}
+#overview .app-shell{display:block}
+#overview .sidebar{
+ position:sticky;top:0;z-index:80;width:100%;max-width:none;height:auto;min-height:70px;
+ padding:10px clamp(16px,2.4vw,36px);
+ display:flex;flex-direction:row;align-items:center;justify-content:space-between;
+ gap:15px;background:rgba(10,13,9,.98);border:0;border-bottom:1px solid var(--cn-stroke);
+ box-shadow:0 10px 24px rgba(0,0,0,.15);overflow:visible;
+}
+#overview .sidebar-logo{
+ width:auto;height:auto;min-width:195px;display:flex;align-items:center;justify-content:start;gap:11px;
+ padding:0;margin:0;color:#f4f6ef;border:0;border-radius:0;background:transparent;
+ white-space:normal;
+}
+#overview .sidebar-logo .brand-mark{
+ display:flex;align-items:center;justify-content:center;width:46px;height:46px;flex:none;
+ background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;
+}
+#overview .sidebar-logo .cn-capital-mark{width:44px;height:44px;object-fit:contain}
+#overview .sidebar-logo .brand-copy{display:grid;gap:4px;line-height:1.12}
+#overview .sidebar-logo .brand-copy strong{font-size:16px;letter-spacing:.015em;color:#fff;font-weight:700}
+#overview .sidebar-logo .brand-copy small{font-size:9px;color:#b4cbaa;letter-spacing:.12em;white-space:normal}
+#overview .sidebar-section{display:flex;align-items:center;flex:0 1 auto;min-width:0;border:0;margin:0;padding:0}
+#overview .sidebar-section summary{display:none}
+#overview .sidebar-nav{display:flex;flex-direction:row;align-items:center;gap:5px;margin:0;padding:0;min-width:0}
+#overview .sidebar-link{
+ display:inline-flex;flex-direction:row;justify-content:center;align-items:center;gap:7px;
+ min-height:36px;width:auto;white-space:nowrap;padding:6px 11px;border-radius:999px;
+ border:1px solid transparent;background:transparent;color:#bac8b7;
+ font-size:11.5px;line-height:1.25;font-weight:500;transition:color .16s,background .16s;
+}
+#overview .sidebar-link span{display:inline;white-space:nowrap}
+#overview .sidebar-link svg{display:none}
+#overview .sidebar-link:hover,#overview .sidebar-link:focus-visible{
+ background:rgba(255,255,255,.07);border-color:var(--cn-stroke);color:#fff;
+}
+#overview .sidebar-link.active,#overview .sidebar-link[aria-current="page"]{
+ background:rgba(215,255,0,.14);color:var(--cn-lime);border-color:rgba(215,255,0,.22);
+}
+#overview .sidebar-foot{display:flex;margin:0 0 0 auto;padding:0;border:0;min-width:0}
+#overview .sidebar-account{
+ display:flex;align-items:center;gap:8px;min-height:36px;padding:4px 7px;border-radius:999px;
+ border:1px solid var(--cn-stroke);background:#1a2317;
+}
+#overview .sidebar-account .profile-avatar{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--cn-lime);color:#101800}
+#overview .sidebar-account-label{font-size:10px;min-width:0}
+#overview .sidebar-account-label :is(strong,small){color:#dae7d2}
+#overview #railLogout{color:#e3eee1;background:transparent;border:0;min-width:27px}
+#overview .main-content{width:100%;max-width:none;margin:0;min-width:0;background:var(--cn-bg);color:var(--cn-text)}
+#overview .topbar{
+ display:flex;align-items:center;justify-content:space-between;gap:16px;
+ position:static;margin:0;padding:18px clamp(16px,2.4vw,36px);
+ background:#10150e;border:0;border-bottom:1px solid var(--cn-stroke);
+}
+#overview .page-heading{display:flex;flex-direction:column;gap:5px;min-width:160px}
+#overview .page-heading .app-wordmark{color:var(--cn-muted);font-size:10px;letter-spacing:.13em}
+#overview .page-heading h1{margin:0;font-size:25px;line-height:1.15;color:#f7f9f4;font-weight:600}
+#overview .top-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+#overview .status-chip{color:#d6eac9;background:#1a2517;border:1px solid #344931;border-radius:999px;padding:7px 12px}
+#overview .clock{color:#b8c5b0}
+#overview :is(.header-action,.secondary-button,.outline-button,.export-button,.primary-button,
+ .saved-watchlist-refresh,.market-nav button,.trade-categories button){
+ border-radius:999px;min-height:33px;box-shadow:none;transition:background .16s,border-color .16s,color .16s;
+}
+#overview :is(.secondary-button,.outline-button,.header-action,.saved-watchlist-refresh){
+ background:#273125;border:1px solid #465740;color:#edf5e7;
+}
+#overview :is(.secondary-button,.outline-button,.header-action,.saved-watchlist-refresh):hover:not(:disabled){
+ background:#34422c;border-color:#a5c277;color:#fff;
+}
+#overview :is(.primary-button,.order-submit){
+ background:var(--cn-lime);border-color:var(--cn-lime);color:#172006;font-weight:600;
+}
+#overview :is(.primary-button,.order-submit):hover:not(:disabled){background:#e8ff66;color:#151d03}
+#overview :is(input,select,textarea){
+ background:#151c14;color:#f2f7ed;border:1px solid #41513b;border-radius:9px;
+}
+#overview :is(input,select,textarea)::placeholder{color:#9cac96}
+#overview input[type="checkbox"]{accent-color:var(--cn-lime)}
+#overview :is(button,a,input,select,textarea):focus-visible{outline:2px solid var(--cn-lime);outline-offset:2px}
+#overview .terminal-top-search,#overview .search-box{border:1px solid #42513b;background:#151e12;border-radius:999px}
+#overview .terminal-top-search input,#overview .search-box input{background:transparent;border:0}
+#overview .workspace{
+ width:100%;max-width:1720px;padding:24px clamp(16px,2.4vw,36px) 60px;margin:0 auto;
+ background:transparent;
+}
+#overview .trade-board{gap:18px;align-items:start}
+#overview :is(.panel,.metric-card){padding:18px;border:1px solid var(--cn-stroke)}
+#overview .panel-heading{padding:0 0 12px;margin-bottom:14px;border-bottom:1px solid var(--cn-stroke)}
+#overview .panel-heading h2{font-size:15px;font-weight:650;color:#f6f9f2}
+#overview :is(.view-label,.panel-caption,.filters-label,.chart-source,.account-overline,
+ .account-sync,.record-boundary,.service-disclosure,.market-switcher,.dashboard-subtitle){
+ color:var(--cn-muted);
+}
+#overview .transactions-section{border-color:var(--cn-stroke);background:transparent}
+#overview .transactions-section :is(th,td){border-color:var(--cn-stroke2)}
+#overview .transactions-section thead{background:rgba(255,255,255,.035)}
+#overview :is(.transaction-card,.summary-card,.transaction-summary-card,.transaction-list,.transactions-table){
+ border-color:var(--cn-stroke);background:var(--cn-card);color:var(--cn-text);border-radius:12px;
+}
+#overview .metric-card{min-height:120px}
+#overview .metric-card :is(strong,.metric-value,output){color:#f7f9f1}
+#overview .metric-card .metric-header{color:#c4d1be}
+#overview :is(.metrics,.primary-grid,.secondary-grid){gap:16px}
+#overview .instrument-selector{display:flex;align-items:center;flex-wrap:wrap;gap:9px;background:transparent;color:#f4f8ef}
+#overview #marketLabel{color:#b6c8ad}
+#overview #symbolTitle{font-size:18px;font-weight:650;color:#f8f9f3}
+#overview #symbolName{color:#b8c4b2}
+#overview #stockChart{min-height:340px;background:#10150f;border:1px solid #39472f;border-radius:12px;overflow:hidden}
+#overview .market-nav button[aria-pressed="true"],#overview .trade-categories [aria-pressed="true"]{
+ background:rgba(215,255,0,.15);border-color:rgba(215,255,0,.35);color:#d7ff00;
+}
+#overview :is(.symbol-list,.saved-watchlist-list,.record-list,.catalog-list){
+ color:#e9f2e2;border-color:var(--cn-stroke);background:transparent;
+}
+#overview :is(.saved-watchlist-row,.symbol-row,.record-row,.position-row){border-color:var(--cn-stroke2)}
+#overview .saved-watchlist-section{border-color:var(--cn-stroke);background:rgba(215,255,0,.025);border-radius:12px}
+#overview .account-summary{background:#1b2318}
+#overview .account-facts>div{background:#1a2117;border-color:#36432e;border-radius:10px}
+#overview .account-facts dt,#overview .account-summary-heading .account-overline{color:#bdcbb5}
+#overview .account-facts dd{color:#f5f7ef}
+#overview .service-request-grid{gap:14px}
+#overview .service-request-form{border:1px solid var(--cn-stroke);background:#1c2419;border-radius:12px;color:#f0f4eb}
+#overview .service-request-form h3{color:#f7f9f3}
+#overview .service-request-history{border-color:var(--cn-stroke)}
+#overview .trade-workspace :is(.internal-product-card,.stock-sale-form){
+ background:#1c2419;border:1px solid var(--cn-stroke);border-radius:12px;
+}
+#overview .trade-categories [aria-pressed="true"]{color:#d7ff00}
+#overview a{color:inherit}
+#overview .holding-live-value{color:#d4e1cb}
+#overview .pnl-up{color:var(--cn-up)!important}
+#overview .pnl-down{color:var(--cn-down)!important}
+#overview .account-panel,#overview .workflow-client-panel{color:#f1f5e8}
+#overview .app-footer{color:#99ab91;border-color:var(--cn-stroke)}
+/* Functional original forms are MOVED, never copied, into real dialogs. */
+.cn-live-dialog{
+ color:#f5f8f0;background:#141b13;border:1px solid #4a5b40;border-radius:16px;
+ box-shadow:0 24px 85px rgba(0,0,0,.75);width:min(650px,calc(100vw - 26px));max-width:100%;max-height:min(85dvh,900px);overflow:auto;padding:0;
+}
+.cn-live-dialog[open]{display:block}
+.cn-live-dialog::backdrop{background:rgba(0,0,0,.75);backdrop-filter:blur(5px)}
+.cn-live-dialog .cn-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:#202a1c;border-bottom:1px solid #42543c}
+.cn-live-dialog .cn-dialog-head h2{font-size:16px;margin:0;color:#f2f8ee}
+.cn-live-dialog .cn-dialog-close{min-height:33px;min-width:33px;border:1px solid #4d6043;border-radius:50%;background:#253322;color:#f7faee;cursor:pointer}
+.cn-live-dialog .cn-dialog-body{padding:16px 20px 20px}
+.cn-live-dialog .cn-dialog-body>form{display:grid;gap:12px}
+.cn-live-dialog .cn-dialog-body .service-request-form{background:none;border:0;margin:0;padding:0;color:#edf5e9}
+.cn-live-dialog .cn-dialog-body .service-request-form :is(input,select,textarea){width:100%;min-height:40px;border:1px solid #42543c;background:#171f16;color:#f2f8eb;border-radius:9px}
+.cn-live-dialog .cn-dialog-body .service-request-form label{color:#d2dfcb}
+.cn-live-dialog .cn-dialog-body .service-disclosure{color:#b9c6b3}
+.cn-live-dialog .cn-dialog-body button[type="submit"]{background:#d7ff00;color:#142000;border:1px solid #d7ff00;border-radius:999px;padding:10px 14px;font-weight:650}
+#overview .cn-quick-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#overview .cn-quick-actions button{background:#222d1c;color:#eef7e6;border:1px solid #45583a;border-radius:999px;min-height:35px;padding:7px 12px}
+#overview .cn-quick-actions button:hover{border-color:#d7ff00;background:rgba(215,255,0,.1)}
+#overview .cn-quick-actions button:disabled{opacity:.45}
+@media(max-width:1460px){
+ #overview .sidebar{flex-wrap:wrap;justify-content:flex-start;gap:10px}
+ #overview .sidebar-logo{min-width:160px}
+ #overview .sidebar-section{flex:none}
+ #overview .sidebar-foot{margin-left:auto}
+ #overview .sidebar-link{padding:6px 9px;font-size:11px}
+}
+@media(max-width:900px){
+ #overview .sidebar{gap:8px;padding:10px 14px}
+ #overview .sidebar-logo{width:100%;min-width:0}
+ #overview .sidebar-foot{margin-left:auto}
+ #overview .sidebar-section{width:100%;overflow:auto}
+ #overview .sidebar-nav{min-width:max-content}
+ #overview .sidebar-section summary{display:none}
+ #overview .topbar{flex-wrap:wrap;padding:14px}
+ #overview .workspace{padding:14px}
+ #overview .trade-board{grid-template-columns:1fr}
+ #overview .trade-board-side{min-width:0}
+}
+@media(max-width:540px){
+ #overview .sidebar-logo .brand-copy small{font-size:8px}
+ #overview .top-actions{justify-content:flex-start}
+ #overview .page-heading h1{font-size:20px}
+ #overview .metric-card{min-height:94px}
+ #overview #stockChart{min-height:260px}
+ #overview .transactions-section{overflow-x:auto}
+}
+@media(prefers-reduced-motion:reduce){
+ #overview *,#overview *::before,#overview *::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
