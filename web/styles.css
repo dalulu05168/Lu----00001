@@ -537,3 +537,143 @@ body{min-width:320px}
   .account-facts{grid-template-columns:1fr 1fr}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+
+/* Tradeflare-inspired client visual layer — 2026-11-06.
+   Presentation only: no changes to account, order, quote or auth behavior. */
+:root {
+  color-scheme: dark;
+  --border:#303730;
+  --text:#edf3e9;
+  --muted:#94a095;
+  --green:#b9f46a;
+  --tf-bg:#0c100e;
+  --tf-sidebar:#111613;
+  --tf-surface:#171d19;
+  --tf-raised:#1d2520;
+  --tf-line:#303a32;
+  --tf-accent:#b9f46a;
+}
+html {scroll-padding-top:90px}
+body {background:var(--tf-bg);color:var(--text)}
+:focus-visible{outline-color:var(--tf-accent)}
+.app-shell{background:var(--tf-bg);grid-template-columns:224px minmax(0,1fr)}
+.sidebar{background:var(--tf-sidebar);border-right:1px solid #283329;padding:25px 14px 20px}
+.brand-mark{background:var(--tf-accent);border:0;color:#10160e;border-radius:13px;box-shadow:0 0 30px #b9f46a25}
+.brand-copy strong{color:#f3f8ed;font-weight:700;letter-spacing:.12em}
+.brand-copy small{color:#a1b09c}
+.sidebar-section-title{color:#65786a}
+.sidebar-link{border-radius:12px;color:#a0ada0;min-height:44px}
+.sidebar-link:hover{background:#222d23;color:#eef9e6}
+.sidebar-link.active{background:#b9f46a17;border-color:#b9f46a43;color:#c8ff87;box-shadow:inset 3px 0 0 var(--tf-accent)}
+.sidebar-foot{border-top-color:var(--tf-line)}
+.sidebar-account .profile-avatar,.profile-avatar{background:#2a372a;color:#c6ff86;border-color:#3c503b}
+.main-content,.workspace{background:var(--tf-bg)}
+.topbar{background:#101612;border-bottom:1px solid var(--tf-line);min-height:84px}
+.page-heading h1{color:#f3f8f0;font-weight:650;font-size:24px}
+.app-wordmark{color:#a7c48c;letter-spacing:.15em}
+.status-chip.ready .status-dot{background:var(--tf-accent);box-shadow:0 0 12px #b9f46a80}
+.workspace{padding:0 26px 36px}
+.transactions-section{margin-top:24px}
+.transactions-header h2{font-size:19px;color:#f1f8ec;font-weight:650}
+.transactions-header p{color:#8fa18f;font-size:11px}
+.transaction-metric-card,.metric-card,.panel,.transaction-list-panel{background:linear-gradient(155deg,#1b241d,#151c17 85%);border:1px solid var(--tf-line);border-radius:18px;box-shadow:0 12px 30px #0000001c}
+.transaction-metric-card{min-height:145px;padding:20px}
+.transaction-metric-card:hover,.metric-card:hover,.panel:hover{border-color:#465c40}
+.transaction-metric-top,.metric-header{color:#a5b3a2}
+.transaction-metric-value{font-size:29px;font-weight:600;color:#f4f9f0}
+.transaction-metric-card p,.metric-card p{color:#879a87}
+.metric-sparkline{border-bottom-color:var(--tf-accent)}
+.transaction-search,.transaction-range,.market-nav{background:#151e17;border:1px solid #354436;border-radius:12px;color:#d9e7d5}
+.transaction-search input{color:#f2f9ec}
+.transaction-search:focus-within{border-color:var(--tf-accent)}
+.transaction-list-panel{padding:20px}
+.transaction-table-wrap{border:1px solid var(--tf-line);border-radius:13px}
+.transactions-table th{background:#222d23;color:#9fad9e;border-bottom-color:#364638}
+.transactions-table td{color:#d1ddd0;border-bottom-color:#2b382d}
+.transactions-table tbody tr:hover{background:#243226}
+.transaction-symbol-code,.transaction-amount-cell{color:#f1f8ec!important}
+.transaction-market-code{border-color:#4b5b4a;color:#a2b99a}
+.market-nav{padding:5px}
+.market{border-radius:9px;color:#9daf9b}
+.market.active{background:var(--tf-accent);color:#14200e;font-weight:650}
+.market.active .market-code{color:#14200e}
+.market-card.active .market-card-bar,.market-card-bar{background:var(--tf-accent)}
+.market-card:hover .market-card-bottom{border-color:#8ebc65}
+.metric-card{padding:18px;min-height:122px}
+.metric-value{font-weight:650;font-size:26px;color:#f2f8ee}
+.panel{padding:20px}
+.panel-heading h2{font-size:15px;font-weight:650}
+.chart{min-height:270px;color:#b5c4b1}
+.chart-grid span{border-top-color:#29392c}
+.chart--external,.chart--external .tradingview-widget-copyright,.chart--external .stock-chart-loading{background:#151d17}
+.chart--external{border-color:#334435;border-radius:13px;overflow:hidden}
+.chart-source a{color:var(--tf-accent)}
+button.primary-button,.primary-button{background:var(--tf-accent);color:#15200e;border-color:var(--tf-accent);border-radius:11px;font-weight:700;box-shadow:0 6px 22px #b9f46a1c}
+button.primary-button:hover,.primary-button:hover{background:#d1ff9d;border-color:#d1ff9d;color:#111b0e}
+button.primary-button:disabled,.primary-button:disabled{box-shadow:none}
+input,select{accent-color:var(--tf-accent)}
+input:focus,select:focus{outline-color:var(--tf-accent)}
+a:hover{color:var(--tf-accent)}
+@media(max-width:1100px){.app-shell{grid-template-columns:200px minmax(0,1fr)}.workspace{padding:0 17px 26px}}
+@media(max-width:760px){
+ .app-shell{display:block}
+ .sidebar{height:auto;padding:9px 12px;border-right:0;border-bottom:1px solid var(--tf-line)}
+ .sidebar-link.active{box-shadow:inset 0 -2px 0 var(--tf-accent)}
+ .topbar{min-height:66px}
+ .workspace{padding:0 12px 24px}
+ .transaction-metric-card{min-height:115px;padding:13px}
+ .transaction-metric-value{font-size:22px}
+ .panel{padding:14px}
+ .chart{min-height:212px}
+}
+
+/* High-density market terminal layout; preserves DOM hooks and actual quote states. */
+@media(min-width:1201px){
+ .primary-grid{grid-template-columns:minmax(0,2.2fr) minmax(300px,.85fr);gap:16px;margin-top:18px;align-items:stretch}
+ .primary-grid>.performance-panel{min-width:0}
+ .primary-grid>.holdings-panel{min-width:0}
+ .performance-panel .chart{height:clamp(340px,35vw,580px);min-height:340px}
+ .holdings-panel{min-height:0}
+ .secondary-grid{gap:16px;margin-top:16px}
+ .account-grid{gap:16px;margin-top:16px}
+ .transaction-metrics{gap:16px}
+ .metrics{gap:16px}
+}
+@media(min-width:1900px){
+ .app-shell{grid-template-columns:256px minmax(0,1fr)}
+ .sidebar{padding:30px 18px 24px}
+ .sidebar-link{min-height:48px;font-size:13px}
+ .workspace{padding:0 40px 50px}
+ .topbar{padding:20px 40px}
+ .transaction-metric-card{min-height:165px;padding:24px}
+ .transaction-metric-value{font-size:34px}
+ .transactions-table{font-size:12px}
+ .transactions-table th,.transactions-table td{padding:15px 17px}
+ .panel{padding:25px}
+ .panel-heading h2{font-size:16px}
+ .primary-grid{grid-template-columns:minmax(0,2.45fr) minmax(340px,.85fr);gap:20px}
+ .performance-panel .chart{height:clamp(480px,34vw,700px)}
+}
+@media(min-width:3800px){
+ .app-shell{grid-template-columns:320px minmax(0,1fr)}
+ .sidebar{padding:40px 25px}
+ .sidebar-link{min-height:54px;font-size:15px}
+ .sidebar-link svg{width:20px;height:20px}
+ .workspace{max-width:3200px;margin:0 auto;padding:0 54px 70px}
+ .topbar{padding:26px max(54px,calc((100% - 3092px)/2))}
+ .page-heading h1{font-size:30px}
+ .transaction-metric-value{font-size:40px}
+ .performance-panel .chart{height:850px}
+ .panel{padding:32px}
+ .metric-value{font-size:34px}
+}
+@media(max-width:1200px) and (min-width:761px){
+ .primary-grid{grid-template-columns:minmax(0,1.6fr) minmax(250px,1fr)}
+ .secondary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .intelligence-panel{grid-column:1/-1}
+}
+@media(max-width:760px){
+ .primary-grid,.secondary-grid,.account-grid{grid-template-columns:1fr}
+ .performance-panel .chart{min-height:240px}
+}

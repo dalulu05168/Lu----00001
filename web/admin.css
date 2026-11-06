@@ -32,3 +32,53 @@ button.outline,.saved-watchlist-remove{background:#fff;color:#000;border:1px sol
 .admin-list-row small{display:block;font-size:11px;color:#666;margin-top:4px}
 [hidden]{display:none!important}
 @media(max-width:680px){.panel{padding:14px}.topbar{padding:14px}.topbar h1{font-size:18px}.field-grid{grid-template-columns:1fr}}
+
+/* Shared Tradeflare visual language — admin console.
+   Pure presentation layer; administrator authentication and permissions unchanged. */
+:root{color-scheme:dark;color:#eff7e9;background:#0c100e;--tf-accent:#b9f46a;--tf-surface:#18211a;--tf-border:#334235;--tf-muted:#9cad9b}
+body{background:radial-gradient(ellipse at 100% 0%,#1c2a1a 0%,#0c100e 42%);color:#edf5e9;min-height:100vh;font-family:Inter,system-ui,-apple-system,"Noto Sans SC",sans-serif}
+.topbar{background:#111912ee;border-bottom:1px solid var(--tf-border);padding:24px clamp(18px,4vw,56px);box-shadow:0 10px 32px #0004}
+.topbar:before{content:"";display:block;width:34px;height:34px;flex:none;border-radius:11px;background:#b9f46a;box-shadow:0 0 26px #b9f46a36}
+.topbar>div{flex:1}
+.topbar small{color:#a3c68b;font-size:10px;letter-spacing:.2em}
+.topbar h1{font-size:25px;color:#f4faef;font-weight:700;letter-spacing:-.03em}
+.topbar a{color:#c3ef9c;border:1px solid #4c6845;background:#243225;border-radius:11px;padding:10px 15px;text-decoration:none}
+.topbar a:hover{background:#334b30;color:#e6ffd0}
+.workspace{max-width:1340px;padding:30px clamp(14px,3vw,34px) 70px;gap:20px}
+.panel{background:linear-gradient(145deg,#1c261e,#141b16 90%);border:1px solid var(--tf-border);border-radius:19px;padding:26px;box-shadow:0 14px 35px #00000028}
+.panel h2{font-size:17px;font-weight:650;color:#f1f8eb}
+.panel .muted{color:var(--tf-muted);font-size:12px}
+.field-grid{gap:16px}
+.field-grid label{color:#b9cbb6;font-size:12px}
+.field-grid input,.field-grid select{background:#111a13;color:#edf5e9;border:1px solid #3b4d3c;border-radius:11px;height:45px;padding:9px 13px}
+.field-grid input:focus,.field-grid select:focus{border-color:var(--tf-accent);box-shadow:0 0 0 3px #b9f46a1d;outline:0}
+.field-grid button,button.primary{min-height:45px;background:var(--tf-accent);color:#13210d;border:1px solid var(--tf-accent);border-radius:11px;font-weight:700}
+.field-grid button:hover,button.primary:hover{background:#d4ffa5}
+button.outline,.saved-watchlist-remove{background:#253227;color:#d6edca;border:1px solid #4a5e47;border-radius:10px;padding:10px 14px}
+button.outline:hover,.saved-watchlist-remove:hover{border-color:var(--tf-accent);color:#d8ffb1}
+.feedback{color:#e2b978}
+.sensitive{background:#30271a;border-color:#6c542d;color:#f2d5a3;border-radius:12px}
+.sensitive code{background:#141a13;color:#d9f4c9;border:1px solid #4b563e}
+.admin-list-row{border-bottom:1px solid #344336;color:#e7f0e3;padding:14px 0}
+.admin-list-row small{color:#a2b19e}
+:focus-visible{outline:2px solid var(--tf-accent);outline-offset:3px}
+@media(max-width:680px){.topbar{gap:10px;padding:15px}.topbar:before{width:28px;height:28px}.topbar h1{font-size:19px}.topbar a{padding:8px;font-size:10px}.panel{padding:16px}.workspace{padding:16px 12px 35px}}
+
+/* Precision desktop workspace: crisp vector-first surfaces up to 8K viewports. */
+#adminWorkspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+#adminWorkspace[hidden]{display:none!important}
+.admin-section-nav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:5;padding:12px 14px;background:#111a13f2;border:1px solid #334235;border-radius:15px;backdrop-filter:blur(16px)}
+.admin-section-nav a{display:inline-flex;align-items:center;min-height:38px;padding:8px 17px;border:1px solid transparent;border-radius:10px;color:#b5c6b0;font-size:12px;text-decoration:none;transition:background .16s,color .16s,border-color .16s}
+.admin-section-nav a:hover,.admin-section-nav a:focus-visible{background:#b9f46a1b;border-color:#b9f46a63;color:#d5ffad}
+#adminWorkspace>.admin-overview-panel{grid-column:1/-1;border-left:3px solid #b9f46a}
+#adminWorkspace>#catalogArea{grid-column:1/-1}
+#adminWorkspace>.panel{min-width:0}
+#adminWorkspace .admin-list-row{gap:18px}
+#adminWorkspace .heading{flex-wrap:wrap}
+#adminWorkspace .heading h2{letter-spacing:-.02em}
+#adminWorkspace .panel{scroll-margin-top:90px}
+#adminWorkspace #catalogArea .field-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+@media(min-width:1900px){.workspace{max-width:1800px}.panel{padding:30px}#adminWorkspace{gap:24px}.field-grid{gap:18px}}
+@media(min-width:3800px){.workspace{max-width:2600px;padding-top:46px}#adminWorkspace{gap:30px}.panel{padding:38px}.topbar{padding-left:max(56px,calc((100vw - 2600px)/2));padding-right:max(56px,calc((100vw - 2600px)/2))}}
+@media(max-width:950px){#adminWorkspace{grid-template-columns:1fr}#adminWorkspace>#catalogArea{grid-column:1}#adminWorkspace>.admin-overview-panel{grid-column:1}}
+@media(max-width:680px){.admin-section-nav{gap:4px;padding:7px;top:0}.admin-section-nav a{padding:8px 10px;font-size:11px}}
