@@ -3,7 +3,10 @@ import {optionalReason} from "./optional-reason.mjs";
 import {productError} from "./internal-products.mjs";
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const markets=new Set(["US","HK","CN","MY","RO"]);
+// HK/CN/MY withdrawn: no working free quote source was found for them, and
+// their stocks were never purchasable (internal-purchases already required
+// market==='US'), so no lock could exist under those markets regardless.
+const markets=new Set(["US","RO"]);
 
 export async function setStockPositionLock(db,actor,body){
  if(!actor?.userId||!["MASTER","SUBADMIN"].includes(actor.role))throw productError("Administrator session required",403);

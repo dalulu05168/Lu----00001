@@ -27,6 +27,10 @@ Never commit credentials to Git. Run `npm run migrate` against the direct connec
 
 ## Safety boundary
 - No broker credentials are required or accepted.
-- No live broker order-routing integration is present.
-- The order endpoint remains disabled until a licensed market-data/FX pricing provider and a server-side pricing policy are configured.
+- No live broker order-routing integration is present. `/api/orders` is an
+  internal-only simulated order ledger (see `src/order-service.mjs`,
+  `src/ledger.mjs`): it records a row, it never contacts a broker or exchange.
+- The order endpoint is wired for the US market only, backed by the free
+  Finnhub quote feed (`FINNHUB_API_KEY`); without that key, or for any other
+  market, it fails closed with "Verified market pricing unavailable".
 - Keep the first deployment as a preview; do not represent it as a production brokerage service.

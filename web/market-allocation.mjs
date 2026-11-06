@@ -1,4 +1,6 @@
-export const MARKET_CODES = Object.freeze(["US","HK","CN","MY","RO"]);
+// HK/CN/MY withdrawn: no working free quote source was found for them, and
+// no position could exist under them since orders were never wired for them.
+export const MARKET_CODES = Object.freeze(["US","RO"]);
 
 /**
  * Count distinct held instruments by market, using only the account's

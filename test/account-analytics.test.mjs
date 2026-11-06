@@ -27,7 +27,7 @@ test('partial lot cost allocation reconciles to original cents across successive
  assert.equal(result.portfolioValueCents,1000);
 });
 test('losses and identical tickers in different markets are independent',()=>{
- const result=calculate([order('BUY',1,500),order('BUY',1,700,undefined,'HK'),order('SELL',1,300)], [held(1,'HK')]);
+ const result=calculate([order('BUY',1,500),order('BUY',1,700,undefined,'RO'),order('SELL',1,300)], [held(1,'RO')]);
  assert.equal(result.realizedPnlCents,-200);assert.equal(result.positionCostCents,700);
 });
 test('missing acquisitions and mismatched current positions never fabricate profits',()=>{

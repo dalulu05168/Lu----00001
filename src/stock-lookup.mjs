@@ -1,14 +1,13 @@
+// HK/CN/MY withdrawn: no working free quote source was found for them, so
+// the platform no longer presents them as selectable markets anywhere.
 const reference = [
   ["US","AAPL","Apple Inc.","NASDAQ"], ["US","MSFT","Microsoft Corporation","NASDAQ"],
-  ["US","NEM","Newmont Corporation","NYSE"], ["HK","0700","Tencent Holdings","HKEX"],
-  ["HK","9988","Alibaba Group","HKEX"], ["CN","600519","贵州茅台","SSE"],
-  ["CN","000001","平安银行","SZSE"], ["MY","1155","Maybank","Bursa Malaysia"],
-  ["MY","1023","CIMB Group","Bursa Malaysia"],
+  ["US","NEM","Newmont Corporation","NYSE"],
   ["RO","BRD","BRD – Groupe Société Générale","BVB"]
 ].map(([market,symbol,name,exchange])=>({market,symbol,name,exchange,source:"reference"}));
 const exchanges = new Map([
   ["XNAS","US"],["XNGS","US"],["XNMS","US"],["XNCM","US"],["XNYS","US"],["ARCX","US"],["XASE","US"],
-  ["XHKG","HK"],["XSHG","CN"],["XSHE","CN"],["BJSE","CN"],["XKLS","MY"],["XBSE","RO"]
+  ["XBSE","RO"]
 ]);
 const stockTypes = new Set(["COMMON STOCK","PREFERRED STOCK","AMERICAN DEPOSITARY RECEIPT","DEPOSITARY RECEIPT","GLOBAL DEPOSITARY RECEIPT"]);
 

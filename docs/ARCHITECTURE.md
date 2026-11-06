@@ -1,15 +1,16 @@
 # Global Stock Platform — Architecture V1
 
 ## Scope and constraints
-- Markets: US / HK / CN / MY.
-- Licensed, read-only market data; no broker order transport.
+- Markets: US / HK / CN / MY / RO (symbol directory); live quotes today cover US only.
+- Read-only market data from free-tier providers (Finnhub quotes, Twelve Data
+  history/search), not a licensed/paid data agreement; no broker order transport.
 - Internal-only accounting. No deposits, withdrawals, or representation of real securities ownership.
 - Main product branding is neutral; transaction and asset disclosures must remain explicit.
 
 ## System layers
 1. **Web terminal** — market selector, search, quote state, order form, account and order views. Existing `web/` is a prototype, not the planned Next.js production frontend.
 2. **Authenticated HTTP API** — session-based account resolution, input validation, rate limiting (pending), idempotency.
-3. **Pricing gateway** — licensed read-only market data, source provenance, trading-session rules, stale quote rejection, FX timestamp and currency conversion. **Not connected.**
+3. **Pricing gateway** — read-only market data, source provenance, stale quote rejection, FX timestamp and currency conversion. **Connected for US only** (`src/us-stock-quotes.mjs`, free Finnhub quotes / Twelve Data history, no credit card). HK/CN/MY/RO have no connected quote source yet; a free, reliable provider for those exchanges was not found during a 2026-11-05 check (Twelve Data's international coverage appears to require a paid plan). Trading-session rules (exchange calendars/hours) are not implemented — staleness rejection is the only freshness guard.
 4. **Internal order service** — account-row locking, atomic cash/position/order/ledger writes, no broker routing.
 5. **PostgreSQL** — users, accounts, positions, orders, cash ledger. Schema created; actual database provisioning/migration not executed.
 6. **Redis (planned)** — quote cache, rate limits, session support as needed.

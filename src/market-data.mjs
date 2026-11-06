@@ -1,4 +1,5 @@
-export const SUPPORTED_MARKETS=Object.freeze(["US","HK","CN","MY"]);
+// HK/CN/MY withdrawn: no working free quote source was found for them.
+export const SUPPORTED_MARKETS=Object.freeze(["US"]);
 const SYMBOL_PATTERN=/^[A-Z0-9.\-]{1,24}$/;
 export function validateQuote(quote,{now=Date.now(),maxAgeMs=60_000}={}){
  if(!quote||!SUPPORTED_MARKETS.includes(quote.market)||typeof quote.symbol!=="string"||!SYMBOL_PATTERN.test(quote.symbol))throw new Error("Invalid quote identity");

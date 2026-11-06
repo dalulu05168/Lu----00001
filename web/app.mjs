@@ -1,21 +1,14 @@
 import { summarizeMarketHoldings } from "./market-allocation.mjs";
 import { mountStockChart, resolveTradingViewSymbol } from "./stock-chart.mjs";
+// HK/CN/MY withdrawn: no working free quote source was found for them, so
+// they are no longer presented as selectable markets anywhere in the app.
 const MARKETS = [
   {code:"US",label:"美国市场",exchange:"NYSE / NASDAQ",currency:"USD",icon:"US",sub:"United States"},
-  {code:"HK",label:"香港市场",exchange:"HKEX",currency:"HKD",icon:"HK",sub:"Hong Kong"},
-  {code:"CN",label:"中国内地",exchange:"SSE / SZSE",currency:"CNY",icon:"CN",sub:"China"},
-  {code:"MY",label:"马来西亚",exchange:"BURSA MALAYSIA",currency:"MYR",icon:"MY",sub:"Malaysia"},
   {code:"RO",label:"罗马尼亚市场",exchange:"BVB",currency:"RON",icon:"RO",sub:"Romania"}
 ];
 const INSTRUMENTS = [
   {market:"US",symbol:"AAPL",name:"Apple Inc."},
   {market:"US",symbol:"MSFT",name:"Microsoft Corporation"},
-  {market:"HK",symbol:"0700",name:"Tencent Holdings"},
-  {market:"HK",symbol:"9988",name:"Alibaba Group"},
-  {market:"CN",symbol:"600519",name:"贵州茅台"},
-  {market:"CN",symbol:"000001",name:"平安银行"},
-  {market:"MY",symbol:"1155",name:"Maybank"},
-  {market:"MY",symbol:"1023",name:"CIMB Group"},
   {market:"RO",symbol:"BRD",name:"BRD – Groupe Société Générale"}
 ];
 const el = id => document.getElementById(id);
@@ -799,7 +792,13 @@ function render() {
   el("commodityCatalogPanel").hidden = !account;
   el("customerSupportPanel").hidden = !account;
   el("logout").hidden = !token;
-  el("orderForm").querySelector('button[type="submit"]').disabled = !token || !account || !pricingConnected;
+  el("orderForm").hidden = !account;
+  const orderSubmit = el("orderForm").querySelector('button[type="submit"]');
+  orderSubmit.disabled = !token || !account || !pricingConnected;
+  // Internal-only simulated order: no broker or exchange ever receives it.
+  // Only wired for the US market today; other markets still fail at submit
+  // time with an accurate message rather than being silently allowed here.
+  orderSubmit.textContent = pricingConnected ? "提交模拟订单" : "下单功能未开放";
   renderRecords();
   renderTransactionHistory();
   renderAccountAnalytics();
@@ -849,7 +848,7 @@ async function request(path,options = {}) {
     if(response.status===401&&usedToken&&usedToken===token&&!path.startsWith("/auth/"))
       resetClientSession("账户认证失败或会话已失效，请重新登录");
     if (response.status === 503 && ["/auth/login","/auth/register"].includes(path)) throw new Error("账户数据库尚未连接，登录服务暂不可用");
-    if (response.status === 503 && path === "/orders") throw new Error("可信报价服务尚未接入，订单未执行");
+    if (response.status === 503 && path === "/orders") throw new Error("该品种暂无可信报价（可能该市场尚未接入行情或暂时休市），订单未提交");
     if (response.status === 401) throw new Error("账户认证失败或会话已失效");
     throw new Error(result.error || "请求失败（HTTP " + response.status + "）");
   }
@@ -1234,6 +1233,10 @@ el("orderForm").addEventListener("submit",async event => {
   }
   if (!pricingConnected) {
     el("feedback").textContent = "可信报价未连接，订单没有提交";
+    return;
+  }
+  if (selected.market !== "US") {
+    el("feedback").textContent = "该市场暂未接入实时行情，订单没有提交";
     return;
   }
   const button = el("orderForm").querySelector('button[type="submit"]');

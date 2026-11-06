@@ -367,6 +367,11 @@ el("mirrorManageClient").addEventListener("click",()=>{
   el("mirrorOperations").scrollIntoView?.({block:"nearest"});
   el("mirrorRefreshControls").focus?.();
 });
+el("mirrorQuickRequests").addEventListener("click",()=>{
+  if(!selectedMirrorClientId)return;
+  setMirrorOperationTab("requests");
+  el("mirrorOperations").scrollIntoView?.({block:"nearest"});
+});
 
 
 async function refreshClientWorkflowHistory(clientId,{append=false}={}){
@@ -598,7 +603,7 @@ function renderMirrorMarket(view,snap){
     void api("/admin/stock-history?symbol="+encodeURIComponent(symbol)).then(data=>{
       if(serial!==chartSerial||token!==adminToken||!host.isConnected||data.symbol!==symbol||!Array.isArray(data.points)||data.points.length<2)return;
       mountStockHistory(host,data.points);
-      note.textContent="Massive · 历史日收盘价（复权）";
+      note.textContent="Twelve Data · 历史日收盘价";
     }).catch(()=>{});
   };
   const note=plainNode("p","公开参考行情 · 可能延迟","mirror-chart-note");
@@ -931,7 +936,7 @@ async function selectMirrorClient(clientId){
   el("mirrorEmail").textContent=match.email;el("mirrorCash").textContent="—";
   el("mirrorCurrency").textContent="—";el("mirrorUpdated").textContent="—";
   el("mirrorStatus").textContent="正在读取已授权的客户账户数据";
-  el("refreshMirror").disabled=true;el("mirrorManageClient").disabled=false;setMirrorScreen();
+  el("refreshMirror").disabled=true;el("mirrorManageClient").disabled=false;el("mirrorQuickRequests").disabled=false;setMirrorScreen();
   try{
     const data=await api("/admin/mirror?clientId="+encodeURIComponent(clientId));
     if(mySerial!==mirrorSerial||adminToken!==usedToken||selectedMirrorClientId!==clientId)return;
@@ -943,7 +948,7 @@ async function selectMirrorClient(clientId){
     el("mirrorCurrency").textContent=data.account.currency;
     el("mirrorUpdated").textContent="快照读取时间："+new Date(data.checkedAt).toLocaleString("zh-CN");
     el("mirrorStatus").textContent="快照已读取 · 管理操作在右侧";
-    el("refreshMirror").disabled=false;el("mirrorManageClient").disabled=false;setMirrorScreen();
+    el("refreshMirror").disabled=false;el("mirrorManageClient").disabled=false;el("mirrorQuickRequests").disabled=false;setMirrorScreen();
   }catch(error){
     if(mySerial!==mirrorSerial||adminToken!==usedToken)return;
     el("mirrorStatus").textContent="快照不可用："+error.message+"；右侧管理操作可独立使用";setMirrorScreen();
@@ -1646,7 +1651,7 @@ function resetAdminSession(message){
   el("mirrorAvailability").textContent="未登录";
   el("mirrorClientSearch").value="";
   el("mirrorMatchCount").textContent="";
-  el("mirrorEmail").textContent="尚未选择";el("mirrorCash").textContent="—";el("mirrorManageClient").disabled=true;setMirrorScreen();
+  el("mirrorEmail").textContent="尚未选择";el("mirrorCash").textContent="—";el("mirrorManageClient").disabled=true;el("mirrorQuickRequests").disabled=true;setMirrorScreen();
   el("mirrorClientList").replaceChildren();
   setMobileNavExpanded(false);
   el("adminWorkspace").hidden=true;el("adminTopbar").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=true;

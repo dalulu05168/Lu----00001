@@ -1,4 +1,7 @@
-const MARKETS=new Set(["US","HK","CN","MY"]);
+// HK/CN/MY withdrawn: no working free quote source was found for them; no
+// position could exist under those markets since orders were never wired
+// for them, but keep this a strict allow-list rather than loosen it.
+const MARKETS=new Set(["US","RO"]);
 const MAX=BigInt(Number.MAX_SAFE_INTEGER);
 function unavailable(reason){throw Object.assign(new Error(reason),{reason});}
 function integer(value,{positive=false}={}){
