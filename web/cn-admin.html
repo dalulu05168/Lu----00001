@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CN Capital · 管理后台</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap">
+<style>
+:root{--bg:#0b0d0a;--pn:rgba(255,255,255,.05);--pn2:rgba(255,255,255,.09);--ln:rgba(255,255,255,.13);--ln2:rgba(255,255,255,.22);--tx:#f7f9f2;--mut:#bcc4b2;--ac:#d7ff00;--acb:rgba(215,255,0,.14);--up:#d7ff00;--dn:#ff6b5a;--am:#ffb938;--bl:#5b9cff;--gold:#e8c27a;--ink:#101400;--field:rgba(0,0,0,.38)}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+body{margin:0;min-height:100vh;background:radial-gradient(1100px 520px at 0 -6%,#33440f 0%,transparent 62%),radial-gradient(800px 420px at 100% 0,#1b2410 0%,transparent 60%),var(--bg);background-attachment:fixed;color:var(--tx);font:13.5px/1.55 Inter,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+b,strong,h3{font-weight:600}
+th,.tn,.chip{font-weight:500}
+.ph>span:first-child{font-weight:600}.ph small{font-weight:400}
+.hide .amt{color:transparent!important;text-shadow:0 0 9px rgba(247,249,242,.75);user-select:none}
+/* 顶栏（与前台一致：品牌 / 居中胶囊导航 / 右侧工具） */
+.top{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:58px;padding:0 20px;background:rgba(11,13,10,.88);border-bottom:1px solid var(--ln);backdrop-filter:blur(8px)}
+.brand{display:flex;align-items:center;gap:10px;white-space:nowrap;font-size:14px;letter-spacing:.08em}
+.brand svg{width:30px;height:30px;display:block;filter:drop-shadow(0 2px 8px rgba(232,194,122,.28))}
+.brand small{display:block;font-size:11px;letter-spacing:.32em;color:var(--gold);margin-top:1px}
+.nav{display:flex;gap:4px;justify-content:center}
+.tn{border:1px solid transparent;background:none;color:var(--mut);height:34px;padding:0 18px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:all .2s}
+.tn:hover{color:var(--tx)}.tn.on{color:var(--ac);background:var(--acb)}
+.right{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.sr{height:34px;width:160px;border-radius:999px;border:1px solid var(--ln);background:var(--field);color:var(--tx);padding:0 14px;font-size:12.5px;text-align:center}
+.av{width:28px;height:28px;border-radius:50%;background:#3a4a1a;text-align:center;line-height:26px;border:1px solid rgba(215,255,0,.25);flex:none}
+/* 页面与面板 */
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;padding:20px 24px 48px;width:100%;max-width:1680px;margin:0 auto;align-items:start}
+.c12{grid-column:span 12}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.pn{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.04));border:1px solid var(--ln);border-radius:14px;min-width:0;overflow:hidden}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--ln);font-size:14px}
+.ph>span:first-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ph small{color:var(--mut);font-size:12px;margin:0}
+.pb{padding:10px 16px}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;color:var(--mut);text-align:left;padding:11px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--ln);white-space:nowrap;letter-spacing:.02em}
+td{padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap}
+tr:last-child td{border-bottom:0}tbody tr{transition:background .15s}tbody tr:hover{background:rgba(255,255,255,.04)}
+.r{text-align:right}.mut{color:var(--mut)}.up{color:var(--up)}.dn{color:var(--dn)}.tw{color:var(--am)}
+.id{font:11px ui-monospace,Menlo,Consolas,monospace;color:var(--mut);cursor:pointer;border-bottom:1px dotted rgba(255,255,255,.25)}.id:hover{color:var(--tx)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 11px;border-radius:999px;font-size:12px}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.ok{background:var(--acb);color:var(--up)}.wa{background:rgba(255,185,56,.15);color:var(--am)}.in{background:rgba(91,156,255,.16);color:#8bb8ff}.mu{background:rgba(255,255,255,.1);color:var(--mut)}.rd{background:rgba(255,107,90,.15);color:var(--dn)}
+.btn{height:32px;padding:0 15px;border-radius:999px;border:1px solid var(--ln2);background:var(--pn2);color:var(--tx);cursor:pointer;font-size:12.5px;white-space:nowrap;transition:all .18s}
+.btn:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.14)}
+.btn.p{background:var(--ac);border-color:var(--ac);color:var(--ink)}.btn.p:hover{background:#e6ff4d}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+a.btn{display:inline-flex;align-items:center;text-decoration:none}
+.seg{display:inline-flex;background:rgba(0,0,0,.35);border:1px solid var(--ln);border-radius:999px;padding:2px}
+.seg button{border:0;background:none;color:var(--mut);height:28px;padding:0 13px;border-radius:999px;cursor:pointer;font-size:12.5px;transition:all .18s}
+.seg button:hover{color:var(--tx)}.seg button.on{background:var(--ac);color:var(--ink)}
+input,select,textarea{height:34px;border-radius:999px;border:1px solid var(--ln2);background:var(--field);color:var(--tx);padding:0 14px;min-width:0}
+select{appearance:none;padding-right:30px;background-image:linear-gradient(45deg,transparent 50%,#aab2a0 50%),linear-gradient(135deg,#aab2a0 50%,transparent 50%);background-position:calc(100% - 17px) 13px,calc(100% - 12px) 13px;background-size:5px 5px;background-repeat:no-repeat}
+select option{background:#13150f}
+textarea{height:80px;padding:10px 14px;width:100%;border-radius:14px;font:inherit}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:4px}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px rgba(215,255,0,.16)}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.tabs{display:flex;justify-content:center;gap:6px;padding:9px 10px;border-bottom:1px solid var(--ln)}
+.tabs button{border:0;background:none;color:var(--mut);height:30px;padding:0 16px;border-radius:999px;cursor:pointer;font-size:12.5px;transition:all .18s}
+.tabs button:hover{color:var(--tx)}.tabs button.on{background:var(--acb);color:var(--ac)}
+.tp[hidden],.pg[hidden]{display:none}
+.kv{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)}.kv:last-child{border-bottom:0}
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.empty{padding:34px 0;text-align:center;color:var(--mut)}
+.alloc{display:flex;height:8px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.1);gap:2px}.alloc i{display:block;height:100%;min-width:3px}
+/* 概览：指标卡 / 趋势图 / 明细 */
+.stats{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.sc{display:flex;flex-direction:column;justify-content:center;gap:3px;min-height:78px;padding:13px 16px;position:relative}
+.sc>span{color:var(--mut);font-size:11.5px}.sc em{font-style:normal;font-size:21px;letter-spacing:-.01em;line-height:1.2}.sc small{color:var(--mut);font-size:11.5px}
+.sc.gold{border-color:rgba(215,255,0,.4);background:linear-gradient(180deg,rgba(215,255,0,.14),rgba(215,255,0,.03))}
+.sc.gold em{color:var(--ac);font-size:26px}
+.sc svg.sp{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:104px;height:36px;opacity:.9}
+.stats2{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.mc{display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:72px;padding:11px 16px 11px 18px;position:relative}
+.mc::before{content:"";position:absolute;left:0;top:13px;bottom:13px;width:3px;border-radius:0 3px 3px 0;background:var(--mc-ac,rgba(255,255,255,.16))}
+.mc>span{color:var(--mut);font-size:11.5px;letter-spacing:.01em}
+.mc em{font-style:normal;font-size:19px;font-weight:600;letter-spacing:-.01em;line-height:1.2}
+.mc small{color:var(--mut);font-size:11px}
+.sc[data-go],.mc[data-go]{cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease,box-shadow .15s ease}
+.sc[data-go]:hover,.mc[data-go]:hover{border-color:var(--ln2);transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.28)}
+.sc[data-go]:active,.mc[data-go]:active{transform:scale(.975);transition-duration:.08s;box-shadow:0 2px 8px rgba(0,0,0,.22)}
+.sc[data-go]:focus-visible,.mc[data-go]:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.mc[data-go]::after{content:"›";position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:17px;line-height:1;color:var(--mut);opacity:0;transition:opacity .15s ease}
+.mc[data-go]:hover::after{opacity:.75}
+.sc.is-loading,.mc.is-loading{pointer-events:none}
+.sc.is-loading>:not(.cardspin),.mc.is-loading>:not(.cardspin){opacity:.42;filter:blur(.4px);transition:opacity .22s ease,filter .22s ease}
+.cardspin{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;z-index:3;animation:cardspin-in .22s ease}
+@keyframes cardspin-in{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.cardspin.out{animation:cardspin-out .18s ease forwards}
+@keyframes cardspin-out{to{opacity:0}}
+.cardspin i{width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.18);border-top-color:#fff;border-right-color:#fff;filter:drop-shadow(0 0 5px rgba(255,255,255,.35));animation:cardspin .68s linear infinite}
+.cardspin u{font-style:normal;text-decoration:none;font-size:11px;letter-spacing:.06em;font-weight:600;color:#fff}
+@keyframes cardspin{to{transform:rotate(360deg)}}
+.ct{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 16px 0}
+.lg{display:flex;gap:14px;color:var(--mut);font-size:12px;align-items:center}
+.lg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.lg i.ln{height:2px;width:14px;border-radius:2px;vertical-align:3px}
+.cw{position:relative;height:280px;margin:8px 12px 0}
+.cw canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+.tip{position:absolute;top:6px;min-width:168px;padding:9px 11px;border-radius:12px;background:#1b1f16;border:1px solid var(--ln2);box-shadow:0 10px 28px rgba(0,0,0,.5);font-size:12.5px;pointer-events:none;opacity:0;transition:opacity .12s;z-index:3}
+.tip.on{opacity:1}.tip b{display:block;margin-bottom:5px}.tip div{display:flex;justify-content:space-between;gap:14px;padding:1.5px 0}.tip div span:first-child{color:var(--mut)}.tip p{margin:5px 0 0;color:var(--mut);font-size:11.5px;border-top:1px solid var(--ln);padding-top:5px}
+.cs{display:grid;grid-template-columns:repeat(4,1fr);background:rgba(0,0,0,.18);border:1px solid var(--ln);border-radius:12px;overflow:hidden;margin-top:14px}
+.cs div{padding:12px 16px;border-right:1px solid rgba(255,255,255,.07)}.cs div:last-child{border-right:0}
+.cs span{display:block;color:var(--mut);font-size:11.5px;letter-spacing:.02em;margin-bottom:5px}.cs b{display:block;font-size:16px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgd{display:grid;gap:2px;padding:6px 16px 12px}
+.lgd .kv{font-size:13px}.lgd .kv>span:first-child{display:flex;align-items:center;gap:8px;color:var(--tx)}
+.lgd .sw{width:8px;height:8px;border-radius:3px;flex:none}
+.sumbar{display:flex;gap:22px;flex-wrap:wrap;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid var(--ln);color:var(--mut);font-size:12.5px}
+.sumbar b{color:var(--tx)}
+tr.mutedrow td{opacity:.55}
+.fchip{display:none;align-items:center;gap:6px;height:24px;padding:0 6px 0 12px;border-radius:999px;background:var(--acb);color:var(--ac);font-size:12.5px;border:0;cursor:pointer}
+.fchip.on{display:inline-flex}.fchip u{text-decoration:none;opacity:.7}
+/* 抽屉与弹层（与前台弹窗同款质感） */
+.mask{position:fixed;inset:0;background:rgba(5,7,4,.68);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;z-index:45}.mask.open{opacity:1;visibility:visible}
+.dr{position:absolute;right:0;top:0;bottom:0;width:min(940px,95vw);background:linear-gradient(180deg,#1b1f16,#13150f);border-left:1px solid var(--ln2);border-radius:20px 0 0 20px;box-shadow:0 24px 60px rgba(0,0,0,.55);padding:20px 22px;overflow:auto;transform:translateX(28px);transition:transform .2s ease}
+.dr.s{width:min(440px,95vw)}.mask.open .dr{transform:none}
+.dh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}.dh h3{margin:0;font-size:18px}
+.pg:not([hidden]){animation:in .18s ease}@keyframes in{from{opacity:0}to{opacity:1}}
+@keyframes pgFade{from{opacity:0}to{opacity:1}}
+@keyframes pgLeave{from{opacity:1}to{opacity:0}}
+.pg.leaving{animation:pgLeave .15s ease forwards;pointer-events:none}
+.pg.enter .pn{animation:pgFade .42s ease backwards}
+.pg.enter .pn:nth-of-type(2){animation-delay:.08s}.pg.enter .pn:nth-of-type(3){animation-delay:.15s}.pg.enter .pn:nth-of-type(4){animation-delay:.22s}
+.pg.enter tbody tr{animation:pgFade .36s ease backwards}
+.pg.enter tbody tr:nth-child(1){animation-delay:.12s}.pg.enter tbody tr:nth-child(2){animation-delay:.2s}.pg.enter tbody tr:nth-child(3){animation-delay:.28s}.pg.enter tbody tr:nth-child(4){animation-delay:.36s}.pg.enter tbody tr:nth-child(5){animation-delay:.44s}.pg.enter tbody tr:nth-child(6){animation-delay:.52s}.pg.enter tbody tr:nth-child(n+7){animation-delay:.56s}
+@media(prefers-reduced-motion:reduce){.pg:not([hidden]),.pg.leaving,.pg.enter .pn,.pg.enter tbody tr{animation:none}}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,12px);background:#1b1f16;border:1px solid var(--ln2);color:var(--tx);padding:9px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:60}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:1260px){.sr{display:none}}
+@media(max-width:1000px){.stats,.stats2{grid-template-columns:1fr 1fr}.top{grid-template-columns:auto 1fr auto;gap:10px}.nav{justify-content:flex-start;overflow-x:auto}.brand small{display:none}.cs{grid-template-columns:1fr 1fr}.cs div:nth-child(2){border-right:0}.cs div:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.07)}.grid{padding:12px}}
+@media(max-width:560px){.stats,.stats2{grid-template-columns:1fr}.sc svg.sp{display:none}.cw{height:230px}}
+/* 弹窗系统 · 统一的分层框线语言 */
+.mo{position:fixed;inset:0;z-index:55;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(5,7,4,.74);backdrop-filter:blur(10px);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s}.mo.open{opacity:1;visibility:visible}
+.md{position:relative;width:min(580px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;overflow:hidden;border-radius:22px;border:1px solid var(--ln2);background:radial-gradient(460px 170px at 0 0,rgba(215,255,0,.1),transparent 70%),linear-gradient(180deg,#1f241a,#12150e);box-shadow:0 0 0 7px rgba(255,255,255,.025),0 46px 100px rgba(0,0,0,.66);transform:translateY(14px) scale(.98);transition:transform .28s cubic-bezier(.2,.8,.2,1)}.mo.open .md{transform:none}
+.md::before{content:"";position:absolute;left:26px;right:26px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),var(--ac),transparent)}.md.dg::before{background:linear-gradient(90deg,transparent,var(--dn),transparent)}
+.mh{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:24px 26px 18px;border-bottom:1px solid var(--ln);background:linear-gradient(180deg,rgba(255,255,255,.04),transparent)}
+.mh i{display:block;font-style:normal;font-size:11px;letter-spacing:.3em;color:var(--gold);margin-bottom:7px}.mh h3{margin:0;font-size:19px;letter-spacing:.02em}.mh p{margin:5px 0 0;color:var(--mut);font-size:12.5px}
+.mx{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid var(--ln2);background:var(--pn);color:var(--mut);cursor:pointer;font-size:16px;line-height:1;transition:all .2s}.mx:hover{color:var(--tx);border-color:rgba(255,255,255,.32);transform:rotate(90deg)}
+.mbd{display:grid;gap:20px;padding:20px 26px 24px;overflow:auto}
+.mf{display:flex;align-items:center;gap:14px;padding:14px 26px;border-top:1px solid var(--ln);background:rgba(0,0,0,.24)}.mf small{color:var(--mut);font-size:12px}.mf div{display:flex;gap:8px;margin-left:auto}
+.gl{display:flex;align-items:center;gap:12px;margin-bottom:10px;color:var(--mut);font-size:11.5px;letter-spacing:.24em}.gl::after{content:"";flex:1;height:1px;background:var(--ln)}
+.fb{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;border:1px solid var(--ln2);border-radius:14px;overflow:hidden;background:var(--ln2)}
+.fd{position:relative;min-width:0;padding:11px 15px 10px;background:#151912;transition:background .18s}.fd.w{grid-column:1/-1}.fd:hover{background:#181d13}.fd:focus-within{background:#1b2213}
+.fd::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--ac);transform:scaleX(0);transform-origin:left;transition:transform .25s}.fd:focus-within::after{transform:none}
+.fd label{margin:0 0 3px;font-size:11px;letter-spacing:.16em}
+.fd input,.fd select{width:100%;height:30px;border:0;border-radius:0;padding:0;background-color:transparent;font-size:14px}
+.fd input:focus,.fd select:focus{border:0;box-shadow:none}
+.fd select{padding-right:18px;background-position:calc(100% - 8px) 10px,calc(100% - 3px) 10px}
+.fd b{display:block;font-size:14px;line-height:26px;overflow-wrap:anywhere}
+.fd .u{position:absolute;right:15px;bottom:12px;color:var(--mut);font-size:12.5px}.fd:has(.u) input{padding-right:28px}
+.fd .sw2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;height:26px;font-size:14px;letter-spacing:0;color:var(--tx);cursor:pointer}
+.sw2 input{position:absolute;opacity:0;width:1px;height:1px}
+.sw2 s{position:relative;flex:none;width:36px;height:20px;border-radius:99px;background:rgba(255,255,255,.16);text-decoration:none;transition:background .2s}.sw2 s::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#cfd6c4;transition:all .2s}
+.sw2 input:checked+s{background:var(--ac)}.sw2 input:checked+s::after{left:19px;background:var(--ink)}.sw2 input:focus-visible+s{outline:2px solid var(--ac);outline-offset:2px}
+.pw{display:flex;gap:4px;margin-top:5px}.pw i{flex:1;height:2px;border-radius:2px;background:rgba(255,255,255,.14);transition:background .2s}.pw i.on{background:var(--ac)}
+.st{display:flex;align-items:center;gap:12px}.st[hidden]{display:none}.st span{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12.5px}.st b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--ln2);font-size:12px}.st .on{color:var(--tx)}.st .on b{background:var(--ac);border-color:var(--ac);color:var(--ink)}.st .ok b{border-color:var(--ac);color:var(--ac)}.st hr{flex:1;height:1px;margin:0;border:0;background:var(--ln2)}
+.nt{padding:12px 15px;border-radius:12px;border:1px solid rgba(255,185,56,.24);background:rgba(255,185,56,.08);color:var(--am);font-size:13px;line-height:1.65}.md.dg .nt{border-color:rgba(255,107,90,.28);background:rgba(255,107,90,.08);color:var(--dn)}
+.mb{height:34px;padding:0 20px;border-radius:999px;border:1px solid var(--ln2);background:var(--pn2);color:var(--tx);cursor:pointer;font-size:13px;white-space:nowrap;transition:all .18s}.mb:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.3)}
+.mb.p{background:var(--ac);border-color:var(--ac);color:var(--ink)}.mb.p:hover{background:#e6ff4d}.mb.dg{background:var(--dn);border-color:var(--dn);color:#2a0905}.mb.dg:hover{background:#ff8473}.mb:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:560px){.mo{padding:10px;align-items:flex-end}.fb{grid-template-columns:1fr}.mh,.mbd,.mf{padding-left:18px;padding-right:18px}}
+
+/* ===== V3：均衡首页、客户弹窗与安全演示控件 ===== */
+.overview-main{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(380px,1fr);gap:16px;align-items:stretch;min-width:0}
+.overview-main>.col{min-width:0}
+.overview-main>.col:first-child>.pn{height:auto;display:flex;flex-direction:column;flex:1}
+.overview-main .cw{flex:1 1 auto;min-height:clamp(260px,22vw,340px);height:auto}
+.overview-main .cs{margin:16px 12px 16px}
+.overview-side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.overview-side>.pn{height:auto}
+#p-over>.pn.c12{grid-column:1/-1}
+#p-over>.pn.c12 thead th{padding:12px 16px;font-size:11.5px}
+#p-over>.pn.c12 tbody td{padding:15px 16px;font-size:13px;line-height:1.45}
+#p-over>.pn.c12 tbody td:first-child{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums}
+#p-over>.pn.c12 tbody .id{font-size:11.5px}
+#p-over>.pn.c12 tbody td.r{font-variant-numeric:tabular-nums}
+#p-over>.pn.c12 tbody td.r:nth-child(5){font-size:14px;font-weight:600;letter-spacing:-.01em}
+#p-over>.pn.c12 tbody td.r.mut{font-size:12.5px}
+#p-over table td,#p-over table th{padding-left:18px;padding-right:18px}
+#p-over .ph{min-height:52px}
+#m-det .md{width:min(920px,100%)}
+.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.detail-card{min-width:0;border:1px solid var(--ln);border-radius:14px;background:rgba(0,0,0,.16);padding:14px}
+.detail-card.wide{grid-column:1/-1}
+.detail-card .gl{margin-bottom:12px}
+.detail-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.detail-row:last-child{border-bottom:0}
+.detail-row>span:first-child{color:var(--mut);font-size:12.5px}
+.detail-row>div{display:flex;align-items:center;gap:10px;min-width:0;text-align:right}
+.detail-row b{font-size:13px;overflow-wrap:anywhere}
+.detail-row .btn{flex:none}
+.file-row{display:grid;grid-template-columns:112px minmax(0,1fr);align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.file-row label{margin:0}
+.file-row input[type=file]{width:100%;height:auto;border:0;border-radius:0;background:transparent;padding:4px 0;font-size:11.5px}
+.file-name{grid-column:2;color:var(--mut);font-size:11.5px;overflow-wrap:anywhere}
+.secure-note{font-size:11.5px;color:var(--mut);line-height:1.6;margin-top:8px}
+.bank-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bank-fields .fd:last-child{grid-column:1/-1}
+.chat-log{min-height:220px;max-height:48vh;overflow:auto;padding:12px;border:1px solid var(--ln);border-radius:14px;background:rgba(0,0,0,.18)}
+.chat-msg{max-width:78%;padding:9px 12px;border-radius:13px;margin:8px 0;background:rgba(255,255,255,.08);font-size:13px;overflow-wrap:anywhere}
+.chat-msg.admin{margin-left:auto;background:rgba(215,255,0,.13);border:1px solid rgba(215,255,0,.12)}
+.chat-compose{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+.chat-compose textarea{min-height:54px;max-height:120px}
+.instrument-preview{min-height:38px;display:flex;flex-direction:column;justify-content:center;color:var(--tx);font-size:13px;line-height:1.6}
+.instrument-preview small{color:var(--mut);display:block}
+#p-cli .r{white-space:nowrap}
+#p-cli table{min-width:780px}
+#p-cli .tp{overflow-x:auto}
+#p-cat table{min-width:780px}
+#p-cat .tp{overflow-x:auto}
+#p-cli .btn,#p-cat .btn{margin:2px}
+#sub-tbody .r{white-space:nowrap}
+#sub-tbody .r .btn{margin:2px}
+#m-com .md{width:min(760px,100%)}
+#m-chat .md{width:min(760px,100%)}
+#m-subpass .md,#m-sublock .md{width:min(520px,100%)}
+.ops-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:8px;padding:0 10px 10px}
+.ops-grid>.pb{padding:8px 6px;min-width:0}
+.ops-caption{font-size:12.5px;color:var(--mut);padding:7px 0 2px;border-bottom:1px solid var(--ln)}
+@media(max-width:1100px){
+ .overview-main{grid-template-columns:1fr}
+ .overview-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}
+ .overview-side>.pn{height:auto}
+ .ops-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:720px){
+ .stats,.stats2{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .overview-side{grid-template-columns:1fr}
+ .ops-grid{grid-template-columns:1fr 1fr}
+ .detail-grid{grid-template-columns:1fr}
+ .detail-card.wide{grid-column:auto}
+ .bank-fields{grid-template-columns:1fr}
+ .bank-fields .fd:last-child{grid-column:auto}
+ .detail-row{align-items:flex-start}
+ .detail-row>div{flex-wrap:wrap;justify-content:flex-end}
+ .file-row{grid-template-columns:1fr}
+ .file-name{grid-column:1}
+}
+@media(max-width:560px){
+ .stats,.stats2{grid-template-columns:1fr}
+ .chat-compose{grid-template-columns:1fr}
+ .chat-compose .mb{width:100%}
+}
+@media(max-width:560px){
+ .top{display:flex;align-items:center;gap:8px;padding:0 10px}
+ .brand{flex:none;gap:6px}
+ .nav{flex:1;min-width:0;overflow-x:auto;justify-content:flex-start;gap:0;scrollbar-width:none}
+ .nav::-webkit-scrollbar{display:none}
+ .tn{flex:none;padding:0 10px}
+ .right{flex:none;gap:4px}
+ .right>.chip,#hidebtn{display:none}
+ .overview-main>.col .ph{flex-direction:column;align-items:stretch}
+ .overview-main>.col .ph .seg{width:100%;display:flex}
+ .overview-main>.col .ph .seg button{flex:1;white-space:nowrap;padding:0 8px;font-size:11.5px}
+}
+
+</style>
+<style id="mir-appcss" type="text/plain">
+:host{display:block}
+*{box-sizing:border-box;margin:0;font-weight:400!important}
+button,input{font:inherit;color:inherit}
+.app{position:relative;width:390px;height:min(844px,100vh);background:#0b0b0b;border-radius:36px;overflow:hidden;border:1px solid #2b2f38;color:#fff;font:13px/1.4 Inter,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-variant-numeric:tabular-nums}
+:host(.emb) .app{width:100%;height:100%;border:0;border-radius:0}
+@media(max-width:420px){:host(:not(.emb)) .app{width:100vw;height:100vh;border:0;border-radius:0}}
+.app.g{background:radial-gradient(120% 46% at 0% 0%,#38490f 0%,#0b0b0b 62%)}
+.sb{position:absolute;top:0;left:0;right:0;height:48px;z-index:8;display:flex;align-items:center;justify-content:space-between;padding:6px 28px 0 34px;font-size:15px;pointer-events:none}
+.isl{position:absolute;left:50%;top:11px;width:112px;height:31px;margin-left:-56px;background:#000;border-radius:16px}
+.si{display:flex;gap:6px;align-items:center}
+.v{position:absolute;left:0;right:0;top:48px;bottom:0;padding:8px 16px 86px;overflow-y:auto;scrollbar-width:none}
+.m{color:#a9b0a0;font-size:11px}
+.t-g{--c:#d7ff00;--b:rgba(215,255,0,.13)}.t-r{--c:#ff6b5a;--b:rgba(255,107,90,.15)}.t-a{--c:#ffb938;--b:rgba(255,185,56,.15)}.t-b{--c:#5b9cff;--b:rgba(91,156,255,.16)}.t-p{--c:#b58cff;--b:rgba(181,140,255,.16)}.t-c{--c:#36d3c9;--b:rgba(54,211,201,.15)}.t-k{--c:#ff7ab8;--b:rgba(255,122,184,.15)}.t-m{--c:#a9b0a0;--b:rgba(255,255,255,.08)}
+.chips{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+.chip{border:0;border-radius:16px;padding:6px 12px;background:var(--b);color:var(--c);font-size:12px;cursor:pointer}
+.chip.on{background:var(--c);color:#0b0b0b}
+.tg{display:inline-block;border-radius:10px;padding:1px 8px;font-size:11px;background:var(--b);color:var(--c)}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.av{width:36px;height:36px;border-radius:50%;background:#3a4a1a;display:flex;align-items:center;justify-content:center}
+.gr{flex:1;font-size:13px}.gr small{display:block;color:#a9b0a0;font-size:11px}
+.cb{width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.cb svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.cb.on svg{fill:#d7ff00;stroke:#d7ff00}
+.bal{font-size:34px;line-height:1.2;margin:2px 0}
+.acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 6px}
+.ab{border:0;background:none;color:#c9cfc0;font-size:11px;cursor:pointer}
+.ab i{display:flex;align-items:center;justify-content:center;height:40px;border-radius:20px;background:var(--b);color:var(--c);font-style:normal;font-size:17px;margin-bottom:5px}
+h3{font-size:14px;margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+h2{font-size:21px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
+.bx{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.05);border-radius:12px;padding:9px 12px;font-size:13px}.bx .m{display:block;margin-bottom:2px}
+.cards{display:flex;gap:8px}
+.card{flex:1;min-width:0;background:rgba(255,255,255,.05);border-radius:16px;padding:12px;cursor:pointer;border:1px solid rgba(255,255,255,.04)}
+.card .ic{margin-bottom:8px}.card small{display:block;color:#a9b0a0;font-size:11px}
+.ic{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex:none}
+.rw{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
+.rw .l{flex:1;min-width:0}.rw small{display:block;color:#a9b0a0;font-size:11px}.rw .r{text-align:right}
+.up{color:#d7ff00}.dn{color:#ff6b5a}.am{color:#ffb938}
+.bn{background:rgba(255,185,56,.1);color:#ffb938;border-radius:12px;padding:8px 12px;font-size:11px;margin:8px 0}
+.bn.in{background:rgba(91,156,255,.1);color:#8bb8ff}
+.cta{width:100%;height:46px;border:0;border-radius:24px;background:#d7ff00;color:#101400;font-size:15px;cursor:pointer}
+.cta.off,.cta:disabled{opacity:.4;cursor:not-allowed}
+.cta.red{background:#f0481a;color:#fff}.cta.gh{background:rgba(255,255,255,.1);color:#fff}
+.two{display:flex;gap:10px;margin-top:8px}
+.nv{position:absolute;left:10px;right:10px;bottom:14px;display:flex;background:rgba(32,34,30,.95);border:1px solid rgba(255,255,255,.08);border-radius:26px;padding:5px;z-index:4}
+.nv button{flex:1;border:0;background:none;color:#a9b0a0;font-size:11px;padding:9px 0;border-radius:20px;cursor:pointer}
+.nv button.on{background:var(--b);color:var(--c)}
+.bk{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:5}
+.sh{position:absolute;left:0;right:0;bottom:0;background:#161815;border-radius:24px 24px 0 0;padding:20px 18px 24px;z-index:6;animation:up .2s ease}
+@keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.sh label{display:block;font-size:11px;color:#a9b0a0;margin:14px 0 6px}
+input{outline:0}
+.sh input{width:100%;height:46px;border-radius:14px;border:1px solid #2f332b;background:#0e100c;padding:0 14px;font-size:18px}
+.sh input:focus{border-color:#d7ff00}
+.er{color:#ff6b5a;font-size:11px;min-height:16px;margin:6px 0}
+.ts{position:absolute;left:16px;right:16px;bottom:92px;background:#262a22;border:1px solid #3a4030;border-radius:14px;padding:10px 14px;font-size:12px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:9;text-align:center}
+.ts.on{opacity:1;transform:none}
+.dh{display:flex;align-items:center;gap:10px;margin-bottom:8px}.dh .t{flex:1;text-align:center;font-size:15px}
+.pr{font-size:28px;margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pr .tg{font-size:11px}
+.ohlc{display:flex;gap:10px;flex-wrap:wrap;color:#b4bdca;font-size:11px;margin:6px 0;min-height:30px;align-content:flex-start}
+.ohlc i{font-style:normal;color:#7f8678;margin-right:3px}
+.cv{display:block;width:calc(100% + 16px);margin:4px -8px 0 -8px;height:270px;touch-action:none;cursor:crosshair}
+.stp{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.05);border-radius:16px;padding:6px;margin:6px 0}
+.stp button{width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.1);font-size:18px;cursor:pointer}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.05)}.kv span:first-child{color:#a9b0a0}
+.ep{text-align:center;color:#7f8678;padding:14px 0;font-size:12px}
+.sr{display:flex;align-items:center;gap:8px;height:38px;border-radius:19px;background:rgba(255,255,255,.07);padding:0 14px;margin:4px 0}
+.sr svg{width:16px;height:16px;fill:none;stroke:#a9b0a0;stroke-width:1.6;stroke-linecap:round;flex:none}
+.sr input{flex:1;min-width:0;background:none;border:0;font-size:13px}
+.alloc{height:8px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;margin:6px 0 8px}.alloc i{display:block;height:100%;width:100%;background:#5b9cff}
+.al{display:flex;gap:6px;flex-wrap:wrap}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#d7ff00;margin-right:6px;box-shadow:0 0 0 3px rgba(215,255,0,.15)}
+.bub{max-width:78%;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.08);margin:6px 0}.bub.me{margin-left:auto;background:#2b3a12}
+.bub small{display:block;color:#a9b0a0;font-size:10px;margin-top:2px}
+.cm{display:flex;gap:8px;align-items:center;margin-top:8px}.cm .sr{flex:1;margin:0}
+.sh .sr input{height:auto;border:0;background:none;padding:0;font-size:13px;width:auto}
+.sh.ch{height:64%;display:flex;flex-direction:column;padding:14px 16px 16px}
+.chh{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.msgs{flex:1;overflow-y:auto;scrollbar-width:none;padding:6px 0}
+.qk{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:8px 0 2px}.qk .chip{white-space:nowrap;flex:none}
+.bd{position:absolute;top:-5px;right:-3px;min-width:18px;height:18px;border-radius:9px;background:#ff3b30;color:#fff;font-size:11px;line-height:18px;padding:0 5px;text-align:center}
+.ptr{position:absolute;top:48px;left:0;right:0;height:0;overflow:hidden;text-align:center;color:#a9b0a0;font-size:12px;line-height:34px;z-index:3}
+.tl{margin:12px 0 2px 6px}.tl div{position:relative;padding:0 0 18px 22px;border-left:2px solid rgba(255,255,255,.12)}.tl div:last-child{border-color:transparent;padding-bottom:6px}
+.tl div:before{content:'';position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:#3b4757}
+.tl .d:before{background:#d7ff00}.tl .a:before{background:#ffb938;box-shadow:0 0 0 4px rgba(255,185,56,.2)}
+.tl small{display:block;color:#a9b0a0;font-size:11px}
+.fab{position:absolute;right:14px;bottom:86px;z-index:4;height:40px;padding:0 18px;border-radius:20px;border:0;background:var(--c);color:#0b0b0b;font-size:13px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.cta.bl{background:#5b9cff;color:#06101f}
+.upl{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:128px;border:1px dashed #3a4a6a;border-radius:14px;background:#0e100c;color:#a9b0a0;font-size:12px;overflow:hidden;text-align:center}
+.upl img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.upl .fn{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);padding:3px 6px;font-size:10px;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.upl input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;cursor:pointer}
+.stp input{width:90px;text-align:center;background:none;border:0;font-size:18px}
+</style>
+<style id="cn-guard">html:not(.cn-ready) body{visibility:hidden!important}</style>
+</head>
+<body>
+
+<header class="top">
+<div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><defs>
+<linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbeab8"/><stop offset=".5" stop-color="#e0b25a"/><stop offset="1" stop-color="#a97a2c"/></linearGradient>
+<linearGradient id="lb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2d3a1a"/><stop offset="1" stop-color="#0f130a"/></linearGradient></defs>
+<rect width="32" height="32" rx="9" fill="url(#lb)"/>
+<rect x=".6" y=".6" width="30.8" height="30.8" rx="8.4" fill="none" stroke="url(#lg)" stroke-opacity=".7" stroke-width="1.1"/>
+<path d="M21.2 11.4A7.4 7.4 0 1 0 21.2 20.6" fill="none" stroke="url(#lg)" stroke-width="2" stroke-linecap="round"/>
+<path d="M12.6 19.4l3.6-3.8 2.4 2.2 5-5.6" fill="none" stroke="url(#lg)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="23.6" cy="12.2" r="1.3" fill="url(#lg)"/></svg>
+<div>CN Capital<small>ADMIN · CONSOLE</small></div></div>
+<nav class="nav"><button class="tn on" data-p="over">概览</button><button class="tn" data-p="cli">客户</button><button class="tn" data-p="appr">审批</button><button class="tn" data-p="fund">资金</button><button class="tn" data-p="cat">产品目录</button></nav>
+<div class="right">
+<span class="chip wa">预览模式 · 非真实交易</span><button class="btn" id="hidebtn" data-own aria-pressed="false">隐藏金额</button>
+<input class="sr" type="search" placeholder="搜索客户邮箱或编号  按 / 聚焦" aria-label="搜索客户邮箱或编号">
+<div class="av" title="管理员">G</div></div>
+</header>
+
+
+<!-- ============ 后台 ============ -->
+<section class="pg grid" id="p-over"></section>
+
+<section class="pg grid" id="p-cli" hidden>
+<div class="pn c12"><div class="tabs"><button class="on" data-t="t-cli">客户 · 2</button><button data-t="t-sub">子账户 · 1</button></div>
+<div class="tp" id="t-cli">
+ <div class="pb bar"><input type="search" placeholder="邮箱或客户编号" style="width:260px"><button class="btn" data-own data-action="refresh-clients">刷新</button><span class="mut">客户详情、账户权限、实名资料及客服统一在此管理</span></div>
+ <table><thead><tr><th>客户</th><th>归属</th><th>账户类别</th><th>状态</th><th class="r">操作</th></tr></thead><tbody>
+ <tr><td><b>linyi05168@gmail.com</b></td><td class="mut">子账号归属 · <span class="id">27bc8619…4954</span></td><td><span class="chip wa">预览账户</span></td><td><span class="chip ok" data-client-status="linyi05168@gmail.com">正常</span></td><td class="r"><button class="btn" data-own data-mo="m-det" data-det='{"k":"CLIENT PROFILE","t":"linyi05168@gmail.com","s":"客户详情","m":1,"r":[]}'>详情</button> <button class="btn" data-own data-mo="m-chat" data-customer="linyi05168@gmail.com">客服</button> <button class="btn p" data-own data-open="m-mir">App 镜像</button></td></tr>
+ <tr><td><b>chenan05168@gmail.com</b></td><td class="mut">直接注册客户</td><td><span class="chip mu">—</span></td><td><span class="chip ok" data-client-status="chenan05168@gmail.com">正常</span></td><td class="r"><button class="btn" data-own data-mo="m-det" data-det='{"k":"CLIENT PROFILE","t":"chenan05168@gmail.com","s":"客户详情","m":0,"r":[]}'>详情</button> <button class="btn" data-own data-mo="m-chat" data-customer="chenan05168@gmail.com">客服</button></td></tr>
+ </tbody></table>
+ </div>
+ <div class="tp" id="t-sub" hidden>
+ <div class="pb bar"><button class="btn p" data-own data-mo="m-sub">+ 创建子账户</button><span class="mut">子账户支持密码重置与登录限制；当前为页面预览数据</span></div>
+ <table><thead><tr><th>子账户</th><th>角色</th><th>邀请码使用</th><th>到期</th><th>状态</th><th class="r">操作</th></tr></thead><tbody id="sub-tbody">
+ <tr id="sub-row-chenbei"><td><b>chenbei05168@gmail.com</b></td><td><span class="chip in">子管理员</span></td><td>1 / 100</td><td class="mut">2026/12/3 06:57</td><td><span class="chip ok" data-sub-status="chenbei05168@gmail.com">正常</span></td><td class="r"><button class="btn" data-own data-mo="m-subpass" data-email="chenbei05168@gmail.com">更改密码</button> <button class="btn" data-own data-mo="m-sublock" data-email="chenbei05168@gmail.com">限制账号</button></td></tr>
+ </tbody></table></div>
+</div>
+</section>
+
+<section class="pg grid" id="p-appr" hidden>
+<div class="pn c12"><div class="ph"><span>申请列表<small>共 4 条 · 资金同意仅更新页面记录，不执行银行付款或外部身份核验</small></span><div class="bar"><select><option>身份核验工单</option><option>充值申请</option><option>提现申请</option></select><button class="btn">刷新</button></div></div>
+<table><thead><tr><th>工单</th><th>状态</th><th>客户</th><th>提交时间</th><th class="r">操作</th></tr></thead><tbody>
+<tr><td>身份认证工单</td><td><span class="chip wa">审核中</span></td><td class="id">a078db2d…612f</td><td class="mut">2026/11/5 18:02</td><td class="r"><button class="btn" data-open="m-ap">加密资料</button> <button class="btn p" data-open="m-ap">处理</button></td></tr>
+<tr><td>身份认证工单</td><td><span class="chip in">待补验证材料</span></td><td class="id">a078db2d…612f</td><td class="mut">2026/11/4 22:02</td><td class="r"><button class="btn p" data-open="m-ap">处理</button></td></tr>
+<tr><td>身份认证工单</td><td><span class="chip in">需补充信息</span></td><td class="id">a078db2d…612f</td><td class="mut">2026/11/3 20:30</td><td class="r"><button class="btn p" data-open="m-ap">处理</button></td></tr>
+<tr><td>身份认证工单</td><td><span class="chip in">待补验证材料</span></td><td class="id">a078db2d…612f</td><td class="mut">2026/11/3 20:30</td><td class="r"><button class="btn p" data-open="m-ap">处理</button></td></tr></tbody></table></div>
+</section>
+
+<section class="pg grid" id="p-fund" hidden>
+<div class="pn c12"><div class="ph"><span>资金申请与审批记录<small>充值 4 · 提现 0 · 仅申请记录，未发生资金划转</small></span><button class="btn">刷新统计</button></div>
+<table><thead><tr><th>类型</th><th class="r">金额 USD</th><th>状态</th><th>客户</th><th>提交时间</th></tr></thead><tbody>
+<tr><td>充值申请</td><td class="r">1,000,000.00</td><td><span class="chip ok">已记录（非实际到账）</span></td><td class="id">a078db2d…612f</td><td class="mut">2026/11/5 12:07:09</td></tr>
+<tr><td>充值申请</td><td class="r">10,000.00</td><td><span class="chip ok">已记录（非实际到账）</span></td><td class="id">a078db2d…612f</td><td class="mut">2026/11/4 21:51:03</td></tr>
+<tr><td>充值申请</td><td class="r">10,000.00</td><td><span class="chip ok">已记录（非实际到账）</span></td><td class="id">a078db2d…612f</td><td class="mut">2026/11/3 20:33:35</td></tr>
+<tr><td>充值申请</td><td class="r">10,000.00</td><td><span class="chip in">审核通过（未执行资金划转）</span></td><td class="id">a078db2d…612f</td><td class="mut">2026/11/3 20:31:38</td></tr></tbody></table></div>
+</section>
+
+<section class="pg grid" id="p-cat" hidden>
+<div class="pn c12"><div class="tabs"><button class="on" data-t="t-sec">证券资料</button><button data-t="t-com">大宗商品</button></div>
+<div class="tp" id="t-sec"><div class="pb bar"><button class="btn p" data-own data-mo="m-sec" data-mode="new">+ 新增证券</button><span class="mut">先识别证券（类型 / 代码 / 市场），再设置交易条件</span></div>
+<table><thead><tr><th>类型</th><th>代码</th><th>名称</th><th>状态</th><th class="r">操作</th></tr></thead><tbody><tr><td>STOCK</td><td><b>US:AA</b></td><td>Alcoa Corporation</td><td><span class="chip ok">已发布 · 客户目录可见</span></td><td class="r"><button class="btn" disabled>编辑</button> <button class="btn" data-own data-mo="m-cf" data-cf='{"t":"撤回 US:AA","d":"撤回后，该证券将从客户目录中隐藏，客户无法再发起新的买入。已有持仓不受影响。","ok":"确认撤回","dg":1}'>撤回</button> <button class="btn" data-own data-mo="m-sec" data-mode="set">折扣与交易设置</button></td></tr></tbody></table></div>
+<div class="tp" id="t-com" hidden><div class="pb bar"><button class="btn p" data-own data-mo="m-com">+ 创建商品</button><span class="mut">代码识别为示例资料；当前未连接交易商</span></div>
+ <div id="com-empty" class="empty">暂无商品目录记录 · 点击「创建商品」设置代码与交易条件</div>
+ <div style="overflow-x:auto"><table id="com-table" hidden><thead><tr><th>代码</th><th>标的名称</th><th>折扣比例</th><th>持有天数</th><th>最低买入数</th><th>交易验证</th><th>状态</th></tr></thead><tbody id="com-tbody"></tbody></table></div></div>
+</div></section>
+
+<!-- 客户 App 镜像弹层：只保留镜像，不重复放置账户管理控件 -->
+<div class="mask" id="m-mir"><div class="dr" role="dialog" aria-label="客户手机镜像" style="width:min(430px,95vw)">
+ <div class="dh"><div><div class="mut" style="font-size:10px;letter-spacing:.1em">CLIENT SESSION</div><h3 style="font-size:14px;margin:1px 0">客户手机镜像</h3><div class="mut" style="font-size:10.5px">linyi05168@gmail.com</div></div><button class="btn" data-close>关闭 ×</button></div>
+ <div class="emb" id="mirror" style="width:100%;height:min(824px,88vh);border:6px solid #2b2f38;border-radius:34px;overflow:hidden;background:#0b0b0b"></div>
+ </div></div>
+
+<div class="mask" id="m-ap"><div class="dr s" role="dialog" aria-label="处理申请">
+<div class="dh"><div><div class="mut" style="font-size:12.5px;letter-spacing:.1em">APPROVAL</div><h3>处理身份认证工单</h3></div><button class="btn" data-close>关闭 ×</button></div>
+<div class="kv"><span class="mut">客户编号</span><span class="id">a078db2d-cc28-4457-a03a-ad13ddae612f</span></div>
+<div class="pn" style="margin:12px 0"><div class="ph"><span>加密审核资料</span></div><div class="pb"><div class="kv"><span>身份证正面</span><button class="btn" data-own data-mo="m-cf" data-cf='{"t":"查看身份证正面","d":"资料仅用于界面展示，不代表实名认证完成。","ok":"确认查看并留痕"}'>查看</button></div><div class="kv"><span>身份证反面</span><button class="btn" data-own data-mo="m-cf" data-cf='{"t":"查看身份证反面","d":"资料仅用于界面展示，不代表实名认证完成。","ok":"确认查看并留痕"}'>查看</button></div><div class="mut" style="font-size:12.5px;margin-top:8px">资料仅用于界面展示；不代表实名认证完成。</div></div></div>
+<div style="display:grid;gap:12px"><div><label>处理结果</label><select style="width:100%"><option>审核中</option><option>待补验证材料</option><option>需补充信息</option><option>审核通过</option><option>拒绝</option></select></div>
+<div><label>备注（选填，客户可见）</label><textarea></textarea></div><div><label>主账号密码（确认操作）</label><input type="password" style="width:100%"></div></div>
+<div class="bar" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-close>取消</button><button class="btn p">提交处理</button></div>
+</div></div>
+
+<div class="mo" id="m-det"><div class="md" role="dialog" aria-modal="true" aria-labelledby="det-t">
+ <div class="mh"><div><i id="det-k">CLIENT PROFILE</i><h3 id="det-t"></h3><p id="det-s">客户账户、权限、实名资料与银行卡信息</p></div><button class="mx" data-mc aria-label="关闭">×</button></div>
+ <div class="mbd"><div class="detail-grid" id="det-b"></div></div>
+ <div class="mf"><small>资料仅在当前页面显示</small><div><button class="mb" data-mc>关闭</button><button class="mb p" id="det-m" hidden>进入 App 镜像</button></div></div>
+ </div></div>
+<div class="mo" id="m-sub"><div class="md" role="dialog" aria-modal="true" aria-labelledby="sub-t"><div class="mh"><div><i>SUB ACCOUNT</i><h3 id="sub-t">创建子账户</h3><p>同时生成邀请码</p></div><button class="mx" data-mc aria-label="关闭">×</button></div><div class="mbd"><div><div class="gl">登录凭据</div><div class="fb"><div class="fd w"><label for="sb-e">子账户邮箱</label><input id="sb-e" type="email" placeholder="name@example.com" autocomplete="off"></div><div class="fd w"><label for="sb-p">初始密码</label><input id="sb-p" type="password" placeholder="至少 12 位" autocomplete="new-password"><div class="pw" id="sb-m"><i></i><i></i><i></i><i></i></div></div></div></div><div><div class="gl">角色与邀请码</div><div class="fb"><div class="fd"><label>角色</label><select><option>子管理员</option></select></div><div class="fd"><label for="sb-q">邀请码可用次数</label><input id="sb-q" inputmode="numeric" value="100"></div><div class="fd w"><label for="sb-x">邀请码有效期</label><select id="sb-x"><option>30 天</option><option>90 天</option><option>180 天</option></select></div></div></div></div><div class="mf"><small>邮箱与密码填写完整后可创建</small><div><button class="mb" data-mc>取消</button><button class="mb p" id="sb-ok" disabled>创建子账户</button></div></div></div></div>
+<div class="mo" id="m-sec"><div class="md" style="width:min(600px,100%)" role="dialog" aria-modal="true" aria-labelledby="sec-t"><div class="mh"><div><i id="sec-k">NEW SECURITY</i><h3 id="sec-t">新增证券</h3><p id="sec-s"></p></div><button class="mx" data-mc aria-label="关闭">×</button></div><div class="mbd"><div class="st" id="sec-st"><span data-s="1"><b>1</b>识别证券</span><hr><span data-s="2"><b>2</b>交易条件</span></div><div data-step="1"><div class="gl">证券识别</div><div class="fb"><div class="fd"><label>类型</label><select><option>股票 STOCK</option><option>基金</option><option>IPO</option></select></div><div class="fd"><label>市场</label><select><option>US 美股</option></select></div><div class="fd w"><label for="sc-c">代码</label><input id="sc-c" placeholder="例如 AAPL" autocomplete="off" style="text-transform:uppercase"></div></div></div><div data-step="2" hidden><div class="gl">交易条件</div><div class="fb"><div class="fd"><label for="sc-d">优惠比例</label><input id="sc-d" inputmode="decimal" placeholder="例如 10"><span class="u">%</span></div><div class="fd"><label for="sc-h">买入后持有</label><input id="sc-h" inputmode="numeric" placeholder="例如 0"><span class="u">天</span></div><div class="fd"><label>结算币种</label><select><option>USD</option></select></div><div class="fd"><label>目录可见性</label><label class="sw2"><span>客户可见</span><input type="checkbox" checked><s></s></label></div></div></div></div><div class="mf"><small>价格为参考价，非实时报价</small><div><button class="mb" data-mc>取消</button><button class="mb" id="sec-bk" hidden>上一步</button><button class="mb p" id="sec-ok">下一步</button></div></div></div></div>
+<div class="mo" id="m-ed"><div class="md" style="width:min(520px,100%)" role="dialog" aria-modal="true" aria-labelledby="ed-t">
+ <div class="mh"><div><i>ACCOUNT SETTING</i><h3 id="ed-t">修改账户设置</h3><p>账户设置</p></div><button class="mx" data-mc aria-label="关闭">×</button></div>
+ <div class="mbd"><div><div class="gl">变更内容</div><div class="fb"><div class="fd"><label>当前值</label><b id="ed-c"></b></div><div class="fd"><label for="ed-n">新值</label><select id="ed-n"></select></div></div></div>
+ <div><div class="gl">变更原因</div><div class="fb"><div class="fd w"><label for="ed-reason">操作说明（必填）</label><input id="ed-reason" placeholder="请填写调整原因"></div></div></div></div>
+ <div class="mf"><small>更改只在当前页面临时显示，不写入服务器</small><div><button class="mb" data-mc>取消</button><button class="mb p" id="ed-ok" disabled>确认修改</button></div></div>
+ </div></div>
+<div class="mo" id="m-chat"><div class="md" style="width:min(760px,100%)" role="dialog" aria-modal="true" aria-labelledby="chat-t">
+ <div class="mh"><div><i>CLIENT SUPPORT</i><h3 id="chat-t">客户客服会话</h3><p id="chat-sub">客户消息与客服回复 · 预览模式</p></div><button class="mx" data-mc aria-label="关闭">×</button></div>
+ <div class="mbd" style="gap:12px"><div class="chat-log" id="chat-log"><div class="empty">暂无可读取的历史会话。消息服务未连接。</div></div>
+ <div class="chat-compose"><textarea id="chat-input" rows="2" placeholder="输入回复内容……"></textarea><button class="mb p" id="chat-send">发送</button></div>
+ <div class="mut">消息仅显示在当前页面。</div></div>
+ </div></div>
+
+<div class="mo" id="m-subpass"><div class="md" style="width:min(520px,100%)" role="dialog" aria-modal="true" aria-labelledby="subpass-t">
+ <div class="mh"><div><i>SUB ACCOUNT SECURITY</i><h3 id="subpass-t">重置子账户密码</h3><p id="subpass-email"></p></div><button class="mx" data-mc aria-label="关闭">×</button></div>
+ <div class="mbd"><div class="nt">请通过正式身份验证流程重置密码。此处仅校验输入格式，不保存或发送密码。</div>
+ <div class="fb"><div class="fd w"><label for="sp-new">新密码（至少 12 位）</label><input id="sp-new" type="password" autocomplete="new-password" placeholder="输入新密码"></div><div class="fd w"><label for="sp-confirm">确认新密码</label><input id="sp-confirm" type="password" autocomplete="new-password" placeholder="再次输入新密码"></div></div>
+ <div class="mut" id="sp-error">建议使用大小写字母、数字和符号组合。</div></div>
+ <div class="mf"><small>密码不会写入本地存储或服务器</small><div><button class="mb" data-mc>取消</button><button class="mb p" id="sp-save" disabled>确认重置</button></div></div>
+ </div></div>
+
+<div class="mo" id="m-sublock"><div class="md" style="width:min(500px,100%)" role="dialog" aria-modal="true" aria-labelledby="sublock-t">
+ <div class="mh"><div><i>SUB ACCOUNT ACCESS</i><h3 id="sublock-t">子账户访问权限</h3><p id="sublock-email"></p></div><button class="mx" data-mc aria-label="关闭">×</button></div>
+ <div class="mbd"><div class="fb"><div class="fd w"><label for="sublock-state">账号状态</label><select id="sublock-state"><option>正常</option><option>限制登录</option></select></div><div class="fd w"><label for="sublock-reason">操作原因</label><input id="sublock-reason" placeholder="填写限制或恢复原因"></div></div>
+ <div class="nt">此处仅更新页面状态。</div></div>
+ <div class="mf"><small>本页状态不会跨设备同步</small><div><button class="mb" data-mc>取消</button><button class="mb p" id="sublock-save" disabled>保存状态</button></div></div>
+ </div></div>
+
+<div class="mo" id="m-com"><div class="md" style="width:min(760px,100%)" role="dialog" aria-modal="true" aria-labelledby="com-t">
+ <div class="mh"><div><i>COMMODITY CONFIGURATION</i><h3 id="com-t">创建大宗商品 / 标的</h3><p>输入代码后显示标的资料；实时行情未接入</p></div><button class="mx" data-mc aria-label="关闭">×</button></div>
+ <div class="mbd">
+  <div><div class="gl">标的识别</div><div class="fb">
+   <div class="fd"><label for="cm-code">股票 / 商品代码</label><input id="cm-code" placeholder="例如 AA、AAPL、XAUUSD" autocomplete="off" style="text-transform:uppercase"></div>
+   <div class="fd"><label for="cm-market">市场</label><select id="cm-market"><option>美国市场</option><option>贵金属</option><option>能源</option><option>其他 / 待接入</option></select></div>
+   <div class="fd w"><label>标的资料识别</label><div class="instrument-preview" id="cm-preview">输入代码后显示示例资料；不代表实时行情或交易所核验。</div></div>
+  </div></div>
+  <div><div class="gl">交易展示条件</div><div class="fb">
+   <div class="fd"><label for="cm-discount">公开优惠比例</label><input id="cm-discount" type="number" min="0" max="100" step="0.1" value="0"><span class="u">%</span></div>
+   <div class="fd"><label for="cm-days">持有天数</label><input id="cm-days" type="number" min="0" step="1" value="0"><span class="u">天</span></div>
+   <div class="fd"><label for="cm-min">最低买入数量</label><input id="cm-min" type="number" min="1" step="1" value="1"><span class="u">股 / 单位</span></div>
+   <div class="fd"><label>客户交易验证</label><label class="sw2"><span>要求客户输入本人设置的 6 位 PIN</span><input id="cm-pin" type="checkbox" checked><s></s></label></div>
+   <div class="fd w"><label class="sw2"><span>保存为客户可见草稿</span><input id="cm-visible" type="checkbox" checked><s></s></label></div>
+  </div></div>
+  <div class="nt">优惠比例必须向客户清楚披露。实际成交价应由已连接的合规交易商按实时行情及公开费用规则计算；本演示不执行订单。六位 PIN 由客户本人设置，后台不可查看或代设。</div>
+ </div>
+ <div class="mf"><small>仅保存在当前页面，不发布到客户目录</small><div><button class="mb" data-mc>取消</button><button class="mb p" id="cm-save" disabled>保存商品草稿</button></div></div>
+ </div></div>
+
+<div class="mo" id="m-cf"><div class="md" style="width:min(440px,100%)" role="dialog" aria-modal="true" aria-labelledby="cf-t"><div class="mh"><div><i id="cf-k">CONFIRM</i><h3 id="cf-t"></h3><p></p></div><button class="mx" data-mc aria-label="关闭">×</button></div><div class="mbd"><div class="nt" id="cf-d"></div></div><div class="mf"><div><button class="mb" data-mc>取消</button><button class="mb p" id="cf-ok"></button></div></div></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+var pendShow;
+function pg(p,quiet,enter){var el=document.getElementById('p-'+p);if(!el)return;
+if(!quiet){try{if(location.hash!=='#'+p)location.hash=p}catch(x){}}
+var cur=document.querySelector('.pg:not([hidden])');
+clearTimeout(pendShow);
+function doShow(){
+document.querySelectorAll('.pg').forEach(function(s){s.hidden=s.id!=='p-'+p;s.classList.remove('leaving')});
+document.querySelectorAll('.tn').forEach(function(b){b.classList.toggle('on',b.dataset.p===p)});
+window.scrollTo(0,0);
+el.classList.remove('enter');clearTimeout(el._ent);if(enter){void el.offsetWidth;el.classList.add('enter');el._ent=setTimeout(function(){el.classList.remove('enter')},1000)}}
+if(cur&&cur!==el){cur.classList.add('leaving');pendShow=setTimeout(doShow,150)}else{doShow()}}
+window.addEventListener('hashchange',function(){var ce=window.__cardNav;window.__cardNav=0;pg(location.hash.slice(1),true,ce)});
+pg(location.hash.slice(1),true);
+document.querySelectorAll('.tn').forEach(function(b){b.onclick=function(){pg(b.dataset.p)}});
+document.querySelectorAll('.tabs [data-t]').forEach(function(b){b.onclick=function(){
+var s=b.closest('.pn');s.querySelectorAll('.tabs [data-t]').forEach(function(x){x.classList.toggle('on',x===b)});
+s.querySelectorAll('.tp').forEach(function(t){t.hidden=t.id!==b.dataset.t})}});
+var last;document.querySelectorAll('[data-open]').forEach(function(b){b.onclick=function(){var m=document.getElementById(b.dataset.open);m.classList.add('open');last=b;m.querySelector('[data-close]').focus()}});
+document.querySelectorAll('.dr').forEach(function(d){d.setAttribute('aria-modal','true')});
+var tt;function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},1800)}
+document.querySelectorAll('.btn').forEach(function(b){if(b.disabled||b.tagName==='A'||b.dataset.open||b.hasAttribute('data-close')||b.hasAttribute('data-own'))return;b.addEventListener('click',function(){toast('演示界面 · 此操作尚未接入后端')})});
+var ids={'a078db2d…612f':'a078db2d-cc28-4457-a03a-ad13ddae612f','27bc8619…4954':'27bc8619-a51f-4fe6-aaec-7ee676404954'};
+document.querySelectorAll('.id').forEach(function(e){var f=ids[e.textContent.trim()];if(!f)return;e.title='点击复制完整编号 '+f;e.onclick=function(){var o=e.textContent;try{navigator.clipboard.writeText(f)}catch(x){}e.textContent='已复制';setTimeout(function(){e.textContent=o},900)}});
+document.addEventListener('keydown',function(e){var t=e.target.tagName;if(e.key==='/'&&t!=='INPUT'&&t!=='TEXTAREA'&&t!=='SELECT'){e.preventDefault();document.querySelector('.sr').focus()}});
+function cl(){document.querySelectorAll('.mask').forEach(function(m){m.classList.remove('open')});if(last){last.focus();last=null}}
+document.querySelectorAll('[data-close]').forEach(function(b){b.onclick=cl});
+document.querySelectorAll('.mask').forEach(function(m){m.onclick=function(e){if(e.target===m)cl()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')cl()});
+})();
+</script>
+<script>(function(){
+var root=document.getElementById('p-over');if(!root)return;
+/* ===== 数据：图表、指标、明细共用同一份记录 ===== */
+var R=[
+{t:new Date(2026,10,5,12,7,9),k:'in',a:1000000,s:'ok',c:'a078db2d…612f'},
+{t:new Date(2026,10,4,21,51,3),k:'in',a:10000,s:'ok',c:'a078db2d…612f'},
+{t:new Date(2026,10,3,20,33,35),k:'in',a:10000,s:'ok',c:'a078db2d…612f'},
+{t:new Date(2026,10,3,20,31,38),k:'in',a:10000,s:'ap',c:'a078db2d…612f'}];
+var FULL={'a078db2d…612f':'a078db2d-cc28-4457-a03a-ad13ddae612f'};
+var ST={ok:['页面已记录','ok','已记录（非实际到账）','var(--ac)'],ap:['通过 · 未划转','in','审核通过（未执行资金划转）','var(--bl)'],wa:['待审核','wa','','var(--am)'],rj:['已拒绝','rd','','var(--dn)']};
+var END=new Date(2026,10,5),WD=['日','一','二','三','四','五','六'];
+var S={rng:7,basis:'all',log:'0',type:'all',day:null,hid:false,hv:null};
+var $=function(id){return document.getElementById(id)};
+function p2(n){return n<10?'0'+n:''+n}
+function f(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function tr(x,d){return String(+x.toFixed(d))}
+function fm(n){var a=Math.abs(n);return a>=1e6?tr(n/1e6,2)+'M':a>=1e3?tr(n/1e3,1)+'K':String(n)}
+function dk(d){return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()}
+function md(d){return (d.getMonth()+1)+'/'+d.getDate()}
+function fts(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds())}
+function inc(r){return S.basis==='all'||r.s==='ok'}
+function sg(r){return r.k==='in'?r.a:-r.a}
+function A(v,cls){return '<span class="amt'+(cls?' '+cls:'')+'">'+v+'</span>'}
+
+/* ===== 页面骨架 ===== */
+root.innerHTML=
+'<div class="stats" id="stats"></div>'
++'<div class="stats2" id="stats2"></div>'
++'<div class="overview-main">'
+ +'<div class="col">'
+  +'<div class="pn"><div class="ph"><span>进出账趋势<small id="csub"></small></span><div class="seg" role="group" aria-label="时间范围"><button data-k="rng" data-v="7">近 7 日</button><button data-k="rng" data-v="30">近 30 日</button><button data-k="rng" data-v="90">近 90 日</button></div></div>'
+  +'<div class="ct"><div class="lg"><span><i style="background:var(--ac)"></i>充值</span><span><i style="background:var(--dn)"></i>提现</span><span><i class="ln" style="background:var(--gold)"></i>累计净流入</span></div>'
+  +'<div class="bar"><div class="seg" role="group" aria-label="统计口径"><button data-k="basis" data-v="all">全部申请</button><button data-k="basis" data-v="ok">仅已记账</button></div><div class="seg" role="group" aria-label="纵轴刻度"><button data-k="log" data-v="0">线性</button><button data-k="log" data-v="1">对数</button></div></div></div>'
+  +'<div class="cw" id="cw"><canvas id="cv" role="img" aria-label="进出账趋势图，下方明细表含同样数据"></canvas><div class="tip" id="tip"></div></div>'
+  +'<div class="cs" id="cs"></div></div>'
+ +'</div>'
+ +'<div class="overview-side">'
+  +'<div class="pn"><div class="ph"><span>资金状态分布<small>按申请金额统计 · 非实际到账</small></span></div><div class="pb" style="padding-bottom:4px"><div class="alloc" id="alloc"></div></div><div class="lgd" id="lgd"></div></div>'
+  +'<div class="pn"><div class="ph"><span>运营概况</span><span class="mut" style="font-size:10.5px">更新于 2026/11/5 18:03</span></div><div class="ops-grid"><div class="pb" id="ops"></div><div class="pb"><div class="ops-caption">待办分布</div><div class="kv"><span class="mut">待受理</span><span>0</span></div><div class="kv"><span class="mut">审核中</span><span>0</span></div><div class="kv"><span class="mut">已通过</span><span>4</span></div><div class="kv"><span class="mut">已拒绝</span><span>0</span></div></div></div></div>'
+ +'</div>'
+ +'</div>'
+ +'<div class="pn c12"><div class="ph"><span>进出资金明细<small>最近 300 条内共 '+R.length+' 条 · 金额含各处理状态 · 非实际到账 · 点击图表日期筛选明细</small></span>'
+  +'<div class="bar"><button class="fchip" id="fchip" data-act="clrday"></button><div class="seg" role="group" aria-label="类型"><button data-k="type" data-v="all">全部</button><button data-k="type" data-v="in">充值</button><button data-k="type" data-v="out">提现</button></div><button class="btn" data-own data-act="export">导出 CSV</button><button class="btn" data-own data-act="goto">查看全部</button></div></div>'
+  +'<div style="overflow-x:auto"><table><thead><tr><th>提交时间</th><th>类型</th><th>客户</th><th>状态</th><th class="r">金额 USD</th><th class="r">累计净流入</th></tr></thead><tbody id="tb"></tbody></table></div>'
+  +'<div class="sumbar" id="sum"></div></div>';
+
+/* ===== 数据计算 ===== */
+function series(){
+ var n=S.rng,days=[],i,start=new Date(2026,10,5-(n-1)),base=0;
+ R.forEach(function(r){if(inc(r)&&r.t<start)base+=sg(r)});
+ for(i=n-1;i>=0;i--){var d=new Date(2026,10,5-i),k=dk(d),o={d:d,k:k,i:0,o:0,ni:0,no:0};
+  R.forEach(function(r){if(inc(r)&&dk(r.t)===k){if(r.k==='in'){o.i+=r.a;o.ni++}else{o.o+=r.a;o.no++}}});
+  base+=o.i-o.o;o.cum=base;days.push(o)}
+ return days}
+function totals(){var t={in:{ok:0,ap:0,wa:0,rj:0},cnt:{ok:0,ap:0,wa:0,rj:0},ti:0,to:0,ci:0,co:0};
+ R.forEach(function(r){if(r.k==='in'){t.ti+=r.a;t.ci++}else{t.to+=r.a;t.co++}t.in[r.s]+=r.a;t.cnt[r.s]++});return t}
+
+/* ===== 指标卡 / 侧栏 ===== */
+function renderStats(){
+ var t=totals(),bi=0,bo=0,bc=0;R.forEach(function(r){if(r.s==='ok'){bc++;if(r.k==='in')bi+=r.a;else bo+=r.a}});
+ var d=series7(),mx=Math.max.apply(null,d),mn=Math.min.apply(null,d),W=120,H=40,pts=d.map(function(v,i){return (i*W/(d.length-1)).toFixed(1)+','+(H-3-(mx===mn?.5:(v-mn)/(mx-mn))*(H-8)).toFixed(1)}).join(' ');
+ $('stats').innerHTML=
+ '<div class="pn sc gold" data-go="fund" role="button" tabindex="0" title="查看资金明细"><span>已记账净流入 USD</span><em>'+A('$'+f(bi-bo))+'</em><small>充值 '+A('+'+f(bi))+' · 提现 '+A('−'+f(bo))+' · '+bc+' 笔</small>'
+ +'<svg class="sp" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d7ff00" stop-opacity=".3"/><stop offset="1" stop-color="#d7ff00" stop-opacity="0"/></linearGradient></defs><polygon points="0,'+H+' '+pts+' '+W+','+H+'" fill="url(#spg)"/><polyline points="'+pts+'" fill="none" stroke="#d7ff00" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg></div>'
+ +'<div class="pn sc" data-go="fund:in" role="button" tabindex="0" title="查看充值记录"><span>充值申请金额</span><em>'+A('$'+f(t.ti))+'</em><small>'+t.ci+' 笔 · 其中未划转 '+A('$'+f(t.in.ap))+'</small></div>'
+ +'<div class="pn sc" data-go="fund:out" role="button" tabindex="0" title="查看提现记录"><span>提现申请金额</span><em>'+A('$'+f(t.to))+'</em><small>'+t.co+' 笔</small></div>'
+ +'<div class="pn sc" data-go="cli" role="button" tabindex="0" title="查看客户管理"><span>客户账户</span><em>2</em><small>子管理员 1 · 券商交易 <span class="tw">未接入</span></small></div>';
+ var tot=R.length||1,rate=(t.cnt.ok/tot*100),avgAll=(t.ti+t.to)/((t.ci+t.co)||1),avgIn=t.ti/(t.ci||1),avgOut=t.to/(t.co||1);
+ $('stats2').innerHTML=
+ '<div class="pn mc" style="--mc-ac:var(--am)" data-go="appr" role="button" tabindex="0" title="前往审批处理"><span>待审核申请</span><em>'+A('$'+f(t.in.wa))+'</em><small>'+t.cnt.wa+' 笔 · 待处理</small></div>'
+ +'<div class="pn mc" style="--mc-ac:var(--bl)" data-go="appr" role="button" tabindex="0" title="前往审批处理"><span>通过 · 待划转</span><em>'+A('$'+f(t.in.ap))+'</em><small>'+t.cnt.ap+' 笔 · 已核未划转</small></div>'
+ +'<div class="pn mc" style="--mc-ac:var(--ac)" data-go="fund" role="button" tabindex="0" title="查看资金明细"><span>记账完成率</span><em>'+rate.toFixed(0)+'%</em><small>已记账 '+t.cnt.ok+' / 共 '+tot+' 笔</small></div>'
+ +'<div class="pn mc" style="--mc-ac:var(--gold)" data-go="fund" role="button" tabindex="0" title="查看资金明细"><span>平均单笔金额</span><em>'+A('$'+f(avgAll))+'</em><small>充值 '+A('$'+f(avgIn))+' · 提现 '+A('$'+f(avgOut))+'</small></div>';}
+function series7(){var save=[S.rng,S.basis];S.rng=7;S.basis='ok';var v=series().map(function(x){return x.cum});S.rng=save[0];S.basis=save[1];return v}
+function renderSide(){
+ var t=totals(),tot=t.ti+t.to||1,keys=['ok','ap','wa','rj'];
+ $('alloc').innerHTML=keys.filter(function(k){return t.in[k]>0}).map(function(k){return '<i style="width:'+(t.in[k]/tot*100)+'%;background:'+ST[k][3]+'"></i>'}).join('');
+ $('lgd').innerHTML=keys.map(function(k){var v=t.in[k];return '<div class="kv"><span><i class="sw" style="background:'+ST[k][3]+'"></i>'+ST[k][0]+' <span class="mut">'+t.cnt[k]+' 笔</span></span><span class="'+(v?'':'mut')+'">'+A('$'+f(v))+' <span class="mut">'+(v/tot*100).toFixed(1)+'%</span></span></div>'}).join('');
+ $('ops').innerHTML='<div class="kv"><span class="mut">客户账户</span><span>2</span></div><div class="kv"><span class="mut">子管理员</span><span>1</span></div><div class="kv"><span class="mut">证券目录</span><span>4</span></div><div class="kv"><span class="mut">充值申请金额</span>'+A('$'+f(t.ti))+'</div><div class="kv"><span class="mut">提现申请金额</span>'+A('$'+f(t.to))+'</div><div class="kv"><span class="mut">券商交易</span><span class="tw">未接入</span></div>'}
+
+/* ===== 明细表 ===== */
+function rowsView(){
+ var asc=R.slice().sort(function(a,b){return a.t-b.t}),cum=0,map=new Map();
+ asc.forEach(function(r){if(inc(r))cum+=sg(r);map.set(r,cum)});
+ return R.slice().sort(function(a,b){return b.t-a.t}).filter(function(r){return(S.type==='all'||r.k===S.type)&&(!S.day||dk(r.t)===S.day)}).map(function(r){return{r:r,c:map.get(r)}})}
+function renderTable(){
+ var L=rowsView(),si=0,so=0;
+ $('tb').innerHTML=L.length?L.map(function(x){var r=x.r,st=ST[r.s],g=sg(r);if(r.k==='in')si+=r.a;else so+=r.a;
+  return '<tr'+(inc(r)?'':' class="mutedrow"')+'><td class="mut">'+fts(r.t)+'</td><td><span class="chip '+(r.k==='in'?'ok':'rd')+'">'+(r.k==='in'?'充值':'提现')+'</span></td><td><span class="id" data-full="'+(FULL[r.c]||'')+'" title="点击复制完整编号">'+r.c+'</span></td><td><span class="chip '+st[1]+'" title="'+(st[2]||st[0])+'">'+st[0]+'</span></td>'
+  +'<td class="r">'+A((g>0?'+':'−')+f(r.a),g>0?'up':'dn')+'</td><td class="r mut">'+A(f(x.c))+'</td></tr>'}).join('')
+  :'<tr><td colspan="6" class="empty">'+(S.day?'该日期暂无记录':S.type==='out'?'暂无提现记录':'暂无记录')+'</td></tr>';
+ $('sum').innerHTML='<span>当前显示 <b>'+L.length+'</b> / '+R.length+' 条'+(S.basis==='ok'?' · 灰色行为未入账，不计入累计':'')+'</span><span>充值 '+A('+'+f(si),'up')+' &nbsp;·&nbsp; 提现 '+A('−'+f(so),'dn')+' &nbsp;·&nbsp; 净额 '+A(f(si-so))+'</span>';
+ var fc=$('fchip');fc.classList.toggle('on',!!S.day);if(S.day){var s=String(S.day);fc.innerHTML='日期 '+(+s.slice(4,6))+'/'+(+s.slice(6))+' <u>✕</u>'}}
+
+/* ===== 图表（canvas，风格同前台走势图） ===== */
+var cv=$('cv'),cw=$('cw'),tip=$('tip'),g=cv.getContext('2d'),P={l:50,r:16,t:22,b:28},LAY={};
+function ticks(mx){
+ if(S.log==='1'){var T=[0,100,1e3,1e4,1e5,1e6,1e7,1e8],o=[],j;for(j=0;j<T.length;j++){o.push(T[j]);if(T[j]>=mx)break}return o}
+ var x=mx/4,e=Math.pow(10,Math.floor(Math.log10(x))),q=x/e,st=(q<=1?1:q<=2?2:q<=5?5:10)*e,o2=[];for(var v=0;v<mx+st*.999;v+=st)o2.push(v);return o2}
+function fy(v){return S.log==='1'?Math.log10(1+v/100):v}
+function rrect(x,y,w,h,r){g.beginPath();g.moveTo(x,y+h);g.lineTo(x,y+r);g.quadraticCurveTo(x,y,x+r,y);g.lineTo(x+w-r,y);g.quadraticCurveTo(x+w,y,x+w,y+r);g.lineTo(x+w,y+h);g.closePath()}
+function draw(){
+ var dp=window.devicePixelRatio||1,w=cw.clientWidth,h=cw.clientHeight;if(!w||!h)return;
+ cv.width=w*dp;cv.height=h*dp;g.setTransform(dp,0,0,dp,0,0);g.clearRect(0,0,w,h);
+ var D=series(),n=D.length,pw=w-P.l-P.r,ph=h-P.t-P.b,slot=pw/n,mx=1;
+ D.forEach(function(d){mx=Math.max(mx,d.i,d.o,d.cum)});
+ var T=ticks(mx),top=T[T.length-1],Y=function(v){return P.t+ph-ph*fy(v)/fy(top)};
+ LAY={D:D,slot:slot,w:w,Y:Y};
+ g.font='10px Inter,"Noto Sans SC",sans-serif';g.textBaseline='middle';
+ T.forEach(function(v){var y=Y(v);g.strokeStyle=v===0?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)';g.lineWidth=1;g.beginPath();g.moveTo(P.l,Math.round(y)+.5);g.lineTo(w-P.r,Math.round(y)+.5);g.stroke();
+  g.fillStyle='#aab29f';g.textAlign='right';g.fillText(S.hid?'••':(v===0?'0':fm(v)),P.l-8,y)});
+ var ls=n<=7?1:n<=30?5:15;g.textAlign='center';g.textBaseline='alphabetic';
+ D.forEach(function(d,i){var cx=P.l+slot*(i+.5),sel=S.day===d.k,hv=S.hv===i;
+  if(sel||hv){g.fillStyle=sel?'rgba(215,255,0,.09)':'rgba(255,255,255,.05)';g.fillRect(P.l+slot*i,P.t,slot,ph);if(sel){g.fillStyle='#d7ff00';g.fillRect(P.l+slot*i,P.t,slot,2)}}
+  if((n-1-i)%ls===0){g.fillStyle=sel||hv?'#f7f9f2':'#aab29f';g.fillText(md(d.d),cx,h-9)}});
+ var bw=Math.max(2,Math.min(24,slot*.34));
+ D.forEach(function(d,i){var cx=P.l+slot*(i+.5);
+  [[d.i,'#d7ff00','rgba(215,255,0,.45)',-bw-.5],[d.o,'#ff6b5a','rgba(255,107,90,.4)',.5]].forEach(function(b){if(!(b[0]>0))return;
+   var hh=Math.max(3,ph*fy(b[0])/fy(top)),y=P.t+ph-hh,gr=g.createLinearGradient(0,y,0,y+hh);gr.addColorStop(0,b[1]);gr.addColorStop(1,b[2]);g.fillStyle=gr;rrect(cx+b[3],y,bw,hh,Math.min(3,bw/2));g.fill();
+   if(slot>=56&&!S.hid){g.fillStyle='#d4dacb';g.textAlign='center';g.fillText(fm(b[0]),cx+b[3]+bw/2,y-5)}})});
+ var pts=D.map(function(d,i){return[P.l+slot*(i+.5),Y(d.cum)]});
+ var ag=g.createLinearGradient(0,P.t,0,P.t+ph);ag.addColorStop(0,'rgba(232,194,122,.16)');ag.addColorStop(1,'rgba(232,194,122,0)');
+ g.beginPath();g.moveTo(pts[0][0],P.t+ph);pts.forEach(function(p){g.lineTo(p[0],p[1])});g.lineTo(pts[n-1][0],P.t+ph);g.closePath();g.fillStyle=ag;g.fill();
+ g.beginPath();pts.forEach(function(p,i){i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])});g.strokeStyle='#e8c27a';g.lineWidth=2;g.lineJoin='round';g.stroke();
+ if(n<=14)pts.forEach(function(p){g.beginPath();g.arc(p[0],p[1],3.2,0,7);g.fillStyle='#13150f';g.fill();g.strokeStyle='#e8c27a';g.lineWidth=1.6;g.stroke()});
+ renderSummary(D)}
+function renderSummary(D){
+ var i=0,o=0,pk=null;D.forEach(function(d){i+=d.i;o+=d.o;var v=d.i+d.o;if(v>0&&(!pk||v>pk.v))pk={d:d.d,v:v}});
+ $('cs').innerHTML='<div><span>区间充值</span><b class="up">'+A('+'+f(i))+'</b></div><div><span>区间提现</span><b class="dn">'+A('−'+f(o))+'</b></div><div><span>区间净流入</span><b>'+A(f(i-o))+'</b></div><div><span>峰值日</span><b>'+(pk?md(pk.d)+' · '+A(fm(pk.v)):'—')+'</b></div>';
+ $('csub').textContent=(S.basis==='all'?'含各处理状态 · 非实际到账':'仅统计已完成的页面记录')+' · 按提交日期统计'}
+function idx(e){var r=cv.getBoundingClientRect(),x=e.clientX-r.left-P.l,i=Math.floor(x/LAY.slot);return x>=0&&i>=0&&i<LAY.D.length?i:null}
+function showTip(i,e){
+ if(i==null){tip.classList.remove('on');return}
+ var d=LAY.D[i],H=function(v){return S.hid?'••••':v};
+ tip.innerHTML='<b>'+d.d.getFullYear()+'/'+md(d.d)+' 周'+WD[d.d.getDay()]+'</b><div><span>充值（'+d.ni+' 笔）</span><span class="up">'+H('+'+f(d.i))+'</span></div><div><span>提现（'+d.no+' 笔）</span><span class="dn">'+H('−'+f(d.o))+'</span></div><div><span>当日净额</span><span>'+H(f(d.i-d.o))+'</span></div><div><span>累计净流入</span><span style="color:var(--gold)">'+H(f(d.cum))+'</span></div><p>'+(S.day===d.k?'再次点击取消筛选':'点击筛选下方明细')+'</p>';
+ var cx=P.l+LAY.slot*(i+.5),L=cx+16;if(L+176>LAY.w)L=cx-16-176;tip.style.left=Math.max(4,L)+'px';tip.classList.add('on')}
+cv.addEventListener('mousemove',function(e){var i=idx(e);if(i!==S.hv){S.hv=i;draw()}showTip(i,e)});
+cv.addEventListener('mouseleave',function(){S.hv=null;draw();showTip(null)});
+cv.addEventListener('click',function(e){var i=idx(e);if(i==null)return;var k=LAY.D[i].k;S.day=S.day===k?null:k;draw();renderTable();showTip(i,e)});
+if(window.ResizeObserver)new ResizeObserver(draw).observe(cw);else window.addEventListener('resize',draw);
+
+/* ===== 交互 ===== */
+var tt;function toast(m){var e=$('toast');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},1800)}
+function sync(){root.querySelectorAll('[data-k]').forEach(function(b){b.classList.toggle('on',String(S[b.dataset.k])===b.dataset.v)})}
+function exportCsv(){
+ var L=rowsView(),q=function(s){return '"'+String(s).replace(/"/g,'""')+'"'};
+ var csv='\ufeff'+['提交时间','类型','客户编号','状态','金额USD'].map(q).join(',')+'\n'+L.map(function(x){var r=x.r;return [fts(r.t),r.k==='in'?'充值':'提现',FULL[r.c]||r.c,ST[r.s][2]||ST[r.s][0],(r.k==='in'?'':'-')+r.a.toFixed(2)].map(q).join(',')}).join('\n');
+ try{var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='进出资金明细.csv';document.body.appendChild(a);a.click();a.remove();toast('已导出 '+L.length+' 条（当前筛选）')}catch(x){toast('当前环境不支持下载')}}
+function goPage(g,el){var p=String(g||'').split(':')[0];if(!p)return;
+ if(el){if(el.classList.contains('is-loading'))return;startLoad(el)}
+ setTimeout(function(){window.__cardNav=1;try{if(location.hash!=='#'+p)location.hash=p;else window.dispatchEvent(new HashChangeEvent('hashchange'))}catch(x){location.hash=p}window.scrollTo(0,0);if(el)setTimeout(function(){endLoad(el)},180)},el?500:0)}
+function startLoad(el){el.classList.add('is-loading');el.setAttribute('aria-busy','true');if(!el.querySelector('.cardspin')){var s=document.createElement('div');s.className='cardspin';s.innerHTML='<i></i><u>加载中…</u>';el.appendChild(s)}}
+function endLoad(el){el.classList.remove('is-loading');el.removeAttribute('aria-busy');var s=el.querySelector('.cardspin');if(s){s.classList.add('out');setTimeout(function(){if(s&&s.parentNode)s.remove()},180)}}
+root.addEventListener('click',function(e){
+ var b=e.target.closest('[data-k]');
+ if(b){var k=b.dataset.k,v=b.dataset.v;S[k]=k==='rng'?+v:v;if(k==='rng')S.day=null;sync();draw();renderTable();return}
+ var a=e.target.closest('[data-act]');
+ if(a){var t=a.dataset.act;if(t==='clrday'){S.day=null;draw();renderTable()}else if(t==='export')exportCsv();else if(t==='goto'){location.hash='fund';window.scrollTo(0,0)}return}
+ var gv=e.target.closest('[data-go]');
+ if(gv){goPage(gv.dataset.go,gv);return}
+ var id=e.target.closest('.id');
+ if(id&&id.dataset.full){var o=id.textContent;try{navigator.clipboard.writeText(id.dataset.full)}catch(x){}id.textContent='已复制';setTimeout(function(){id.textContent=o},900)}});
+root.addEventListener('keydown',function(e){if(e.key!=='Enter'&&e.key!==' '&&e.key!=='Spacebar')return;var gv=e.target.closest('[data-go]');if(gv){e.preventDefault();goPage(gv.dataset.go,gv)}});
+var hb=$('hidebtn');if(hb)hb.addEventListener('click',function(){S.hid=!S.hid;document.body.classList.toggle('hide',S.hid);hb.setAttribute('aria-pressed',S.hid);hb.textContent=S.hid?'显示金额':'隐藏金额';draw()});
+
+renderStats();renderSide();renderTable();sync();draw();
+window.addEventListener('hashchange',function(){if(location.hash.slice(1)==='over'||!location.hash)setTimeout(draw,30)});
+document.querySelectorAll('.tn').forEach(function(b){if(b.dataset.p==='over')b.addEventListener('click',function(){setTimeout(draw,30)})});
+})();
+</script>
+<script>(function(){
+
+function mountApp(host,CSS){
+if(host.shadowRoot)return;
+var root=host.attachShadow({mode:'open'});
+root.innerHTML='<style>'+CSS+'</style><div class="app" id="app"></div>';
+var A=root.getElementById('app'),tt,lastKey='';
+var NAME={AA:'Alcoa Corporation',NEM:'Newmont Corporation',AAPL:'Apple Inc.',MSFT:'Microsoft Corporation'};
+var COL={AA:'#6a4cff',NEM:'#3b4757',AAPL:'#4a4f57',MSFT:'#1f6fd0'};
+var MK=['US','HK','CN','MY','RO'],MC={US:'b',HK:'r',CN:'a',MY:'g',RO:'p'};
+var CM={'全部':'m','买入':'g','卖出':'r','股票':'b','基金':'p','IPO':'a','大宗商品':'c','US':'b','HK':'r','CN':'a','MY':'g','RO':'p','1D':'g','5D':'c','1M':'b','6M':'p','YTD':'a','1Y':'k','5Y':'r','All':'m','走势':'g','K线':'a','待成交':'b'};
+var CAT={US:['AA','AAPL','MSFT']};
+var PATH='M0,110 L40,138 L90,155 L140,160 L190,148 L230,132 L270,144 L310,139 L350,127 L390,151 L430,160 L470,164 L500,151 L540,144 L580,137 L620,104 L650,76 L680,52 L700,34 L715,56 L730,98 L745,118 L760,132';
+var PTS=PATH.slice(1).split(' L').map(function(s){return s.split(',').map(Number)});
+var SV={search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg>',back:'<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',star:'<svg viewBox="0 0 24 24"><path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/></svg>'};
+var SG='<svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" width="3" height="12" rx="1"/></svg>';
+var WF='<svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a10 10 0 0115 0"/><path d="M3.6 7a6.3 6.3 0 019.8 0"/><circle cx="8.5" cy="10" r="1.3" fill="#fff" stroke="none"/></svg>';
+var BT='<svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="#fff" opacity=".45"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><path d="M24 4.5v4c1-.3 1.8-1.1 1.8-2s-.8-1.7-1.8-2z" fill="#fff" opacity=".5"/></svg>';
+var D={cash:998937.6,acct:'4b6b2266',
+hold:[{s:'AA',q:30,c:3062.4},{s:'NEM',q:100,c:18000}],
+ord:[{s:'AA',t:'买入',p:102.08,q:20,a:2041.6,d:'11-05 20:23'},{s:'AA',t:'买入',p:102.08,q:10,a:1020.8,d:'11-05 15:45'},{s:'NEM',t:'买入',p:180,q:100,a:18000,d:'11-05 03:52'}],
+req:[{k:'身份审核工单',st:'审核中',d:'2026/11/5 18:02'},{k:'充值申请',a:1000000,st:'成功 · 页面记录（非实际到账）',d:'2026/11/5 12:07'},{k:'身份审核工单',st:'等待验证材料',d:'2026/11/4 22:02'},{k:'充值申请',a:10000,st:'成功 · 页面记录（非实际到账）',d:'2026/11/4 21:51'},{k:'充值申请',a:10000,st:'成功 · 页面记录（非实际到账）',d:'2026/11/3 20:33'},{k:'充值申请',a:10000,st:'审核通过（未划转）',d:'2026/11/3 20:31'}],
+chat:[{me:1,t:'在吗？',d:'11/4 22:00'},{t:'你好！请问有什么需要帮助的吗？',d:'客服 · 11/5 12:52'}],
+fav:[],kyc:{},ke:'',bn:'',bc:'',un:0,dr:'',ma:0,rq:null,sync:'11/05 22:25 MYT',tab:'home',ov:null,sh:null,filt:'全部',rg:'All',mode:'走势',mk:'US',q:'',qty:'1',lp:'',rk:0,od:null,tc:0,demo:0,sec:'股票',amt:''};
+if(/[?&]tc=1(&|$)/.test(location.search)){D.tc=1;D.demo=1}
+function f(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function ic(s){return '<span class="ic" style="background:'+(COL[s]||'#3b4757')+'">'+s.slice(0,2)+'</span>'}
+function isFav(s){return D.fav.indexOf(s)>-1}
+function pos(s){return D.hold.filter(function(x){return x.s===s})[0]}
+function row(s,r){return '<div class="rw" data-a="open" data-v="'+s+'">'+ic(s)+'<div class="l">'+s+'<small>'+NAME[s]+'</small></div>'+(r||'')+'</div>'}
+function star(s){return '<button class="cb'+(isFav(s)?' on':'')+'" data-a="fav" data-v="'+s+'" aria-label="自选">'+SV.star+'</button>'}
+function chip(a,v,cur,l){return '<button class="chip t-'+(CM[v]||'m')+(v===cur?' on':'')+'" data-a="'+a+'" data-v="'+v+'">'+(l||v)+'</button>'}
+function act(i,l,a,v,t){return '<button class="ab t-'+t+'" data-a="'+a+'" data-v="'+v+'"><i>'+i+'</i>'+l+'</button>'}
+function tg(t,c){return '<span class="tg t-'+c+'">'+t+'</span>'}
+function stc(s){return s.indexOf('成功')>-1?'g':s.indexOf('等待')>-1||s.indexOf('通过')>-1?'b':'a'}
+function inv(){return D.hold.reduce(function(a,x){return a+x.c},0)}
+function now(){var d=new Date(),p=function(n){return n<10?'0'+n:n};return p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())}
+function hm(){var d=new Date();return d.getHours()+':'+('0'+d.getMinutes()).slice(-2)}
+function sbar(){return '<div class="sb"><span id="clk">'+hm()+'</span><i class="isl"></i><span class="si">'+SG+WF+BT+'</span></div>'}
+var QA={'充值多久到账':'充值申请提交后由后台资料处理，审核通过并划转后才会入账，通常一个工作日内处理。','身份审核进度':'您的身份审核工单目前为「审核中」，如需补充材料我们会在此通知您。','提现问题':'提现金额不能超过可提现额度（现金余额扣除待审核的提现申请），提交后进入资料处理，不会自动改变账户余额。','交易通道':'美股实时买入 / 卖出目前暂停，等待行情授权，开通后会在这里通知您。'};
+function reply(t){setTimeout(function(){D.chat.push({t:t,d:'客服 · '+now()});if(!D.cs)D.un++;R()},1100)}
+function mav(S,k){return S.map(function(b,i){if(i<k-1)return null;var s=0;for(var j=i-k+1;j<=i;j++)s+=S[j].c;return s/k})}
+function fm(v){return v==null?'—':f(v)}
+function clean(){['f','b'].forEach(function(k){if(D.kyc[k])URL.revokeObjectURL(D.kyc[k].u)});D.kyc={};D.ke='';D.bn='';D.bc=''}
+function chkb(){var sb=root.getElementById('bs'),er=root.getElementById('er');if(!sb)return;var n=(D.bc||'').replace(/[\s-]/g,''),msg='';if(n&&!/^[A-Za-z0-9]{8,34}$/.test(n))msg='请填写 8–34 位卡号 / 账号（仅字母和数字）';er.textContent=msg;sb.disabled=!(D.bn.trim()&&n&&!msg)}
+function bxs(a){return '<div class="g2">'+a.map(function(x){return '<div class="bx"><span class="m">'+x[0]+'</span>'+x[1]+'</div>'}).join('')+'</div>'}
+var MINA=10,MAXA=1000000,MAXQ=100000;
+function usd(n){return (n<0?'−':'')+'$'+f(Math.abs(n))}
+function tot(){return D.ord.reduce(function(a,o){return a+(os(o)==='已成交'?o.a:0)},0)}
+function rpnl(){var L={},p=0;D.ord.slice().reverse().forEach(function(o){if(os(o)!=='已成交')return;var l=L[o.s]=L[o.s]||[];if(o.t==='买入')l.push({q:o.q,p:o.p});else{var r=o.q;while(r>0&&l.length){var k=Math.min(r,l[0].q);p+=(o.p-l[0].p)*k;l[0].q-=k;r-=k;if(!l[0].q)l.shift()}}});return p}
+function pendW(){return D.req.reduce(function(a,r){return a+(r.k==='提现申请'&&r.a&&r.st.indexOf('成功')<0&&r.st.indexOf('拒绝')<0&&r.st.indexOf('驳回')<0?r.a:0)},0)}
+function frozen(){return D.ord.reduce(function(a,o){return a+(o.t==='买入'&&os(o)==='待成交'?o.a:0)},0)}
+function avail(){return Math.max(0,Math.round((D.cash-pendW()-frozen())*100)/100)}
+function holdTxt(){var h=pendW()+frozen();return h>0?'（已扣除待审核提现及待成交买单共 $'+f(h)+'）':''}
+function vamt(){var s=String(D.amt||'').trim();if(!s)return{v:NaN,msg:''};if(!/^\d+(\.\d{0,2})?$/.test(s))return{v:NaN,msg:'请输入有效金额，最多 2 位小数'};var v=parseFloat(s);
+if(!(v>0))return{v:v,msg:'请输入大于 0 的金额'};if(v<MINA)return{v:v,msg:'单笔最低 $'+f(MINA)};if(v>MAXA)return{v:v,msg:'单笔最高 $'+f(MAXA)};
+if(D.sh==='wd'&&v>avail())return{v:v,msg:'超出可提现额度 $'+f(avail())+holdTxt()};return{v:v,msg:''}}
+function kycBn(){var r=D.req.filter(function(x){return x.k==='身份审核工单'})[0];return '<div class="bn" style="margin-top:10px">'+(r?'最近一笔身份审核：'+esc(r.st)+'（'+r.d+'）。':'')+'当前仅记录申请状态，不会发生实际支付或余额变动。</div>'}
+function os(o){return o.st||'已成交'}
+function osc(t){return t==='已成交'?'g':t==='待成交'?'b':t==='已拒绝'?'r':'m'}
+function ordv(){var qs=String(D.qty||'').trim(),ps=String(D.lp||'').trim(),q=NaN,p=NaN,msg='';
+if(qs&&!/^\d+$/.test(qs))msg='数量须为正整数';else if(qs){q=parseInt(qs,10);if(q<1)msg='数量至少 1 股';else if(q>MAXQ)msg='单笔最多 '+MAXQ.toLocaleString('en-US')+' 股'}
+if(!msg&&ps){if(!/^\d+(\.\d{0,2})?$/.test(ps)||!(parseFloat(ps)>0))msg='限价须大于 0，最多 2 位小数';else p=parseFloat(ps)}
+var a=Math.round(q*p*100)/100;if(!msg&&q>0&&p>0&&a>avail()+1e-9)msg='可用资金不足，还差 $'+f(a-avail());
+return{q:q,p:p,a:a,msg:msg,ok:!msg&&q>0&&p>0}}
+function tchk(){var v=ordv(),e=root.getElementById('est'),r=root.getElementById('ter'),b=root.getElementById('tb');if(!b)return;
+e.textContent=v.q>0&&v.p>0?'$'+f(v.a):'—';r.textContent=v.msg;b.disabled=!v.ok}
+function orderForm(){return '<div class="kv"><span>订单类型</span><span>限价单 <span class="m">· 市价单暂不可用</span></span></div>'
++'<div class="m" style="margin:12px 0 6px">限价（USD）</div><div class="sr"><input id="lp" inputmode="decimal" placeholder="例如 38.50" value="'+esc(D.lp)+'" autocomplete="off" style="font-size:15px"></div>'
++'<div class="m" style="margin:12px 0 2px">买入数量（股）</div><div class="stp"><button data-a="qm" aria-label="减少">−</button><input id="qty" inputmode="numeric" value="'+esc(D.qty)+'" autocomplete="off" aria-label="数量"><button data-a="qp" aria-label="增加">+</button></div>'
++'<div class="kv"><span>预估金额</span><span id="est">—</span></div><div class="kv"><span>手续费</span><span class="m">以后台结算为准</span></div><div class="kv"><span>可用资金</span><span>$'+f(avail())+'</span></div>'
++'<div class="er" id="ter"></div>'+(D.tc?'':'<div class="bn">美股实时买入暂停 · 等待行情授权 · 可预览订单，暂不能提交</div>')
++'<button class="cta" id="tb" data-a="buy" disabled>预览订单</button>'}
+function buySheet(){var v=ordv(),ok=D.tc&&D.rk&&v.ok;
+return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-label="确认订单"><div style="font-size:17px">确认订单</div><div class="m" style="margin-top:2px">请核对以下信息后提交</div>'
++'<div style="margin-top:8px"><div class="kv"><span>标的</span><span>AA · '+NAME.AA+'</span></div><div class="kv"><span>方向</span><span class="up">买入</span></div><div class="kv"><span>订单类型</span><span>限价单</span></div><div class="kv"><span>限价</span><span>$'+f(v.p)+'</span></div><div class="kv"><span>数量</span><span>'+v.q+' 股</span></div><div class="kv"><span>预估金额</span><span>$'+f(v.a)+'</span></div><div class="kv"><span>手续费</span><span class="m">以后台结算为准</span></div><div class="kv"><span>下单后可用资金</span><span>$'+f(avail()-v.a)+'</span></div></div>'
++'<div class="bn">证券交易有风险，价格可能大幅波动，可能损失全部本金。限价单仅在市场价格满足限价时成交，不保证成交；未成交的买单会占用对应可用资金。</div>'
++'<div class="chips"><button class="chip t-g'+(D.rk?' on':'')+'" data-a="rk">'+(D.rk?'☑ ':'☐ ')+'我已阅读并理解上述风险提示</button></div>'
++(D.tc?'':'<div class="bn in">美股实时买入暂停 · 等待行情授权，暂时无法提交</div>')
++'<div class="two"><button class="cta gh" data-a="close">返回修改</button><button class="cta" data-a="place"'+(ok?'':' disabled')+'>确认买入</button></div></div>'}
+function odSheet(){var o=D.ord[D.od];if(!o)return '';var s=os(o),L,S;
+if(s==='已成交'){L=['已提交','待成交','已成交'];S=['d','d','d']}else if(s==='待成交'){L=['已提交','待成交','已成交'];S=['d','a','p']}else if(s==='已撤销'){L=['已提交','待成交','已撤销'];S=['d','d','d']}else{L=['已提交','已拒绝'];S=['d','d']}
+return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-label="订单详情"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-size:17px">'+o.s+' · '+o.t+'</div>'+tg(s,osc(s))+'</div><div class="m" style="margin-top:2px">订单号 '+(o.id||'—')+' · '+o.d+'</div>'
++'<div style="margin-top:8px"><div class="kv"><span>类型</span><span>'+(o.ty||'—')+'</span></div><div class="kv"><span>价格</span><span>$'+f(o.p)+'</span></div><div class="kv"><span>数量</span><span>'+o.q+' 股</span></div><div class="kv"><span>总额</span><span>$'+f(o.a)+'</span></div></div>'
++'<div class="tl">'+L.map(function(x,i){return '<div class="'+S[i]+'">'+x+'<small>'+(i===0?o.d:S[i]==='d'?'已完成':S[i]==='a'?'进行中':'待处理')+'</small></div>'}).join('')+'</div>'
++(s==='待成交'?'<div class="bn">撤销后，占用的可用资金会立即释放。</div><div class="two"><button class="cta gh" data-a="close">关闭</button><button class="cta red" data-a="cancelo">撤销订单</button></div>':'<button class="cta gh" data-a="close">关闭</button>')+'</div>'}
+function fillO(o){if(os(o)!=='待成交')return;o.st='已成交';D.cash=Math.round((D.cash-o.a)*100)/100;var h=pos(o.s);if(h){h.q+=o.q;h.c=Math.round((h.c+o.a)*100)/100}else D.hold.push({s:o.s,q:o.q,c:o.a});R();toast('订单 '+o.id+' 已成交 · 演示模拟')}
+function stats(){return bxs([['总成交额',usd(tot())],['已实现盈亏（FIFO）',usd(rpnl())],['订单 · 交易通道',D.ord.length+' · '+(D.tc?'<span class="up">已连接</span>':'<span class="am">未连接</span>')],['账户 ····'+D.acct,'<span class="dot"></span>已连接'],['持仓市值','<span class="m">暂不可用</span>'],['最近同步',D.sync]])}
+function alloc(){return '<div class="alloc"><i></i></div><div class="al">'+MK.map(function(k){return tg(k+' '+(k==='US'?100:0)+'%',MC[k])}).join('')+'</div>'}
+function rates(){return '<h3>汇率</h3><div class="m" style="margin-bottom:6px">ECB 日参考汇率 2026-11-04 · 1 USD =</div><div class="g2" style="grid-template-columns:repeat(3,1fr)">'+[['HKD','7.8458','r'],['CNY','6.6723','a'],['MYR','4.0640','g']].map(function(x){return '<div class="bx t-'+x[2]+'"><span class="m">'+x[0]+'</span><span style="color:var(--c)">'+x[1]+'</span></div>'}).join('')+'</div>'}
+function ordRow(o){return '<div class="rw" data-a="ord" data-v="'+D.ord.indexOf(o)+'">'+ic(o.s)+'<div class="l">'+o.s+' · <span class="'+(o.t==='买入'?'up':'dn')+'">'+o.t+'</span><small>'+o.q+' 股 @ $'+f(o.p)+' · '+o.d+'</small></div><div class="r">$'+f(o.a)+'<small>'+tg(os(o),osc(os(o)))+'</small></div></div>'}
+
+/* ---- 行情数据与高级图表 ---- */
+var RS=7;function rnd(){RS=RS*16807%2147483647;return RS/2147483647}
+function py(x){for(var i=1;i<PTS.length;i++){if(x<=PTS[i][0]){var a=PTS[i-1],b=PTS[i];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0]||1)}}return PTS[PTS.length-1][1]}
+function pr(y){return 90-(y-10)*.42169}
+function ds(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+function mkDaily(){var days=[],d=new Date(2023,0,3),e=new Date(2026,10,4),o=[];
+while(d<=e){var w=d.getDay();if(w>0&&w<6)days.push(new Date(d));d.setDate(d.getDate()+1)}
+var n=days.length;
+days.forEach(function(dt,i){var c=pr(py(i/(n-1)*760))*(1+(rnd()-.5)*.014);if(i===n-1)c=38.53;if(i===n-2)c=40.58;
+var op=i?o[i-1].c:c,hi=Math.max(op,c)*(1+rnd()*.012),lo=Math.min(op,c)*(1-rnd()*.012),v=2e6+rnd()*3e6+Math.abs(c-op)/op*6e7;
+if(i===n-1){op=41.4;hi=41.79;lo=38.5}o.push({t:ds(dt),o:op,h:hi,l:lo,c:c,v:v})});return o}
+function bridge(o,c,h,l,n,lab){var a=[],p=o,r=(h-l)*.16;
+for(var i=0;i<n;i++){var q=o+(c-o)*(i+1)/n+(rnd()-.5)*r;q=Math.min(h,Math.max(l,q));if(i===n-1)q=c;
+a.push({t:lab(i),o:p,h:Math.min(h,Math.max(p,q)+rnd()*r*.3),l:Math.max(l,Math.min(p,q)-rnd()*r*.3),c:q,v:3e4+rnd()*9e4});p=q}
+a[Math.floor(n*.12)].h=h;a[Math.floor(n*.8)].l=l;return a}
+var DL=mkDaily(),SC={};
+function tm(m){return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2)}
+function ser(){var k=D.rg;if(SC[k])return SC[k];var n=DL.length,s;
+if(k==='1D'){var b=DL[n-1];s=bridge(b.o,b.c,b.h,b.l,78,function(i){return tm(570+i*5)})}
+else if(k==='5D'){s=[];DL.slice(-5).forEach(function(b){s=s.concat(bridge(b.o,b.c,b.h,b.l,13,function(i){return b.t.slice(5)+' '+tm(570+i*30)}))})}
+else if(k==='1M')s=DL.slice(-22);else if(k==='6M')s=DL.slice(-126);else if(k==='YTD')s=DL.filter(function(x){return x.t>='2026-01-01'});else if(k==='1Y')s=DL.slice(-252);else s=DL;
+return SC[k]=s}
+function vol(v){return v>=1e6?(v/1e6).toFixed(2)+'M':(v/1e3).toFixed(0)+'K'}
+function xl(t){return t.length===10?(D.rg==='1M'?t.slice(5):t.slice(0,7)):t.slice(0,5)}
+var CH={x:null,y:null};
+function updOH(i){var e=root.getElementById('oh');if(!e)return;var S=ser(),b=S[i],p=i?S[i-1].c:(D.rg==='1D'?DL[DL.length-2].c:b.o),ch=b.c-p,c=ch>=0?'up':'dn',sg=ch>=0?'+':'−';
+e.innerHTML='<span class="m">'+b.t+'</span><span><i>O</i>'+f(b.o)+'</span><span><i>H</i>'+f(b.h)+'</span><span><i>L</i>'+f(b.l)+'</span><span class="'+c+'"><i>C</i>'+f(b.c)+' '+sg+f(Math.abs(ch))+' ('+sg+Math.abs(ch/p*100).toFixed(2)+'%)</span><span class="m"><i>量</i>'+vol(b.v)+'</span>'+(D.ma?'<span style="color:#ffb938"><i>MA5</i>'+fm(mav(S,5)[i])+'</span><span style="color:#5b9cff"><i>MA20</i>'+fm(mav(S,20)[i])+'</span>':'')}
+function draw(){var c=root.getElementById('cv');if(!c)return;var S=ser(),n=S.length,dp=window.devicePixelRatio||1,W=c.clientWidth,H=c.clientHeight;
+c.width=W*dp;c.height=H*dp;var g=c.getContext('2d');g.scale(dp,dp);
+var AX=48,TP=8,PH=H*.72,VT=PH+16,VB=H-20,pw=W-AX,step=pw/n,lo=1e9,hi=-1e9,vm=0;
+S.forEach(function(b){lo=Math.min(lo,b.l);hi=Math.max(hi,b.h);vm=Math.max(vm,b.v)});var pd=(hi-lo)*.06;lo-=pd;hi+=pd;
+var X=function(i){return (i+.5)*step},Y=function(p){return TP+(PH-TP)*(1-(p-lo)/(hi-lo))};
+g.font='10px Inter,sans-serif';g.lineWidth=1;
+for(var k=0;k<=4;k++){var pp=lo+(hi-lo)*k/4,yy=Y(pp);g.strokeStyle='rgba(255,255,255,.07)';g.beginPath();g.moveTo(0,yy);g.lineTo(pw,yy);g.stroke();g.fillStyle='#7f8678';g.textAlign='left';g.fillText(pp.toFixed(2),pw+5,yy+3)}
+var bw=Math.max(1,step*.66);
+S.forEach(function(b,i){g.fillStyle=b.c>=b.o?'rgba(215,255,0,.35)':'rgba(255,107,90,.35)';var h=(VB-VT)*b.v/vm;g.fillRect(X(i)-bw/2,VB-h,bw,h)});
+if(D.mode==='K线'){S.forEach(function(b,i){var u=b.c>=b.o,cl=u?'#d7ff00':'#ff6b5a';g.strokeStyle=g.fillStyle=cl;g.beginPath();g.moveTo(X(i),Y(b.h));g.lineTo(X(i),Y(b.l));g.stroke();var y1=Y(Math.max(b.o,b.c)),y2=Y(Math.min(b.o,b.c));g.fillRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1))})}
+else{var gr=g.createLinearGradient(0,TP,0,PH);gr.addColorStop(0,'rgba(215,255,0,.28)');gr.addColorStop(1,'rgba(215,255,0,0)');g.beginPath();S.forEach(function(b,i){i?g.lineTo(X(i),Y(b.c)):g.moveTo(X(i),Y(b.c))});g.strokeStyle='#d7ff00';g.lineWidth=1.6;g.stroke();g.lineTo(X(n-1),PH);g.lineTo(X(0),PH);g.closePath();g.fillStyle=gr;g.fill();g.lineWidth=1}
+if(D.ma){[[5,'#ffb938'],[20,'#5b9cff']].forEach(function(m){var a=mav(S,m[0]),st=0;g.strokeStyle=m[1];g.lineWidth=1.2;g.beginPath();a.forEach(function(v,i){if(v==null)return;st?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v));st=1});g.stroke();g.lineWidth=1})}
+g.save();g.fillStyle='rgba(255,255,255,.09)';g.font='18px "Noto Sans SC",Inter,sans-serif';g.textAlign='center';g.fillText('示例数据 · 非真实行情',pw/2,PH/2);g.restore();
+var l=S[n-1],ly=Y(l.c),lc=l.c>=(n>1?S[n-2].c:l.o)?'#d7ff00':'#ff6b5a';
+g.setLineDash([3,4]);g.strokeStyle=lc;g.beginPath();g.moveTo(0,ly);g.lineTo(pw,ly);g.stroke();g.setLineDash([]);g.fillStyle=lc;g.fillRect(pw+1,ly-8,AX-1,16);g.fillStyle='#101400';g.fillText(l.c.toFixed(2),pw+5,ly+3);
+g.fillStyle='#7f8678';g.textAlign='center';for(var q=0;q<4;q++){var xi=Math.round((q+.5)*(n-1)/4);g.fillText(xl(S[xi].t),Math.min(Math.max(X(xi),20),pw-20),H-5)}
+if(CH.x!=null){var i=Math.max(0,Math.min(n-1,Math.floor(CH.x/step))),xx=X(i),yy=Math.max(TP,Math.min(PH,CH.y));
+g.setLineDash([4,4]);g.strokeStyle='rgba(255,255,255,.55)';g.beginPath();g.moveTo(xx,TP);g.lineTo(xx,VB);g.moveTo(0,yy);g.lineTo(pw,yy);g.stroke();g.setLineDash([]);
+var pv=lo+(hi-lo)*(1-(yy-TP)/(PH-TP));g.fillStyle='#fff';g.fillRect(pw+1,yy-8,AX-1,16);g.fillStyle='#0b0b0b';g.textAlign='left';g.fillText(pv.toFixed(2),pw+5,yy+3);
+var tx=S[i].t,tw=g.measureText(tx).width+12,x0=Math.min(Math.max(xx-tw/2,0),pw-tw+AX);g.fillStyle='#fff';g.fillRect(x0,H-17,tw,15);g.fillStyle='#0b0b0b';g.textAlign='center';g.fillText(tx,x0+tw/2,H-6);
+if(D.mode!=='K线'){g.fillStyle='#0b0b0b';g.strokeStyle='#d7ff00';g.lineWidth=2;g.beginPath();g.arc(xx,Y(S[i].c),4,0,7);g.fill();g.stroke()}
+updOH(i)}else updOH(n-1)}
+function bindChart(){var c=root.getElementById('cv');if(!c)return;CH.x=null;
+var mv=function(e){var r=c.getBoundingClientRect();CH.x=e.clientX-r.left;CH.y=e.clientY-r.top;draw()};
+c.addEventListener('pointerdown',function(e){try{c.setPointerCapture(e.pointerId)}catch(x){}mv(e)});
+c.addEventListener('pointermove',mv);
+c.addEventListener('pointerleave',function(e){if(e.pointerType==='mouse'){CH.x=null;draw()}});
+draw()}
+
+/* ---- 页面 ---- */
+function home(){
+var fv=D.fav.length?D.fav.map(function(s){return row(s,'<div class="r m">行情暂不可用</div>')}).join(''):'<div class="m" style="margin-bottom:4px">自选 0 · 在「行情」点星标即可添加</div>';
+return '<div class="top"><div class="av">L</div><div class="gr"><small>你好</small>linyi05168</div><button class="cb" data-a="srch" aria-label="搜索">'+SV.search+'</button></div>'
++'<div class="m">现金余额 USD</div><div class="bal">$'+f(D.cash)+'</div><div class="m">持仓成本 $'+f(inv())+' · 持仓市值待行情接入</div>'
++'<div class="acts">'+act('+','充值','sheet','dep','g')+act('↓','提现','sheet','wd','a')+act('⇄','交易','tab','trade','b')+act('≡','订单','tab','orders','p')+'</div>'
++stats()
++'<h3>我的持仓'+tg(D.hold.length,'b')+tg('美股实时卖出暂停','a')+'</h3><div class="cards">'+D.hold.map(function(h){return '<div class="card" data-a="open" data-v="'+h.s+'">'+ic(h.s)+NAME[h.s].split(' ')[0]+'<small>'+h.s+' · '+h.q+' 股</small><div style="margin-top:8px;font-size:12px">成本 $'+f(h.c)+'</div></div>'}).join('')+'</div>'
++'<h3>持仓配置</h3>'+alloc()
++'<h3>自选'+tg(D.fav.length,'g')+'</h3>'+fv+CAT.US.map(function(s){return row(s,'<div class="r m">暂不可用</div>'+star(s))}).join('')}
+
+function mlist(){var q=D.q.trim().toLowerCase(),L=(CAT[D.mk]||[]).filter(function(s){return !q||s.toLowerCase().indexOf(q)>-1||NAME[s].toLowerCase().indexOf(q)>-1});
+return L.length?L.map(function(s){return row(s,'<div class="r m" style="margin-right:4px">暂不可用</div>'+star(s))}).join(''):'<div class="ep">'+(q?'无匹配的代码或公司':D.mk+' 市场暂无已发布标的')+'</div>'}
+function market(){
+return '<h2>行情'+tg('未连接','a')+'</h2><div class="sr">'+SV.search+'<input id="q" placeholder="搜索代码或公司" value="'+esc(D.q)+'" autocomplete="off"></div>'
++'<div class="chips">'+MK.map(function(x){return chip('mk',x,D.mk)}).join('')+'</div><div class="bn">行情未连接 · 价格暂不可用</div><div id="ml">'+mlist()+'</div>'
++'<h3>持仓配置</h3>'+alloc()+rates()}
+
+function trade(){
+var h='<h2>下单'+tg('大宗交易','b')+'<span style="flex:1"></span>'+chip('msg','产品已刷新','','刷新产品').replace('t-m','t-c')+'</h2><div class="chips">'+['股票','基金','IPO','大宗商品'].map(function(x){return chip('sec',x,D.sec)}).join('')+'</div>';
+if(D.sec!=='股票')h+='<div class="bn in">'+D.sec+' 暂无已发布产品 · 请点击「刷新产品」</div>';
+else h+='<div class="card" data-a="open" data-v="AA" style="display:flex;gap:10px;align-items:center;flex:none">'+ic('AA')+'<div style="flex:1">AA · Alcoa Corporation<small>股票 · 点击查看行情</small></div>'+tg('优惠 12%','b')+'</div>'
++'<div class="kv"><span>买入后持有</span><span>0 天</span></div><div class="kv"><span>计价</span><span>USD</span></div>'
++orderForm();
+return h+'<h3>自选'+tg(D.fav.length,'g')+'</h3>'+['AA','AAPL','MSFT'].map(function(s){return row(s,'<div class="r m" style="margin-right:4px">暂不可用</div>'+star(s))}).join('')+'<h3>最近交易</h3>'+D.ord.map(ordRow).join('')}
+
+function hold(){
+return '<h2>持仓'+tg(D.hold.length,'b')+tg('美股实时卖出暂停','a')+'</h2>'+D.hold.map(function(h){return row(h.s,'<div class="r">'+h.q+' 股<small>成本 $'+f(h.c)+'</small></div>')}).join('')
++'<div class="kv"><span>持仓成本合计</span><span>$'+f(inv())+'</span></div><div class="kv"><span>现金余额 USD</span><span>$'+f(D.cash)+'</span></div>'+stats()+'<h3>配置 · 按持仓数量</h3>'+alloc()}
+
+function orders(){
+var L=D.ord.filter(function(o){return D.filt==='全部'||o.t===D.filt||os(o)===D.filt});
+return '<h2>交易明细'+tg(D.ord.length+' 笔 · 全部时间','m')+'</h2><div class="chips">'+['全部','买入','卖出','待成交'].map(function(x){return chip('filt',x,D.filt)}).join('')+'<span style="flex:1"></span>'+chip('exp','导出','','导出已加载记录').replace('t-m','t-c')+'</div>'
++(L.length?L.map(ordRow).join(''):'<div class="ep">无符合条件的记录</div>')
++'<div class="m" style="margin-top:8px">统计基于完整历史 '+D.ord.length+' 笔；筛选、分页和导出仅作用于已加载记录。</div>'+stats()}
+
+function assets(){
+return '<h2>账户与客服</h2><div class="card" style="cursor:default;flex:none"><div class="m">现金余额 USD</div><div class="bal">$'+f(D.cash)+'</div><div class="chips"><button class="chip t-g on" data-a="sheet" data-v="dep">充值</button><button class="chip t-a on" data-a="sheet" data-v="wd">提现</button>'+chip('sheet','kyc','','身份审核').replace('t-m','t-b')+chip('sheet','bank','','登记银行账户').replace('t-m','t-p')+'</div></div>'
++'<div class="kv" style="margin-top:6px"><span>持仓成本</span><span>$'+f(inv())+'</span></div><div class="kv"><span>总成交额</span><span>'+usd(tot())+'</span></div><div class="kv"><span>已实现盈亏（FIFO）</span><span>'+usd(rpnl())+'</span></div><div class="kv"><span>持仓市值</span><span class="m">暂不可用</span></div>'
++kycBn()
++'<h3>我的申请记录</h3>'+D.req.map(function(r,i){return '<div class="rw" data-a="rq" data-v="'+i+'"><div class="l">'+r.k+(r.a?' · $'+f(r.a):'')+'<small>'+r.d+'</small></div><div class="r">'+tg(r.st,stc(r.st))+'</div></div>'}).join('')
++'<h3>客户客服'+tg('在线','g')+'</h3><div class="card" data-a="chat" style="flex:none;display:flex;gap:10px;align-items:center"><span class="av" style="width:34px;height:34px;flex:none">客</span><div style="flex:1;min-width:0">'+esc(D.chat[D.chat.length-1].t)+'<small>'+D.chat[D.chat.length-1].d+' · 点击打开聊天</small></div>'+tg(D.chat.length+' 条','c')+'</div>'}
+
+function detail(s){
+var p=pos(s),aa=s==='AA',h='<div class="dh"><button class="cb" data-a="back" aria-label="返回">'+SV.back+'</button><div class="t">'+s+' · '+NAME[s]+'</div>'+star(s)+'</div>';
+if(aa){h+='<div class="pr">$38.53'+tg('示例数据','a')+tg('NYSE:AA','b')+tg('▼ 2.05 (−5.05%)','r')+'</div><div class="ohlc" id="oh"></div>'
++'<div class="chips">'+['走势','K线'].map(function(x){return chip('mode',x,D.mode)}).join('')+'<button class="chip t-b'+(D.ma?' on':'')+'" data-a="ma">MA 均线</button><span style="flex:1"></span>'+MK.map(function(x){return '<span class="tg t-'+MC[x]+'" style="padding:5px 8px">'+x+'</span>'}).slice(0,1).join('')+'</div>'
++'<div class="chips" style="justify-content:space-between;margin:2px 0">'+['1D','5D','1M','6M','YTD','1Y','5Y','All'].map(function(x){return chip('rg',x,D.rg)}).join('')+'</div>'
++'<canvas class="cv" id="cv" aria-label="AA 示意走势图"></canvas>'
++'<div class="m" style="margin-top:4px">示例数据 · 非真实行情 · 不用于订单报价 · 十字光标：长按并拖动（电脑端可移动鼠标）</div>'}
+else h+='<div class="bn">'+s+' 行情暂不可用</div>';
+h+='<div style="margin-top:8px">';
+if(p)h+='<div class="kv"><span>持仓数量</span><span>'+p.q+' 股</span></div><div class="kv"><span>持仓成本</span><span>$'+f(p.c)+'</span></div><div class="kv"><span>成本均价</span><span>$'+f(p.c/p.q)+'</span></div>';
+if(aa)h+='<div class="kv"><span>优惠比例</span><span>'+tg('优惠 12%','b')+'</span></div><div class="kv"><span>买入后持有</span><span>0 天</span></div><div class="kv"><span>计价</span><span>USD</span></div>';
+h+='</div><div class="bn">'+(D.tc?'美股实时卖出暂停':'美股实时买入 / 卖出暂停')+' · 等待行情授权</div><div class="two">'+(aa?'<button class="cta" data-a="gotrade">买入</button>':'<button class="cta off" data-a="msg" data-v="该标的暂未开放交易">买入</button>')+'<button class="cta red off" data-a="msg" data-v="'+(p?'美股实时卖出暂停 · 等待行情授权':'当前未持有该标的')+'">卖出</button></div>';
+var o=D.ord.filter(function(x){return x.s===s});
+return h+'<h3>相关交易'+tg(o.length+' 笔','m')+'</h3>'+(o.length?o.map(ordRow).join(''):'<div class="ep">暂无该标的交易记录</div>')+rates()}
+
+function chatSheet(){
+return '<div class="bk" data-a="cclose"></div><div class="sh ch" role="dialog" aria-label="客户客服"><div class="chh"><span class="av" style="width:34px;height:34px">客</span><div style="flex:1">客户客服<div class="m"><span class="dot"></span>在线 · 提交后由客服回复</div></div>'+chip('msg','客服消息已刷新','','刷新').replace('t-m','t-c')+'<button class="cb" data-a="cclose" aria-label="关闭">✕</button></div>'
++'<div class="msgs" id="msgs">'+D.chat.map(function(c){return '<div class="bub'+(c.me?' me':'')+'">'+esc(c.t)+'<small>'+c.d+'</small></div>'}).join('')+'</div>'
++'<div class="qk">'+Object.keys(QA).map(function(k,i){return '<button class="chip t-'+['b','a','p','c'][i]+'" data-a="qa" data-v="'+k+'">'+k+'</button>'}).join('')+'</div><div class="cm"><div class="sr"><input id="cm" placeholder="输入需要客服处理的问题" value="'+esc(D.dr)+'" autocomplete="off"></div><button class="chip t-g on" id="sd" data-a="send" style="height:38px;padding:0 16px">发送</button></div></div>'}
+function reqSheet(){var r=D.req[D.rq],s=r.st,idn=r.k.indexOf('身份')>-1,L=idn?['已提交','资料处理','结果通知']:r.k.indexOf('银行')>-1?['已提交','资料处理','绑定确认']:['已提交','资料处理','页面记录（非实际到账）'],S;
+if(s.indexOf('成功')>-1)S=['d','d','d'];else if(s.indexOf('通过')>-1)S=['d','d','a'];else if(s.indexOf('等待')>-1){L=['已提交','等待补充验证材料','资料处理'];S=['d','a','p']}else S=['d','a','p'];
+return '<div class="bk" data-a="rclose"></div><div class="sh rq" role="dialog" aria-label="申请详情"><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-size:17px">'+r.k+(r.a?' · $'+f(r.a):'')+'</div>'+tg(s,stc(s))+'</div><div class="m" style="margin-top:2px">提交时间 '+r.d+'</div><div class="tl">'+L.map(function(x,i){return '<div class="'+S[i]+'">'+x+'<small>'+(i?(S[i]==='d'?'已完成':S[i]==='a'?'进行中':'待处理'):r.d)+'</small></div>'}).join('')+'</div><div class="bn">当前仅记录申请状态，不会发生实际支付或余额变动。</div><button class="cta gh" data-a="rclose">关闭</button></div>'}
+function kycSheet(){var K=D.kyc,t=function(k,i){return '<div class="upl">'+(K[k]?'<img alt="" src="'+K[k].u+'"><span class="fn">'+esc(K[k].n)+' · 点击重选</span>':'<span style="color:#5b9cff;font-size:26px;line-height:1">+</span>点击选择图片')+'<input type="file" id="'+i+'" accept="image/png,image/jpeg" aria-label="选择图片"></div>'};
+return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-label="身份资料审核"><div class="chh" style="border:0;padding:0"><div style="flex:1"><div style="font-size:17px">身份资料审核</div><div class="m">上传身份证正反面</div></div>'+chip('close','x','','关闭').replace('t-m','t-c')+'</div>'
++'<div class="g2" style="margin-top:6px"><div><label style="margin:8px 0 6px">身份证正面（人像面）</label>'+t('f','kf')+'</div><div><label style="margin:8px 0 6px">身份证反面（国徽面）</label>'+t('b','kb')+'</div></div>'
++'<div class="er">'+esc(D.ke)+'</div><button class="cta bl" data-a="ksub"'+(K.f&&K.b?'':' disabled')+'>加密上传并提交审核</button><div class="m" style="margin-top:10px">仅 PNG / JPEG，每张最多 2MB；请勿上传真实身份证件。资料展示不代表实名认证完成。</div></div>'}
+function bankSheet(){return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-label="收付款银行账户登记"><div class="chh" style="border:0;padding:0"><div style="flex:1"><div style="font-size:17px">收付款银行账户登记</div><div class="m">用于充值 / 提现核对</div></div>'+chip('close','x','','关闭').replace('t-m','t-c')+'</div>'
++'<label for="bk1">银行名称</label><input id="bk1" placeholder="银行名称" value="'+esc(D.bn)+'" autocomplete="off"><label for="bk2">银行卡 / 账户号码</label><input id="bk2" placeholder="输入示例账号（请勿填写真实信息）" value="'+esc(D.bc)+'" autocomplete="off">'
++'<div class="er" id="er"></div><button class="cta bl" id="bs" data-a="bsub" disabled>提交登记申请</button><div class="m" style="margin-top:10px">当前仅展示账户资料，不代表银行验证完成。绝不填写网银密码、验证码或 CVV。</div></div>'}
+function sheet(){
+if(D.sh==='buy')return buySheet();if(D.sh==='od')return odSheet();if(D.sh==='kyc')return kycSheet();if(D.sh==='bank')return bankSheet();
+var wd=D.sh==='wd';
+return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-label="'+(wd?'提现':'充值')+'申请"><div style="font-size:17px">'+(wd?'提现申请':'充值申请')+'</div><div class="m" style="margin-top:2px">'+(wd?'可提现额度 $'+f(avail())+holdTxt()+' · 单笔 $'+f(MINA)+' – $'+f(MAXA):'提交后等待后台审核 · 单笔 $'+f(MINA)+' – $'+f(MAXA))+'</div>'
++'<label for="amt">申请金额（USD）</label><input id="amt" inputmode="decimal" placeholder="例如 100.00" value="'+D.amt+'" autocomplete="off"><div class="chips">'+[100,1000,10000].map(function(n){return '<button class="chip t-'+['c','b','p'][[100,1000,10000].indexOf(n)]+'" data-a="amt" data-v="'+n+'">'+f(n).replace('.00','')+'</button>'}).join('')+'</div>'
++'<div class="er" id="er"></div><div class="m" style="margin-bottom:12px">当前仅记录申请状态，不会发生实际支付或余额变动。</div><button class="cta" id="sb" data-a="submit" disabled>提交申请</button></div>'}
+
+function chk(){
+var va=vamt(),er=root.getElementById('er'),sb=root.getElementById('sb');if(!sb)return;
+er.textContent=va.msg;sb.disabled=!(va.v>0)||!!va.msg}
+
+function R(){
+var sv=A.querySelector('.v'),y=sv?sv.scrollTop:0,key=D.tab+'|'+D.ov;
+var body=D.ov?detail(D.ov):D.tab==='home'?home():D.tab==='market'?market():D.tab==='trade'?trade():D.tab==='hold'?hold():D.tab==='orders'?orders():assets();
+var T=[['home','自选','g'],['market','行情','b'],['trade','交易','a'],['hold','持仓','p'],['orders','订单','c'],['assets','账户','k']];
+var nv=D.ov?'':'<div class="nv">'+T.map(function(t){return '<button class="t-'+t[2]+(D.tab===t[0]?' on':'')+'" data-a="tab" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>';
+A.className='app'+(!D.ov&&D.tab==='home'?' g':'');
+A.innerHTML=sbar()+'<div class="ptr" id="ptr"></div><div class="v">'+body+'</div>'+nv+(D.sh?sheet():'')+(!D.ov&&!D.sh&&!D.cs&&D.rq==null?'<button class="fab t-c" data-a="chat">客服'+(D.un?'<span class="bd">'+D.un+'</span>':'')+'</button>':'')+(D.cs?chatSheet():'')+(D.rq!=null?reqSheet():'')+'<div class="ts" id="ts"></div>';
+if(key===lastKey)A.querySelector('.v').scrollTop=y;lastKey=key;
+if(D.ov==='AA')bindChart();
+if(D.fs){D.fs=0;var q=root.getElementById('q');if(q)q.focus()}
+if(D.cs){var ms=root.getElementById('msgs');ms.scrollTop=ms.scrollHeight;if(D.cf){D.cf=0;root.getElementById('cm').focus()}}
+if(D.sh==='dep'||D.sh==='wd'){var i=root.getElementById('amt');i.focus();chk()}else if(D.sh==='bank'){if(!D.bn&&!D.bc)root.getElementById('bk1').focus();chkb()}
+if(D.tab==='trade'&&!D.ov&&!D.sh)tchk()}
+
+function toast(m){var e=root.getElementById('ts');e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},2400)}
+function exp(){var c='代码,类型,价格,数量,总额USD,时间,状态,订单号\n'+D.ord.map(function(o){return [o.s,o.t,o.p,o.q,o.a,o.d,os(o),o.id||''].join(',')}).join('\n');
+try{var u=URL.createObjectURL(new Blob(['\ufeff'+c],{type:'text/csv'})),a=document.createElement('a');a.href=u;a.download='cn-capital-orders.csv';a.click()}catch(x){}}
+
+root.addEventListener('click',function(e){
+var t=e.target.closest('[data-a]');if(!t)return;var a=t.dataset.a,v=t.dataset.v,m='';
+if(a==='msg'){toast(v);return}
+if(a==='tab'){D.tab=v;D.ov=null}
+else if(a==='chat'){D.cs=1;D.sh=null;D.un=0}
+else if(a==='ma')D.ma=!D.ma;
+else if(a==='rq')D.rq=+v;
+else if(a==='rclose')D.rq=null;
+else if(a==='qa'){D.chat.push({me:1,t:v,d:now()});reply(QA[v])}
+else if(a==='cclose')D.cs=0;
+else if(a==='srch'){D.tab='market';D.ov=null;D.fs=1}
+else if(a==='open')D.ov=v;
+else if(a==='back')D.ov=null;
+else if(a==='fav'){var i=D.fav.indexOf(v);if(i>-1)D.fav.splice(i,1);else D.fav.push(v);m=i>-1?'已移出自选':'已加入自选'}
+else if(a==='sheet'){clean();D.sh=v;D.amt=''}
+else if(a==='close'){clean();D.sh=null}
+else if(a==='ksub'){if(!(D.kyc.f&&D.kyc.b))return;D.req.unshift({k:'身份审核工单',st:'待审核',d:now()});clean();D.sh=null;m='已提交身份审核，等待资料处理 · 演示界面，资料未上传'}
+else if(a==='bsub'){var nn=(D.bc||'').replace(/[\s-]/g,'');if(!(D.bn.trim()&&/^[A-Za-z0-9]{8,34}$/.test(nn)))return;D.req.unshift({k:'银行账户登记 ····'+nn.slice(-4),st:'待审核',d:now()});clean();D.sh=null;m='登记申请已提交，等待资料处理 · 演示界面，号码未上传'}
+else if(a==='amt'){D.amt=v;var inp=root.getElementById('amt');inp.value=v;chk();inp.focus();return}
+else if(a==='buy'){var ov=ordv();if(!ov.ok)return;D.sh='buy';D.rk=0}
+else if(a==='rk')D.rk=D.rk?0:1;
+else if(a==='gotrade'){D.tab='trade';D.ov=null}
+else if(a==='ord'){D.od=+v;D.sh='od'}
+else if(a==='cancelo'){var co=D.ord[D.od];if(co&&os(co)==='待成交'){co.st='已撤销';m='订单已撤销，占用资金已释放'}D.sh=null}
+else if(a==='place'){var pv=ordv();if(!D.tc||!D.rk||!pv.ok)return;var no={s:'AA',t:'买入',ty:'限价',p:pv.p,q:pv.q,a:pv.a,d:now(),st:'待成交',id:Math.random().toString(16).slice(2,10)};D.ord.unshift(no);D.sh=null;D.tab='orders';D.filt='全部';D.lp='';D.qty='1';D.rk=0;m='订单已提交 · 状态：待成交';if(D.demo)setTimeout(function(){fillO(no)},4000)}
+else if(a==='filt')D.filt=v;
+else if(a==='rg'){D.rg=v;CH.x=null}
+else if(a==='mode')D.mode=v;
+else if(a==='mk')D.mk=v;
+else if(a==='sec')D.sec=v;
+else if(a==='qp')D.qty=String(Math.min(MAXQ,(parseInt(D.qty,10)||0)+1));
+else if(a==='qm')D.qty=String(Math.max(1,(parseInt(D.qty,10)||2)-1));
+else if(a==='exp'){exp();m='已导出已加载记录 · '+D.ord.length+' 笔'}
+else if(a==='send'){var ci=root.getElementById('cm'),tx=ci&&ci.value.trim();if(!tx)return;D.chat.push({me:1,t:tx,d:now()});D.dr='';D.cf=1;reply('已收到您的消息，客服会尽快处理，请留意此处回复。')}
+else if(a==='submit'){var va=vamt();if(va.msg||!(va.v>0))return;var n=va.v;D.req.unshift({k:D.sh==='wd'?'提现申请':'充值申请',a:n,st:'待审核',d:now()});D.sh=null;m='申请已提交，等待后台审核；不会自动改变账户余额'}
+R();if(m)toast(m)});
+root.addEventListener('input',function(e){var id=e.target.id;if(id==='amt'){D.amt=e.target.value;chk()}else if(id==='lp'){D.lp=e.target.value;tchk()}else if(id==='qty'){D.qty=e.target.value;tchk()}else if(id==='cm')D.dr=e.target.value;else if(id==='bk1'){D.bn=e.target.value;chkb()}else if(id==='bk2'){D.bc=e.target.value;chkb()}else if(id==='q'){D.q=e.target.value;root.getElementById('ml').innerHTML=mlist()}});
+root.addEventListener('keydown',function(e){if(e.key==='Escape'&&(D.sh||D.cs||D.rq!=null)){clean();D.sh=null;D.cs=0;D.rq=null;R()}if(e.key==='Enter'){if(e.target.id==='amt'){var b=root.getElementById('sb');if(b&&!b.disabled)b.click()}if(e.target.id==='cm'){var s=root.getElementById('sd');if(s)s.click()}if(e.target.id==='bk1'||e.target.id==='bk2'){var bb=root.getElementById('bs');if(bb&&!bb.disabled)bb.click()}}});
+var py0=null,pd=0,sup=0,busy=0;
+root.addEventListener('click',function(e){if(sup){sup=0;e.stopPropagation();e.preventDefault()}},true);
+function pui(){var p=root.getElementById('ptr'),v=A.querySelector('.v');if(!p||!v)return;p.style.height=pd+'px';if(!busy)p.textContent=pd>=60?'↑ 释放刷新':'↓ 下拉刷新';v.style.transform='translateY('+pd+'px)'}
+function pst(y,e){if(busy||D.ov||D.sh||D.cs||D.rq!=null||(D.tab!=='home'&&D.tab!=='market'))return;var v=A.querySelector('.v');if(!v||v.scrollTop>0)return;if(e.target.closest&&e.target.closest('input'))return;py0=y;pd=0}
+function pmv(y,e){if(py0==null)return;var d=y-py0;if(d<=0)return;pd=Math.min(d*.5,90);if(e.cancelable&&d>6)e.preventDefault();pui()}
+function pend(){if(py0==null)return;var d=pd;py0=null;if(d>6){sup=1;setTimeout(function(){sup=0},60)}
+if(d>=60){busy=1;pd=40;pui();root.getElementById('ptr').textContent='刷新中…';setTimeout(function(){busy=0;pd=0;D.sync=now()+' MYT';R();toast('已刷新 · 行情仍未连接')},800)}else{pd=0;pui()}}
+root.addEventListener('touchstart',function(e){pst(e.touches[0].clientY,e)},{passive:true});
+root.addEventListener('touchmove',function(e){pmv(e.touches[0].clientY,e)},{passive:false});
+root.addEventListener('touchend',pend);root.addEventListener('touchcancel',pend);
+root.addEventListener('mousedown',function(e){pst(e.clientY,e)});
+root.addEventListener('mousemove',function(e){if(e.buttons)pmv(e.clientY,e)});
+addEventListener('mouseup',pend);
+root.addEventListener('change',function(e){var t=e.target;if(t.id!=='kf'&&t.id!=='kb')return;var fl=t.files&&t.files[0],k=t.id==='kf'?'f':'b';if(!fl)return;
+if(!/^image\/(png|jpeg)$/.test(fl.type)){D.ke='仅支持 PNG / JPEG 图片';R();return}
+if(fl.size>2*1024*1024){D.ke='每张图片最多 2MB';R();return}
+if(D.kyc[k])URL.revokeObjectURL(D.kyc[k].u);D.kyc[k]={u:URL.createObjectURL(fl),n:fl.name};D.ke='';R()});
+setInterval(function(){var c=root.getElementById('clk');if(c)c.textContent=hm()},15000);
+addEventListener('resize',function(){if(D.ov==='AA')draw()});
+R()}
+mountApp(document.getElementById('mirror'),document.getElementById('mir-appcss').textContent);
+
+})();</script>
+<script>(function(){
+ var q=function(a,r){return(r||document).querySelector(a)},qa=function(a,r){return[].slice.call((r||document).querySelectorAll(a))},last,tt;
+ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+ function toast(m){var e=q('#toast');if(!e)return;e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},2200)}
+ function show(m,sel){last=document.activeElement;m.classList.add('open');setTimeout(function(){var f=q(sel||'.mx',m);if(f)f.focus()},60)}
+ function shut(m){m.classList.remove('open');if(last&&last.focus){try{last.focus()}catch(x){}}}
+ function step(n){var m=q('#m-sec'),set=m.dataset.mode==='set';m.dataset.n=n;qa('[data-step]',m).forEach(function(x){x.hidden=x.dataset.step!=n});
+  q('#sec-st').hidden=set;qa('#sec-st span').forEach(function(s){var k=+s.dataset.s;s.className=k===n?'on':k<n?'ok':''});
+  q('#sec-bk').hidden=set||n===1;q('#sec-ok').textContent=n===1?'下一步':set?'保存设置':'保存商品设置';secChk()}
+ function secChk(){var m=q('#m-sec');q('#sec-ok').disabled=m.dataset.n==='1'&&!q('#sc-c').value.trim()}
+ function sbChk(){var p=q('#sb-p').value;q('#sb-ok').disabled=!(p.length>=12&&/^\S+@\S+\.\S+$/.test(q('#sb-e').value.trim()))}
+ function edChk(){q('#ed-ok').disabled=!(q('#ed-n').value!==q('#ed-c').textContent&&q('#ed-reason').value.trim())}
+ function subPassChk(){var a=q('#sp-new').value,b=q('#sp-confirm').value,ok=a.length>=12&&a===b;
+  q('#sp-save').disabled=!ok;q('#sp-error').textContent=!a?'建议至少 12 位，并混合大小写字母、数字和符号。':a.length<12?'密码至少需要 12 位。':a!==b?'两次输入的密码不一致。':'格式检查通过；演示不会保存密码。'}
+ function subLockChk(){q('#sublock-save').disabled=!q('#sublock-reason').value.trim()}
+ var currentCustomer='';
+ var customers={
+  'linyi05168@gmail.com':{login:'允许登录',withdraw:'允许提现',vip:'普通',loan:'暂停贷款申请',accountType:'预览账户',owner:'子账号归属 · 27bc8619…4954',lastMirror:'2026/11/5 18:05:30 · chennan05168@gmail.com',kyc:'未提交',front:'未提交',back:'未提交',bankName:'',bankHolder:'',bankLast4:''},
+  'chenan05168@gmail.com':{login:'未设置',withdraw:'未设置',vip:'未设置',loan:'未设置',accountType:'未设置',owner:'直接注册客户',lastMirror:'暂无记录',kyc:'未提交',front:'未提交',back:'未提交',bankName:'',bankHolder:'',bankLast4:''}
+ };
+ var subStates={'chenbei05168@gmail.com':'正常'};
+ var fileNames={};
+ var chats={};
+ function edBtn(email,field,title,current,options){
+  var data=esc(JSON.stringify({field:field,t:title,c:current,o:options}));
+  return '<button class="btn" data-own data-mo="m-ed" data-customer="'+esc(email)+'" data-ed="'+data+'">修改</button>';
+ }
+ function detailRow(label,value,button){return '<div class="detail-row"><span>'+esc(label)+'</span><div><b>'+esc(value)+'</b>'+(button||'')+'</div></div>'}
+ function renderDetail(email,d){
+  var s=customers[email]||customers['chenan05168@gmail.com'];
+  var typeOpts=['未设置','预览账户','预览账户','只读账户'];
+  var loginOpts=['未设置','允许登录','禁止登录'];
+  var withdrawOpts=['未设置','允许提现','禁止提现'];
+  var vipOpts=['未设置','普通','VIP 1','VIP 2','VIP 3','VIP 4'];
+  var loanOpts=['未设置','允许贷款申请','暂停贷款申请'];
+  q('#det-b').innerHTML=
+   '<section class="detail-card"><div class="gl">账户资料</div>'+
+    detailRow('登录邮箱',email)+detailRow('账户归属',s.owner)+detailRow('账户类别',s.accountType,edBtn(email,'accountType','账户类别',s.accountType,typeOpts))+
+    detailRow('最近镜像访问',s.lastMirror)+
+   '</section>'+
+   '<section class="detail-card"><div class="gl">账户权限</div>'+
+    detailRow('登录权限',s.login,edBtn(email,'login','登录权限',s.login,loginOpts))+
+    detailRow('提现权限',s.withdraw,edBtn(email,'withdraw','提现权限',s.withdraw,withdrawOpts))+
+    detailRow('VIP 等级',s.vip,edBtn(email,'vip','VIP 等级',s.vip,vipOpts))+
+    detailRow('贷款申请权限',s.loan,edBtn(email,'loan','贷款申请权限',s.loan,loanOpts))+
+    '<div class="secure-note">贷款业务当前未接入放款服务；此处只展示申请权限，不代表授信、审批或放款。</div>'+
+   '</section>'+
+   '<section class="detail-card"><div class="gl">实名资料</div>'+
+    detailRow('认证状态',s.kyc)+
+    '<div class="file-row"><label for="kyc-front">身份证正面</label><input id="kyc-front" data-kyc="front" data-customer="'+esc(email)+'" type="file" accept="image/*,.pdf"><span class="file-name" id="kyc-front-name">'+esc(fileNames[email]?.front||s.front)+'</span></div>'+
+    '<div class="file-row"><label for="kyc-back">身份证反面</label><input id="kyc-back" data-kyc="back" data-customer="'+esc(email)+'" type="file" accept="image/*,.pdf"><span class="file-name" id="kyc-back-name">'+esc(fileNames[email]?.back||s.back)+'</span></div>'+
+    '<div class="secure-note">仅读取文件名，不上传、不预览、不保存文件。</div>'+
+   '</section>'+
+   '<section class="detail-card"><div class="gl">银行卡信息（脱敏）</div>'+
+    '<div class="bank-fields"><div class="fd"><label for="bank-name">银行名称</label><input id="bank-name" value="'+esc(s.bankName)+'" placeholder="未绑定"></div>'+
+    '<div class="fd"><label for="bank-holder">账户持有人</label><input id="bank-holder" value="'+esc(s.bankHolder)+'" placeholder="未提供"></div>'+
+    '<div class="fd"><label for="bank-last4">银行卡尾号（仅 4 位）</label><input id="bank-last4" value="'+esc(s.bankLast4)+'" maxlength="4" inputmode="numeric" placeholder="例如 1234"></div></div>'+
+    '<div class="bar" style="justify-content:flex-end;margin-top:10px"><button class="btn p" data-own data-action="save-bank" data-customer="'+esc(email)+'">暂存资料</button></div>'+
+    '<div class="secure-note">不在后台录入或保存完整银行卡号。真实卡号应由合规支付服务商托管，管理端仅接收令牌或脱敏尾号。</div>'+
+   '</section>'+
+   '<section class="detail-card wide"><div class="gl">客户服务</div><div class="bar" style="justify-content:space-between"><span class="mut">客户会话统一从客户资料中打开，不再单独设置客服页面。</span><button class="btn p" data-own data-mo="m-chat" data-customer="'+esc(email)+'">打开客服弹窗</button></div></section>';
+ }
+ function instrumentInfo(code){
+  var map={
+   AA:{name:'Alcoa Corporation',market:'NYSE',kind:'股票',desc:'铝业与材料公司 · 示例资料'},
+   AAPL:{name:'Apple Inc.',market:'NASDAQ',kind:'股票',desc:'消费电子与软件服务 · 示例资料'},
+   MSFT:{name:'Microsoft Corporation',market:'NASDAQ',kind:'股票',desc:'软件与云服务 · 示例资料'},
+   NEM:{name:'Newmont Corporation',market:'NYSE',kind:'股票',desc:'黄金矿业公司 · 示例资料'}
+  };
+  return map[code]||null;
+ }
+ function updateComPreview(){
+  var code=q('#cm-code').value.trim().toUpperCase(),info=instrumentInfo(code),preview=q('#cm-preview');
+  if(!code){preview.textContent='输入代码后显示示例资料；不代表实时行情或交易所核验。';q('#cm-save').disabled=true;return}
+  if(info){preview.innerHTML='<b>'+esc(info.name)+'</b>　<span class="chip in">'+esc(info.market)+'</span><small>'+esc(info.kind)+' · '+esc(info.desc)+' · 实时报价未接入</small>';q('#cm-save').disabled=false}
+  else{preview.innerHTML='<span class="mut">未找到示例资料。可继续保存为待核验草稿，但不能据此确认标的身份或价格。</span>';q('#cm-save').disabled=false}
+ }
+ function open(b){
+  var id=b.dataset.mo,m=document.getElementById(id),sel;
+  if(!m)return;
+  if(id==='m-det'){
+   var d=JSON.parse(b.dataset.det||'{}');currentCustomer=d.t||'';q('#det-k').textContent=d.k||'CLIENT PROFILE';q('#det-t').textContent=d.t||'';q('#det-s').textContent=d.s||'客户详情';q('#det-m').hidden=!d.m;renderDetail(currentCustomer,d)
+  }else if(id==='m-sub'){
+   q('#sb-e').value='';q('#sb-p').value='';q('#sb-q').value='100';sbChk();sel='#sb-e'
+  }else if(id==='m-sec'){
+   var set=b.dataset.mode==='set';m.dataset.mode=set?'set':'new';q('#sec-k').textContent=set?'US:AA · ALCOA CORPORATION':'NEW SECURITY';q('#sec-t').textContent=set?'折扣与交易设置':'新增证券';
+   q('#sec-s').textContent=set?'调整该证券在客户目录中的交易条件':'先识别证券（类型 / 代码 / 市场），再设置交易条件';q('#sc-c').value='';q('#sc-d').value=set?'12':'';q('#sc-h').value=set?'0':'';step(set?2:1);sel=set?'#sc-d':'#sc-c'
+  }else if(id==='m-ed'){
+   var c=JSON.parse(b.dataset.ed||'{}');m.dataset.customer=b.dataset.customer||currentCustomer;m.dataset.field=c.field||'';q('#ed-t').textContent='修改'+c.t;q('#ed-c').textContent=c.c;q('#ed-n').innerHTML=(c.o||[]).map(function(o){return'<option'+(o===c.c?' selected':'')+'>'+esc(o)+'</option>'}).join('');q('#ed-reason').value='';edChk();sel='#ed-n'
+  }else if(id==='m-subpass'){
+   m.dataset.email=b.dataset.email||'';q('#subpass-email').textContent=m.dataset.email;q('#sp-new').value='';q('#sp-confirm').value='';subPassChk();sel='#sp-new'
+  }else if(id==='m-sublock'){
+   m.dataset.email=b.dataset.email||'';q('#sublock-email').textContent=m.dataset.email;q('#sublock-state').value=subStates[m.dataset.email]||'正常';q('#sublock-reason').value='';subLockChk();sel='#sublock-state'
+  }else if(id==='m-chat'){
+   m.dataset.customer=b.dataset.customer||currentCustomer;q('#chat-t').textContent='客户客服 · '+m.dataset.customer;q('#chat-sub').textContent='消息服务未接入 · 当前为本地演示';
+   var list=chats[m.dataset.customer]||[];q('#chat-log').innerHTML=list.length?list.map(function(x){return'<div class="chat-msg '+(x.admin?'admin':'')+'">'+esc(x.text)+'</div>'}).join(''):'<div class="empty">暂无可读取的历史会话。可在下方查看弹窗交互。</div>';q('#chat-input').value='';sel='#chat-input'
+  }else if(id==='m-com'){
+   q('#cm-code').value='';q('#cm-market').value='美国市场';q('#cm-discount').value='0';q('#cm-days').value='0';q('#cm-min').value='1';q('#cm-pin').checked=true;q('#cm-visible').checked=true;updateComPreview();sel='#cm-code'
+  }else if(id==='m-cf'){
+   var f=JSON.parse(b.dataset.cf||'{}');q('.md',m).classList.toggle('dg',!!f.dg);q('#cf-k').textContent=f.dg?'DANGER · CONFIRM':'AUDIT · CONFIRM';q('#cf-t').textContent=f.t;q('#cf-d').textContent=f.d;var ok=q('#cf-ok');ok.textContent=f.ok;ok.className='mb '+(f.dg?'dg':'p');sel='.mb'
+  }
+  show(m,sel)
+ }
+ document.addEventListener('click',function(e){
+  var mirrorAction=e.target.closest('#m-det [data-open]');
+  if(mirrorAction){var mirrorLayer=document.getElementById(mirrorAction.dataset.open);if(mirrorLayer)mirrorLayer.classList.add('open');return}
+  var t=e.target.closest('[data-mo]');
+  if(t){e.preventDefault();open(t);return}
+  var m=e.target.closest('.mo');if(!m)return;
+  if(e.target===m||e.target.closest('[data-mc]')){shut(m);return}
+  switch(e.target.id){
+   case'det-m':shut(m);var mir=q('[data-open="m-mir"]');if(mir)mir.click();break;
+   case'sec-bk':step(1);break;
+   case'sec-ok':
+    if(m.dataset.n==='1'&&m.dataset.mode!=='set'){step(2)}
+    else{shut(m);toast('证券条件已确认；未发布到客户目录。')}break;
+   case'ed-ok':{
+    var email=m.dataset.customer,field=m.dataset.field,st=customers[email];
+    if(st&&field){
+     st[field]=q('#ed-n').value;
+     if(field==='login'){qa('[data-client-status]').forEach(function(el){if(el.dataset.clientStatus===email){el.textContent=st[field]==='禁止登录'?'限制登录':'正常';el.className='chip '+(st[field]==='禁止登录'?'rd':'ok')}})}
+     if(field==='accountType'){var row=qa('#t-cli tbody tr').filter(function(r){return r.textContent.indexOf(email)>-1})[0];if(row&&row.children[2])row.children[2].innerHTML='<span class="chip '+(st[field].indexOf('真实账户')===0?'wa':'mu')+'">'+esc(st[field])+'</span>'}
+     var d={t:email,m:email==='linyi05168@gmail.com'};q('#det-t').textContent=email;renderDetail(email,d)
+    }
+    shut(m);toast('设置已在当前页面临时更新，未写入服务器。');break}
+   case'sb-ok':{
+    var tb=q('#sub-tbody'),email=q('#sb-e').value.trim(),tr=document.createElement('tr'),dt=new Date(),n=+q('#sb-q').value||100;
+    if(!email||q('#sb-p').value.length<12)return;
+    dt.setDate(dt.getDate()+(parseInt(q('#sb-x').value,10)||30));subStates[email]='正常';
+    tr.innerHTML='<td><b>'+esc(email)+'</b></td><td><span class="chip in">子管理员</span></td><td>0 / '+n+'</td><td class="mut">'+dt.getFullYear()+'/'+(dt.getMonth()+1)+'/'+dt.getDate()+' '+(dt.getHours()<10?'0':'')+dt.getHours()+':'+(dt.getMinutes()<10?'0':'')+dt.getMinutes()+'</td><td><span class="chip ok" data-sub-status="'+esc(email)+'">正常</span></td><td class="r"><button class="btn" data-own data-mo="m-subpass" data-email="'+esc(email)+'">更改密码</button> <button class="btn" data-own data-mo="m-sublock" data-email="'+esc(email)+'">限制账号</button></td>';
+    tb.appendChild(tr);q('[data-t="t-sub"]').textContent='子账户 · '+tb.rows.length;shut(m);toast('子账户已添加到当前列表；未创建真实账号。');break}
+   case'sp-save':shut(m);toast('密码格式校验通过；未保存或发送密码。');break;
+   case'sublock-save':{
+    var email=m.dataset.email,state=q('#sublock-state').value;subStates[email]=state;
+    qa('[data-sub-status]').forEach(function(el){if(el.dataset.subStatus===email){el.textContent=state;el.className='chip '+(state==='正常'?'ok':'rd')}});
+    var row=qa('#sub-tbody tr').filter(function(r){return r.textContent.indexOf(email)>-1})[0];
+    if(row){var btn=row.querySelector('[data-mo="m-sublock"]');if(btn)btn.textContent=state==='正常'?'限制账号':'解除限制'}
+    shut(m);toast('子账户状态已在当前页面临时更新。');break}
+   case'chat-send':{
+    var text=q('#chat-input').value.trim();if(!text)return;var email=m.dataset.customer;chats[email]=chats[email]||[];chats[email].push({text:text,admin:true});
+    q('#chat-log').innerHTML=chats[email].map(function(x){return'<div class="chat-msg '+(x.admin?'admin':'')+'">'+esc(x.text)+'</div>'}).join('');q('#chat-input').value='';q('#chat-log').scrollTop=q('#chat-log').scrollHeight;toast('消息仅在本页显示，未发送给客户。');break}
+   case'cm-save':{
+    var code=q('#cm-code').value.trim().toUpperCase(),discount=Number(q('#cm-discount').value),days=Number(q('#cm-days').value),min=Number(q('#cm-min').value);
+    if(!/^[A-Z0-9.-]{1,12}$/.test(code)||!Number.isFinite(discount)||discount<0||discount>100||!Number.isInteger(days)||days<0||!Number.isInteger(min)||min<1){toast('请检查代码、优惠比例、持有天数和最低买入数量。');return}
+    var info=instrumentInfo(code),name=info?info.name:'待核验标的';var tr=document.createElement('tr');
+    tr.innerHTML='<td><b>'+esc(code)+'</b></td><td>'+esc(name)+'</td><td>'+discount.toFixed(1)+'%</td><td>'+days+' 天</td><td>'+min+'</td><td>'+(q('#cm-pin').checked?'客户本人 6 位 PIN':'未启用')+'</td><td><span class="chip wa">'+(q('#cm-visible').checked?'客户可见草稿':'隐藏草稿')+'</span></td>';
+    q('#com-tbody').appendChild(tr);q('#com-empty').hidden=true;q('#com-table').hidden=false;shut(m);toast('商品草稿已添加到当前列表；行情与交易未接入。');break}
+   case'cf-ok':shut(m);toast('预览模式 · 未连接后端');break;
+  }
+ });
+ document.addEventListener('input',function(e){
+  var id=e.target.id;
+  if(id==='sb-e'||id==='sb-p')sbChk();
+  else if(id==='ed-reason'||id==='ed-n')edChk();
+  else if(id==='sp-new'||id==='sp-confirm')subPassChk();
+  else if(id==='sublock-reason')subLockChk();
+  else if(id==='cm-code')updateComPreview();
+ });
+ document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.dataset.kyc){
+   var email=t.dataset.customer,kind=t.dataset.kyc;fileNames[email]=fileNames[email]||{};fileNames[email][kind]=t.files&&t.files[0]?t.files[0].name:'未提交';
+   var el=q('#kyc-'+kind+'-name');if(el)el.textContent=fileNames[email][kind];
+   toast('仅读取文件名；文件未上传或保存。');
+  }
+  if(t.id==='cm-market')updateComPreview();
+ });
+ document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-action]');
+  if(!b)return;
+  if(b.dataset.action==='save-bank'){
+   var email=b.dataset.customer,st=customers[email],last4=q('#bank-last4').value.trim();
+   if(last4&&!/^\d{4}$/.test(last4)){toast('银行卡只登记 4 位尾号，请检查。');return}
+   st.bankName=q('#bank-name').value.trim();st.bankHolder=q('#bank-holder').value.trim();st.bankLast4=last4;
+   toast('脱敏资料已暂存在当前页面，未上传服务器。');
+  }else if(b.dataset.action==='refresh-clients'){toast('列表已刷新；数据仅在当前页面。')}
+ });
+ document.addEventListener('keydown',function(e){
+  var o=qa('.mo.open'),m=o[o.length-1];if(!m)return;
+  if(e.key==='Escape'){e.stopPropagation();shut(m)}
+  else if(e.key==='Enter'&&e.target.tagName==='INPUT'&&e.target.closest('.mo')){
+   var ok=q('.mb.p,.mb.dg',m);if(ok&&!ok.disabled&&!ok.hidden)ok.click()
+  }
+ });
+ sbChk();edChk();subPassChk();subLockChk();
+})();</script>
+<script type="module" src="/cn-admin-bridge.mjs"></script>
+</body>
+</html>

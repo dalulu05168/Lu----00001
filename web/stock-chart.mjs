@@ -4,6 +4,8 @@ export const TRADING_VIEW_WIDGET_SCRIPT =
   "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
 
 const LISTED = Object.freeze({
+  "US:AA": "NYSE:AA",
+  "US:NEM": "NYSE:NEM",
   "US:AAPL": "NASDAQ:AAPL",
   "US:MSFT": "NASDAQ:MSFT",
   "HK:0700": "HKEX:700",
