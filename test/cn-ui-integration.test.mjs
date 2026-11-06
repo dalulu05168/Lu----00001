@@ -58,7 +58,12 @@ test('authenticated terminal replaces fixture records and keeps account dialogs 
       modal.querySelector('[data-close]').click();
       assert.ok(!modal.classList.contains('open'),id+' close');
     }
-  }finally{win.close();}
+  }finally{
+    // The terminal's initial loadData().then(draw) microtask must finish before
+    // jsdom closes and destroys document; otherwise it rejects after the test ends.
+    await new Promise(resolve => setImmediate(resolve));
+    win.close();
+  }
 });
 
 test('admin redesign removes static client/order fixtures while retaining current API access',async()=>{
