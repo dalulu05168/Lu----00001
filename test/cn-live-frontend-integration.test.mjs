@@ -71,12 +71,12 @@ test("market feed and internal ledger scripts are not replaced by demo data",asy
  const app=await source("web/app.mjs");
  const server=await source("src/server.mjs");
  const design=await source("web/cn-terminal-v4.css");
- assert.match(app,/\\/api\\/account/);
- assert.match(app,/\\/api\\/watchlist/);
- assert.match(server,/us-stock-quotes\\.mjs/);
- assert.match(design,/#overview \\.sidebar/);
+ assert.ok(app.includes('request("/account"'),"Original account API must remain connected");
+ assert.ok(app.includes('request("/watchlist"'),"Original watchlist API must remain connected");
+ assert.match(server,/us-stock-quotes\.mjs/);
+ assert.match(design,/#overview \.sidebar/);
  assert.match(design,/#overview #stockChart/);
- assert.doesNotMatch(sourceHtml,/CN_SYNC_ACCOUNT|DATA\\.cashOverride|TRADING_ENABLED=false/);
+ assert.doesNotMatch(sourceHtml,/CN_SYNC_ACCOUNT|DATA\.cashOverride|TRADING_ENABLED=false/);
 });
 test("live HTTP server serves customer frontend, new design assets and keeps admin domain isolated",async()=>{
  const server=createApi({db:{},resolveSession:async()=>null});
@@ -91,12 +91,12 @@ test("live HTTP server serves customer frontend, new design assets and keeps adm
  try{
   const front=await get("/","nuvexapro.com");
   assert.equal(front.status,200);
-  assert.match(front.body,/cn-terminal-v4\\.css/);
+  assert.match(front.body,/cn-terminal-v4\.css/);
   assert.match(front.body,/id="entryForm"/);
   const admin=await get("/","admin.nuvexapro.com");
   assert.equal(admin.status,200);
   assert.match(admin.body,/id="adminLoginForm"/);
-  assert.doesNotMatch(admin.body,/cn-terminal-v4\\.css/);
+  assert.doesNotMatch(admin.body,/cn-terminal-v4\.css/);
   for(const path of ["/cn-terminal-v4.css","/cn-terminal-ui.mjs","/cn-logo.svg","/cn-login-logo.svg"]){
    const asset=await get(path,"nuvexapro.com");
    assert.equal(asset.status,200,path);
