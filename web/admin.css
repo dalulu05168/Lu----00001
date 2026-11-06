@@ -63,3 +63,22 @@ button.outline:hover,.saved-watchlist-remove:hover{border-color:var(--tf-accent)
 .admin-list-row small{color:#a2b19e}
 :focus-visible{outline:2px solid var(--tf-accent);outline-offset:3px}
 @media(max-width:680px){.topbar{gap:10px;padding:15px}.topbar:before{width:28px;height:28px}.topbar h1{font-size:19px}.topbar a{padding:8px;font-size:10px}.panel{padding:16px}.workspace{padding:16px 12px 35px}}
+
+/* Precision desktop workspace: crisp vector-first surfaces up to 8K viewports. */
+#adminWorkspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+#adminWorkspace[hidden]{display:none!important}
+.admin-section-nav{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:5;padding:12px 14px;background:#111a13f2;border:1px solid #334235;border-radius:15px;backdrop-filter:blur(16px)}
+.admin-section-nav a{display:inline-flex;align-items:center;min-height:38px;padding:8px 17px;border:1px solid transparent;border-radius:10px;color:#b5c6b0;font-size:12px;text-decoration:none;transition:background .16s,color .16s,border-color .16s}
+.admin-section-nav a:hover,.admin-section-nav a:focus-visible{background:#b9f46a1b;border-color:#b9f46a63;color:#d5ffad}
+#adminWorkspace>.admin-overview-panel{grid-column:1/-1;border-left:3px solid #b9f46a}
+#adminWorkspace>#catalogArea{grid-column:1/-1}
+#adminWorkspace>.panel{min-width:0}
+#adminWorkspace .admin-list-row{gap:18px}
+#adminWorkspace .heading{flex-wrap:wrap}
+#adminWorkspace .heading h2{letter-spacing:-.02em}
+#adminWorkspace .panel{scroll-margin-top:90px}
+#adminWorkspace #catalogArea .field-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+@media(min-width:1900px){.workspace{max-width:1800px}.panel{padding:30px}#adminWorkspace{gap:24px}.field-grid{gap:18px}}
+@media(min-width:3800px){.workspace{max-width:2600px;padding-top:46px}#adminWorkspace{gap:30px}.panel{padding:38px}.topbar{padding-left:max(56px,calc((100vw - 2600px)/2));padding-right:max(56px,calc((100vw - 2600px)/2))}}
+@media(max-width:950px){#adminWorkspace{grid-template-columns:1fr}#adminWorkspace>#catalogArea{grid-column:1}#adminWorkspace>.admin-overview-panel{grid-column:1}}
+@media(max-width:680px){.admin-section-nav{gap:4px;padding:7px;top:0}.admin-section-nav a{padding:8px 10px;font-size:11px}}
