@@ -1,0 +1,214 @@
+/*
+ * CN Capital / Admin design integration
+ * Based on the approved charcoal/lime UI.  Applied only after login.
+ * Do not modify admin login, two-factor verification, backend API, or JS hooks.
+ * All 10 original admin routes and role restrictions remain available.
+ */
+#adminWorkspace {
+  --bg:#0b0d0a; --panel:#161b14; --border:#303b2b;
+  --fg:#f7f9f2; --dim:#b8c3b1; --green:#d7ff00; --amber:#ffb938;
+  --cn-accent:#d7ff00; --cn-soft:rgba(215,255,0,.11);
+  --cn-glass:rgba(255,255,255,.045); --cn-fine:rgba(255,255,255,.12);
+  color:var(--fg); background:#0b0d0a;
+  font-family:Inter,"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+#adminTopbar:not([hidden]) {
+  min-height:60px; padding:12px clamp(16px,2.5vw,36px);
+  background:rgba(11,13,10,.96); border-bottom:1px solid #303b2b;
+  box-shadow:none;
+}
+#adminTopbar h1 {font-size:18px;color:#f7f9f2;font-weight:650;letter-spacing:-.025em;margin:0}
+#adminTopbar a {border:1px solid #46533a;border-radius:999px;background:#1e2618;color:#e9f2df;padding:8px 14px}
+#adminTopbar a:hover {border-color:#d7ff00;background:#2b381d}
+#adminWorkspace .admin-shell {
+  display:flex; flex-direction:column; min-height:calc(100dvh - 60px);
+  border:0;border-radius:0;overflow:visible;background:#0b0d0a;
+}
+#adminWorkspace .admin-nav {
+  position:sticky;top:0;z-index:12;
+  display:grid; grid-template-columns:minmax(210px,auto) minmax(0,1fr) auto;
+  grid-template-rows:auto auto; align-items:center;
+  padding:12px clamp(14px,2.25vw,32px) 0;
+  gap:12px 20px;
+  border:0;border-bottom:1px solid #35402e;
+  background:rgba(11,13,10,.96);
+  backdrop-filter:blur(15px);box-shadow:0 9px 22px rgba(0,0,0,.13);
+}
+#adminWorkspace .admin-nav .nav-heading{
+  grid-column:1;grid-row:1;display:flex;align-items:center;gap:11px;
+  min-width:0;padding:0;margin:0;letter-spacing:normal;color:#f7f9f2;
+}
+#adminWorkspace .nav-brand-mark {width:37px;height:37px;display:grid;place-items:center;flex:none}
+#adminWorkspace .nav-brand-mark img {width:36px;height:36px;object-fit:contain}
+#adminWorkspace .nav-brand-copy {display:grid;gap:1px;min-width:0}
+#adminWorkspace .nav-brand-copy strong {font-weight:700;font-size:14px;letter-spacing:.045em;color:#f7f9f2}
+#adminWorkspace .nav-brand-copy small {font-weight:400;letter-spacing:.13em;font-size:9px;color:#e8c27a;white-space:normal}
+#adminWorkspace .admin-nav .nav-identity {
+  grid-column:2;grid-row:1;justify-self:end;display:flex;align-items:center;
+  gap:10px;margin:0;padding:5px 12px;border-radius:999px;
+  border:1px solid #35452d;background:#1c2517;color:#ecf3e9;font-size:12px;
+}
+#adminWorkspace .nav-identity .server-status {font-size:10px;color:#d7ff00}
+#adminWorkspace .admin-nav .logout {
+  grid-column:3;grid-row:1;margin:0;width:auto;min-height:34px;
+  border:1px solid #45513d;border-radius:999px;
+  background:#1d2419;color:#dce6d4;padding:6px 16px;white-space:nowrap;
+}
+#adminWorkspace .admin-nav .logout:hover {border-color:#d7ff00;color:#d7ff00}
+#adminWorkspace .admin-nav #adminPages {
+  grid-column:1/-1;grid-row:2;display:flex;align-items:center;
+  gap:12px;min-width:0;overflow-x:auto;overflow-y:hidden;
+  padding:2px 0 10px;scrollbar-width:thin;scrollbar-color:#405332 transparent;
+}
+#adminWorkspace .admin-nav #adminPages details{
+  display:flex;flex:none;align-items:center;gap:2px;min-width:max-content;
+  padding:0 5px 0 0;border-right:1px solid #303b2b;
+}
+#adminWorkspace .admin-nav #adminPages details:last-child {border-right:0}
+#adminWorkspace .admin-nav #adminPages summary {
+  display:none; /* section labels become compact grouped navigation tabs */
+}
+#adminWorkspace .admin-nav #adminPages button {
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:34px;min-width:0;width:auto;padding:6px 12px;
+  border:1px solid transparent;border-radius:999px;
+  background:transparent;color:#c5cebe;
+  font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer;
+}
+#adminWorkspace .admin-nav #adminPages button:hover {background:rgba(255,255,255,.08);color:#fff}
+#adminWorkspace .admin-nav #adminPages button[aria-current="page"] {
+  border-color:rgba(215,255,0,.18);background:var(--cn-soft);
+  color:#d7ff00;box-shadow:none;
+}
+#adminWorkspace .admin-nav #adminPages button[hidden],
+#adminWorkspace .admin-nav #adminPages details[hidden] {display:none!important}
+#adminWorkspace .admin-main {
+  flex:1;min-height:500px;min-width:0;overflow-x:clip;
+  padding:clamp(16px,2vw,32px);
+  background:radial-gradient(950px 450px at 0% -4%,rgba(103,137,35,.12),transparent 70%),
+             radial-gradient(700px 320px at 100% -3%,rgba(58,77,28,.11),transparent 65%),#0b0d0a;
+}
+#adminWorkspace .admin-pane {max-width:1710px;margin:0 auto}
+#adminWorkspace .admin-pane[hidden] {display:none!important}
+#adminWorkspace .pane-title {margin:0 0 20px}
+#adminWorkspace .pane-title>span {color:#d5ebaa;letter-spacing:.15em;font-size:10px;font-weight:550}
+#adminWorkspace .pane-title h2 {font-size:clamp(22px,2vw,30px);font-weight:650;letter-spacing:-.04em;color:#f7f9f2}
+#adminWorkspace .pane-title p {color:#b9c6b0;font-size:12px;max-width:80ch}
+#adminWorkspace .panel,#adminWorkspace .pn,
+#adminWorkspace .record-detail,#adminWorkspace .policy-management {
+  border:1px solid #343f2f;border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.035));
+  box-shadow:none;color:#f1f5e9;
+}
+#adminWorkspace .panel {padding:20px;margin-bottom:16px}
+#adminWorkspace .panel h2,#adminWorkspace .panel h3 {color:#f7f9f2}
+#adminWorkspace .heading {border-color:#34402d}
+#adminWorkspace .muted,#adminWorkspace .record-field span,
+#adminWorkspace .record-boundary {color:#b6c3ad}
+#adminWorkspace .summary-card,#adminWorkspace .v4 .sc {
+  min-height:105px;border:1px solid #384630;border-radius:13px;
+  background:linear-gradient(155deg,rgba(255,255,255,.075),rgba(255,255,255,.025));
+  box-shadow:none;
+}
+#adminWorkspace .summary-card output,
+#adminWorkspace .v4 .sc em {color:#f5f9ef;font-weight:600;letter-spacing:-.02em}
+#adminWorkspace .v4 {
+  --v4-bg:#0b0d0a;--v4-pn:rgba(255,255,255,.05);
+  --v4-ln:rgba(222,249,206,.16);--v4-ln2:rgba(222,249,206,.25);
+  --v4-tx:#f7f9f2;--v4-mut:#b8c3b1;--v4-ac:#d7ff00;
+  --v4-acb:rgba(215,255,0,.13);--v4-up:#4fdd8f;--v4-dn:#ff6b5a;
+  --v4-am:#ffb938;--v4-ink:#101400;
+}
+#adminWorkspace .v4 .pn {border:1px solid #34402d;border-radius:14px;background:rgba(255,255,255,.045)}
+#adminWorkspace .v4 .ph {border-color:#35432f;color:#eff5eb}
+#adminWorkspace .v4 .sc.gold {
+  border-color:rgba(215,255,0,.34);background:linear-gradient(140deg,rgba(215,255,0,.13),rgba(215,255,0,.025));
+}
+#adminWorkspace .v4 .sc.gold em {color:#d7ff00}
+#adminWorkspace .v4 .btn.p,
+#adminWorkspace .btn.p,
+#adminWorkspace button[type="submit"]:not(.outline) {
+  background:#d7ff00;border:1px solid #d7ff00;color:#172006;
+  border-radius:999px;font-weight:600;
+}
+#adminWorkspace .btn.p:hover:not(:disabled),
+#adminWorkspace button[type="submit"]:hover:not(:disabled) {background:#e5ff4d;filter:none}
+#adminWorkspace .outline,
+#adminWorkspace .btn:not(.p),
+#adminWorkspace button[type="button"]:not(.outline):not(.portal-text-button) {
+  border-radius:999px;
+}
+#adminWorkspace .outline,#adminWorkspace .btn:not(.p) {
+  background:#252e21;border:1px solid #44523c;color:#e3ecdf;
+}
+#adminWorkspace .outline:hover:not(:disabled),
+#adminWorkspace .btn:not(.p):hover:not(:disabled) {background:#313f2a;border-color:#8db252;color:#f7ffef}
+#adminWorkspace button:focus-visible,
+#adminWorkspace a:focus-visible,
+#adminWorkspace input:focus-visible,
+#adminWorkspace select:focus-visible,
+#adminWorkspace textarea:focus-visible {outline:2px solid #d7ff00;outline-offset:2px}
+#adminWorkspace :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]) {
+  border-radius:9px;background:#161c15;border-color:#46533f;color:#f3f6ef;
+}
+#adminWorkspace select option {background:#141a13;color:#f4f6ef}
+#adminWorkspace table {border-collapse:collapse}
+#adminWorkspace th {background:rgba(255,255,255,.045);color:#bec9b4;border-color:#394532}
+#adminWorkspace td {border-color:#333d2d;color:#edf1e9}
+#adminWorkspace tbody tr:hover {background:rgba(215,255,0,.035)}
+#adminWorkspace .client-directory-columns {background:rgba(255,255,255,.035);border-color:#394532;color:#bbc7b5}
+#adminWorkspace .client-directory-row:hover {background:rgba(215,255,0,.04)}
+#adminWorkspace .client-workspace-tabs {border-color:#374533}
+#adminWorkspace .client-workspace-tabs button[aria-selected="true"],
+#adminWorkspace .mirror-operation-tabs button[aria-selected="true"] {color:#d7ff00;border-bottom-color:#d7ff00;background:rgba(215,255,0,.065)}
+#adminWorkspace .record-field strong {color:#f4f7ef}
+#adminWorkspace .mirror-layout>* {min-width:0}
+#adminWorkspace .mirror-operations,#adminWorkspace .mirror-client-panel {scrollbar-width:thin}
+#adminWorkspace .dashboard-hero {border-radius:14px}
+#adminWorkspace .dashboard-hero-art {opacity:.38}
+#adminWorkspace #adminMobileNavToggle {display:none}
+body:has(#adminWorkspace:not([hidden])) dialog[open] {
+  color:#f1f6eb;background:#181d16;border:1px solid #45563c;
+  border-radius:15px;box-shadow:0 22px 80px rgba(0,0,0,.6);
+}
+body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,.73);backdrop-filter:blur(3px)}
+/* Responsive layout: existing mobile toggle and event bindings continue to work. */
+@media(max-width:1050px){
+  #adminWorkspace .admin-nav {grid-template-columns:minmax(0,1fr) auto;gap:10px}
+  #adminWorkspace .nav-identity {grid-column:1;grid-row:2;justify-self:start}
+  #adminWorkspace .logout {grid-column:2;grid-row:1;align-self:center}
+  #adminWorkspace .admin-nav #adminPages {grid-row:3;grid-column:1/-1}
+  #adminWorkspace .admin-main {padding:16px}
+}
+@media(max-width:650px){
+  #adminWorkspace .admin-nav {grid-template-columns:minmax(0,1fr) auto;padding:12px;gap:8px}
+  #adminWorkspace .admin-nav .nav-heading {grid-column:1;grid-row:1}
+  #adminWorkspace .admin-nav .nav-identity {grid-column:1;grid-row:2;font-size:11px}
+  #adminWorkspace #adminMobileNavToggle {
+    display:block;grid-column:2;grid-row:1/3;
+    min-height:42px;border-radius:999px;background:#26331e;color:#eaf7de;border-color:#455b3b;
+  }
+  #adminWorkspace .admin-nav #adminPages {
+    grid-column:1/-1;grid-row:3;display:none!important;overflow-x:hidden;overflow-y:auto;
+    flex-direction:column;align-items:stretch;max-height:56dvh;padding:8px 0;
+  }
+  #adminWorkspace .admin-nav[data-mobile-open="true"] #adminPages {display:flex!important}
+  #adminWorkspace .admin-nav #adminPages details {
+    display:grid;min-width:0;width:100%;gap:4px;padding:8px 0;border-right:0;border-bottom:1px solid #333f2d;
+  }
+  #adminWorkspace .admin-nav #adminPages summary {
+    display:block;font-size:10px;letter-spacing:.12em;color:#9cad92;padding:4px 10px;
+  }
+  #adminWorkspace .admin-nav #adminPages button {display:block;text-align:left;width:100%;min-height:42px;white-space:normal}
+  #adminWorkspace .admin-nav .logout {grid-column:1/-1;grid-row:4;width:100%;min-height:40px}
+  #adminWorkspace .admin-main {padding:12px}
+  #adminWorkspace .v4 .stats {grid-template-columns:repeat(2,minmax(0,1fr))}
+  #adminWorkspace .client-workspace-header {align-items:stretch}
+}
+@media(max-width:440px){
+  #adminWorkspace .v4 .stats {grid-template-columns:1fr}
+  #adminWorkspace .nav-brand-copy small {font-size:8px}
+  #adminWorkspace .admin-nav .nav-identity {gap:6px;padding:5px 9px}
+  #adminWorkspace .admin-main {padding:10px}
+}
