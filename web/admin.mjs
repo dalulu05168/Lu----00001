@@ -1172,7 +1172,7 @@ const CASE_STATUS={
  AWAITING_EVIDENCE:"待补验证材料",NEEDS_INFORMATION:"需补充信息",
  MANUALLY_REVIEWED:"人工已审阅（未实名认证）",PENDING_VERIFICATION:"待银行核实"
 };
-let caseRows=[],selectedCase=null,caseSerial=0,fundingSerial=0;
+let caseRows=[],selectedCase=null,selectedCaseRow=null,selectedCaseAction=null,caseSerial=0,fundingSerial=0;
 function caseSummary(item){
  let status=CASE_STATUS[item.status]??item.status;
  if(item.category==='BANK_LINK'){
@@ -1206,9 +1206,14 @@ function caseOptions(item){
  }
  return [];
 }
-function clearCaseSelection(){
- selectedCase=null;el("workflowReviewForm").hidden=true;
+function clearCaseSelection({restoreFocus=false}={}){
+ const focusTarget=selectedCaseAction;
+ selectedCaseRow?.classList.remove("workflow-row-selected");
+ selectedCaseAction?.setAttribute("aria-expanded","false");
+ selectedCaseRow=null;selectedCaseAction=null;selectedCase=null;
+ el("workflowReviewForm").hidden=true;
  el("workflowDecision").replaceChildren();el("workflowReason").value="";el("workflowConfirm").checked=false;
+ if(restoreFocus&&focusTarget?.isConnected)focusTarget.focus();
 }
 function renderCaseList(){
  const target=el("workflowItems");target.replaceChildren();
@@ -1220,13 +1225,25 @@ function renderCaseList(){
   const next=caseOptions(item);
   if(next.length){
    const action=document.createElement("button");action.type="button";action.className="outline";action.textContent="处理申请";
+   action.setAttribute("aria-controls","workflowReviewForm");
+   action.setAttribute("aria-expanded","false");
+   action.setAttribute("aria-label","处理申请："+caseSummary(item));
    action.addEventListener("click",()=>{
-    selectedCase=item;el("workflowSelection").textContent=caseSummary(item)+" · "+item.clientId;
+    clearCaseSelection();
+    selectedCase=item;selectedCaseRow=row;selectedCaseAction=action;
+    row.classList.add("workflow-row-selected");
+    action.setAttribute("aria-expanded","true");
+    el("workflowSelection").textContent=caseSummary(item)+" · "+item.clientId;
     const select=el("workflowDecision");select.replaceChildren();
     for(const [value,label] of next){
      const option=document.createElement("option");option.value=value;option.textContent=label;select.append(option);
     }
-    el("workflowReviewForm").hidden=false;
+    const form=el("workflowReviewForm");
+    form.hidden=false;
+    el("workflowStatus").textContent="已选中申请，审核表单已展开。请核对申请信息后再确认。";
+    const reduceMotion=form.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches===true;
+    form.scrollIntoView?.({behavior:reduceMotion?"auto":"smooth",block:"center"});
+    select.focus({preventScroll:true});
    });
    row.append(action);
   }
@@ -1313,7 +1330,7 @@ el('dashboardOpenApprovals').addEventListener('click',()=>{el('workflowCategory'
 el("workflowCategory").addEventListener("change",()=>{void refreshCaseList()});
 el("workflowRefresh").addEventListener("click",()=>{void refreshCaseList()});
 el("refreshFundingSummary").addEventListener("click",()=>{void refreshFundingOverview()});
-el("workflowCancel").addEventListener("click",clearCaseSelection);
+el("workflowCancel").addEventListener("click",()=>clearCaseSelection({restoreFocus:true}));
 el("workflowReviewForm").addEventListener("submit",async event=>{
  event.preventDefault();
  if(!selectedCase||!el("workflowConfirm").checked){el("workflowStatus").textContent="请先选择申请并确认";return;}

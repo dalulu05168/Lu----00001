@@ -8,6 +8,8 @@ const REQUEST="22222222-2222-4222-8222-222222222222";
 test("master reviews an authorized funding request and sees non-settlement dashboard",async()=>{
  const html=await readFile(new URL("../web/admin.html",import.meta.url),"utf8");
  const dom=new JSDOM(html,{url:"https://qa.example/admin.html"});
+ let lastScrolled=null;
+ dom.window.HTMLElement.prototype.scrollIntoView=function(options){lastScrolled={id:this.id,options};};
  const old={document:globalThis.document,sessionStorage:globalThis.sessionStorage,fetch:globalThis.fetch};
  let fundingFailure=false;
  const calls=[],cases=[{id:REQUEST,clientId:CLIENT,category:"FUNDING",kind:"DEPOSIT",amountCents:12000,
@@ -52,7 +54,21 @@ test("master reviews an authorized funding request and sees non-settlement dashb
   await pause(60);
   assert.equal(el("workflowItems").querySelectorAll("button").length,1);
   assert.match(el("workflowItems").textContent,/120\.00 USD/);
-  el("workflowItems").querySelector("button").click();
+  const reviewAction=el("workflowItems").querySelector("button");
+  reviewAction.click();
+  assert.equal(el("workflowReviewForm").hidden,false);
+  assert.equal(el("workflowDecision").value,"APPROVED");
+  assert.equal(lastScrolled?.id,"workflowReviewForm","the review form must scroll into view after selecting an application");
+  assert.equal(dom.window.document.activeElement.id,"workflowDecision","focus must move to the review decision");
+  assert.equal(reviewAction.getAttribute("aria-expanded"),"true");
+  assert.ok(reviewAction.closest(".workflow-row").classList.contains("workflow-row-selected"));
+  assert.match(el("workflowStatus").textContent,/审核表单已展开/);
+  el("workflowCancel").click();
+  assert.equal(el("workflowReviewForm").hidden,true);
+  assert.equal(reviewAction.getAttribute("aria-expanded"),"false");
+  assert.ok(!reviewAction.closest(".workflow-row").classList.contains("workflow-row-selected"));
+  assert.equal(dom.window.document.activeElement,reviewAction,"cancel returns focus to the selected row action");
+  reviewAction.click();
   assert.equal(el("workflowReviewForm").hidden,false);
   assert.equal(el("workflowDecision").value,"APPROVED");
   el("workflowDecision").value="UNDER_REVIEW";

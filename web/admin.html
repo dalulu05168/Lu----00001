@@ -408,9 +408,8 @@
             <button type="button" id="workflowRefresh" class="outline">刷新申请</button>
           </div>
           <p id="workflowStatus" class="feedback" role="status" aria-live="polite"></p>
-          <div id="workflowItems" class="admin-list" aria-live="polite"></div>
-          <form id="workflowReviewForm" class="workflow-review-form" hidden>
-            <h3>处理选中申请</h3><p id="workflowSelection" class="muted"></p>
+          <form id="workflowReviewForm" class="workflow-review-form" aria-labelledby="workflowReviewHeading" hidden>
+            <h3 id="workflowReviewHeading">处理选中申请</h3><p id="workflowSelection" class="muted"></p>
             <label>处理状态<select id="workflowDecision" required></select></label>
             <label class="workflow-form-wide">处理原因（选填）
               <textarea id="workflowReason" rows="3" maxlength="400"></textarea></label>
@@ -420,6 +419,7 @@
             <div class="workflow-form-wide"><button type="submit" id="workflowSubmit">保存审核记录</button>
               <button type="button" class="outline" id="workflowCancel">取消</button></div>
           </form>
+          <div id="workflowItems" class="admin-list" aria-live="polite"></div>
         </section>
       </section>
       <section class="admin-pane" data-pane="treasury" hidden>
