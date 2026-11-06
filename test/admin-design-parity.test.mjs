@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {JSDOM} from "jsdom";
+import {createApi} from "../src/http-api.mjs";
 
 const file=async path=>readFile(new URL("../"+path,import.meta.url),"utf8");
 const requiredPages=[
@@ -70,4 +71,25 @@ test("mobile navigation and hidden role-specific controls are not overridden by 
   assert.match(css,/#adminMobileNavToggle/);
   assert.match(js,/setMobileNavExpanded\(false\)/);
   assert.match(js,/\.dataset\.requiredRole!==role/);
+});
+
+test("Render HTTP gateway serves admin-only design CSS and preserves split domain landing",async()=>{
+  const server=createApi({db:{},resolveSession:async()=>null});
+  await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
+  const base="http://127.0.0.1:"+server.address().port;
+  try{
+    const css=await fetch(base+"/admin-cn-v3.css",{headers:{host:"admin.nuvexapro.com"}});
+    assert.equal(css.status,200);
+    assert.match(css.headers.get("content-type")||"",/text\/css/);
+    assert.match(await css.text(),/#adminWorkspace \.admin-shell/);
+    const admin=await fetch(base+"/",{headers:{host:"admin.nuvexapro.com"}});
+    assert.equal(admin.status,200);
+    assert.match(await admin.text(),/id="adminLoginForm"/);
+    const customer=await fetch(base+"/",{headers:{host:"nuvexapro.com"}});
+    assert.equal(customer.status,200);
+    assert.doesNotMatch(await customer.text(),/id="adminLoginForm"/);
+  }finally{
+    server.closeAllConnections();
+    await new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve()));
+  }
 });
