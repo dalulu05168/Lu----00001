@@ -16,7 +16,8 @@ async function withAdmin(name,run){
  globalThis.document=dom.window.document;globalThis.sessionStorage=dom.window.sessionStorage;
  globalThis.fetch=async(url,options={})=>{
   const overridden=state.override(url,options);if(overridden!==undefined)return overridden;
-  if(url==="/api/admin/login")return json(200,{token:state.token,role:state.role});
+  if(url==="/api/admin/login")return json(200,{totpRequired:true,pendingToken:"pending-"+state.token,expiresAt:new Date(Date.now()+600000).toISOString()});
+  if(url==="/api/admin/totp/verify")return json(200,{token:state.token,role:state.role,expiresAt:new Date(Date.now()+1800000).toISOString()});
   if(url==="/api/admin/me")return json(200,{role:state.role,userId:second});
   if(url==="/api/admin/logout")return json(204);
   if(url==="/api/admin/mirror-status")return json(200,{ready:true,mode:"READ_ONLY"});
@@ -32,6 +33,8 @@ async function withAdmin(name,run){
   dom.window.document.querySelector(`[data-role-choice="${state.role}"]`).click();
   el("adminEmail").value="admin@example.test";el("adminPassword").value="test-password-2026";
   el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));await flush();
+  el("totpCode").value="123456";
+  el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));await flush();
  };
  try{await import(`../web/admin.mjs?session-isolation-${name}`);await login();await run({dom,el,state,login});}
  finally{Object.assign(globalThis,old);dom.window.close();}

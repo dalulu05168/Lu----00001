@@ -2,21 +2,93 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 import {createApi} from "../src/http-api.mjs";
-import {createListing,updateListing,adminLogin,recoverPendingMaster} from "../src/admin-service.mjs";
+import {createListing,updateListing,adminLogin,verifyAdminTotp,recoverPendingMaster} from "../src/admin-service.mjs";
 import {hashPassword} from "../src/auth.mjs";
+import {adminTotpKey,openTotpSecret} from "../src/admin-totp-storage.mjs";
+import {totpCode} from "../src/totp.mjs";
 
-test("master and subadmin authenticate with password only and reject wrong password",async()=>{
-  const userId=randomUUID(),accountId=randomUUID(),hash=await hashPassword("correct-password-2026");
-  const queries=[];
-  const db={query:async(sql,params)=>{
-    queries.push(sql);
-    if(sql.includes("SELECT u.id,u.password_hash"))return {rows:[{id:userId,account_id:accountId,password_hash:hash,role:"MASTER"}]};
-    return {rows:[]};
-  }};
-  const signed=await adminLogin(db,{email:"admin@example.test",password:"correct-password-2026"});
-  assert.equal(signed.role,"MASTER");assert.ok(signed.token.length>=32);
-  assert.ok(queries.some(sql=>sql.includes("admin_verified_at")));
-  await assert.rejects(adminLogin(db,{email:"admin@example.test",password:"wrong-password-2026"}),e=>e.statusCode===401);
+function makeAdminDb({userId,accountId,passwordHash,role}){
+  const state={totpSecretCiphertext:null,totpConfirmedAt:null,challenge:null,clientQueries:[]};
+  const db={
+    query:async(sql,params)=>{
+      if(sql.includes("SELECT u.id,u.password_hash"))return {rows:[{
+        id:userId,password_hash:passwordHash,account_id:accountId,role,
+        totp_secret_ciphertext:state.totpSecretCiphertext,totp_confirmed_at:state.totpConfirmedAt
+      }]};
+      if(sql.includes("UPDATE admin_roles SET totp_secret_ciphertext")){state.totpSecretCiphertext=params[1];return {rows:[]};}
+      if(sql.includes("INSERT INTO admin_totp_challenges")){
+        state.challenge={id:params[0],userId:params[1],tokenHash:params[2],setup:params[3],expiresAt:params[4],attempts:0};
+        return {rows:[]};
+      }
+      return {rows:[]};
+    },
+    connect:async()=>({
+      query:async(sql,params)=>{
+        state.clientQueries.push(sql);
+        if(sql.includes("FROM admin_totp_challenges c"))
+          return state.challenge&&state.challenge.tokenHash===params[0]
+            ?{rows:[{id:state.challenge.id,user_id:state.challenge.userId,setup:state.challenge.setup,
+                attempts:state.challenge.attempts,expires_at:state.challenge.expiresAt,
+                role,totp_secret_ciphertext:state.totpSecretCiphertext,account_id:accountId}]}
+            :{rows:[]};
+        if(sql.includes("UPDATE admin_totp_challenges SET attempts")){state.challenge.attempts++;return {rows:[]};}
+        if(sql.includes("UPDATE admin_roles SET totp_confirmed_at")){state.totpConfirmedAt=new Date();return {rows:[]};}
+        if(sql.includes("DELETE FROM admin_totp_challenges")){state.challenge=null;return {rows:[]};}
+        return {rows:[]};
+      },
+      release(){}
+    })
+  };
+  return {db,state};
+}
+
+test("master authenticates with password then a TOTP code, rejecting wrong password and wrong code",async()=>{
+  const previousKey=process.env.ADMIN_TOTP_KEY;
+  process.env.ADMIN_TOTP_KEY="a".repeat(64);
+  try{
+    const userId=randomUUID(),accountId=randomUUID(),hash=await hashPassword("correct-password-2026");
+    const {db,state}=makeAdminDb({userId,accountId,passwordHash:hash,role:"MASTER"});
+    await assert.rejects(adminLogin(db,{email:"admin@example.test",password:"wrong-password-2026"}),e=>e.statusCode===401);
+
+    const step1=await adminLogin(db,{email:"admin@example.test",password:"correct-password-2026"});
+    assert.equal(step1.totpSetupRequired,true);
+    assert.ok(step1.secret);assert.ok(step1.pendingToken);
+
+    const secret=openTotpSecret(state.totpSecretCiphertext,adminTotpKey(),userId);
+    const realCode=totpCode(secret),wrongCode=realCode==="000000"?"111111":"000000";
+    await assert.rejects(verifyAdminTotp(db,{pendingToken:step1.pendingToken,code:wrongCode}),e=>e.statusCode===401);
+
+    const signed=await verifyAdminTotp(db,{pendingToken:step1.pendingToken,code:realCode});
+    assert.equal(signed.role,"MASTER");assert.ok(signed.token.length>=32);
+    assert.ok(state.clientQueries.some(sql=>sql.includes("admin_verified_at")));
+  }finally{
+    if(previousKey===undefined)delete process.env.ADMIN_TOTP_KEY;
+    else process.env.ADMIN_TOTP_KEY=previousKey;
+  }
+});
+
+test("an already-enrolled admin's second login only asks for a TOTP code, not setup",async()=>{
+  const previousKey=process.env.ADMIN_TOTP_KEY;
+  process.env.ADMIN_TOTP_KEY="a".repeat(64);
+  try{
+    const userId=randomUUID(),accountId=randomUUID(),hash=await hashPassword("correct-password-2026");
+    const {db,state}=makeAdminDb({userId,accountId,passwordHash:hash,role:"MASTER"});
+    await adminLogin(db,{email:"admin@example.test",password:"correct-password-2026"});
+    const enrolled=await adminLogin(db,{email:"admin@example.test",password:"correct-password-2026"});
+    assert.equal(enrolled.totpSetupRequired,true,"reused secret until confirmed");
+    const secret=openTotpSecret(state.totpSecretCiphertext,adminTotpKey(),userId);
+    await verifyAdminTotp(db,{pendingToken:enrolled.pendingToken,code:totpCode(secret)});
+
+    const step1=await adminLogin(db,{email:"admin@example.test",password:"correct-password-2026"});
+    assert.equal(step1.totpRequired,true);
+    assert.equal(step1.totpSetupRequired,undefined);
+    assert.equal(step1.secret,undefined);
+    const signed=await verifyAdminTotp(db,{pendingToken:step1.pendingToken,code:totpCode(secret)});
+    assert.equal(signed.role,"MASTER");
+  }finally{
+    if(previousKey===undefined)delete process.env.ADMIN_TOTP_KEY;
+    else process.env.ADMIN_TOTP_KEY=previousKey;
+  }
 });
 
 test("pending-master reset requires strong setup proof and refuses wrong credentials",async()=>{

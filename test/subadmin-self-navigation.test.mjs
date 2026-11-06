@@ -14,7 +14,8 @@ test("subaccount views only own details, cannot edit controls, and mobile menu c
     globalThis.document=dom.window.document;
     globalThis.sessionStorage=dom.window.sessionStorage;
     globalThis.fetch=async url=>{
-      if(url==="/api/admin/login")return send(200,{token:"review-session",role:"SUBADMIN"});
+      if(url==="/api/admin/login")return send(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+      if(url==="/api/admin/totp/verify")return send(200,{token:"review-session",role:"SUBADMIN",expiresAt:new Date(Date.now()+1800000).toISOString()});
       if(url==="/api/admin/me")return send(200,{role:"SUBADMIN",userId:subId});
       if(url==="/api/admin/subaccounts")return send(200,{items:[
         {user_id:subId,email:"owner@example.test",uses:1,max_uses:100}
@@ -34,6 +35,9 @@ test("subaccount views only own details, cannot edit controls, and mobile menu c
     el("adminPassword").value="review-only-value";
     dom.window.document.querySelector('[data-role-choice="SUBADMIN"]').click();
     el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+    await new Promise(done=>setTimeout(done,100));
+    el("totpCode").value="123456";
+    el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
     await new Promise(done=>setTimeout(done,100));
     assert.equal(el("adminWorkspace").hidden,false);
     assert.equal(dom.window.document.querySelector('[data-admin-page="accounts"]').hidden,false);

@@ -15,7 +15,8 @@ test("authorized client and subadmin directories open detail workspaces, mirror 
     globalThis.document=dom.window.document;
     globalThis.sessionStorage=dom.window.sessionStorage;
     globalThis.fetch=async url=>{
-      if(url==="/api/admin/login")return respond(200,{token:"test-token",role:"MASTER"});
+      if(url==="/api/admin/login")return respond(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+      if(url==="/api/admin/totp/verify")return respond(200,{token:"test-token",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
       if(url==="/api/admin/me")return respond(200,{role:"MASTER",userId:"master"});
       if(url==="/api/admin/subaccounts")return respond(200,{items:[{user_id:subId,email:"sub@example.test",code:"123456",uses:1,max_uses:100}]});
       if(url==="/api/admin/clients")return respond(200,{items:[{id:clientId,email:"client@example.test",subadmin_user_id:subId}]});
@@ -29,6 +30,9 @@ test("authorized client and subadmin directories open detail workspaces, mirror 
     const el=id=>dom.window.document.getElementById(id);
     el("adminEmail").value="master@example.test";el("adminPassword").value="test-password-123";
     el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+    await pause(100);
+    el("totpCode").value="123456";
+    el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
     await pause(100);
     assert.equal(el("adminWorkspace").hidden,false);
     assert.equal(el("clients").querySelectorAll(".record-detail-open").length,1);

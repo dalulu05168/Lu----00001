@@ -12,7 +12,8 @@ test('product settings preserve a configured secret on empty edit and accept zer
  try{
   globalThis.document=dom.window.document;globalThis.sessionStorage=dom.window.sessionStorage;
   globalThis.fetch=async(url,options={})=>{
-   if(url==='/api/admin/login')return json({token:'synthetic-admin',role:'MASTER'});
+   if(url==='/api/admin/login')return json({totpRequired:true,pendingToken:'pending-token',expiresAt:new Date(Date.now()+600000).toISOString()});
+   if(url==='/api/admin/totp/verify')return json({token:'synthetic-admin',role:'MASTER',expiresAt:new Date(Date.now()+1800000).toISOString()});
    if(url==='/api/admin/me')return json({role:'MASTER',userId:id});
    if(url==='/api/admin/mirror-status')return json({ready:true});
    if(url==='/api/admin/commodities')return json({items:[{id,sku:'TEST',name:'Synthetic product',category:'OTHER',unit:'份额',minimumQuantity:1,indicativePriceCents:null,status:'PUBLISHED'}]});
@@ -24,6 +25,8 @@ test('product settings preserve a configured secret on empty edit and accept zer
   const el=id=>dom.window.document.getElementById(id);
   el('adminEmail').value='synthetic@example.test';el('adminPassword').value='synthetic-password-only';
   el('adminLoginForm').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await pause(80);
+  el('totpCode').value='123456';
+  el('adminTotpForm').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await pause(80);
   dom.window.document.querySelector('[data-admin-page="commodities"]').click();await pause(50);
   [...el('commodityItems').querySelectorAll('button')].find(b=>b.textContent==='折扣与交易设置').click();await pause(50);
   assert.equal(el('productTermsPassword').value,'');assert.equal(el('productTermsPassword').required,false);

@@ -15,7 +15,8 @@ test("master and subadmin login gates, password-only setup and role-based admin 
     globalThis.fetch=async(url,options={})=>{
       requests.push({url,method:options.method,headers:options.headers,body:options.body?JSON.parse(options.body):undefined});
       if(url==="/api/admin/bootstrap"||url==="/api/admin/recover-pending-master")return respond(200,{role:"MASTER",ready:true});
-      if(url==="/api/admin/login")return respond(200,{token:"admin-token",role:"MASTER"});
+      if(url==="/api/admin/login")return respond(200,{totpRequired:true,pendingToken:"pending-token-abc",expiresAt:new Date(Date.now()+600000).toISOString()});
+      if(url==="/api/admin/totp/verify")return respond(200,{token:"admin-token",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
       if(url==="/api/admin/logout")return new Response(null,{status:204});
       if(url==="/api/admin/me")return respond(200,{role:"MASTER",userId:"master-1"});
       if(url==="/api/admin/mirror-status")return respond(200,{ready:true,mode:"READ_ONLY"});
@@ -28,7 +29,6 @@ test("master and subadmin login gates, password-only setup and role-based admin 
     assert.equal(el("adminTopbar").hidden,true);
     assert.equal(el("admin-login").hidden,false);
     assert.equal(el("bootstrapPanel").hidden,true);
-    assert.doesNotMatch(html,/6 位动态验证码|adminOtp|activateForm|TOTP/);
     assert.equal(el("bootstrapEmail").value,"");
     assert.equal(el("recoverEmail").value,"");
 
@@ -61,6 +61,13 @@ test("master and subadmin login gates, password-only setup and role-based admin 
     await new Promise(done=>setTimeout(done,80));
     const login=requests.find(x=>x.url==="/api/admin/login");
     assert.deepEqual(Object.keys(login.body).sort(),["email","password"]);
+    assert.equal(el("adminLoginForm").hidden,true);
+    assert.equal(el("adminTotpForm").hidden,false);
+    el("totpCode").value="123456";
+    el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{cancelable:true,bubbles:true}));
+    await new Promise(done=>setTimeout(done,80));
+    const verify=requests.find(x=>x.url==="/api/admin/totp/verify");
+    assert.deepEqual(Object.keys(verify.body).sort(),["code","pendingToken"]);
     assert.equal(el("adminWorkspace").hidden,false);
     assert.equal(el("adminTopbar").hidden,false);
     assert.equal(el("admin-login").hidden,true);
@@ -69,11 +76,16 @@ test("master and subadmin login gates, password-only setup and role-based admin 
     el("adminLogout").click();
     assert.equal(el("adminWorkspace").hidden,true);
     assert.equal(el("admin-login").hidden,false);
+    assert.equal(el("adminLoginForm").hidden,false);
+    assert.equal(el("adminTotpForm").hidden,true);
     assert.equal(dom.window.sessionStorage.getItem("gsp_admin_token"),null);
     dom.window.document.querySelector('[data-role-choice="SUBADMIN"]').click();
     el("adminEmail").value="chennan05168@gmail.com";
     el("adminPassword").value="testing-master-password";
     el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{cancelable:true,bubbles:true}));
+    await new Promise(done=>setTimeout(done,45));
+    el("totpCode").value="123456";
+    el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{cancelable:true,bubbles:true}));
     await new Promise(done=>setTimeout(done,45));
     assert.match(el("loginFeedback").textContent,/不属于所选角色/);
     assert.equal(el("adminWorkspace").hidden,true);

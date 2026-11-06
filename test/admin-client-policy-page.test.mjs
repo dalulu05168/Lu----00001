@@ -19,7 +19,8 @@ test("master client detail reads current policy, re-confirms and logs changes; m
     globalThis.document=dom.window.document;
     globalThis.sessionStorage=dom.window.sessionStorage;
     globalThis.fetch=async(url,options={})=>{
-      if(url==="/api/admin/login")return reply(200,{token:"master-token",role:"MASTER"});
+      if(url==="/api/admin/login")return reply(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+      if(url==="/api/admin/totp/verify")return reply(200,{token:"master-token",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
       if(url==="/api/admin/me")return reply(200,{role:"MASTER",userId:"master-user"});
       if(url==="/api/admin/subaccounts"||url==="/api/admin/listings")return reply(200,{items:[]});
       if(url==="/api/admin/clients")return reply(200,{items:[{id:clientId,email:"customer@example.test",subadmin_user_id:null}]});
@@ -60,6 +61,9 @@ test("master client detail reads current policy, re-confirms and logs changes; m
     const el=id=>dom.window.document.getElementById(id);
     el("adminEmail").value="master@example.test";el("adminPassword").value="master-password-2026";
     el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+    await pause(65);
+    el("totpCode").value="123456";
+    el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
     await pause(65);
     assert.equal(el("clients").querySelectorAll(".record-detail-open").length,1);
     el("clients").querySelector(".record-detail-open").click();

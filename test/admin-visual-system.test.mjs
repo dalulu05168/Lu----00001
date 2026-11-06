@@ -46,7 +46,8 @@ test("overview shortcuts open customer list and mirror workspaces without changi
   globalThis.document=dom.window.document;
   globalThis.sessionStorage=dom.window.sessionStorage;
   globalThis.fetch=async url=>{
-   if(url==="/api/admin/login")return reply(200,{token:"visual-qa-token",role:"MASTER"});
+   if(url==="/api/admin/login")return reply(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+   if(url==="/api/admin/totp/verify")return reply(200,{token:"visual-qa-token",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
    if(url==="/api/admin/me")return reply(200,{role:"MASTER",userId:"master-id"});
    if(["/api/admin/clients","/api/admin/subaccounts","/api/admin/listings"].includes(url))
     return reply(200,{items:[]});
@@ -59,6 +60,9 @@ test("overview shortcuts open customer list and mirror workspaces without changi
   el("adminEmail").value="master@example.test";
   el("adminPassword").value="long-password-for-review";
   el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+  await new Promise(resolve=>setTimeout(resolve,85));
+  el("totpCode").value="123456";
+  el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
   await new Promise(resolve=>setTimeout(resolve,85));
   assert.equal(el("adminWorkspace").hidden,false);
   const client=dom.window.document.querySelector('[data-dashboard-open="clients"]');

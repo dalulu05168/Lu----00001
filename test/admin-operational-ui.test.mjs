@@ -22,7 +22,8 @@ test("master reviews an authorized funding request and sees non-settlement dashb
   globalThis.sessionStorage=dom.window.sessionStorage;
   globalThis.fetch=async(url,options={})=>{
    calls.push({url,options});
-   if(url==="/api/admin/login")return json(200,{token:"master-token",role:"MASTER"});
+   if(url==="/api/admin/login")return json(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+   if(url==="/api/admin/totp/verify")return json(200,{token:"master-token",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
    if(url==="/api/admin/me")return json(200,{role:"MASTER",userId:"master-id"});
    if(url==="/api/admin/clients"||url==="/api/admin/subaccounts"||url==="/api/admin/listings")
     return json(200,{items:[]});
@@ -41,6 +42,9 @@ test("master reviews an authorized funding request and sees non-settlement dashb
   const el=id=>dom.window.document.getElementById(id);
   el("adminEmail").value="master@example.test";el("adminPassword").value="master-password-2026";
   el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+  await pause(85);
+  el("totpCode").value="123456";
+  el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
   await pause(85);
   assert.equal(el('adminPageTitle').textContent,'全局运营总览');
   assert.equal(el('dashboardDepositAmount').textContent,'$120.00');
