@@ -42,7 +42,7 @@ test("original login, role security and live admin API logic stay in place",asyn
   assert.match(html,/src="\/admin\.mjs"/);
   assert.match(js,/api\("\/admin\/me"\)/);
   assert.match(js,/\[data-required-role\]/);
-  assert.match(js,/adminPages/);
+  assert.match(html,/id="adminPages"/);
   assert.match(js,/data-admin-page/);
 });
 
