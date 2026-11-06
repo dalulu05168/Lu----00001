@@ -8,6 +8,7 @@ services:
     branch: dev/restore-four-role-platform-20261103
     autoDeployTrigger: checksPass
     buildCommand: npm install --omit=dev
+    preDeployCommand: npm run migrate
     startCommand: node src/server.mjs
     healthCheckPath: /ready
     envVars:
