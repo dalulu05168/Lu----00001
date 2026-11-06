@@ -56,7 +56,11 @@ test("new charcoal/lime admin design is served and does not replace login page",
   const links=[...document.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.getAttribute("href"));
   assert.deepEqual(links,["/admin.css","/portal.css","/admin-cn-v3.css"]);
   assert.match(gateway,/"\/admin-cn-v3\.css"/);
-  assert.match(css,/#adminWorkspace \.admin-nav #adminPages/);
+  assert.ok(document.querySelector("#adminWorkspace #adminPages.admin-nav"),"The live nav uses #adminPages itself as .admin-nav");
+  assert.match(css,/#adminWorkspace\s+#adminTopbar\s*\{[^}]*margin-left:\s*0/);
+  assert.match(css,/#adminWorkspace\s+#adminPages\s*\{/);
+  assert.match(css,/#adminWorkspace\s+#adminPages\s*\{\s*position:\s*static;[^}]*min-height:\s*0;[^}]*flex-direction:\s*row/);
+  assert.match(css,/#adminWorkspace\s+#adminPages summary\s*\{display:none!important\}/);
   assert.match(css,/#adminWorkspace \.admin-main/);
   assert.match(css,/dialog\[open\]/);
   assert.match(css,/#d7ff00/);
@@ -65,11 +69,19 @@ test("new charcoal/lime admin design is served and does not replace login page",
 });
 
 test("mobile navigation and hidden role-specific controls are not overridden by styling",async()=>{
+  const html=await file("web/admin.html");
   const css=await file("web/admin-cn-v3.css");
   const js=await file("web/admin.mjs");
-  assert.match(css,/#adminPages details\[hidden\] \{display:none!important\}/);
-  assert.match(css,/data-mobile-open="true"/);
-  assert.match(css,/#adminMobileNavToggle/);
+  const document=new JSDOM(html).window.document;
+  const menu=document.getElementById("adminMobileNavToggle");
+  const audit=document.querySelector('[data-admin-page="audit"]');
+  assert.ok(menu,"Mobile menu toggle remains present");
+  assert.equal(menu.getAttribute("aria-controls"),"adminPages");
+  assert.ok(audit?.closest('details[data-required-role="MASTER"]'),"Audit remains restricted to MASTER in the nav");
+  assert.match(css,/#adminWorkspace\s+#adminPages\s+button\[hidden\],\s*#adminWorkspace\s+#adminPages\s+details\[hidden\]\s*\{\s*display:\s*none\s*!important;?\s*\}/);
+  assert.match(css,/#adminWorkspace\s+#adminPages\[data-mobile-open="true"\]\s*\{\s*display:\s*flex\s*!important;?\s*\}/);
+  assert.match(css,/#adminWorkspace\s+#adminPages\s*\{\s*display:\s*none\s*!important;/);
+  assert.match(css,/#adminWorkspace\s+#adminTopbar\s+#adminMobileNavToggle\s*\{\s*display:\s*block/);
   assert.match(js,/setMobileNavExpanded\(false\)/);
   assert.match(js,/\.dataset\.requiredRole!==role/);
 });
