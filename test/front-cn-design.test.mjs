@@ -24,9 +24,9 @@ test("real front keeps login/register/account controls, order actions and underl
 test("actual frontend script still binds live APIs and market chart, not demo fixture data",async()=>{
  const js=await get("web/app.mjs");
  assert.match(js,/sessionStorage\.getItem\("gsp_token"\)/);
- assert.match(js,/\/api\/account/);
- assert.match(js,/\/api\/watchlist/);
- assert.match(js,/\/api\/orders/);
+ assert.match(js,/request\("\/account"\)/);
+ assert.match(js,/request\("\/watchlist"/);
+ assert.match(js,/request\("\/orders"/);
  assert.match(js,/mountStockChart/);
  assert.match(await get("web/stock-chart.mjs"),/tradingview/i);
  assert.doesNotMatch(await get("web/index.html"),/\$256,430\.80|\$998,937\.60/);
