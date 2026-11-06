@@ -53,6 +53,10 @@ function attachUsChart() {
     if(!layer.hidden) mountStockChart(layer, {market:'US',symbol:'AA'});
   });
   host.append(layer, toggle);
+  // Use the existing third-party US chart as the primary chart; the locally drawn chart remains a fallback.
+  layer.hidden=false;
+  toggle.textContent='返回原走势图';
+  mountStockChart(layer,{market:'US',symbol:'AA'});
 }
 
 async function run() {
@@ -72,6 +76,28 @@ async function run() {
     attachToolbar();
     attachUsChart();
     ready();
+    // Optional authenticated datasets do not block the account display.
+    void Promise.allSettled([
+      fetch('/api/catalog',{headers:authHeaders(),cache:'no-store'}).then(async response=>{
+        if(!response.ok)throw new Error('证券目录接口暂不可用');
+        const data=await response.json();
+        window.CN_SYNC_CATALOG(data.items);
+      }),
+      fetch('/api/watchlist',{headers:authHeaders(),cache:'no-store'}).then(async response=>{
+        if(!response.ok)throw new Error('自选数据接口暂不可用');
+        const data=await response.json();
+        window.CN_SYNC_WATCHLIST(data.items);
+      })
+    ]).then(results=>{
+      if(results[0].status==='rejected'){
+        const product=document.getElementById('pbody');
+        if(product)product.textContent='证券目录暂不可用';
+      }
+      if(results[1].status==='rejected'){
+        const label=document.getElementById('watchsub');
+        if(label)label.textContent='自选数据暂不可用';
+      }
+    });
   } catch (error) { errorView(error?.message || '账户加载失败'); }
 }
 run();
