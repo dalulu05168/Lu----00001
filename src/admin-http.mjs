@@ -12,7 +12,7 @@ import {getUsStockHistory,stockQuotesConfigured} from './us-stock-quotes.mjs';
 import {readPrivateData} from './private-customer-data.mjs';
 import {createAuthRateLimiter,clientAddress,normalizedEmailKey,sendRateLimited} from "./auth-rate-limit.mjs";
 import {
-  roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,createSubadmin,
+  roleFor,bootstrapMaster,recoverPendingMaster,adminLogin,verifyAdminTotp,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
 } from "./admin-service.mjs";
 function response(res,status,value){
@@ -53,7 +53,7 @@ const sharedAuthLimiter=createAuthRateLimiter();
 export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuote,authLimiter=sharedAuthLimiter){
   if(!route.startsWith("/api/admin/")&&route!=="/api/catalog")return false;
   const allowed={
-    "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
+    "/api/admin/login":["POST"],"/api/admin/totp/verify":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/recover-pending-master":["POST"],"/api/admin/logout":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
     "/api/admin/subaccount-controls":["GET","PATCH"],"/api/admin/subaccount-control-audit":["GET"],
@@ -75,7 +75,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuo
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
   try{
-    if(["/api/admin/login","/api/admin/bootstrap","/api/admin/recover-pending-master"].includes(route)){
+    if(["/api/admin/login","/api/admin/totp/verify","/api/admin/bootstrap","/api/admin/recover-pending-master"].includes(route)){
       const ip=clientAddress(req);
       const data=await input(req);
       const emailKey=route==="/api/admin/login"?normalizedEmailKey("admin",data?.email):null;
@@ -86,6 +86,11 @@ export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuo
           const login=await adminLogin(db,data);
           authLimiter.reset("accountFailures",emailKey);
           response(res,200,login);return true;
+        }
+        if(route==="/api/admin/totp/verify"){
+          const verified=await verifyAdminTotp(db,data);
+          authLimiter.reset("ipFailures",ip);
+          response(res,200,verified);return true;
         }
         if(route==="/api/admin/bootstrap"){response(res,201,await bootstrapMaster(db,data));return true;}
         response(res,200,await recoverPendingMaster(db,data));return true;

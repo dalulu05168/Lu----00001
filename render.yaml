@@ -21,6 +21,8 @@ services:
         generateValue: true
       - key: CUSTOMER_DATA_KEY
         generateValue: true
+      - key: ADMIN_TOTP_KEY
+        generateValue: true
 
 # Future custom domains after QA rollout is approved:
 # domains:

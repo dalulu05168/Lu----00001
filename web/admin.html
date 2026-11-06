@@ -16,6 +16,15 @@
         <label class="portal-field">后台登录密码<input type="password" id="adminPassword" autocomplete="current-password" placeholder="Password" required></label>
         <button type="submit" class="portal-primary">进入管理后台</button>
       </form>
+      <form id="adminTotpForm" autocomplete="off" hidden>
+        <div id="totpSetupInfo" hidden>
+          <p class="portal-feedback">首次登录需绑定两步验证。使用 Google Authenticator 等 App 扫描或手动输入以下密钥：</p>
+          <p><code id="totpSecretText"></code></p>
+        </div>
+        <label class="portal-field">两步验证码<input type="text" id="totpCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="6位数字验证码" required></label>
+        <button type="submit" class="portal-primary">验证并登录</button>
+        <button type="button" id="totpBack" class="portal-text-button">返回重新登录</button>
+      </form>
       <p id="loginFeedback" class="portal-feedback" role="status" aria-live="polite"></p>
       <a class="portal-text-button" href="/" data-client-home>返回客户前台</a>
       <button id="showAdminSetup" type="button" class="portal-setup-link">首次配置或找回未完成设置的主账户</button>

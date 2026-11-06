@@ -19,7 +19,8 @@ test("master can modify client policy and review request without leaving the APP
   globalThis.document=dom.window.document;globalThis.sessionStorage=dom.window.sessionStorage;
   globalThis.fetch=async(url,options={})=>{
    calls.push({url,options});
-   if(url==="/api/admin/login")return send(200,{token:"admin-test-token",role:"MASTER"});
+   if(url==="/api/admin/login")return send(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+   if(url==="/api/admin/totp/verify")return send(200,{token:"admin-test-token",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
    if(url==="/api/admin/me")return send(200,{role:"MASTER",userId:"master-user"});
    if(url==="/api/admin/clients")return send(200,{items:[client]});
    if(url==="/api/admin/subaccounts"||url==="/api/admin/listings")return send(200,{items:[]});
@@ -53,6 +54,9 @@ test("master can modify client policy and review request without leaving the APP
   const el=id=>dom.window.document.getElementById(id);
   el("adminEmail").value="master@example.test";el("adminPassword").value="master-login-password-2026";
   el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+  await pause(75);
+  el("totpCode").value="123456";
+  el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
   await pause(75);
   el("mirrorClientList").querySelector(".mirror-open").click();await pause(85);
   assert.equal(el("mirrorOperations").hidden,false);
@@ -128,7 +132,8 @@ test("subadmin mirror is scoped read-only for policy changes; snapshot outage do
   globalThis.document=dom.window.document;globalThis.sessionStorage=dom.window.sessionStorage;
   globalThis.fetch=async(url,options={})=>{
    calls.push({url,options});
-   if(url==="/api/admin/login")return send(200,{token:"sub-token",role:"SUBADMIN"});
+   if(url==="/api/admin/login")return send(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+   if(url==="/api/admin/totp/verify")return send(200,{token:"sub-token",role:"SUBADMIN",expiresAt:new Date(Date.now()+1800000).toISOString()});
    if(url==="/api/admin/me")return send(200,{role:"SUBADMIN",userId:"sub-user"});
    if(url==="/api/admin/clients")return send(200,{items:[{id:CLIENT,email:"customer@example.test"}]});
    if(url==="/api/admin/subaccounts"||url==="/api/admin/listings")return send(200,{items:[]});
@@ -148,6 +153,9 @@ test("subadmin mirror is scoped read-only for policy changes; snapshot outage do
   el("adminEmail").value="sub@example.test";el("adminPassword").value="sub-login-password-2026";
   dom.window.document.querySelector('[data-role-choice="SUBADMIN"]').click();
   el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+  await pause(75);
+  el("totpCode").value="123456";
+  el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
   await pause(75);
   const button=el("mirrorClientList").querySelector(".mirror-open");
   assert.equal(button.disabled,false);

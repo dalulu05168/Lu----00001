@@ -16,7 +16,8 @@ test("master can open a scoped client App mirror with account records and clear 
     globalThis.sessionStorage=dom.window.sessionStorage;
     globalThis.fetch=async (url,options={})=>{
       requests.push({url,options});
-      if(url==="/api/admin/login")return reply(200,{token:"admin-test-token",role:"MASTER"});
+      if(url==="/api/admin/login")return reply(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+      if(url==="/api/admin/totp/verify")return reply(200,{token:"admin-test-token",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
       if(url==="/api/admin/me")return reply(200,{role:"MASTER",userId:"admin-id"});
       if(url==="/api/admin/clients")return reply(200,{items:[{id:clientId,email:"customer@example.test",subadmin_user_id:"sub-id"}]});
       if(url==="/api/admin/mirror-status")return reply(200,{ready:true,mode:"READ_ONLY"});
@@ -48,6 +49,9 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.equal(el("admin-login").hidden,false);
     assert.equal(el("adminWorkspace").hidden,true);
     el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+    await pause(55);
+    el("totpCode").value="123456";
+    el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
     await pause(55);
     assert.equal(el("adminWorkspace").hidden,false);
     assert.equal(el("mirrorClientList").querySelectorAll(".mirror-open").length,1);

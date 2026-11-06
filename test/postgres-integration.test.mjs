@@ -10,6 +10,8 @@ import { placeInternalOrder } from "../src/order-service.mjs";
 import {verifyInternalFunding} from './internal-funding-postgres.test.mjs';
 import {verifyInternalProducts} from './internal-products-postgres.mjs';
 import {verifyPrivateCustomerData} from './private-customer-postgres.mjs';
+import {adminTotpKey,openTotpSecret} from "../src/admin-totp-storage.mjs";
+import {totpCode} from "../src/totp.mjs";
 
 const connectionString = process.env.TEST_DATABASE_URL;
 const run = connectionString ? test : test.skip;
@@ -35,7 +37,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql", "012_internal_funding.sql", "013_internal_products.sql", "014_private_customer_data.sql", "015_romanian_listings_optional_reasons.sql", "016_mirror_purchase_audit.sql", "017_listing_minimum_purchase.sql", "018_fixed_term_funds.sql", "019_stock_holding_locks.sql", "020_stock_sales.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql", "012_internal_funding.sql", "013_internal_products.sql", "014_private_customer_data.sql", "015_romanian_listings_optional_reasons.sql", "016_mirror_purchase_audit.sql", "017_listing_minimum_purchase.sql", "018_fixed_term_funds.sql", "019_stock_holding_locks.sql", "020_stock_sales.sql", "021_admin_totp.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -271,7 +273,9 @@ run("Vercel serverless API adapter routes to real PostgreSQL", async () => {
 run("PostgreSQL: password-only master, scoped subadmin invitations and securities directory permissions", async () => {
   const previousProof=process.env.ADMIN_BOOTSTRAP_SECRET;
   const previousMasterEmail=process.env.ADMIN_MASTER_EMAIL;
+  const previousTotpKey=process.env.ADMIN_TOTP_KEY;
   process.env.ADMIN_BOOTSTRAP_SECRET="b".repeat(64);
+  process.env.ADMIN_TOTP_KEY="a".repeat(64);
   const masterEmail="master-"+randomUUID().slice(0,8)+"@example.test";
   process.env.ADMIN_MASTER_EMAIL=masterEmail;
   const db=new Pool({connectionString,max:4});
@@ -284,6 +288,19 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
       ...(body?{"content-type":"application/json"}:{})
     },...(body?{body:JSON.stringify(body)}:{})});
     return {status:res.status,data:res.status===204?{}:await res.json()};
+  }
+  // Drives the password step then the TOTP step, mimicking the shape the old
+  // single-step /api/admin/login used to return, so existing call sites
+  // reading .status/.data.token/.data.role keep working unchanged.
+  async function adminTotp(email,password){
+    const step1=await req("/api/admin/login",{method:"POST",body:{email,password}});
+    if(step1.status!==200)return step1;
+    const row=(await db.query(
+      "SELECT r.user_id,r.totp_secret_ciphertext FROM admin_roles r JOIN app_users u ON u.id=r.user_id WHERE u.email=$1",
+      [email]
+    )).rows[0];
+    const secret=openTotpSecret(row.totp_secret_ciphertext,adminTotpKey(),row.user_id);
+    return req("/api/admin/totp/verify",{method:"POST",body:{pendingToken:step1.data.pendingToken,code:totpCode(secret)}});
   }
   try {
     const email=masterEmail;
@@ -310,10 +327,10 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(recovered.status,200);
     assert.equal(recovered.data.ready,true);
     assert.equal((await req("/api/admin/recover-pending-master",{method:"POST",body:{email,password:recoveredPassword,setupKey:"b".repeat(64)}})).status,400);
-    assert.equal((await req("/api/admin/login",{method:"POST",body:{email,password}})).status,401);
+    assert.equal((await adminTotp(email,password)).status,401);
     const secondMaster=await req("/api/admin/bootstrap",{method:"POST",body:{email,password,setupKey:"b".repeat(64)}});
     assert.equal(secondMaster.status,400);
-    const admin=await req("/api/admin/login",{method:"POST",body:{email,password:recoveredPassword}});
+    const admin=await adminTotp(email,recoveredPassword);
     assert.equal(admin.status,200);
     assert.equal(admin.data.role,"MASTER");
     const masterToken=admin.data.token;
@@ -338,7 +355,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
       password:"testing-client-pass-2026",inviteCode:"not-code"
     }});
     assert.equal(invalidInvite.status,400);
-    const subAdmin=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}});
+    const subAdmin=await adminTotp(subEmail,subPassword);
     assert.equal(subAdmin.status,200);
 
     const subListings=await req("/api/admin/listings",{method:"POST",token:subAdmin.data.token,body:{
@@ -559,7 +576,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     const otherEmail="other-sub-"+randomUUID().slice(0,8)+"@example.test";
     const otherSub=await req("/api/admin/subaccounts",{method:"POST",token:masterToken,body:{email:otherEmail,password:subPassword}});
     assert.equal(otherSub.status,201);
-    const otherLogin=await req("/api/admin/login",{method:"POST",body:{email:otherEmail,password:subPassword}});
+    const otherLogin=await adminTotp(otherEmail,subPassword);
     assert.equal(otherLogin.status,200);
     assert.equal((await req("/api/admin/support-thread?threadId="+threadId,
       {token:otherLogin.data.token})).status,404);
@@ -681,12 +698,12 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(disabled.data.policy.version,1);
     assert.equal(disabled.data.policy.loginAllowed,false);
     assert.equal((await req("/api/admin/me",{token:subAdmin.data.token})).status,401);
-    assert.equal((await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}})).status,401);
+    assert.equal((await adminTotp(subEmail,subPassword)).status,401);
     assert.equal((await subEdit({expectedVersion:0,loginAllowed:true})).status,409);
     const reinstated=await subEdit({expectedVersion:1,loginAllowed:true});
     assert.equal(reinstated.status,200);
     assert.equal(reinstated.data.policy.version,2);
-    assert.equal((await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}})).status,200);
+    assert.equal((await adminTotp(subEmail,subPassword)).status,200);
     const subHistory=await req(subAuditPath,{token:masterToken});
     assert.equal(subHistory.status,200);
     assert.equal(subHistory.data.items.length,2);
@@ -700,7 +717,7 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     assert.equal(unifiedMaster.status,200);
     assert.ok(unifiedMaster.data.items.some(x=>x.eventType==="SUBADMIN"));
     assert.ok(unifiedMaster.data.items.some(x=>x.eventType==="CLIENT_POLICY"&&x.clientId===attached.data.userId));
-    const activeSub=await req("/api/admin/login",{method:"POST",body:{email:subEmail,password:subPassword}});
+    const activeSub=await adminTotp(subEmail,subPassword);
     const unifiedSub=await req("/api/admin/audit-events",{token:activeSub.data.token});
     assert.equal(unifiedSub.status,200);
     assert.ok(unifiedSub.data.items.length>0);
@@ -730,6 +747,8 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
     else process.env.ADMIN_BOOTSTRAP_SECRET=previousProof;
     if(previousMasterEmail===undefined)delete process.env.ADMIN_MASTER_EMAIL;
     else process.env.ADMIN_MASTER_EMAIL=previousMasterEmail;
+    if(previousTotpKey===undefined)delete process.env.ADMIN_TOTP_KEY;
+    else process.env.ADMIN_TOTP_KEY=previousTotpKey;
   }
 });
 

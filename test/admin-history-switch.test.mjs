@@ -18,7 +18,8 @@ test("switching clients invalidates an in-flight history response and clears old
   globalThis.document=dom.window.document;
   globalThis.sessionStorage=dom.window.sessionStorage;
   globalThis.fetch=async(url)=>{
-   if(url==="/api/admin/login")return json(200,{token:"master-review-session",role:"MASTER"});
+   if(url==="/api/admin/login")return json(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+   if(url==="/api/admin/totp/verify")return json(200,{token:"master-review-session",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
    if(url==="/api/admin/me")return json(200,{role:"MASTER",userId:"master-id"});
    if(url==="/api/admin/subaccounts"||url==="/api/admin/listings")return json(200,{items:[]});
    if(url==="/api/admin/clients")return json(200,{items:[
@@ -45,6 +46,9 @@ test("switching clients invalidates an in-flight history response and clears old
   el("adminEmail").value="master@example.test";
   el("adminPassword").value="master-password-review-2026";
   el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
+  await delay(90);
+  el("totpCode").value="123456";
+  el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));
   await delay(90);
   const rows=el("clients").querySelectorAll(".record-detail-open");
   assert.equal(rows.length,2);

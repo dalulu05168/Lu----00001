@@ -1553,6 +1553,7 @@ async function showDashboard(){
     if(token===adminToken)resetAdminSession("登录已失效，请重新登录。");
   }
 }
+let pendingAdminTotpToken=null;
 el("adminLoginForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const button=event.currentTarget.querySelector("button");button.disabled=true;
@@ -1560,17 +1561,43 @@ el("adminLoginForm").addEventListener("submit",async event=>{
     const result=await api("/admin/login",{method:"POST",token:null,body:{
       email:el("adminEmail").value,password:el("adminPassword").value
     }});
+    pendingAdminTotpToken=result.pendingToken;
+    el("totpSetupInfo").hidden=!result.totpSetupRequired;
+    if(result.totpSetupRequired)setText("totpSecretText",result.secret);
+    el("adminLoginForm").hidden=true;
+    el("adminTotpForm").hidden=false;
+    el("totpCode").value="";
+    setText("loginFeedback",result.totpSetupRequired?"首次登录，请使用验证器 App 绑定并输入验证码":"请输入两步验证码");
+    el("totpCode").focus();
+  }catch(error){setText("loginFeedback",error.message)}
+  finally{button.disabled=false;}
+});
+el("adminTotpForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const button=event.currentTarget.querySelector("button[type=submit]");button.disabled=true;
+  try{
+    const result=await api("/admin/totp/verify",{method:"POST",token:null,body:{
+      pendingToken:pendingAdminTotpToken,code:el("totpCode").value.trim()
+    }});
     if(result.role!==selectedAdminRole){
       void api("/admin/logout",{method:"POST",token:result.token}).catch(()=>{});
       throw new Error("该账号不属于所选角色，请切换主账户或子账户");
     }
     adminToken=result.token;
     sessionStorage.setItem("gsp_admin_token",adminToken);
-    el("adminPassword").value="";
+    pendingAdminTotpToken=null;
+    el("adminPassword").value="";el("totpCode").value="";
     setText("loginFeedback","管理员验证成功");
     await showDashboard();
   }catch(error){setText("loginFeedback",error.message)}
   finally{button.disabled=false;}
+});
+el("totpBack").addEventListener("click",()=>{
+  pendingAdminTotpToken=null;
+  el("adminTotpForm").hidden=true;
+  el("adminLoginForm").hidden=false;
+  el("totpCode").value="";
+  setText("loginFeedback","");
 });
 el("bootstrapForm").addEventListener("submit",async event=>{
   event.preventDefault();const button=event.currentTarget.querySelector("button");button.disabled=true;
@@ -1672,6 +1699,8 @@ function resetAdminSession(message){
   el("mirrorClientList").replaceChildren();
   setMobileNavExpanded(false);
   el("adminWorkspace").hidden=true;el("adminTopbar").hidden=true;el("admin-login").hidden=false;el("bootstrapPanel").hidden=true;
+  pendingAdminTotpToken=null;
+  el("adminLoginForm").hidden=false;el("adminTotpForm").hidden=true;el("totpSetupInfo").hidden=true;el("totpCode").value="";
   setText("loginFeedback",message);
 }
 el("adminLogout").addEventListener("click",()=>{

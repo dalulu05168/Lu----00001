@@ -1,6 +1,8 @@
-import {randomUUID,randomInt,timingSafeEqual} from "node:crypto";
-import {hashPassword,verifyPassword,createSession,rejectUnknownAccount} from "./auth.mjs";
+import {randomUUID,randomInt,timingSafeEqual,createHash} from "node:crypto";
+import {hashPassword,verifyPassword,createSession,rejectUnknownAccount,generateSessionToken} from "./auth.mjs";
 import {enableNewProductPurchases} from './internal-products.mjs';
+import {generateTotpSecret,verifyTotpCode,totpUri,base32Encode} from "./totp.mjs";
+import {adminTotpKey,sealTotpSecret,openTotpSecret} from "./admin-totp-storage.mjs";
 
 
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -81,11 +83,20 @@ export async function recoverPendingMaster(db,{email,password,setupKey}){
   }catch(error){if(tx)await c.query("ROLLBACK");throw error;}
   finally{c.release();}
 }
+const TOTP_CHALLENGE_TTL_MS=10*60*1000;
+const TOTP_MAX_ATTEMPTS=5;
+function challengeTokenHash(token){return createHash("sha256").update(token).digest("hex");}
+
+/**
+ * Password-only step 1 of login. Returns neither a usable session nor any
+ * secret for an already-enrolled admin; the caller must still pass the TOTP
+ * challenge via verifyAdminTotp before getting a real, adminVerified session.
+ */
 export async function adminLogin(db,{email,password}){
   if(typeof password!=="string")invalid("Invalid admin login");
-  const r=await db.query(`SELECT u.id,u.password_hash,a.id AS account_id,r.role
+  const r=await db.query(`SELECT u.id,u.password_hash,a.id AS account_id,r.role,
+      r.totp_secret_ciphertext,r.totp_confirmed_at
     FROM app_users u JOIN accounts a ON a.user_id=u.id
-
     JOIN admin_roles r ON r.user_id=u.id
     LEFT JOIN admin_subaccount_policies sp ON sp.user_id=u.id
     WHERE u.email=$1 AND COALESCE(sp.login_allowed,true)=true`,[getEmail(email)]);
@@ -95,9 +106,68 @@ export async function adminLogin(db,{email,password}){
   }
   const row=r.rows[0];
   await db.query("UPDATE admin_roles SET password_setup_pending=false WHERE user_id=$1 AND password_setup_pending=true",[row.id]);
-  const expiresAt=new Date(Date.now()+30*60*1000);
-  const token=await createSession(db,{userId:row.id,accountId:row.account_id,expiresAt,adminVerified:true});
-  return {token,role:row.role,expiresAt:expiresAt.toISOString()};
+  const key=adminTotpKey();
+  const setup=row.totp_confirmed_at===null;
+  let secretCipher=row.totp_secret_ciphertext,otpauthUri,secretDisplay;
+  if(setup){
+    // Reuse an already-generated-but-unconfirmed secret so a prior failed
+    // attempt doesn't force the admin to re-scan a brand new QR code.
+    if(!secretCipher){
+      const secret=generateTotpSecret();
+      secretCipher=sealTotpSecret(secret,key,row.id);
+      await db.query("UPDATE admin_roles SET totp_secret_ciphertext=$2 WHERE user_id=$1",[row.id,secretCipher]);
+    }
+    const secret=openTotpSecret(secretCipher,key,row.id);
+    secretDisplay=base32Encode(secret);
+    otpauthUri=totpUri(secret,{email:getEmail(email)});
+  }
+  const pendingToken=generateSessionToken();
+  const expiresAt=new Date(Date.now()+TOTP_CHALLENGE_TTL_MS);
+  await db.query(`INSERT INTO admin_totp_challenges(id,user_id,token_hash,setup,expires_at)
+    VALUES($1,$2,$3,$4,$5)`,[randomUUID(),row.id,challengeTokenHash(pendingToken),setup,expiresAt]);
+  return setup
+    ? {totpSetupRequired:true,secret:secretDisplay,otpauthUri,pendingToken,expiresAt:expiresAt.toISOString()}
+    : {totpRequired:true,pendingToken,expiresAt:expiresAt.toISOString()};
+}
+
+/** Step 2: spend the pending challenge for a real, adminVerified session. */
+export async function verifyAdminTotp(db,{pendingToken,code}){
+  if(typeof pendingToken!=="string"||pendingToken.length<32||pendingToken.length>256||
+     typeof code!=="string"||!/^\d{6}$/.test(code)){
+    const error=new Error("Invalid 2FA verification");error.statusCode=400;throw error;
+  }
+  const client=await db.connect();let tx=false;
+  try{
+    await client.query("BEGIN");tx=true;
+    const c=await client.query(`SELECT c.id,c.user_id,c.setup,c.attempts,c.expires_at,
+        r.role,r.totp_secret_ciphertext,a.id AS account_id
+      FROM admin_totp_challenges c
+      JOIN admin_roles r ON r.user_id=c.user_id
+      JOIN accounts a ON a.user_id=c.user_id
+      WHERE c.token_hash=$1 FOR UPDATE OF c`,[challengeTokenHash(pendingToken)]);
+    if(c.rows.length!==1){
+      const error=new Error("2FA session expired; please sign in again");error.statusCode=401;throw error;
+    }
+    const row=c.rows[0];
+    if(new Date(row.expires_at)<=new Date()||row.attempts>=TOTP_MAX_ATTEMPTS||!row.totp_secret_ciphertext){
+      await client.query("DELETE FROM admin_totp_challenges WHERE id=$1",[row.id]);
+      await client.query("COMMIT");tx=false;
+      const error=new Error("2FA session expired; please sign in again");error.statusCode=401;throw error;
+    }
+    const secret=openTotpSecret(row.totp_secret_ciphertext,adminTotpKey(),row.user_id);
+    if(!verifyTotpCode(secret,code)){
+      await client.query("UPDATE admin_totp_challenges SET attempts=attempts+1 WHERE id=$1",[row.id]);
+      await client.query("COMMIT");tx=false;
+      const error=new Error("Invalid 2FA code");error.statusCode=401;throw error;
+    }
+    if(row.setup)await client.query("UPDATE admin_roles SET totp_confirmed_at=now() WHERE user_id=$1",[row.user_id]);
+    await client.query("DELETE FROM admin_totp_challenges WHERE id=$1",[row.id]);
+    const expiresAt=new Date(Date.now()+30*60*1000);
+    const token=await createSession(client,{userId:row.user_id,accountId:row.account_id,expiresAt,adminVerified:true});
+    await client.query("COMMIT");tx=false;
+    return {token,role:row.role,expiresAt:expiresAt.toISOString()};
+  }catch(error){if(tx)await client.query("ROLLBACK");throw error;}
+  finally{client.release();}
 }
 export async function createSubadmin(db,actor,{email,password}){
   if(actor?.role!=="MASTER")invalid("Only master can create subadmins");

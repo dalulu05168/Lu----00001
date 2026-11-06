@@ -155,7 +155,8 @@ test("master console renders edit, publish and withdraw controls",async()=>{
     globalThis.fetch=async(url,options={})=>{
       const method=options.method||"GET";
       calls.push({url,method,body:options.body?JSON.parse(options.body):null});
-      if(url==="/api/admin/login")return json(200,{token:"admin-token",role:"MASTER"});
+      if(url==="/api/admin/login")return json(200,{totpRequired:true,pendingToken:"pending-token",expiresAt:new Date(Date.now()+600000).toISOString()});
+      if(url==="/api/admin/totp/verify")return json(200,{token:"admin-token",role:"MASTER",expiresAt:new Date(Date.now()+1800000).toISOString()});
       if(url==="/api/admin/me")return json(200,{role:"MASTER",userId:"master-id"});
       if(url==="/api/admin/mirror-status")return json(200,{ready:false});
       if(url==="/api/admin/stock-lookup?code=BRD")return json(200,{
@@ -178,6 +179,9 @@ test("master console renders edit, publish and withdraw controls",async()=>{
     el("adminEmail").value="master@example.test";
     el("adminPassword").value="safe-long-password";
     el("adminLoginForm").dispatchEvent(new dom.window.Event("submit",{cancelable:true,bubbles:true}));
+    await new Promise(done=>setTimeout(done,100));
+    el("totpCode").value="123456";
+    el("adminTotpForm").dispatchEvent(new dom.window.Event("submit",{cancelable:true,bubbles:true}));
     await new Promise(done=>setTimeout(done,100));
     assert.equal(el("adminListingCount").textContent,"1");
     let row=el("listings").querySelector(".admin-list-row");
