@@ -627,3 +627,53 @@ a:hover{color:var(--tf-accent)}
  .panel{padding:14px}
  .chart{min-height:212px}
 }
+
+/* High-density market terminal layout; preserves DOM hooks and actual quote states. */
+@media(min-width:1201px){
+ .primary-grid{grid-template-columns:minmax(0,2.2fr) minmax(300px,.85fr);gap:16px;margin-top:18px;align-items:stretch}
+ .primary-grid>.performance-panel{min-width:0}
+ .primary-grid>.holdings-panel{min-width:0}
+ .performance-panel .chart{height:clamp(340px,35vw,580px);min-height:340px}
+ .holdings-panel{min-height:0}
+ .secondary-grid{gap:16px;margin-top:16px}
+ .account-grid{gap:16px;margin-top:16px}
+ .transaction-metrics{gap:16px}
+ .metrics{gap:16px}
+}
+@media(min-width:1900px){
+ .app-shell{grid-template-columns:256px minmax(0,1fr)}
+ .sidebar{padding:30px 18px 24px}
+ .sidebar-link{min-height:48px;font-size:13px}
+ .workspace{padding:0 40px 50px}
+ .topbar{padding:20px 40px}
+ .transaction-metric-card{min-height:165px;padding:24px}
+ .transaction-metric-value{font-size:34px}
+ .transactions-table{font-size:12px}
+ .transactions-table th,.transactions-table td{padding:15px 17px}
+ .panel{padding:25px}
+ .panel-heading h2{font-size:16px}
+ .primary-grid{grid-template-columns:minmax(0,2.45fr) minmax(340px,.85fr);gap:20px}
+ .performance-panel .chart{height:clamp(480px,34vw,700px)}
+}
+@media(min-width:3800px){
+ .app-shell{grid-template-columns:320px minmax(0,1fr)}
+ .sidebar{padding:40px 25px}
+ .sidebar-link{min-height:54px;font-size:15px}
+ .sidebar-link svg{width:20px;height:20px}
+ .workspace{max-width:3200px;margin:0 auto;padding:0 54px 70px}
+ .topbar{padding:26px max(54px,calc((100% - 3092px)/2))}
+ .page-heading h1{font-size:30px}
+ .transaction-metric-value{font-size:40px}
+ .performance-panel .chart{height:850px}
+ .panel{padding:32px}
+ .metric-value{font-size:34px}
+}
+@media(max-width:1200px) and (min-width:761px){
+ .primary-grid{grid-template-columns:minmax(0,1.6fr) minmax(250px,1fr)}
+ .secondary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .intelligence-panel{grid-column:1/-1}
+}
+@media(max-width:760px){
+ .primary-grid,.secondary-grid,.account-grid{grid-template-columns:1fr}
+ .performance-panel .chart{min-height:240px}
+}
