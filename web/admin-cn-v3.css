@@ -212,3 +212,9 @@ body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,
   #adminWorkspace .admin-nav .nav-identity {gap:6px;padding:5px 9px}
   #adminWorkspace .admin-main {padding:10px}
 }
+
+/* Supplied silver/teal transparent CN mark; no white logo tile. */
+#adminTopbar .cn-new-logo{display:block;width:42px;height:42px;flex:none;object-fit:contain;background:transparent!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+#adminTopbar .cn-new-brand{display:flex;align-items:center;gap:10px;min-width:0}
+#adminTopbar .cn-new-brand>span{display:flex;flex-direction:column;font-size:14px;font-weight:700;line-height:1.18;white-space:nowrap;color:#f4f8ef}
+#adminTopbar .cn-new-brand small{font-size:9px;letter-spacing:.1em;color:#c2d3c0;font-weight:400}
