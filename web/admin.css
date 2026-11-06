@@ -82,3 +82,26 @@ button.outline:hover,.saved-watchlist-remove:hover{border-color:var(--tf-accent)
 @media(min-width:3800px){.workspace{max-width:2600px;padding-top:46px}#adminWorkspace{gap:30px}.panel{padding:38px}.topbar{padding-left:max(56px,calc((100vw - 2600px)/2));padding-right:max(56px,calc((100vw - 2600px)/2))}}
 @media(max-width:950px){#adminWorkspace{grid-template-columns:1fr}#adminWorkspace>#catalogArea{grid-column:1}#adminWorkspace>.admin-overview-panel{grid-column:1}}
 @media(max-width:680px){.admin-section-nav{gap:4px;padding:7px;top:0}.admin-section-nav a{padding:8px 10px;font-size:11px}}
+
+/* Authentication flow: compact login, progressive setup instead of stacked forms */
+.workspace:has(#adminWorkspace[hidden]){max-width:650px;padding-top:clamp(40px,8vh,100px);gap:18px}
+.admin-auth-card{padding:clamp(24px,4vw,42px);box-shadow:0 24px 85px #0006;border-color:#3b523a}
+.admin-auth-card:before{content:"SECURE ADMIN ACCESS";display:block;font-size:10px;font-weight:800;letter-spacing:.2em;color:#b9f46a;margin-bottom:19px}
+.admin-auth-card h2{font-size:clamp(23px,2.5vw,30px);margin-bottom:8px}
+.admin-auth-card>.muted{line-height:1.8;margin-bottom:25px}
+#adminLoginForm{display:grid;grid-template-columns:1fr;gap:17px}
+#adminLoginForm label{font-size:12px;gap:9px}
+#adminLoginForm input{height:51px;font-size:15px}
+#adminLoginForm button{min-height:52px;font-size:14px;margin-top:4px}
+.admin-setup-shell{min-width:0}
+.admin-setup-details{border:1px solid #2d3d30;border-radius:15px;background:#141d16;overflow:hidden}
+.admin-setup-details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 22px;color:#d1e5c8;font-size:12px;font-weight:700}
+.admin-setup-details>summary::-webkit-details-marker{display:none}
+.admin-setup-details>summary:after{content:"＋";color:#b9f46a;font-size:20px}
+.admin-setup-details[open]>summary:after{content:"−"}
+.admin-setup-details>summary small{font-size:10px;color:#8ea48c;font-weight:400}
+.admin-setup-panel{border:0;border-top:1px solid #2d3d30;border-radius:0;box-shadow:none;padding:24px}
+.admin-setup-panel .field-grid{grid-template-columns:1fr 1fr}
+.admin-setup-panel .field-grid button{grid-column:1/-1}
+#bootstrapPanel[hidden]{display:none!important}
+@media(max-width:680px){.workspace:has(#adminWorkspace[hidden]){padding-top:25px}.admin-setup-details>summary{align-items:flex-start;flex-direction:column}.admin-setup-panel .field-grid{grid-template-columns:1fr}}
