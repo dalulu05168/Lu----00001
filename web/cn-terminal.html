@@ -688,6 +688,13 @@ window.CN_SYNC_ACCOUNT=function(snapshot){
   DATA.reqs=[];DATA.chat=[];
   DATA.sync=new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+' MYT';
   renderAll();draw();
+  // The account API exposes position quantities but does not expose cost basis or market value.
+  // Do not present an invented 0.00 valuation as if it were an account fact.
+  document.querySelectorAll('[data-b="cost"],[data-b="total"]').forEach(function(e){e.textContent='—'});
+  document.querySelectorAll('#tb-hold tr').forEach(function(tr){
+    var cells=tr.querySelectorAll('td');
+    if(cells.length===3)cells[2].textContent='—';
+  });
 };
 
 /* ========== 启动 ========== */
