@@ -26,6 +26,41 @@ test('new desktop terminal preserves customer dialogs and validates account sess
   assert.match(html,/window\.CN_SYNC_ACCOUNT/);
 });
 
+test('authenticated terminal replaces fixture records and keeps account dialogs working',async()=>{
+  const html=await source('web/cn-terminal.html');
+  const dom=new JSDOM(html,{url:'https://example.test/cn-terminal.html',runScripts:'dangerously'});
+  const win=dom.window;
+  try{
+    assert.equal(typeof win.CN_SYNC_ACCOUNT,'function');
+    win.CN_SYNC_ACCOUNT({
+      account:{id:'real-id-abc12345',cashCents:235600,currency:'USD'},
+      positions:[{market:'US',symbol:'AA',quantity:12}],
+      orders:[{market:'US',symbol:'AA',side:'BUY',quantity:3,price_cents:2100,amount_usd_cents:6300,created_at:'2026-11-01T14:00:00Z'}]
+    });
+    assert.equal(win.document.querySelector('[data-b="cash"]').textContent,'2,356.00');
+    assert.equal(win.document.querySelector('[data-b="cost"]').textContent,'—');
+    assert.equal(win.document.querySelector('[data-b="total"]').textContent,'—');
+    assert.equal(win.document.querySelectorAll('#tb-hold tr').length,1);
+    assert.match(win.document.getElementById('tb-hold').textContent,/12/);
+    assert.match(win.document.getElementById('tb-hold').textContent,/—/);
+    assert.equal(win.document.querySelectorAll('#tb-ord tr').length,1);
+    assert.equal(win.document.querySelectorAll('#tb-req tr').length,0);
+    win.CN_SYNC_CATALOG([{itemType:'STOCK',market:'US',symbol:'AA',name:'Alcoa Corporation'}]);
+    assert.match(win.document.getElementById('pbody').textContent,/US:AA/);
+    win.CN_SYNC_WATCHLIST([{market:'US',symbol:'AAPL'}]);
+    assert.match(win.document.getElementById('tb-watch').textContent,/AAPL/);
+    for(const id of ['m-dep','m-id','m-bank']){
+      const trigger=win.document.querySelector('[data-open="'+id+'"]');
+      assert.ok(trigger,id+' opener');
+      trigger.click();
+      const modal=win.document.getElementById(id);
+      assert.ok(modal.classList.contains('open'),id+' open');
+      modal.querySelector('[data-close]').click();
+      assert.ok(!modal.classList.contains('open'),id+' close');
+    }
+  }finally{win.close();}
+});
+
 test('admin redesign removes static client/order fixtures while retaining current API access',async()=>{
   const html=await source('web/cn-admin.html'),js=await source('web/cn-admin-bridge.mjs');
   assert.doesNotMatch(html,/linyi05168|chenbei05168|a078db2d|1000000/);
