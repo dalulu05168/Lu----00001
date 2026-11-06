@@ -74,9 +74,12 @@ test('admin management panels populate from authorized API without bundled accou
     assert.equal(dom.window.document.getElementById('p-cat').hidden,false);
     const publish=dom.window.document.querySelector('#cn-listing-rows button');
     assert.ok(publish);publish.click();
-    for(let i=0;i<40&&listings[0].status!=='PUBLISHED';i++)await new Promise(resolve=>setTimeout(resolve,5));
+    for(let i=0;i<80&&(!dom.window.document.getElementById('cn-listing-rows').textContent.includes('已发布')||
+      dom.window.document.querySelector('#cn-listing-rows button')?.disabled);i++)await new Promise(resolve=>setTimeout(resolve,5));
     assert.equal(listings[0].status,'PUBLISHED');
+    assert.match(dom.window.document.getElementById('cn-listing-rows').textContent,/已发布/);
     assert.ok(calls.some(x=>x.method==='PATCH'));
+    await new Promise(resolve=>setTimeout(resolve,0));
   }finally{
     for(const [key,value] of Object.entries(old)){if(value===undefined)delete globalThis[key];else globalThis[key]=value;}
     dom.window.close();
