@@ -5,7 +5,7 @@
 <body>
 <header class="topbar"><div><small>GLOBAL STOCK PLATFORM</small><h1>管理控制台</h1></div><a href="/">返回客户前台</a></header>
 <main class="workspace">
-<section class="panel" id="admin-login">
+<section class="panel admin-auth-card" id="admin-login">
 <h2>管理员登录</h2><p class="muted">管理员使用独立的双因素验证；客户会话不具备后台权限。</p>
 <form id="adminLoginForm" class="field-grid">
 <label>管理员邮箱<input id="adminEmail" type="email" required autocomplete="username"></label>
@@ -14,7 +14,7 @@
 <button type="submit">验证并进入后台</button>
 </form><p id="loginFeedback" class="feedback" role="status"></p>
 </section>
-<section class="panel" id="bootstrapPanel">
+<section class="admin-setup-shell" id="bootstrapPanel"><details class="admin-setup-details"><summary><span>首次部署？开通管理员账户</span><small>仅首次初始化或激活 2FA 时使用</small></summary><div class="panel admin-setup-panel">
 <h2>首次开通主账户</h2>
 <p class="muted">首次开通不需要先进入客户前台。填写指定的主账户邮箱、为后台单独设置密码，并提供项目所有者保管的初始化凭证。仅系统首次开通时可用。</p>
 <form id="bootstrapForm" class="field-grid">
@@ -30,7 +30,7 @@
 <label>验证器 6 位动态验证码<input id="activateOtp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
 <button type="submit">确认 2FA，启用后台登录</button>
 </form><p id="activateFeedback" class="feedback" role="status"></p>
-</section>
+</div></details></section>
 <section id="adminWorkspace" hidden>
 <nav class="admin-section-nav" aria-label="后台工作区导航"><a href="#admin-overview">概览</a><a href="#subadminArea">子账户</a><a href="#clientArea">客户归属</a><a href="#catalogArea">证券目录</a></nav>
 <div class="panel admin-overview-panel" id="admin-overview"><div class="heading"><h2>后台概览</h2><button id="adminLogout" type="button" class="outline">退出后台</button></div>
