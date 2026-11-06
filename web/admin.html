@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0c100e">
 <title>管理控制台 | Global Stock Platform</title><link rel="stylesheet" href="/admin.css"></head>
 <body>
 <header class="topbar"><div><small>GLOBAL STOCK PLATFORM</small><h1>管理控制台</h1></div><a href="/">返回客户前台</a></header>
@@ -32,14 +32,15 @@
 </form><p id="activateFeedback" class="feedback" role="status"></p>
 </section>
 <section id="adminWorkspace" hidden>
-<div class="panel"><div class="heading"><h2>后台概览</h2><button id="adminLogout" type="button" class="outline">退出后台</button></div>
+<nav class="admin-section-nav" aria-label="后台工作区导航"><a href="#admin-overview">概览</a><a href="#subadminArea">子账户</a><a href="#clientArea">客户归属</a><a href="#catalogArea">证券目录</a></nav>
+<div class="panel admin-overview-panel" id="admin-overview"><div class="heading"><h2>后台概览</h2><button id="adminLogout" type="button" class="outline">退出后台</button></div>
 <p>当前权限：<strong id="adminRole">—</strong></p><p class="muted">证券资料由管理员维护；此页面只管理目录，不执行证券交易或资金支付。</p></div>
 <section class="panel" id="subadminArea"><div class="heading"><h2>子账户管理</h2><button type="button" id="refreshSubadmins" class="outline">刷新</button></div>
 <form id="subadminForm" class="field-grid"><label>子账户邮箱<input id="subadminEmail" type="email" required></label>
 <label>初始密码（至少12位）<input id="subadminPassword" type="password" minlength="12" required></label>
 <button type="submit">创建子账户和邀请码</button></form>
 <div id="subadminProvisioning" class="sensitive" hidden></div><div id="subadmins"></div><p id="subadminFeedback" class="feedback" role="status"></p></section>
-<section class="panel"><div class="heading"><h2>客户归属</h2><button type="button" class="outline" id="refreshClients">刷新</button></div><div id="clients"></div></section>
+<section class="panel" id="clientArea"><div class="heading"><h2>客户归属</h2><button type="button" class="outline" id="refreshClients">刷新</button></div><div id="clients"></div></section>
 <section class="panel" id="catalogArea"><div class="heading"><h2>证券资料管理</h2><button type="button" class="outline" id="refreshListings">刷新</button></div>
 <form id="listingForm" class="field-grid">
 <label>类型<select id="listingType"><option value="STOCK">股票</option><option value="FUND">基金</option><option value="IPO">IPO</option></select></label>
