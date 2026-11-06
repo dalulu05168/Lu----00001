@@ -265,7 +265,7 @@ a{color:inherit;text-decoration:none}
   --border:#363a3f;
   --text:#f2f4f5;
   --muted:#92979e;
-  --green:#20c88b;
+  --green:#c6ff3d;
   --amber:#f2a52b;
   --blue:#3498e8;
   --surface:#1e2023;
@@ -304,7 +304,7 @@ body{min-width:320px}
 .top-actions{gap:13px}
 .status-chip{color:#a0a6ad;font-size:10px}
 .status-dot{background:#d29b43}
-.status-chip.ready .status-dot{background:#20c88b}
+.status-chip.ready .status-dot{background:#c6ff3d}
 .status-chip.failed .status-dot{background:#e26f72}
 .clock{color:#92979e;font-size:10px}
 .header-action{display:flex;align-items:center;gap:8px;min-height:34px;padding:0 12px;border:1px solid #3a3e43;border-radius:8px;color:#c8cdd1;font-size:10px;white-space:nowrap}
@@ -339,7 +339,7 @@ body{min-width:320px}
 .execution-metric-card{min-height:126px}
 .execution-summary{margin-top:13px}
 .execution-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}
-.execution-summary strong{font-size:18px;line-height:1.1;font-weight:400;color:#20c88b;font-variant-numeric:tabular-nums}
+.execution-summary strong{font-size:18px;line-height:1.1;font-weight:400;color:#c6ff3d;font-variant-numeric:tabular-nums}
 .execution-summary span{font-size:9px;color:#8c9299}
 .transaction-list-panel{margin-top:13px;padding:14px 14px 10px;background:#1c1f22;border:1px solid #363a3f;border-radius:11px;box-shadow:none}
 .transaction-list-heading{margin-bottom:10px}
@@ -357,7 +357,7 @@ body{min-width:320px}
 .transaction-market-code{padding:3px 5px;border:1px solid #3a3f45;border-radius:4px;color:#858c93;font-size:8px}
 .transaction-name-cell{max-width:190px;overflow:hidden;text-overflow:ellipsis;color:#aeb4ba!important}
 .transaction-side{font-size:10px}
-.side-buy{color:#20c88b!important}
+.side-buy{color:#c6ff3d!important}
 .side-sell{color:#ed7779!important}
 .transaction-amount-cell{color:#e8ebed!important}
 .transaction-time-cell{color:#858c93!important}
@@ -424,7 +424,7 @@ body{min-width:320px}
 .market-card-name,.market-card-detail{color:#92979e}
 .market-card-bottom{background:#24292c;border-color:#3b4246}
 .market-card-bar{background:#3b8262}
-.market-card.active .market-card-bar{background:#20c88b}
+.market-card.active .market-card-bar{background:#c6ff3d}
 .market-card:hover .market-card-bottom{border-color:#56645d}
 .allocation-footer{background:#25282c}
 .allocation-footer>div+div{border-left-color:#3a3e43}
@@ -547,7 +547,7 @@ svg { shape-rendering: geometricPrecision; }
 
 
 /* CN Capital shared charcoal design tokens and regular typography. */
-:root{--nx-bg:#17191c;--nx-panel:#1e2023;--nx-edge:#363a3f;--nx-text:#f0f2f4;--nx-muted:#92979e;--nx-success:#20c88b;--nx-gold:#d3a360;}
+:root{--nx-bg:#17191c;--nx-panel:#1e2023;--nx-edge:#363a3f;--nx-text:#f0f2f4;--nx-muted:#92979e;--nx-success:#c6ff3d;--nx-gold:#d3a360;}
 html,body,body *,body *::before,body *::after{font-weight:400!important}
 .nuvexa-mark{width:100%;height:100%;display:block}
 .sidebar .brand-mark{width:32px;height:30px;display:inline-flex;align-items:center;justify-content:center}

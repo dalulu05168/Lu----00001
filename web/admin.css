@@ -1,5 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
-:root{font-family:Inter,"Noto Sans SC",system-ui,sans-serif; color:#f0f2f4;background:#17191c;--bg:#17191c;--panel:#1e2023;--border:#363a3f;--fg:#f0f2f4;--dim:#92979e;--green:#20c88b;--amber:#e5b35e;font-synthesis:none;}
+:root{font-family:Inter,"Noto Sans SC",system-ui,sans-serif; color:#f0f2f4;background:#17191c;--bg:#17191c;--panel:#1e2023;--border:#363a3f;--fg:#f0f2f4;--dim:#92979e;--green:#c6ff3d;--amber:#e5b35e;font-synthesis:none;}
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0;min-width:320px;background:#17191c;color:var(--fg)}
 h1,h2,h3,p{margin-top:0}h1,h2,h3{font-weight:650;letter-spacing:-.025em}strong,b{font-weight:600}
@@ -90,7 +90,7 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 .mirror-balance output{font-size:30px;font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace}
 .mirror-tabs{display:flex;justify-content:space-around;gap:2px;padding:6px 9px;border-top:1px solid #34383d;border-bottom:1px solid #34383d}
 .mirror-tabs button{flex:1;padding:11px 3px;border:0;background:transparent;font-size:12px;color:#aeb4ba;white-space:nowrap}
-.mirror-tabs button[aria-selected="true"]{border-bottom:2px solid #20c88b;color:#f0f2f4}
+.mirror-tabs button[aria-selected="true"]{border-bottom:2px solid var(--green);color:#f0f2f4}
 .mirror-screen{min-height:220px;padding:15px;overflow-x:auto;font-size:12px}
 .mirror-record{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #34383d;overflow-wrap:anywhere}
 .mirror-record>span:first-child{color:#92979e}
@@ -177,7 +177,7 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 .workflow-review-form textarea{width:100%;resize:vertical;min-height:85px}
 .workflow-review-form .workflow-form-wide{grid-column:1/-1}
 .workflow-review-form .workflow-confirm{display:flex;flex-direction:row;align-items:flex-start;gap:10px;line-height:1.6}
-.workflow-review-form .workflow-confirm input{width:18px;height:18px;flex:none;accent-color:#20c88b}
+.workflow-review-form .workflow-confirm input{width:18px;height:18px;flex:none;accent-color:var(--green)}
 .workflow-review-form button[type="submit"]{border:1px solid #e5e6e8;background:#e5e6e8;color:#17191c;padding:9px 14px;border-radius:5px}
 .workflow-review-form button{min-height:37px;margin-right:7px}
 @media(max-width:690px){.workflow-review-form{grid-template-columns:1fr;padding:12px}.workflow-review-form>h3,.workflow-review-form>p,.workflow-review-form .workflow-form-wide{grid-column:1}.workflow-toolbar label{width:100%}.workflow-toolbar select{flex:1}.workflow-row{flex-wrap:wrap}}
@@ -761,9 +761,9 @@ body{font-size:13px;-webkit-font-smoothing:antialiased}
 .mirror-history text{fill:#b9c4d4;font:12px system-ui,sans-serif;font-variant-numeric:tabular-nums}
 .mirror-history line,.mirror-history polyline{vector-effect:non-scaling-stroke}
 .mirror-history .history-grid{stroke:#272b34;stroke-width:1}
-.mirror-history .history-trend{fill:none;stroke:#78a8ff;stroke-width:2;stroke-linejoin:round}
+.mirror-history .history-trend{fill:none;stroke:var(--green);stroke-width:2;stroke-linejoin:round}
 .mirror-history .history-cursor line{stroke:#a3b2c7;stroke-width:1;stroke-dasharray:4 4}
-.mirror-history .history-cursor circle{fill:#78a8ff;stroke:#050506}
+.mirror-history .history-cursor circle{fill:var(--green);stroke:#050506}
 .mirror-history .history-cursor rect{fill:#263850}
 .mirror-history .history-cursor text{fill:#f0f4fc;font-weight:600}
 .mirror-chart>output{display:block;text-align:center;font-variant-numeric:tabular-nums}
@@ -944,7 +944,7 @@ html,body{background:var(--ui-canvas);color:var(--ui-text);font-weight:400}
 .product-terms-dialog h2{font-size:20px;margin-top:0}
 
 /* Management typography and mobile mirror */
-#adminWorkspace{--admin-text:14px;--admin-label:12px;--admin-heading:16px;--mirror-accent:#78a8ff}
+#adminWorkspace{--admin-text:14px;--admin-label:12px;--admin-heading:16px;--mirror-accent:var(--green)}
 #adminTopbar,#adminWorkspace .admin-main{padding-inline:clamp(16px,2.5vw,28px);min-width:0}
 #adminWorkspace .admin-main .panel{min-width:0}
 #adminWorkspace .admin-main .panel .heading{gap:12px;flex-wrap:wrap}
@@ -968,7 +968,7 @@ html,body{background:var(--ui-canvas);color:var(--ui-text);font-weight:400}
 #refreshMirror svg{width:19px;height:19px}
 #adminWorkspace .mirror-device .mirror-account{padding:8px 13px 7px;border-bottom:1px solid #252a33}
 .mirror-device .mirror-account output{font-size:12px}
-.mirror-device:not([data-active-page="assets"]) :is(.mirror-balance,.mirror-account,#mirrorManageClient){display:none}
+.mirror-device:not([data-active-page="assets"]) :is(.mirror-balance,.mirror-account,.mirror-quick-actions){display:none}
 .mirror-device:is([data-active-page="watchlist"],[data-active-page="market"]) .mirror-bottom{display:none!important}
 .mirror-market-hint{margin:8px 2px;color:#a3a7af;font-size:12px}
 .mirror-market-section{font-size:12px;margin:15px 2px 3px;color:#aaaeb6}
@@ -983,8 +983,17 @@ html,body{background:var(--ui-canvas);color:var(--ui-text);font-weight:400}
 .mirror-quote-row strong{font-size:13px}
 .mirror-quote-row small{color:#a3a7af;font-size:10px}
 #adminWorkspace .mirror-device button.mirror-quote-row:hover{background:#14161b}
-#adminWorkspace .mirror-device .mirror-balance{margin:8px 12px 2px;padding:8px 12px;background:#151922;border:1px solid #2a3242;border-radius:10px}
-#adminWorkspace .mirror-device .mirror-balance output{font:650 clamp(19px,4vw,26px)/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#adminWorkspace .mirror-device .mirror-balance{margin:10px 12px 2px;padding:14px 16px;background:#151922;border:1px solid #2a3242;border-radius:18px}
+#adminWorkspace .mirror-device .mirror-balance output{font:650 clamp(26px,6vw,34px)/1.2 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+/* Real, working shortcuts only — this mirror is a read-only admin view of the
+   client's account, not a self-service wallet, so there is no deposit/
+   withdraw/swap action to put here; those stay customer-initiated and
+   admin-reviewed elsewhere. */
+#adminWorkspace .mirror-device .mirror-quick-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 12px 2px}
+#adminWorkspace .mirror-device .mirror-quick-action{display:grid;justify-items:center;gap:6px;padding:12px 6px;background:#151922;border:1px solid #2a3242;border-radius:16px;color:#e4e9f2;font-size:11px;white-space:nowrap}
+#adminWorkspace .mirror-device .mirror-quick-action svg{width:18px;height:18px;color:var(--green)}
+#adminWorkspace .mirror-device .mirror-quick-action:hover:not(:disabled){background:#1a2029;border-color:var(--green)}
+#adminWorkspace .mirror-device .mirror-quick-action:disabled{opacity:.45}
 #adminWorkspace .mirror-device .mirror-screen{padding:7px 12px;font-size:12px}
 #adminWorkspace .mirror-device[data-active-page="market"] .mirror-screen{display:flex;flex-direction:column;gap:7px}
 @media(min-width:340px){

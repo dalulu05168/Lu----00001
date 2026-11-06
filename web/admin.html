@@ -257,9 +257,19 @@
               </div>
               <div class="mirror-account"><span>当前客户</span><output id="mirrorEmail">尚未选择</output><small id="mirrorUpdated">—</small></div>
               <div class="mirror-balance"><span>可用余额</span><output id="mirrorCash">—</output><small id="mirrorCurrency">—</small></div>
+              <div class="mirror-quick-actions" role="group" aria-label="客户账户快捷操作">
+                <button type="button" id="mirrorManageClient" class="mirror-quick-action" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 20a7 7 0 0 1 14 0"/></svg>
+                  <span>账户权限</span>
+                </button>
+                <button type="button" id="mirrorQuickRequests" class="mirror-quick-action" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6zM9 8h6m-6 4h6m-6 4h4"/></svg>
+                  <span>资金与工单</span>
+                </button>
+              </div>
               <div class="mirror-screen" id="mirrorAppScreen" role="tabpanel"><p class="muted">请选择客户。</p></div>
               <div class="mirror-bottom">
-                <span id="mirrorStatus" role="status">未选择客户</span><button type="button" id="mirrorManageClient" class="outline" disabled>账户操作</button>
+                <span id="mirrorStatus" role="status">未选择客户</span>
               </div>
               <div class="mirror-tabs" role="tablist" aria-label="客户 App 页面">
                 <button type="button" role="tab" data-mirror-tab="watchlist" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3z"/></svg><span>自选</span></button>

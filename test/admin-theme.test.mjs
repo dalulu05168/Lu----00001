@@ -6,7 +6,7 @@ const admin = readFileSync(new URL("../web/admin.css",import.meta.url),"utf8");
 const frontend = readFileSync(new URL("../web/styles.css",import.meta.url),"utf8");
 
 test("administrator and client terminals use the same graphite palette",()=>{
-  for(const swatch of ["#17191c","#1e2023","#363a3f","#20c88b"]){
+  for(const swatch of ["#17191c","#1e2023","#363a3f","#c6ff3d"]){
     assert.ok(admin.includes(swatch),"admin missing "+swatch);
     assert.ok(frontend.includes(swatch),"client missing "+swatch);
   }
