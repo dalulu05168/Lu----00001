@@ -37,7 +37,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql", "012_internal_funding.sql", "013_internal_products.sql", "014_private_customer_data.sql", "015_romanian_listings_optional_reasons.sql", "016_mirror_purchase_audit.sql", "017_listing_minimum_purchase.sql", "018_fixed_term_funds.sql", "019_stock_holding_locks.sql", "020_stock_sales.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_admin_mirror_access.sql", "007_admin_password_only.sql", "008_client_admin_policies.sql", "009_operational_requests.sql", "010_subadmin_controls.sql", "011_commodities_support.sql", "012_internal_funding.sql", "013_internal_products.sql", "014_private_customer_data.sql", "015_romanian_listings_optional_reasons.sql", "016_mirror_purchase_audit.sql", "017_listing_minimum_purchase.sql", "018_fixed_term_funds.sql", "019_stock_holding_locks.sql", "020_stock_sales.sql", "021_admin_totp.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
