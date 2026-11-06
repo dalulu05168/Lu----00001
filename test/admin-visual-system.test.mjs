@@ -17,7 +17,7 @@ test("graphite terminal visual hierarchy preserves information architecture and 
  assert.ok(dashboard.querySelector(".dashboard-hero"));
  assert.ok(dashboard.querySelector(".dashboard-hero-art"));
  assert.deepEqual([...dashboard.querySelectorAll("[data-dashboard-open]")].map(x=>x.dataset.dashboardOpen),["clients","mirror"]);
- assert.equal(dashboard.querySelectorAll(".summary-card output").length,4);
+ assert.equal(dashboard.querySelectorAll(".sc em").length,4);
  assert.ok(doc.querySelector("#clientDirectorySearch"));
  assert.ok(doc.querySelector("#clientDetailHeadline"));
  assert.ok(doc.querySelector("#mirrorOperations"));
