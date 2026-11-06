@@ -6,3 +6,5 @@ coverage/
 .next/
 dist/
 *.log
+public/
+package-lock.json
