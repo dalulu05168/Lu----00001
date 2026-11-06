@@ -13,76 +13,80 @@
   font-family:Inter,"Noto Sans SC","PingFang SC",system-ui,sans-serif;
   font-variant-numeric:tabular-nums;
 }
-#adminTopbar:not([hidden]) {
-  min-height:60px; padding:12px clamp(16px,2.5vw,36px);
-  background:rgba(11,13,10,.96); border-bottom:1px solid #303b2b;
-  box-shadow:none;
+/* Real markup: the brand, #adminPages and logout buttons share one top header. */
+#adminWorkspace #adminTopbar {
+  position:sticky;top:0;z-index:30;
+  display:grid;grid-template-columns:minmax(200px,auto) minmax(0,1fr) auto;
+  grid-template-rows:auto auto;align-items:center;gap:6px 18px;
+  min-height:94px;padding:12px clamp(16px,2.3vw,32px) 0;
+  background:rgba(11,13,10,.98);border:0;border-bottom:1px solid #35402e;
+  box-shadow:0 8px 22px rgba(0,0,0,.18);backdrop-filter:blur(12px);
 }
-#adminTopbar h1 {font-size:18px;color:#f7f9f2;font-weight:650;letter-spacing:-.025em;margin:0}
-#adminTopbar a {border:1px solid #46533a;border-radius:999px;background:#1e2618;color:#e9f2df;padding:8px 14px}
-#adminTopbar a:hover {border-color:#d7ff00;background:#2b381d}
+#adminWorkspace #adminTopbar[hidden] {display:none!important}
+#adminWorkspace #adminTopbar .cn-new-brand {
+  grid-column:1;grid-row:1;display:flex;align-items:center;gap:10px;min-width:0;
+}
+#adminWorkspace #adminTopbar .cn-new-logo {
+  width:44px;height:44px;display:block;object-fit:contain;flex:none;
+  background:transparent!important;border:0!important;padding:0!important;
+  box-shadow:none!important;border-radius:0!important;
+}
+#adminWorkspace #adminTopbar .cn-new-brand>span {
+  display:flex;flex-direction:column;gap:3px;color:#f7f9f2;
+  font-size:15px;font-weight:700;line-height:1.1;white-space:nowrap;
+}
+#adminWorkspace #adminTopbar .cn-new-brand small {
+  color:#c4d1bc;font-size:9px;letter-spacing:.1em;font-weight:450;
+}
+#adminWorkspace #adminTopbar .cn-new-actions {
+  grid-column:3;grid-row:1;display:flex;align-items:center;justify-content:flex-end;
+  gap:10px;min-width:0;
+}
+#adminWorkspace #adminTopbar .cn-new-avatar {
+  display:inline-flex;align-items:center;justify-content:center;min-width:66px;min-height:34px;
+  border-radius:999px;padding:5px 12px;border:1px solid #3a4a33;
+  background:#1b2617;color:#dcecd6;font-size:12px;
+}
+#adminWorkspace #adminTopbar .cn-logout {
+  border:1px solid #485b41;background:#273121;color:#f0f7eb;
+  border-radius:999px;min-height:34px;padding:6px 16px;font-size:12px;
+}
+#adminWorkspace #adminTopbar .cn-logout:hover {border-color:#d7ff00;color:#d7ff00}
+#adminWorkspace #adminTopbar .cn-current-title {
+  grid-column:2;grid-row:1;min-width:0;justify-self:start;
+  color:#e4eee0;font-size:13px;font-weight:500;letter-spacing:.01em;
+}
+#adminWorkspace #adminTopbar #adminMobileNavToggle {display:none}
+#adminWorkspace #adminPages {
+  grid-column:1/-1;grid-row:2;
+  display:flex;flex-wrap:nowrap;align-items:center;gap:10px;
+  width:100%;min-width:0;max-height:none;margin:0;padding:3px 0 10px;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#465b37 transparent;
+  border:0;background:transparent;box-shadow:none;
+}
+#adminWorkspace #adminPages details {
+  display:inline-flex;align-items:center;gap:2px;min-width:max-content;
+  padding:0 8px 0 0;border-right:1px solid #34422d;flex:none;
+}
+#adminWorkspace #adminPages details:last-child{border-right:0}
+#adminWorkspace #adminPages summary {display:none}
+#adminWorkspace #adminPages button {
+  display:inline-flex;width:auto;min-height:35px;
+  justify-content:center;align-items:center;padding:6px 12px;
+  border-radius:999px;border:1px solid transparent;
+  background:transparent;color:#bbcbb5;white-space:nowrap;
+  font-size:12px;font-weight:500;cursor:pointer;
+}
+#adminWorkspace #adminPages button:hover{background:rgba(255,255,255,.08);color:#fff}
+#adminWorkspace #adminPages button[aria-current="page"] {
+  background:rgba(215,255,0,.12);border-color:rgba(215,255,0,.24);color:#d7ff00;
+}
+#adminWorkspace #adminPages button[hidden],
+#adminWorkspace #adminPages details[hidden]{display:none!important}
 #adminWorkspace .admin-shell {
-  display:flex; flex-direction:column; min-height:calc(100dvh - 60px);
+  display:block;min-height:calc(100dvh - 95px);
   border:0;border-radius:0;overflow:visible;background:#0b0d0a;
 }
-#adminWorkspace .admin-nav {
-  position:sticky;top:0;z-index:12;
-  display:grid; grid-template-columns:minmax(210px,auto) minmax(0,1fr) auto;
-  grid-template-rows:auto auto; align-items:center;
-  padding:12px clamp(14px,2.25vw,32px) 0;
-  gap:12px 20px;
-  border:0;border-bottom:1px solid #35402e;
-  background:rgba(11,13,10,.96);
-  backdrop-filter:blur(15px);box-shadow:0 9px 22px rgba(0,0,0,.13);
-}
-#adminWorkspace .admin-nav .nav-heading{
-  grid-column:1;grid-row:1;display:flex;align-items:center;gap:11px;
-  min-width:0;padding:0;margin:0;letter-spacing:normal;color:#f7f9f2;
-}
-#adminWorkspace .nav-brand-mark {width:37px;height:37px;display:grid;place-items:center;flex:none}
-#adminWorkspace .nav-brand-mark img {width:36px;height:36px;object-fit:contain}
-#adminWorkspace .nav-brand-copy {display:grid;gap:1px;min-width:0}
-#adminWorkspace .nav-brand-copy strong {font-weight:700;font-size:14px;letter-spacing:.045em;color:#f7f9f2}
-#adminWorkspace .nav-brand-copy small {font-weight:400;letter-spacing:.13em;font-size:9px;color:#e8c27a;white-space:normal}
-#adminWorkspace .admin-nav .nav-identity {
-  grid-column:2;grid-row:1;justify-self:end;display:flex;align-items:center;
-  gap:10px;margin:0;padding:5px 12px;border-radius:999px;
-  border:1px solid #35452d;background:#1c2517;color:#ecf3e9;font-size:12px;
-}
-#adminWorkspace .nav-identity .server-status {font-size:10px;color:#d7ff00}
-#adminWorkspace .admin-nav .logout {
-  grid-column:3;grid-row:1;margin:0;width:auto;min-height:34px;
-  border:1px solid #45513d;border-radius:999px;
-  background:#1d2419;color:#dce6d4;padding:6px 16px;white-space:nowrap;
-}
-#adminWorkspace .admin-nav .logout:hover {border-color:#d7ff00;color:#d7ff00}
-#adminWorkspace .admin-nav #adminPages {
-  grid-column:1/-1;grid-row:2;display:flex;align-items:center;
-  gap:12px;min-width:0;overflow-x:auto;overflow-y:hidden;
-  padding:2px 0 10px;scrollbar-width:thin;scrollbar-color:#405332 transparent;
-}
-#adminWorkspace .admin-nav #adminPages details{
-  display:flex;flex:none;align-items:center;gap:2px;min-width:max-content;
-  padding:0 5px 0 0;border-right:1px solid #303b2b;
-}
-#adminWorkspace .admin-nav #adminPages details:last-child {border-right:0}
-#adminWorkspace .admin-nav #adminPages summary {
-  display:none; /* section labels become compact grouped navigation tabs */
-}
-#adminWorkspace .admin-nav #adminPages button {
-  display:inline-flex;align-items:center;justify-content:center;
-  min-height:34px;min-width:0;width:auto;padding:6px 12px;
-  border:1px solid transparent;border-radius:999px;
-  background:transparent;color:#c5cebe;
-  font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer;
-}
-#adminWorkspace .admin-nav #adminPages button:hover {background:rgba(255,255,255,.08);color:#fff}
-#adminWorkspace .admin-nav #adminPages button[aria-current="page"] {
-  border-color:rgba(215,255,0,.18);background:var(--cn-soft);
-  color:#d7ff00;box-shadow:none;
-}
-#adminWorkspace .admin-nav #adminPages button[hidden],
-#adminWorkspace .admin-nav #adminPages details[hidden] {display:none!important}
 #adminWorkspace .admin-main {
   flex:1;min-height:500px;min-width:0;overflow-x:clip;
   padding:clamp(16px,2vw,32px);
@@ -173,48 +177,41 @@ body:has(#adminWorkspace:not([hidden])) dialog[open] {
   border-radius:15px;box-shadow:0 22px 80px rgba(0,0,0,.6);
 }
 body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,.73);backdrop-filter:blur(3px)}
-/* Responsive layout: existing mobile toggle and event bindings continue to work. */
+/* Original module event handlers still listen on #adminPages buttons.
+   Their mobile state is set on #adminPages itself by setMobileNavExpanded(). */
 @media(max-width:1050px){
-  #adminWorkspace .admin-nav {grid-template-columns:minmax(0,1fr) auto;gap:10px}
-  #adminWorkspace .nav-identity {grid-column:1;grid-row:2;justify-self:start}
-  #adminWorkspace .logout {grid-column:2;grid-row:1;align-self:center}
-  #adminWorkspace .admin-nav #adminPages {grid-row:3;grid-column:1/-1}
-  #adminWorkspace .admin-main {padding:16px}
+ #adminWorkspace #adminTopbar {grid-template-columns:minmax(0,1fr) auto}
+ #adminWorkspace #adminTopbar .cn-current-title{display:none}
+ #adminWorkspace #adminTopbar .cn-new-actions{grid-column:2}
+ #adminWorkspace .admin-main{padding:16px}
 }
 @media(max-width:650px){
-  #adminWorkspace .admin-nav {grid-template-columns:minmax(0,1fr) auto;padding:12px;gap:8px}
-  #adminWorkspace .admin-nav .nav-heading {grid-column:1;grid-row:1}
-  #adminWorkspace .admin-nav .nav-identity {grid-column:1;grid-row:2;font-size:11px}
-  #adminWorkspace #adminMobileNavToggle {
-    display:block;grid-column:2;grid-row:1/3;
-    min-height:42px;border-radius:999px;background:#26331e;color:#eaf7de;border-color:#455b3b;
-  }
-  #adminWorkspace .admin-nav #adminPages {
-    grid-column:1/-1;grid-row:3;display:none!important;overflow-x:hidden;overflow-y:auto;
-    flex-direction:column;align-items:stretch;max-height:56dvh;padding:8px 0;
-  }
-  #adminWorkspace .admin-nav[data-mobile-open="true"] #adminPages {display:flex!important}
-  #adminWorkspace .admin-nav #adminPages details {
-    display:grid;min-width:0;width:100%;gap:4px;padding:8px 0;border-right:0;border-bottom:1px solid #333f2d;
-  }
-  #adminWorkspace .admin-nav #adminPages summary {
-    display:block;font-size:10px;letter-spacing:.12em;color:#9cad92;padding:4px 10px;
-  }
-  #adminWorkspace .admin-nav #adminPages button {display:block;text-align:left;width:100%;min-height:42px;white-space:normal}
-  #adminWorkspace .admin-nav .logout {grid-column:1/-1;grid-row:4;width:100%;min-height:40px}
-  #adminWorkspace .admin-main {padding:12px}
-  #adminWorkspace .v4 .stats {grid-template-columns:repeat(2,minmax(0,1fr))}
-  #adminWorkspace .client-workspace-header {align-items:stretch}
+ #adminWorkspace #adminTopbar {min-height:66px;grid-template-columns:minmax(0,1fr) auto;padding:11px 12px;gap:8px}
+ #adminWorkspace #adminTopbar .cn-new-brand {grid-column:1;grid-row:1}
+ #adminWorkspace #adminTopbar .cn-new-logo{height:36px;width:36px}
+ #adminWorkspace #adminTopbar .cn-new-brand>span{font-size:13px}
+ #adminWorkspace #adminTopbar .cn-new-brand small{font-size:8px}
+ #adminWorkspace #adminTopbar .cn-new-actions{grid-column:2;grid-row:1;gap:6px}
+ #adminWorkspace #adminTopbar .cn-new-avatar {display:none}
+ #adminWorkspace #adminTopbar .cn-logout{min-height:38px;padding:7px 10px}
+ #adminWorkspace #adminTopbar #adminMobileNavToggle{
+   display:block;min-height:38px;padding:7px 10px;border:1px solid #526642;
+   background:#26351d;color:#f2ffe6;border-radius:999px;font-size:12px;
+ }
+ #adminWorkspace #adminPages{
+   display:none!important;grid-column:1/-1;grid-row:2;
+   max-height:65dvh;overflow-y:auto;overflow-x:hidden;
+   flex-direction:column;align-items:stretch;width:100%;gap:4px;padding:8px 0 4px;
+ }
+ #adminWorkspace #adminPages[data-mobile-open="true"]{display:flex!important}
+ #adminWorkspace #adminPages details{display:grid;min-width:0;width:100%;gap:3px;padding:6px 0 8px;border:0;border-bottom:1px solid #37452f}
+ #adminWorkspace #adminPages summary {display:block;color:#a9bc9d;font-size:10px;letter-spacing:.1em;padding:4px 10px;cursor:pointer}
+ #adminWorkspace #adminPages button{display:block;text-align:left;min-height:42px;width:100%;white-space:normal}
+ #adminWorkspace .admin-main{padding:12px}
+ #adminWorkspace .v4 .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #adminWorkspace .client-workspace-header{align-items:stretch}
 }
 @media(max-width:440px){
-  #adminWorkspace .v4 .stats {grid-template-columns:1fr}
-  #adminWorkspace .nav-brand-copy small {font-size:8px}
-  #adminWorkspace .admin-nav .nav-identity {gap:6px;padding:5px 9px}
-  #adminWorkspace .admin-main {padding:10px}
+ #adminWorkspace .v4 .stats{grid-template-columns:1fr}
+ #adminWorkspace .admin-main{padding:10px}
 }
-
-/* Supplied silver/teal transparent CN mark; no white logo tile. */
-#adminTopbar .cn-new-logo{display:block;width:42px;height:42px;flex:none;object-fit:contain;background:transparent!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important}
-#adminTopbar .cn-new-brand{display:flex;align-items:center;gap:10px;min-width:0}
-#adminTopbar .cn-new-brand>span{display:flex;flex-direction:column;font-size:14px;font-weight:700;line-height:1.18;white-space:nowrap;color:#f4f8ef}
-#adminTopbar .cn-new-brand small{font-size:9px;letter-spacing:.1em;color:#c2d3c0;font-weight:400}
