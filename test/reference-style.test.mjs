@@ -15,8 +15,9 @@ test("dashboard follows the supplied dark charcoal transactions visual direction
   assert.ok(weights.every(weight => weight >= 300 && weight <= 700), "Use a restrained font hierarchy");
   assert.match(html, /id="transactions-section"/);
   assert.match(html, /id="transactionRows"/);
-  assert.match(html, /class="brand-mark"[^>]*><img class="cn-capital-mark" src="\/cn-capital\.png"/, "the provided CN Capital PNG must be visible");
-  assert.match(html, /rel="icon" type="image\/png" href="\/cn-capital\.png"/);
+  assert.ok(html.includes('class="brand-mark" aria-hidden="true"><img class="cn-capital-mark" src="/cn-logo.svg"'),"The approved silver/teal CN logo must be visible in the actual terminal");
+  assert.ok(html.includes('src="/cn-login-logo.svg"'),"Original login page must use the animated CN logo");
+  assert.ok(html.includes('rel="icon" type="image/svg+xml" href="/cn-logo.svg"'));
   assert.match(html, /class="metrics"/);
   assert.match(html, /class="primary-grid"/);
   assert.match(html, /class="secondary-grid"/);
