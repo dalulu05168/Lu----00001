@@ -42,6 +42,7 @@
 
  // Move existing forms with their event handlers into dialogs.
  const dialogs=[];
+ const placements=[];
  function formDialog(node,title,triggerParent){
   if(!node||!triggerParent)return null;
   const dialog=document.createElement("dialog");
@@ -52,6 +53,8 @@
   const close=document.createElement("button");close.type="button";
   close.className="secondary-button";close.textContent="关闭";
   close.addEventListener("click",()=>dialog.close());
+  const placeholder=document.createComment("Original "+title+" location");
+  node.before(placeholder);
   dialog.append(heading,close,node);o.append(dialog);
   const sharedFeedback=document.getElementById("serviceRequestFeedback");
   if(sharedFeedback&&node.id!=="customerSupportPanel"){
@@ -68,6 +71,7 @@
    else dialog.setAttribute("open","");
   });
   triggerParent.append(trigger);dialogs.push(dialog);
+  placements.push({node,placeholder,dialog,trigger});
   return dialog;
  }
  const requests=document.getElementById("serviceRequestsPanel");
@@ -91,11 +95,23 @@
   if(typeof supportDialog.showModal==="function")supportDialog.showModal();
   else supportDialog.setAttribute("open","");
  });
+ function syncDialogMode(){
+  const mobile=o.dataset.cnMode==="mobile";
+  for(const {node,placeholder,dialog,trigger} of placements){
+   if(mobile&&node.parentNode===dialog){
+    if(dialog.open&&typeof dialog.close==="function")dialog.close();
+    placeholder.after(node);
+   }else if(!mobile&&node.parentNode!==dialog)dialog.append(node);
+   trigger.hidden=mobile;
+  }
+ }
+ syncDialogMode();
  new MutationObserver(()=>{
+  syncDialogMode();
   if(o.hidden)o.querySelectorAll("dialog").forEach(dialog=>{
    if(dialog.open&&typeof dialog.close==="function")dialog.close();
   });
- }).observe(o,{attributes:true,attributeFilter:["hidden"]});
+ }).observe(o,{attributes:true,attributeFilter:["hidden","data-cn-mode"]});
  const cashSource=document.getElementById("cash");
  const cashTarget=head.querySelector("#cnV4Cash");
  function syncCash(){
