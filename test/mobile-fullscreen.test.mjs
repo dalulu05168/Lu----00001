@@ -44,7 +44,7 @@ test("mobile data and actions call live protected APIs, never use demo balances,
  const s=await get("web/mobile.mjs");
  for(const p of [
   'api("/account")','api("/watchlist")','"/account/analytics"','"/internal-products"',
-  '"/internal-purchases"','"/requests?category=FUNDING"','api("/support")',
+  '"/internal-purchases"','"/requests?category=FUNDING"','["support","/support"]',
   'api("/stock-quote?market=US&symbol="','api("/orders"'
  ])assert.ok(s.includes(p),"Missing real endpoint "+p);
  assert.match(s,/stockQuoteConfigured/);
