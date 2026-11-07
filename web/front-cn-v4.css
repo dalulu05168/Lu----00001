@@ -1,0 +1,194 @@
+/*
+ CN Capital desktop v4 — the supplied two-tab trading/account design applied to
+ the REAL app DOM. IDs, event handlers, existing API and authenticated forms stay intact.
+ This stylesheet activates only after front-cn-v4.mjs verifies all needed DOM nodes.
+*/
+#overview:not([data-cn-mode="mobile"]) {
+ --cn-v4-ink:#f4f6ed; --cn-v4-fg:#eceee6; --cn-v4-dim:#c3cab7;
+ --cn-v4-bg:#060705; --cn-v4-panel:rgba(255,255,255,.037);
+ --cn-v4-line:rgba(255,255,255,.105); --cn-v4-soft:rgba(255,255,255,.07);
+ --cn-v4-lime:#d7ff00; --cn-v4-gold:#e8c27a;
+ --cn-v4-up:#4fdd8f; --cn-v4-down:#ff5b50;
+}
+#overview .cn-v4-header{display:none}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) {
+ min-height:100dvh;background:radial-gradient(1100px 520px at 0 -6%,#1c2608,transparent 60%),radial-gradient(800px 420px at 100% 0,#0f1508,transparent 58%),#060705;
+ color:#eceee6;font:12px/1.4 Inter,"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+ font-variant-numeric:tabular-nums;display:flex;flex-direction:column;
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"])>.sidebar,
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .main-content>.topbar{
+ display:none!important;
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .cn-v4-header{
+ position:sticky;top:0;z-index:45;display:grid;grid-template-columns:1fr auto 1fr;
+ align-items:center;min-height:58px;gap:13px;padding:8px clamp(14px,1.45vw,25px);
+ border:0;border-bottom:1px solid rgba(255,255,255,.10);background:rgba(6,7,5,.96);
+ backdrop-filter:blur(13px);box-shadow:0 12px 25px rgba(0,0,0,.12);
+}
+#overview .cn-v4-brand{display:flex;align-items:center;justify-self:start;gap:10px;text-decoration:none;white-space:nowrap;color:#f5f6f1}
+#overview .cn-v4-brand img{width:36px;height:36px;flex:none;object-fit:contain;background:none;border:0}
+#overview .cn-v4-brand span{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:600;letter-spacing:.035em;line-height:1}
+#overview .cn-v4-brand b{font-weight:650}
+#overview .cn-v4-brand small{font-size:9px;color:#e8c27a;letter-spacing:.24em;font-weight:450}
+#overview .cn-v4-tabs{display:flex;align-items:center;justify-content:center;gap:5px;justify-self:center}
+#overview .cn-v4-tab{
+ border:1px solid transparent;background:transparent;color:#c3cab7;min-height:31px;
+ min-width:75px;padding:6px 20px;border-radius:999px;font-size:12px;font-weight:500;
+}
+#overview .cn-v4-tab:hover{color:#f3f5e9;background:rgba(255,255,255,.065)}
+#overview .cn-v4-tab[aria-current="page"]{color:#d7ff00;background:rgba(215,255,0,.115);border-color:rgba(215,255,0,.15)}
+#overview .cn-v4-actions{display:flex;align-items:center;justify-content:flex-end;min-width:0;gap:8px}
+#overview .cn-v4-pill{display:inline-flex;justify-content:center;align-items:center;gap:5px;white-space:nowrap;
+ min-height:30px;padding:5px 13px;background:rgba(255,255,255,.055);
+ border:1px solid rgba(255,255,255,.15);border-radius:999px;color:#e5ece1;font-size:11px;font-weight:450}
+#overview .cn-v4-pill:hover{background:rgba(255,255,255,.12);color:#fff}
+#overview .cn-v4-balance{display:flex;align-items:center;gap:8px;white-space:nowrap;
+ min-height:30px;border-radius:999px;padding:6px 12px;background:rgba(215,255,0,.09);
+ border:1px solid rgba(215,255,0,.28);font-size:11px;color:#c4d1b7}
+#overview .cn-v4-balance strong{font-weight:650;color:#d7ff00;font-size:12px}
+#overview .cn-v4-search-holder{display:flex;align-items:center;max-width:165px;min-width:0}
+#overview .cn-v4-search-holder .terminal-top-search{height:31px;min-width:125px;margin:0;
+ border:1px solid rgba(255,255,255,.13);background:rgba(0,0,0,.45);border-radius:999px;padding:3px 9px}
+#overview .cn-v4-search-holder .terminal-top-search input{border:0!important;
+ background:transparent!important;min-width:0;width:123px;font-size:11px;color:#edf2e7}
+#overview .cn-v4-avatar{width:31px;height:31px;display:grid;place-items:center;flex:none;
+ border-radius:50%;background:#26311a;border:1px solid rgba(215,255,0,.3);color:#d7ff00;font-size:11px}
+#overview .cn-v4-actions #connectionStatus{
+ min-height:29px;white-space:nowrap;background:rgba(255,255,255,.03);
+ border:1px solid rgba(255,255,255,.10);color:#bfcab5;border-radius:999px;
+ padding:5px 9px;font-size:10px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .main-content{
+ margin:0;padding:0;min-height:0;width:100%;max-width:none;display:block;flex:1;
+ background:transparent;overflow:visible
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .workspace{
+ display:block;width:100%;max-width:2150px;padding:11px clamp(12px,1.2vw,22px) 28px;margin:0 auto;
+}
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="trade"]:not([data-cn-mode="mobile"]) .workspace>.metrics,
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="trade"]:not([data-cn-mode="mobile"]) .workspace>#account-section,
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="trade"]:not([data-cn-mode="mobile"]) .workspace>.secondary-grid {
+ display:none!important
+}
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="account"]:not([data-cn-mode="mobile"]) .workspace>.trade-board{
+ display:none!important
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board{
+ grid-template-columns:minmax(0,2fr) minmax(340px,1fr);
+ display:grid;gap:10px;min-width:0;align-items:start
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) #transactions-section{
+ display:flex;flex-direction:column;gap:10px;margin:0;padding:0;border:0;background:none
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) #transactions-section>.primary-grid{
+ order:0;margin:0;grid-template-columns:1fr;min-width:0
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) #transactions-section>.transaction-metrics{
+ order:2;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) #transactions-section>.transaction-list-panel{
+ order:1;margin:0
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board-side{display:flex;flex-direction:column;gap:10px;min-width:0}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board-side>.order-panel{order:0}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board-side>.holdings-panel{order:1}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board-side>.movers-panel{order:2}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .panel,
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .metric-card,
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .transaction-metric-card{
+ min-width:0;border:1px solid rgba(255,255,255,.1);border-radius:14px;
+ background:linear-gradient(180deg,rgba(255,255,255,.044),rgba(255,255,255,.022));
+ box-shadow:none;color:#eceee6
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .panel{padding:13px}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .panel-heading{
+ min-height:41px;padding:0 3px 9px;border-bottom:1px solid rgba(255,255,255,.09);
+ display:flex;justify-content:center;align-items:center;gap:12px;position:relative
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .panel-heading h2,
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .panel-heading h3{
+ margin:0;font-size:13px;line-height:1.4;font-weight:550;color:#f3f5f0;text-align:center
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .panel-heading small{color:#b5c2ad}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .performance-panel{
+ min-height:480px;padding:11px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) #stockChart{
+ min-height:365px;height:clamp(365px,37vw,560px);
+ border:1px solid rgba(255,255,255,.075);background:#070a05
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .transaction-list-panel .panel-heading{
+ justify-content:center;flex-wrap:wrap
+}
+#overview .cn-v4-export{
+ position:absolute;right:6px;top:4px;max-width:210px;min-height:29px;
+ border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.075);
+ color:#f0f4e7;font-size:10px;padding:6px 12px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .transaction-list-panel{
+ min-height:210px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .transactions-table th{
+ background:rgba(255,255,255,.025);border-bottom:1px solid rgba(255,255,255,.12);
+ color:#bbc6b2;text-align:center;font-size:10.5px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .transactions-table td{
+ border-bottom:1px solid rgba(255,255,255,.07);color:#e8efe1;text-align:center
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .metric-card{
+ padding:15px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .metric-value{
+ color:#d7ff00;font-size:25px;font-weight:650
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) #account-section{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .workspace>.metrics{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 11px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .workspace>.secondary-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:11px
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .sidebar-foot,
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .app-footer{
+ color:#bdc8b6
+}
+#overview[data-cn-v4-ready="true"].cn-v4-private:not([data-cn-mode="mobile"])
+ :is(#cash,#accountCashValue,#cnV4Cash,#portfolioValue,#transactionVolume,
+     #analyticsBuyVolume,#analyticsSellVolume,#dayRealizedPnl,#monthRealizedPnl,
+     #overviewDayRealizedPnl,#overviewMonthRealizedPnl){
+ filter:blur(7px);user-select:none
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .primary-button{
+ border:1px solid #d7ff00;background:#d7ff00;color:#0d1203;
+ border-radius:999px;font-weight:600
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .secondary-button{
+ border:1px solid rgba(255,255,255,.16);border-radius:999px;
+ background:rgba(255,255,255,.075);color:#e8f0e1
+}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"])
+ :is(button,input,select,textarea):focus-visible{outline:2px solid #d7ff00;outline-offset:3px}
+@media(max-width:1230px) and (min-width:769px){
+ #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .cn-v4-header{
+  grid-template-columns:minmax(155px,auto) auto 1fr;gap:10px;padding-inline:12px
+ }
+ #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .cn-v4-search-holder,
+ #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) #connectionStatus,
+ #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .cn-v4-actions #cnV4Hide{display:none}
+ #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board{
+  grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr)
+ }
+}
+@media(max-width:768px){
+ #overview .cn-v4-header{display:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #overview .cn-v4-header *{transition:none!important}
+}
+
+#overview .cn-v4-disclosure{grid-column:1/-1;margin:6px 0 0;padding:11px 13px;
+ border:1px solid rgba(232,194,122,.18);border-radius:10px;color:#c1cbb6;
+ background:rgba(232,194,122,.045);font-size:11px;line-height:1.55}
