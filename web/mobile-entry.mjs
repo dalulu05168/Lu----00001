@@ -2,6 +2,9 @@
 // has validated /api/account and exposed the authenticated workspace.
 const gate=document.getElementById("entryGate");
 const desktop=document.getElementById("overview");
+const approvedDesktopHosts=new Set([
+ "localhost","127.0.0.1","cn-capital-phone-qa-p6ma.onrender.com","nuvexapro.com","www.nuvexapro.com"
+]);
 function deviceMode(){
  const requested=new URLSearchParams(location.search||"").get("view");
  const preferred=["desktop","mobile"].includes(requested)?requested:sessionStorage.getItem("cn_view_mode");
@@ -20,8 +23,7 @@ async function routeAfterAuthentication(){
  if(!gate||!desktop)return;
  if(!desktop.hidden&&gate.hidden){
   if(!deviceMode()){
-   const qaHosts=["localhost","127.0.0.1","cn-capital-phone-qa-p6ma.onrender.com"];
-   if(qaHosts.includes(location.hostname)&&!new URLSearchParams(location.search).has("classic")){
+   if(approvedDesktopHosts.has(location.hostname)&&!new URLSearchParams(location.search).has("classic")){
     navigating=true;
     location.replace("/front-approved.html");
    }
