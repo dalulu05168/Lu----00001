@@ -350,7 +350,14 @@ async function onAction(e){
  if(filter){S.filter=filter.dataset.filter;render();return;}
  const tab=e.target.closest("[data-tab]");
  if(tab){S.tab=tab.dataset.tab;render();window.scrollTo(0,0);return;}
- const a=e.target.closest("[data-action]");if(!a)return;
+ const a=e.target.closest("[data-action]");
+ const symbolRow=e.target.closest(".row[data-symbol]");
+ if(symbolRow&&!a){
+  const selected=supportedStocks().find(x=>x.symbol===symbolRow.dataset.symbol&&x.market===symbolRow.dataset.market);
+  if(selected){S.selected=selected;S.quote=null;S.quoteSymbol="";S.tab="market";S.search="";render();window.scrollTo(0,0);}
+  return;
+ }
+ if(!a)return;
  if(S.submitting)return;
  const action=a.dataset.action;
  if(action==="go-trade"){S.tab="trade";render();window.scrollTo(0,0);}
@@ -372,10 +379,7 @@ async function onAction(e){
   try{await api("/requests?category=KYC",{method:"POST",body:{}});closeSheet();toast("已建立身份资料审核工单");await refresh();}
   catch(error){toast("提交失败："+error.message)}finally{S.submitting=false}
  }
- const symbolRow=e.target.closest(".row[data-symbol]");
- if(symbolRow&&!a){const selected=supportedStocks().find(x=>x.symbol===symbolRow.dataset.symbol&&x.market===symbolRow.dataset.market);
-  if(selected){S.selected=selected;S.quote=null;S.quoteSymbol="";S.tab="market";S.search="";render();window.scrollTo(0,0);}
- }
+
 }
 $("mobileContent").addEventListener("click",onAction);
 $("mobileNav").addEventListener("click",onAction);
