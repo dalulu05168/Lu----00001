@@ -9,3 +9,11 @@
 **Check:** `node --test test/desktop-entry.test.mjs`. Full CI and real browser login still need independent checks.
 
 **Release boundary:** Vercel `global-stock-platform` not confirmed to serve either `nuvexapro.com` or `www.nuvexapro.com`. A Vercel preview build is not equivalent to the actual user-facing domain. Check parallel agents and production mapping before merging.
+
+## Render independent preview (2026-11-07)
+- Render service `srv-dbn8bhugekts739c0070` in Lu workspace, connected to this desktop branch. 
+- Static build `npm run build`, publish `public`, auto deploy **off**.
+- Render reported initial deployment `dep-dbn8bi6gekts739c0140` as `live` from commit `0629f448`.
+- UI-only read-only URL: `https://nuvexa-desktop-preview-20261107.onrender.com/desktop.html?preview=1`.
+- The `?preview=1` path does not call API or load account balances; values display dashes. It is **not** a functional trading/login deployment.
+- No DNS or production custom domain modifications.
