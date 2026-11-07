@@ -123,6 +123,10 @@
         </section>
         <details class="pn" style="margin-top:16px"><summary class="ph" style="cursor:pointer">系统运行与接入状态</summary>
           <div class="pb">
+            <div class="bar admin-ops-toolbar"><button id="refreshAdminConnectionStatus" type="button" class="outline">检查接口连接</button></div>
+            <div class="kv"><span>数据库及服务</span><output id="adminReadyResult">尚未检测</output></div>
+            <div class="kv"><span>客户 APP 镜像</span><output id="adminMirrorResult">尚未检测</output></div>
+            <p id="adminConnectionFeedback" class="feedback" role="status" aria-live="polite">只读检查，不会修改业务数据。</p>
             <div class="kv"><span>登录保护</span><span>管理员账号密码登录</span></div>
             <div class="kv"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
             <div class="kv"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
