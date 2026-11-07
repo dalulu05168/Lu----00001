@@ -1370,14 +1370,20 @@ el("workflowCancel").addEventListener("click",()=>clearCaseSelection({restoreFoc
 el("workflowReviewForm").addEventListener("submit",async event=>{
  event.preventDefault();
  if(!selectedCase||!el("workflowConfirm").checked){el("workflowStatus").textContent="请先选择申请并确认";return;}
- const body={category:selectedCase.category,id:selectedCase.id,expectedStatus:selectedCase.status,
+ const requestCase=selectedCase,requestToken=adminToken,requestSerial=caseSerial;
+ const body={category:requestCase.category,id:requestCase.id,expectedStatus:requestCase.status,
   status:el("workflowDecision").value,reason:el("workflowReason").value.trim()};
  const button=el("workflowSubmit");button.disabled=true;
  try{
   const result=await api("/admin/workflow-requests",{method:"PATCH",body});
+  // A late response must not overwrite a different request, role or navigation.
+  if(adminToken!==requestToken||caseSerial!==requestSerial||selectedCase!==requestCase)return;
   clearCaseSelection();await refreshCaseList();
+  if(adminToken!==requestToken||caseSerial!==requestSerial+1||!document.querySelector('[data-pane="approvals"]')||document.querySelector('[data-pane="approvals"]').hidden)return;
   el("workflowStatus").textContent=result.item?.settlementStatus==='INTERNAL_POSTED'?'审批成功，平台内部余额与流水已更新。':'审核记录已保存；未执行银行付款或第三方核验。';
- }catch(error){el("workflowStatus").textContent="保存失败："+error.message;}
+ }catch(error){
+  if(adminToken===requestToken&&caseSerial===requestSerial&&selectedCase===requestCase)el("workflowStatus").textContent="保存失败："+error.message;
+ }
  finally{button.disabled=false;}
 });
 
