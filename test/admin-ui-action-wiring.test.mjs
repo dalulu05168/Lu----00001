@@ -51,8 +51,8 @@ test("all static admin buttons and forms map to their preserved handlers and API
       assert.ok(doc.querySelector("button["+attribute+"]"),"Missing navigation group "+attribute);
       assert.ok(js.includes('querySelectorAll("['+attribute+']")'),"Missing delegated navigation handler "+attribute);
     }
-    const allowed=[...router.matchAll(/"(\/api\/admin\/[a-z-]+)":\[/g)].map(m=>m[1]);
-    const routes=[...new Set([...js.matchAll(/api\(["'](\/admin\/[a-z-]+)/g)].map(m=>"/api"+m[1]))];
+    const allowed=[...router.matchAll(/"(\/api\/admin\/[a-z/-]+)":\[/g)].map(m=>m[1]);
+    const routes=[...new Set([...js.matchAll(/api\(["'](\/admin\/[a-z/-]+)/g)].map(m=>"/api"+m[1]))];
     for(const route of routes)assert.ok(allowed.includes(route),"Admin UI calls a missing server route: "+route);
   }finally{dom.window.close();}
 });
