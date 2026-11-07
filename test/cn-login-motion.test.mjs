@@ -21,8 +21,10 @@ test("the uploaded CN shape has a stationary C, a separately spinning N and silv
   assert.equal(svg.querySelectorAll(".cn-fixed-c").length,1);
   assert.equal(svg.querySelectorAll(".cn-turning-n").length,1);
   assert.equal(svg.querySelectorAll(".cn-star").length,12);
-  assert.match(animated,/animation:cnRotateN 40s/);\n  assert.match(animated,/transform:scale\(\.86\)/);
-  assert.match(animated,/rotate\(360deg\)/);\n  assert.doesNotMatch(animated,/rotateY\(/);
+  assert.match(animated,/animation:cnRotateN 40s/);
+  assert.match(animated,/transform:scale\(\.86\)/);
+  assert.match(animated,/rotate\(360deg\)/);
+  assert.doesNotMatch(animated,/rotateY\(/);
   assert.match(animated,/cnSilverDrift/);
   assert.match(animated,/prefers-reduced-motion:reduce/);
   assert.doesNotMatch(staticLogo,/@keyframes|cn-star|cnSilverDrift/);
