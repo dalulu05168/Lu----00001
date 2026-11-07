@@ -17,8 +17,10 @@ test("restored customer workbench retains real app and original workflow element
  assert.equal(ids(html).length,set.size,"Duplicate IDs");
  assert.match(html,/src="\/app.mjs"/);
  assert.match(html,/src="\/mobile-entry.mjs"/);
- assert.doesNotMatch(html,/front-cn-v[34]\.(css|mjs)/);
- assert.doesNotMatch(html,/cnMobileHeader|cnMobileHero|cnMobileTabs/);
+ assert.doesNotMatch(html,/src="\/front-cn-v4\.mjs"/,"New desktop overlay is disabled");
+ assert.match(html,/front-cn-v3\.css" media="\(max-width:900px\)"/);
+ assert.match(html,/front-cn-v4\.css" media="\(max-width:900px\)"/);
+ for(const name of ["cnMobileHeader","cnMobileHero","cnMobileTabs"])assert.ok(set.has(name),"Missing mobile hook "+name);
  assert.match(html,/portal-logo/,"Keep existing login logo");
  assert.match(html,/id="entryGate"/);
  assert.match(html,/id="overview" hidden/,"Do not display customer data without session");
