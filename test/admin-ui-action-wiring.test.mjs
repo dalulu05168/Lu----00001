@@ -77,6 +77,7 @@ async function withAdminFixture(role,caseRows,run){
     globalThis.fetch=async(url,options={})=>{
       calls.push({url,options});
       if(url==="/api/admin/me")return json({role,userId:"master-qa-user"});
+      if(url==="/ready")return json({status:"ready",database:"connected"});
       if(url==="/api/admin/clients"||url==="/api/admin/subaccounts"||url==="/api/admin/listings")
         return json({items:[]});
       if(url==="/api/admin/mirror-status")return json({ready:false});
@@ -103,6 +104,11 @@ test("master can open exact funding record from dashboard or treasury and use ex
       currency:"USD",status:"APPROVED",settlementStatus:"INTERNAL_POSTED",createdAt:"2026-11-05T12:00:00Z"}
   ];
   await withAdminFixture("MASTER",rows,async({el,doc,window,calls})=>{
+    el("refreshAdminConnectionStatus").click();
+    await waitFor(()=>el("adminReadyResult").textContent.includes("数据库就绪"),"real GET connectivity indicator");
+    assert.match(el("adminMirrorResult").textContent,/尚未就绪/);
+    assert.ok(calls.some(x=>x.url==="/ready"&&x.options.method==="GET"));
+    assert.ok(calls.some(x=>x.url==="/api/admin/mirror-status"));
     assert.equal(el("dashboardFundingRows").querySelectorAll("button.funding-review-link").length,2);
     const dashboardButton=el("dashboardFundingRows").querySelector("button.funding-review-link");
     dashboardButton.click();
