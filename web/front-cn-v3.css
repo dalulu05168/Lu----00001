@@ -261,3 +261,221 @@
  background:transparent;border:0;filter:drop-shadow(0 8px 19px rgba(0,0,0,.38));
 }
 @media(max-width:580px){#entryGate .portal-logo{width:118px;height:118px;padding:0}}
+
+
+/* CN Capital mobile: genuine full-bleed website UI, NOT a phone mockup.
+ * Applied only to #overview after its original authenticated login succeeds.
+ * Keeps all original input IDs, API bindings, forms and request/error states.
+ * No status-bar imitation, bezels, device frame, fake balances, or synthetic orders.
+ */
+#overview[data-cn-mode="mobile"] {
+  --cn-bg:#090b08; --cn-panel:#151914; --cn-line:rgba(228,247,216,.12);
+  --cn-ink:#f5f8f0; --cn-muted:#b7c3af; --cn-lime:#d7ff00;
+  box-sizing:border-box!important;display:block!important;position:relative;
+  width:100%!important;max-width:none!important;min-width:0;
+  min-height:100dvh;margin:0!important;padding:0!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  overflow-x:clip;background:radial-gradient(130% 440px at 0% 0%,#26370c 0%,#0b0d09 57%,#090b08 94%);
+}
+#overview[data-cn-mode="mobile"][hidden]{display:none!important}
+#overview[data-cn-mode="mobile"] .sidebar,
+#overview[data-cn-mode="mobile"] .topbar,
+#overview[data-cn-mode="mobile"] .app-footer{display:none!important}
+#overview[data-cn-mode="mobile"] .main-content{
+  margin:0!important;padding:0!important;display:block!important;
+  width:100%!important;max-width:none!important;min-width:0!important;
+  background:none!important;overflow:visible;
+}
+#overview[data-cn-mode="mobile"] .workspace{
+  display:flex!important;flex-direction:column;gap:14px;
+  width:100%;min-width:0!important;max-width:none!important;
+  padding:10px clamp(13px,4vw,24px) calc(100px + env(safe-area-inset-bottom))!important;
+  margin:0!important;background:transparent;border:0;
+}
+#overview[data-cn-mode="mobile"] #cnMobileHeader {
+  position:sticky;top:0;z-index:30;display:flex;
+  align-items:center;justify-content:space-between;gap:12px;
+  width:100%;min-height:64px;
+  margin:0!important;padding:11px clamp(14px,4vw,24px);
+  background:rgba(12,15,9,.97);border:0;border-bottom:1px solid var(--cn-line);
+  border-radius:0!important;box-shadow:none!important;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+#overview[data-cn-mode="mobile"] #cnMobileHeader .cnm-identity{
+  display:flex;align-items:center;gap:10px;min-width:0;color:#f6faef;
+}
+#overview[data-cn-mode="mobile"] #cnMobileHeader img{
+  display:block;flex:none;width:39px;height:39px;object-fit:contain;
+  background:transparent;border:0;border-radius:0;
+}
+#overview[data-cn-mode="mobile"] #cnMobileHeader strong{display:block;font-size:15px;font-weight:700;letter-spacing:.02em;line-height:1.15}
+#overview[data-cn-mode="mobile"] #cnMobileHeader small{display:block;margin-top:4px;font-size:10px;color:#aebb9c;letter-spacing:.025em}
+#overview[data-cn-mode="mobile"] #cnMobileHeader .cnm-header-actions{display:flex;align-items:center;gap:8px}
+#overview[data-cn-mode="mobile"] #cnModeSwitch{
+ min-height:34px;min-width:0;margin:0;padding:8px 12px;white-space:nowrap;
+ font-size:11px;border:1px solid #3a4d2d;border-radius:999px;
+ background:#202c1a;color:#d7edcb;box-shadow:none;
+}
+#overview[data-cn-mode="mobile"] .cnm-hero{
+  position:relative;display:block;margin:0;width:100%;
+  border-radius:21px;padding:18px 17px 19px;
+  background:linear-gradient(150deg,rgba(42,57,14,.96),#161c11 53%,#10130f 100%);
+  border:1px solid rgba(215,255,0,.16);box-shadow:none;overflow:hidden;
+}
+#overview[data-cn-mode="mobile"] .cnm-hero::after{
+  content:"";position:absolute;top:-80px;right:-70px;pointer-events:none;
+  width:230px;height:230px;border-radius:50%;
+  background:radial-gradient(circle,rgba(215,255,0,.13),transparent 68%);
+}
+#overview[data-cn-mode="mobile"] .cnm-hero-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  color:#c8d5be;font-size:12px;
+}
+#overview[data-cn-mode="mobile"] .cnm-hero-head .cnm-account-status{
+  display:inline-flex;gap:5px;align-items:center;padding:4px 9px;
+  border:1px solid rgba(215,255,0,.19);border-radius:999px;
+  background:rgba(215,255,0,.075);color:#def3b8;font-size:10px;
+}
+#overview[data-cn-mode="mobile"] .cnm-hero-head .cnm-account-status::before{
+ content:"";width:6px;height:6px;border-radius:50%;background:#d7ff00;
+}
+#overview[data-cn-mode="mobile"] .cnm-big-balance {
+  display:block;margin:12px 0 9px;color:#fff;font-size:clamp(29px,8vw,43px);
+  font-weight:720;line-height:1.16;letter-spacing:-.05em;
+  overflow-wrap:anywhere;font-variant-numeric:tabular-nums;
+}
+#overview[data-cn-mode="mobile"] .cnm-detail{
+  display:flex;flex-wrap:wrap;gap:8px 14px;color:#c4d2b7;font-size:11px;
+  line-height:1.55;overflow-wrap:anywhere;
+}
+#overview[data-cn-mode="mobile"] .cnm-detail b {font-weight:600;color:#e8f2e1}
+#overview[data-cn-mode="mobile"] .cnm-quick-actions{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;
+  margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.09);
+}
+#overview[data-cn-mode="mobile"] .cnm-action{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:7px;min-width:0;border:0;background:none;color:#d8e1d1;cursor:pointer;
+ font:11px/1.25 inherit;padding:0;text-align:center;
+}
+#overview[data-cn-mode="mobile"] .cnm-action .cnm-action-icon{
+ display:grid;place-items:center;width:43px;height:43px;border-radius:16px;
+ background:rgba(215,255,0,.1);border:1px solid rgba(215,255,0,.1);
+ font-size:19px;font-weight:650;color:#d7ff00;
+}
+#overview[data-cn-mode="mobile"] .cnm-action:nth-child(2) .cnm-action-icon{background:rgba(255,185,56,.13);color:#ffb938;border-color:rgba(255,185,56,.13)}
+#overview[data-cn-mode="mobile"] .cnm-action:nth-child(3) .cnm-action-icon{background:rgba(181,140,255,.13);color:#b58cff;border-color:rgba(181,140,255,.12)}
+#overview[data-cn-mode="mobile"] .cnm-action:nth-child(4) .cnm-action-icon{background:rgba(54,211,201,.12);color:#36d3c9;border-color:rgba(54,211,201,.12)}
+#overview[data-cn-mode="mobile"] .cnm-action:focus-visible,
+#overview[data-cn-mode="mobile"] #cnMobileTabs button:focus-visible{outline:2px solid #d7ff00;outline-offset:3px}
+#overview[data-cn-mode="mobile"] #cnMobileTabs {
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;gap:2px;
+  position:fixed;bottom:0;left:0;right:0;z-index:40;
+  width:100%;min-height:68px;
+  margin:0!important;padding:8px max(7px,env(safe-area-inset-left)) calc(9px + env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-right));
+  background:rgba(19,23,18,.97);border:0;border-top:1px solid rgba(228,247,216,.16);
+  border-radius:0!important;box-shadow:0 -7px 25px rgba(0,0,0,.25);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+#overview[data-cn-mode="mobile"] #cnMobileTabs button {
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:4px;min-width:0;min-height:49px;padding:5px 2px;border:0;border-radius:13px;
+ color:#aebba7;background:transparent;font-size:10px;font-weight:500;cursor:pointer;
+}
+#overview[data-cn-mode="mobile"] #cnMobileTabs button svg{
+ display:block;flex:none;width:19px;height:19px;
+ fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
+}
+#overview[data-cn-mode="mobile"] #cnMobileTabs button[aria-current="page"]{
+ color:#d7ff00;background:rgba(215,255,0,.11);
+}
+#overview[data-cn-mode="mobile"] #cnMobileExport{
+ display:none;margin:2px 0 0;align-self:flex-end;
+ border:1px solid #435439;border-radius:999px;background:#25321d;
+ padding:8px 13px;color:#e3f4d8;font-size:11px;
+}
+#overview[data-cn-mode="mobile"][data-cn-view="orders"] #cnMobileExport{display:block}
+#overview[data-cn-mode="mobile"] .trade-board,
+#overview[data-cn-mode="mobile"] .trade-board-side,
+#overview[data-cn-mode="mobile"] #transactions-section{
+ display:flex!important;flex-direction:column;gap:14px;min-width:0;width:100%;padding:0;margin:0;
+}
+#overview[data-cn-mode="mobile"] #transactions-section >.primary-grid{order:1;margin:0}
+#overview[data-cn-mode="mobile"] #transactions-section >.transaction-metrics{order:2;margin:0;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#overview[data-cn-mode="mobile"] #transactions-section >.transaction-metrics .transaction-metric-card:last-child{grid-column:1/-1}
+#overview[data-cn-mode="mobile"] #transactions-section >.transaction-list-panel{order:3}
+#overview[data-cn-mode="mobile"] .trade-board-side > .order-panel{order:1}
+#overview[data-cn-mode="mobile"] .trade-board-side > .holdings-panel{order:2}
+#overview[data-cn-mode="mobile"] .trade-board-side > .movers-panel{order:3}
+#overview[data-cn-mode="mobile"] :is(.panel,.metric-card,.transaction-metric-card){
+  width:100%;max-width:none;margin:0;border-radius:16px;
+  background:var(--cn-panel);border:1px solid var(--cn-line);box-shadow:none;
+}
+#overview[data-cn-mode="mobile"] :is(.panel-heading h2,.panel-heading h3){font-size:14px}
+#overview[data-cn-mode="mobile"] .performance-panel{min-height:0}
+#overview[data-cn-mode="mobile"] #stockChart{width:100%;height:clamp(250px,80vw,390px);min-height:250px}
+#overview[data-cn-mode="mobile"] .instrument-selector{gap:7px}
+#overview[data-cn-mode="mobile"] #quotePrice{font-size:14px}
+#overview[data-cn-mode="mobile"] .market-switcher{overflow-x:auto}
+#overview[data-cn-mode="mobile"] .market-nav{display:flex;max-width:100%;overflow-x:auto}
+#overview[data-cn-mode="mobile"] .transaction-table-wrap{overflow-x:auto;max-width:100%}
+#overview[data-cn-mode="mobile"] #transactions-section .transactions-table{max-width:none}
+#overview[data-cn-mode="mobile"] #overview-metrics{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+ margin:0;
+}
+#overview[data-cn-mode="mobile"] #overview-metrics >:first-child{grid-column:1/-1}
+#overview[data-cn-mode="mobile"] :is(.account-grid,.secondary-grid){display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin:0}
+#overview[data-cn-mode="mobile"] #account-section > *{width:100%;min-width:0}
+#overview[data-cn-mode="mobile"] :is(#authForm,.service-request-grid){grid-template-columns:minmax(0,1fr)}
+#overview[data-cn-mode="mobile"] .metric-card{min-width:0;padding:13px}
+#overview[data-cn-mode="mobile"] :is(.transaction-metric-card,.metric-card) :is(.transaction-metric-value,.metric-value){font-size:20px}
+#overview[data-cn-mode="mobile"] .saved-watchlist-section{margin-top:12px}
+#overview[data-cn-mode="mobile"] .saved-watchlist-row{min-width:0}
+#overview[data-cn-mode="mobile"] #account-section .auth-panel[hidden],
+#overview[data-cn-mode="mobile"] [hidden]{display:none!important}
+/* Every one of the five mobile tabs shows the ORIGINAL live DOM/forms in a distinct view.
+   Hidden via CSS, never detached/recreated: app.mjs and existing API bindings are preserved. */
+#overview[data-cn-mode="mobile"] :is(.trade-board,.metrics,.secondary-grid,.account-grid,
+ #serviceRequestsPanel,#commodityCatalogPanel,#customerSupportPanel,#catalog-section,#records-section){display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="home"] :is(.trade-board,#overview-metrics){display:flex!important}
+#overview[data-cn-mode="mobile"][data-cn-view="home"] #overview-metrics{display:grid!important}
+#overview[data-cn-mode="mobile"][data-cn-view="home"] #transactions-section{display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="home"] .trade-board-side > .order-panel{display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="market"] .trade-board{display:flex!important}
+#overview[data-cn-mode="mobile"][data-cn-view="market"] #transactions-section > :not(.primary-grid){display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="market"] .trade-board-side > :not(.movers-panel){display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="trade"] .trade-board,
+#overview[data-cn-mode="mobile"][data-cn-view="trade"] #catalog-section{display:flex!important}
+#overview[data-cn-mode="mobile"][data-cn-view="trade"] #transactions-section{display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="trade"] .trade-board-side > :not(.order-panel):not(.holdings-panel){display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="orders"] .trade-board{display:flex!important}
+#overview[data-cn-mode="mobile"][data-cn-view="orders"] #transactions-section > .primary-grid{display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="orders"] .trade-board-side{display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="orders"] #records-section:not([hidden]){display:block!important}
+#overview[data-cn-mode="mobile"][data-cn-view="account"] :is(#account-section,
+ #serviceRequestsPanel,#commodityCatalogPanel,#customerSupportPanel,#catalog-section,.secondary-grid){display:grid!important}
+#overview[data-cn-mode="mobile"][data-cn-view="account"] #serviceRequestsPanel[hidden],
+#overview[data-cn-mode="mobile"][data-cn-view="account"] #commodityCatalogPanel[hidden],
+#overview[data-cn-mode="mobile"][data-cn-view="account"] #customerSupportPanel[hidden]{display:none!important}
+#overview[data-cn-mode="mobile"][data-cn-view="account"] #account-section{display:grid!important}
+#overview[data-cn-mode="mobile"][data-cn-view="account"] #catalog-section{display:block!important}
+/* The account screen retains the live request forms, masked bank data controls,
+ * KYC consent, real support thread and original log-out action. */
+#overview[data-cn-mode="desktop"] #cnMobileHeader,
+#overview[data-cn-mode="desktop"] #cnMobileHero,
+#overview[data-cn-mode="desktop"] #cnMobileTabs,
+#overview[data-cn-mode="desktop"] #cnMobileExport{display:none!important}
+#cnDesktopReturn{display:none!important}
+#overview[data-cn-mode="desktop"][data-cn-preferred="mobile"] #cnDesktopReturn{
+ display:block!important;position:fixed;bottom:15px;right:14px;z-index:60;
+ background:#d7ff00;color:#161d08;border:0;border-radius:999px;
+ box-shadow:0 5px 20px rgba(0,0,0,.25);padding:10px 14px;font-size:12px;
+}
+@media(min-width:680px) {
+ #overview[data-cn-mode="mobile"] .workspace{max-width:none;padding-inline:clamp(16px,5vw,70px)!important}
+ #overview[data-cn-mode="mobile"] #cnMobileHero{padding:23px}
+}
+@media(prefers-reduced-motion:reduce){
+ #overview[data-cn-mode="mobile"] *{scroll-behavior:auto!important;animation-duration:0s!important;transition-duration:0s!important}
+}
