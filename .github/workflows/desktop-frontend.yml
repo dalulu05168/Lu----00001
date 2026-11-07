@@ -1,0 +1,39 @@
+name: Desktop frontend checks
+on:
+  pull_request:
+    paths:
+      - "web/desktop.html"
+      - "web/desktop-bridge.mjs"
+      - "web/cn-entry-redirect.mjs"
+      - "test/desktop-entry.test.mjs"
+      - ".github/workflows/desktop-frontend.yml"
+  push:
+    branches:
+      - "work/desktop-front-20261107"
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check desktop JS syntax
+        run: |
+          node --check web/desktop-bridge.mjs
+          node --check web/cn-entry-redirect.mjs
+      - name: Run isolated desktop tests
+        run: node --test test/desktop-entry.test.mjs
+      - name: Build desktop static assets
+        run: npm run build
+      - name: Verify desktop build artifacts
+        run: |
+          test -s public/desktop.html
+          test -s public/desktop-bridge.mjs
+          test -s public/cn-entry-redirect.mjs
+          grep -q 'desktop-bridge.mjs' public/desktop.html
+          grep -q 'location.replace' public/cn-entry-redirect.mjs
