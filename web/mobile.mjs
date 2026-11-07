@@ -103,10 +103,11 @@ function home(){
  const a=S.account?.account;
  const balance=amount(a?.cashCents);
  const basis=S.analytics?.historyAvailable?amount(S.analytics?.positionCostCents):"—";
- const hero=S.watchlist?.[0]||supportedStocks()[0]||null;
+ const supported=supportedStocks();
+ const hero=supported.find(x=>onlyArray(S.watchlist).some(w=>w.market===x.market&&w.symbol===x.symbol))||supported[0]||null;
  const heading=hero?'<div class="hero-title"><span class="coin">'+esc(hero.symbol.slice(0,2))+'</span><div style="flex:1"><strong>开始交易</strong><small>'+esc(hero.symbol)+' · '+esc(hero.name||hero.symbol)+'</small></div><span class="hero-go">去下单 ›</span></div>':'<div class="hero-title"><strong>开始交易</strong><span class="hero-go">查看行情 ›</span></div>';
  return '<div><div class="eyebrow">欢迎使用 CN Capital</div><h1>我的交易账户</h1><div class="eyebrow">现金余额 USD</div><div class="balance">'+balance+'</div><div class="balance-sub">持仓成本 '+basis+'</div></div>'
- +'<button class="card lime" data-action="go-trade" style="display:block;text-align:left;width:100%;color:inherit">'+heading+'<div class="hero-pr"><strong>'+esc(hero?.symbol||"查看市场")+'</strong><span class="hero-go">›</span></div></button>'
+ +'<button class="card lime" data-action="go-trade" data-market="'+esc(hero?.market||"")+'" data-symbol="'+esc(hero?.symbol||"")+'" style="display:block;text-align:left;width:100%;color:inherit">'+heading+'<div class="hero-pr"><strong>'+esc(hero?.symbol||"查看市场")+'</strong><span class="hero-go">›</span></div></button>'
  +'<div class="actions"><button class="action" data-action="deposit"><span class="action-icon">＋</span>充值</button><button class="action withdraw" data-action="withdraw"><span class="action-icon">↓</span>提现</button><button class="action orders" data-tab="orders"><span class="action-icon">☷</span>订单</button></div>'
  +holdingsSection()+watchSection()
  +note("内部账户记录，不连接券商。行情或市值不可用时不显示虚构价格。","info");
@@ -360,7 +361,14 @@ async function onAction(e){
  if(!a)return;
  if(S.submitting)return;
  const action=a.dataset.action;
- if(action==="go-trade"){S.tab="trade";render();window.scrollTo(0,0);}
+ if(action==="go-trade"){
+  if(a.dataset.symbol&&a.dataset.market){
+   const selected=supportedStocks().find(x=>x.market===a.dataset.market&&x.symbol===a.dataset.symbol);
+   if(!selected){toast("所选证券暂不可交易");return;}
+   S.selected=selected;S.quote=null;S.quoteSymbol="";
+  }
+  S.tab="trade";render();window.scrollTo(0,0);
+ }
  else if(action==="reload")await refresh();
  else if(action==="quote")await quote();
  else if(action==="favorite")await favorite(a.dataset.symbol,a.dataset.market);
