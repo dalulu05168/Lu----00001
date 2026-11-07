@@ -115,7 +115,7 @@
           <p id="dashboardFundingStatus" class="pb mut" role="status" aria-live="polite" style="font-size:12px">正在读取资金申请</p>
           <div class="pb" style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start">
             <section class="pn"><div class="ph"><span>近期进出资金申请明细</span><button type="button" class="btn" id="dashboardOpenTreasury">查看全部</button></div>
-              <div style="overflow-x:auto"><table><thead><tr><th>类型</th><th>申请金额 USD</th><th>客户编号</th><th>审核状态</th><th>提交时间</th></tr></thead><tbody id="dashboardFundingRows"></tbody></table></div>
+              <div style="overflow-x:auto"><table><thead><tr><th>类型</th><th>申请金额 USD</th><th>客户编号</th><th>审核状态</th><th>提交时间</th><th>操作</th></tr></thead><tbody id="dashboardFundingRows"></tbody></table></div>
             </section>
             <section class="pn"><div class="ph"><span>待办与处理分布</span></div><div class="pb" id="dashboardFundingBreakdown"></div><div class="pb"><button type="button" class="btn" id="dashboardOpenApprovals">进入审批中心</button></div></section>
           </div>
@@ -123,6 +123,10 @@
         </section>
         <details class="pn" style="margin-top:16px"><summary class="ph" style="cursor:pointer">系统运行与接入状态</summary>
           <div class="pb">
+            <div class="bar admin-ops-toolbar"><button id="refreshAdminConnectionStatus" type="button" class="outline">检查接口连接</button></div>
+            <div class="kv"><span>数据库及服务</span><output id="adminReadyResult">尚未检测</output></div>
+            <div class="kv"><span>客户 APP 镜像</span><output id="adminMirrorResult">尚未检测</output></div>
+            <p id="adminConnectionFeedback" class="feedback" role="status" aria-live="polite">只读检查，不会修改业务数据。</p>
             <div class="kv"><span>登录保护</span><span>管理员账号密码登录</span></div>
             <div class="kv"><span>角色控制</span><span>根据账户角色分配管理权限</span></div>
             <div class="kv"><span>证券资料</span><span>仅主账户可新增和修改</span></div>
@@ -448,7 +452,7 @@
         <div class="pane-title"><span>REQUEST LEDGER</span><h2>资金申请与审批记录</h2>
           <p>仅显示权限范围内的充值／提现申请记录，不代表银行支付流水或真实资金余额。</p></div>
         <section class="panel">
-          <div class="heading"><h3>申请统计</h3><button id="refreshFundingSummary" class="outline" type="button">刷新统计</button></div>
+          <div class="heading"><h3>申请统计</h3><div class="bar funding-toolbar"><button id="openFundingApprovals" class="outline" type="button">进入审批中心</button><button id="refreshFundingSummary" class="outline" type="button">刷新统计</button></div></div>
           <div class="summary-grid" id="fundingSummaryCards">
             <div class="summary-card"><span>充值申请</span><output id="depositRequestTotal">—</output></div>
             <div class="summary-card"><span>提现申请</span><output id="withdrawRequestTotal">—</output></div>
