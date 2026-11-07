@@ -67,3 +67,18 @@ test('unified N login gate preserves both real authentication forms', async () =
   assert.match(adminRoute,/location\.replace\('\/cn-admin\.html'\)/);
   assert.match(clientRoute,/slot\.appendChild\(accountFormHost\)/);
 });
+
+test('mobile terminal initializes with empty account data and cannot fake financial submissions',async()=>{
+  const html=await source('web/cn-terminal.html');
+  assert.doesNotMatch(html,/cashOverride:998937|acct:'4b6b2266'|orders:\[\{s:'AA'/);
+  assert.match(html,/cashOverride:null/);
+  assert.match(html,/watch:\[\],fav:\[\],orders:\[\],holds:\[\],reqs:\[\],chat:\[\]/);
+  assert.match(html,/if\(!Number\.isSafeInteger\(a\.cashCents\)\)throw/);
+  assert.match(html,/return \{s:code,q:Number\(p\.quantity\),c:null\}/);
+  assert.match(html,/充值与提现服务暂不可用/);
+  assert.match(html,/身份资料提交服务暂不可用/);
+  assert.match(html,/银行卡绑定服务暂不可用/);
+  assert.match(html,/客服消息服务暂不可用/);
+  assert.doesNotMatch(html,/DATA\.reqs\.unshift|DATA\.chat\.push/);
+  assert.match(html,/html:not\(\.cn-ready\) body\{visibility:hidden!important\}/);
+});

@@ -388,21 +388,17 @@ var API=null;                // 例如 '/api'；为 null 时使用下方预置�
 var IDLE_MS=15*60*1000;      // 无操作自动锁定时间
 
 /* ========== 唯一数据源：页面所有数字都由这里计算，不会互相矛盾 ========== */
-var DATA={acct:'4b6b2266',sync:'11/05 22:25 MYT',cashOverride:998937.60,
+var DATA={acct:'',sync:'待同步',cashOverride:null,
  names:{AA:'Alcoa Corporation',NEM:'Newmont Corporation',AAPL:'Apple Inc.',MSFT:'Microsoft Corporation'},
- disc:{AA:12},watch:['AA','AAPL','MSFT'],fav:[],
- orders:[{s:'AA',t:'买入',p:102.08,q:20,a:2041.6,d:'11-05 20:23'},{s:'AA',t:'买入',p:102.08,q:10,a:1020.8,d:'11-05 15:45'},{s:'NEM',t:'买入',p:180,q:100,a:18000,d:'11-05 03:52'}],
- holds:[{s:'AA',q:30,c:3062.4},{s:'NEM',q:100,c:18000}],
- reqs:[{k:'身份资料申请',st:'已添加',d:'2026/11/5 18:02'},{k:'充值申请',a:1000000,st:'已记录',d:'2026/11/5 12:07'},{k:'身份资料申请',st:'待补充资料',d:'2026/11/4 22:02'},{k:'充值申请',a:10000,st:'已记录',d:'2026/11/4 21:51'},{k:'充值申请',a:10000,st:'已记录',d:'2026/11/3 20:33'},{k:'充值申请',a:10000,st:'已记录',d:'2026/11/3 20:31'}],
- chat:[{me:1,t:'在吗？',d:'11/4 22:00'},{t:'你好！请问有什么需要帮助的吗？',d:'客服 · 11/5 12:52'}]};
+ disc:{},watch:[],fav:[],orders:[],holds:[],reqs:[],chat:[]};
 function sum(a,fn){return a.reduce(function(x,y){return x+fn(y)},0)}
-function cost(){return sum(DATA.holds,function(h){return h.c})}
+function cost(){return DATA.holds.some(function(h){return !Number.isFinite(h.c)})?NaN:sum(DATA.holds,function(h){return h.c})}
 function traded(){return sum(DATA.orders,function(o){return o.a})}
 function realized(){return 0}
 function cash(){if(DATA.cashOverride!=null)return DATA.cashOverride;
  return sum(DATA.reqs.filter(function(r){return r.k==='充值申请'&&r.st.indexOf('成功')>-1}),function(r){return r.a})-traded()}
 function held(s){var h=DATA.holds.filter(function(x){return x.s===s})[0];return h||null}
-function f(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function f(n){return typeof n==='number'&&Number.isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function stc(s){return s.indexOf('已记录')>-1||s.indexOf('已添加')>-1?'ok':s.indexOf('待补充')>-1?'wa':'in'}
@@ -424,13 +420,8 @@ function rStat(){var g={};DATA.reqs.forEach(function(r){g[r.st]=(g[r.st]||0)+1})
  $('req-stat').innerHTML=Object.keys(g).map(function(k){return '<div class="kv"><span>'+k+'</span><span class="chip '+stc(k)+'">'+g[k]+'</span></div>'}).join('')}
 var SEC='股票';
 function rProd(){var b=$('pbody');
- if(SEC!=='股票'){b.innerHTML='<div class="bn in">'+SEC+' 暂无已发布产品 · 请点击「刷新产品」</div>';return}
- b.innerHTML='<div class="kv"><span style="color:var(--tx)">AA Alcoa Corporation</span><span class="chip in">优惠 '+DATA.disc.AA+'%</span></div>'
- +'<div class="kv"><span>买入后持有</span><span>0 天</span></div>'
- +'<div class="kv"><span>计价 · 可用现金</span><span>USD · <span class="amt lime">'+f(cash())+'</span></span></div>'
- +'<div class="kv"><span>预估金额</span><span class="mut">行情未连接，暂无法估算</span></div>'
- +(TRADING_ENABLED?'<div style="margin-top:10px"><button class="btn p w" id="buybtn">买入 AA</button></div>':'<div style="margin-top:10px"><button class="btn w" disabled>买入 AA · 实时交易暂停</button></div>');
- if($('buybtn'))$('buybtn').onclick=function(){openTrade('买入','AA')}}
+ b.innerHTML='<div class="bn in">当前没有可交易产品 · 授权行情与交易接口尚未接入</div>';
+}
 function renderAll(){bind();rOrders();rHolds();rWatch();rReqs();rStat();rProd();renderBadge();var cl=$('cvload');if(cl)cl.hidden=true;clearInterval(skTimer);if(skActive){skActive=false;reveal()}}
 
 /* ========== 提示 / 弹窗管理 ========== */
@@ -522,10 +513,7 @@ $('tb-req').addEventListener('click',function(e){var r=e.target.closest('tr[data
  openModal('m-req')});
 
 /* ========== 表单：充值/提现、身份证、银行卡 ========== */
-$('f-dep').onsubmit=function(e){e.preventDefault();var v=parseFloat($('damt').value.replace(/,/g,'')),er=$('dep-er');
- if(!(v>0)){er.textContent='请输入大于 0 的金额';return}
- if($('dtype').value==='提现申请'&&v>cash()){er.textContent='提现金额不能超过现金余额';return}
-  DATA.reqs.unshift({k:$('dtype').value,a:v,st:'已记录',d:now()});bind();rReqs();rStat();closeM();toast('申请记录已添加')};
+$('f-dep').onsubmit=function(e){e.preventDefault();$('dep-er').textContent='充值与提现服务暂不可用';};
 function magic(file,cb){var r=new FileReader();r.onload=function(){var u=new Uint8Array(r.result);cb((u[0]===0x89&&u[1]===0x50&&u[2]===0x4E&&u[3]===0x47)||(u[0]===0xFF&&u[1]===0xD8&&u[2]===0xFF))};r.onerror=function(){cb(false)};r.readAsArrayBuffer(file.slice(0,4))}
 ['f','b'].forEach(function(k){var box=$('up-'+k),inp=box.querySelector('input'),img=box.querySelector('img');
  inp.onchange=function(){var fl=inp.files[0];if(!fl)return;
@@ -533,12 +521,9 @@ function magic(file,cb){var r=new FileReader();r.onload=function(){var u=new Uin
   if(fl.size>2*1024*1024){toast('每张图片最多 2MB');inp.value='';return}
   magic(fl,function(ok){if(!ok){toast('文件内容不是有效的 PNG / JPEG 图片');inp.value='';return}
    files[k]=fl;var u=URL.createObjectURL(fl);urls.push(u);img.src=u;box.classList.add('has');$('fn-'+k).textContent=fl.name})}});
-$('f-id').onsubmit=function(e){e.preventDefault();if(!files.f||!files.b){toast('请先选择正面和反面两张资料图片');return}
-  toast('资料图片已添加到页面预览')};
+$('f-id').onsubmit=function(e){e.preventDefault();toast('身份资料提交服务暂不可用');};
 $('bno-t').onclick=function(){var i=$('bno'),s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'隐藏':'显示'};
-$('f-bank').onsubmit=function(e){e.preventDefault();var n=$('bname').value.trim(),c=$('bno').value.replace(/\s/g,''),er=$('bank-er');
- if(!n||!/^\d{8,30}$/.test(c)){er.textContent='请填写示例银行名称和 8–30 位数字账号';return}
-  bankPreview={name:n,last4:c.slice(-4)};var bp=$('bank-preview');bp.hidden=false;bp.textContent='页面展示：'+bankPreview.name+' · 账户尾号 '+bankPreview.last4;toast('账户资料页面展示已保存')};
+$('f-bank').onsubmit=function(e){e.preventDefault();$('bank-er').textContent='银行卡绑定服务暂不可用';};
 
 /* ========== 客服：快捷问题 / 自动回复 / 未读角标 ========== */
 var QA={'充值多久到账':'申请记录可在账户页面查看。','身份资料进度':'资料图片预览状态可在账户页面查看。','提现问题':'提现申请记录可在账户页面查看。','交易通道':'交易通道状态可在交易页面查看。'};
@@ -547,15 +532,15 @@ function renderBadge(){var b=$('badge');b.hidden=!unread;b.textContent=unread}
 function addMsg(m){var d=document.createElement('div');d.className='bub'+(m.me?' me':'');d.textContent=m.t;var s=document.createElement('small');s.textContent=m.d;d.appendChild(s);$('msgs').appendChild(d);$('msgs').scrollTop=1e6}
 function renderChat(){$('msgs').innerHTML='';DATA.chat.forEach(addMsg)}
 $('qk').innerHTML=Object.keys(QA).map(function(k){return '<button type="button" data-q="'+esc(k)+'">'+k+'</button>'}).join('');
-function say(t){DATA.chat.push({me:1,t:t,d:now()});addMsg(DATA.chat[DATA.chat.length-1]);return t}
-function reply(t){setTimeout(function(){var m={t:t,d:'客服 · '+now()};DATA.chat.push(m);addMsg(m);if(!cp.classList.contains('open')){unread++;renderBadge()}},1100)}
+function say(t){toast('客服消息服务暂不可用');return null}
+function reply(t){return false}
 function chat(o){cp.classList.toggle('open',o);cb.setAttribute('aria-expanded',o);if(o){unread=0;renderBadge();$('msgs').scrollTop=1e6;setTimeout(function(){$('cmsg').focus()},200)}}
 cb.onclick=function(e){e.stopPropagation();chat(!cp.classList.contains('open'))};
 $('csx').onclick=function(){chat(false)};cp.onclick=function(e){e.stopPropagation()};
 document.addEventListener('click',function(){chat(false)});
 $('csref').onclick=function(){renderChat();toast('客服消息已刷新')};
-$('qk').onclick=function(e){var b=e.target.closest('button[data-q]');if(!b)return;var k=b.dataset.q;say(k);reply(QA[k])};
-$('f-chat').onsubmit=function(e){e.preventDefault();var i=$('cmsg'),t=i.value.trim();if(!t)return;say(t);i.value='';reply('已收到您的消息，客服会尽快处理，请留意此处回复。')};
+$('qk').onclick=function(e){if(e.target.closest('button[data-q]'))toast('客服消息服务暂不可用')};
+$('f-chat').onsubmit=function(e){e.preventDefault();toast('客服消息服务暂不可用')};
 
 /* ========== 自动锁定 / 快捷键 ========== */
 var idle;function arm(){clearTimeout(idle);idle=setTimeout(function(){if(!(openM&&openM.id==='m-lock')){openModal('m-lock');chat(false)}},IDLE_MS)}
@@ -674,10 +659,12 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(draw);
 window.CN_SYNC_ACCOUNT=function(snapshot){
   var a=snapshot.account || {};
   DATA.acct=String(a.id||'').slice(-8);
-  DATA.cashOverride=Number.isSafeInteger(a.cashCents)?a.cashCents/100:0;
+  if(!Number.isSafeInteger(a.cashCents))throw new Error('账户现金字段格式不匹配');
+  DATA.cashOverride=a.cashCents/100;
+  DATA.watch=[];DATA.fav=[];DATA.disc={};
   DATA.holds=(snapshot.positions||[]).filter(function(p){return Number(p.quantity)>0}).map(function(p){
     var code=String(p.symbol||'');DATA.names[code]=DATA.names[code]||code;
-    return {s:code,q:Number(p.quantity),c:0};
+    return {s:code,q:Number(p.quantity),c:null};
   });
   DATA.orders=(snapshot.orders||[]).map(function(o){
     var code=String(o.symbol||'');DATA.names[code]=DATA.names[code]||code;
@@ -686,7 +673,7 @@ window.CN_SYNC_ACCOUNT=function(snapshot){
        d:o.created_at?new Date(o.created_at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'};
   });
   DATA.reqs=[];DATA.chat=[];
-  DATA.sync=new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+' MYT';
+  DATA.sync=new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+'（本地时间）';
   renderAll();draw();
 };
 
