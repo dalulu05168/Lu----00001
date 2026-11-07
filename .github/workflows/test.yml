@@ -33,6 +33,15 @@ jobs:
           name: cn-mobile-and-desktop-browser-smoke
           path: artifacts/cn-*.png
           if-no-files-found: ignore
+      - name: Chromium independent mobile full-screen QA
+        run: node scripts/mobile-browser-smoke.mjs
+      - name: Upload mobile browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cn-mobile-fullscreen-qa
+          path: artifacts/cn-mobile-*.png
+          if-no-files-found: ignore
       - name: Build static frontend
         run: npm run build
       - name: Verify built entrypoints
