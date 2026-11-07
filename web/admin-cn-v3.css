@@ -303,3 +303,10 @@ body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,
   #adminWorkspace .funding-request-row {align-items:flex-start;flex-direction:column}
   #adminWorkspace .funding-toolbar {justify-content:flex-start}
 }
+
+/* Real service-state controls use the same admin-only charcoal/lime system. */
+#adminWorkspace .admin-ops-toolbar {justify-content:flex-end;margin:0 0 10px}
+#adminWorkspace :is(#adminReadyResult,#adminMirrorResult) {
+  color:#e5ffae;font-weight:600;font-size:12px;text-align:right;
+}
+#adminWorkspace #adminConnectionFeedback {margin:10px 0 0;color:#aebda5;font-size:12px}
