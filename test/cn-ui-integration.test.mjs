@@ -82,3 +82,11 @@ test('mobile terminal initializes with empty account data and cannot fake financ
   assert.doesNotMatch(html,/DATA\.reqs\.unshift|DATA\.chat\.push/);
   assert.match(html,/html:not\(\.cn-ready\) body\{visibility:hidden!important\}/);
 });
+
+test('mobile stock chart never fabricates OHLC or volume before licensing',async()=>{
+ const html=await source('web/cn-terminal.html');
+ assert.match(html,/ctx\.fillText\('授权行情尚未接入'/);
+ assert.match(html,/行情数据暂不可用/);
+ assert.doesNotMatch(html,/mkDaily\(|Math\.random\(|function bridge\(|function ser\(\)/);
+ assert.doesNotMatch(html,/1D · Cboe One/);
+});

@@ -240,7 +240,7 @@ td .sk{height:11px}
 <section class="pg show" id="p-trade">
 <div class="col">
 <div class="pn fill">
-<div class="ph"><div>AA · Alcoa Corporation</div><small>1D · Cboe One</small>
+<div class="ph"><div>AA · Alcoa Corporation</div><small>行情数据暂不可用</small>
 <div class="al"><button class="btn" id="favaa">+ 自选</button></div>
 <div class="ar"><div class="seg"><button class="on">US</button><button>CN</button></div></div></div>
 <div class="ohlc" id="oh"></div>
@@ -579,81 +579,35 @@ function loadData(){if(!API){renderAll();return Promise.resolve()}
  showSkeleton();
  return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){Object.assign(DATA,safe(d));renderAll()}).catch(function(){toast('数据加载失败');renderAll()})}
 
-/* ========== 图表（Canvas，高清渲染） ========== */
-var UP='#4fdd8f',DN='#ff5b50',FF='12px Inter,"Noto Sans SC",sans-serif';
-var PATH='M0,110 L40,138 L90,155 L140,160 L190,148 L230,132 L270,144 L310,139 L350,127 L390,151 L430,160 L470,164 L500,151 L540,144 L580,137 L620,104 L650,76 L680,52 L700,34 L715,56 L730,98 L745,118 L760,132';
-var PTS=PATH.slice(1).split(' L').map(function(s){return s.split(',').map(Number)});
-var RS=7;function rnd(){RS=RS*16807%2147483647;return RS/2147483647}
-function py(x){for(var i=1;i<PTS.length;i++){if(x<=PTS[i][0]){var a=PTS[i-1],b=PTS[i];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0]||1)}}return PTS[PTS.length-1][1]}
-function pr(y){return 90-(y-10)*.42169}
-function ds(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
-function mkDaily(){var days=[],d=new Date(2023,0,3),e=new Date(2026,10,4),o=[];
- while(d<=e){var w=d.getDay();if(w>0&&w<6)days.push(new Date(d));d.setDate(d.getDate()+1)}
- var n=days.length;
- days.forEach(function(dt,i){var c=pr(py(i/(n-1)*760))*(1+(rnd()-.5)*.014);if(i===n-1)c=38.53;if(i===n-2)c=40.58;
-  var op=i?o[i-1].c:c,hi=Math.max(op,c)*(1+rnd()*.012),lo=Math.min(op,c)*(1-rnd()*.012),v=2e6+rnd()*3e6+Math.abs(c-op)/op*6e7;
-  if(i===n-1){op=41.4;hi=41.79;lo=38.5}o.push({t:ds(dt),o:op,h:hi,l:lo,c:c,v:v})});return o}
-function bridge(o,c,h,l,n,lab){var a=[],p=o,r=(h-l)*.16;
- for(var i=0;i<n;i++){var q=o+(c-o)*(i+1)/n+(rnd()-.5)*r;q=Math.min(h,Math.max(l,q));if(i===n-1)q=c;
-  a.push({t:lab(i),o:p,h:Math.min(h,Math.max(p,q)+rnd()*r*.3),l:Math.max(l,Math.min(p,q)-rnd()*r*.3),c:q,v:3e4+rnd()*9e4});p=q}
- a[Math.floor(n*.12)].h=h;a[Math.floor(n*.8)].l=l;return a}
-var DL=mkDaily(),SC={},ST={rg:'All',mode:'走势',ma:0,x:null,y:null};
-function tm(m){return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2)}
-function ser(){var k=ST.rg;if(SC[k])return SC[k];var n=DL.length,s;
- if(k==='1D'){var b=DL[n-1];s=bridge(b.o,b.c,b.h,b.l,78,function(i){return tm(570+i*5)})}
- else if(k==='5D'){s=[];DL.slice(-5).forEach(function(b){s=s.concat(bridge(b.o,b.c,b.h,b.l,13,function(i){return b.t.slice(5)+' '+tm(570+i*30)}))})}
- else if(k==='1M')s=DL.slice(-22);else if(k==='6M')s=DL.slice(-126);else if(k==='YTD')s=DL.filter(function(x){return x.t>='2026-01-01'});else if(k==='1Y')s=DL.slice(-252);else s=DL;
- return SC[k]=s}
-function vol(v){return v>=1e6?(v/1e6).toFixed(2)+'M':(v/1e3).toFixed(0)+'K'}
-function xl(t){return t.length===10?(ST.rg==='1M'?t.slice(5):t.slice(0,7)):t.slice(0,5)}
-function mav(S,k){return S.map(function(b,i){if(i<k-1)return null;var s=0;for(var j=i-k+1;j<=i;j++)s+=S[j].c;return s/k})}
-function fm(v){return v==null?'—':f(v)}
-function updOH(i){var e=$('oh');if(!e)return;var S=ser(),b=S[i],p=i?S[i-1].c:(ST.rg==='1D'?DL[DL.length-2].c:b.o),ch=b.c-p,c=ch>=0?'up':'dn',sg=ch>=0?'+':'−';
- e.innerHTML='<span class="mut">'+b.t+'</span><span><i>O</i>'+f(b.o)+'</span><span><i>H</i>'+f(b.h)+'</span><span><i>L</i>'+f(b.l)+'</span><span class="'+c+'"><i>C</i>'+f(b.c)+' '+sg+f(Math.abs(ch))+' ('+sg+Math.abs(ch/p*100).toFixed(2)+'%)</span><span class="mut"><i>量</i>'+vol(b.v)+'</span>'+(ST.ma?'<span style="color:#ffb938"><i>MA5</i>'+fm(mav(S,5)[i])+'</span><span style="color:#5b9cff"><i>MA20</i>'+fm(mav(S,20)[i])+'</span>':'')}
+/* Verified market price/volume/FX feeds are not connected.
+   Never fabricate OHLC candles, historical prices or chart returns.
+   Re-enable a chart only after a licensed market-data API is integrated. */
+var ST={rg:'All',mode:'走势',ma:0,x:null,y:null};
 function draw(){
- var cw=$('cw'),c=$('cv');if(!cw||!c)return;var W=cw.clientWidth,H=cw.clientHeight;if(W<40||H<40)return;
- var dp=Math.max(window.devicePixelRatio||1,2);c.width=Math.round(W*dp);c.height=Math.round(H*dp);
- var g=c.getContext('2d');g.setTransform(dp,0,0,dp,0,0);
- var S=ser(),n=S.length,AX=58,TP=16,BT=22,PH=(H-BT)*.76,VT=PH+12,VB=H-BT,pw=W-AX,step=pw/n,lo=1e9,hi=-1e9,vm=0,hiI=0,loI=0;
- S.forEach(function(b,i){lo=Math.min(lo,b.l);hi=Math.max(hi,b.h);vm=Math.max(vm,b.v);if(b.h>S[hiI].h)hiI=i;if(b.l<S[loI].l)loI=i});
- var pd=(hi-lo)*.08;lo-=pd;hi+=pd;
- var X=function(i){return (i+.5)*step},Y=function(p){return TP+(PH-TP)*(1-(p-lo)/(hi-lo))};
- g.font=FF;g.lineWidth=1;g.textBaseline='alphabetic';
- g.font=FF;
- for(var k=0;k<=4;k++){var pp=lo+(hi-lo)*k/4,yy=Y(pp);g.strokeStyle='rgba(255,255,255,.06)';g.beginPath();g.moveTo(0,yy);g.lineTo(pw,yy);g.stroke();g.fillStyle='#a3ab99';g.textAlign='left';g.fillText(pp.toFixed(2),pw+7,yy+4)}
- var bw=Math.max(1,step*.66);
- S.forEach(function(b,i){g.fillStyle=b.c>=b.o?'rgba(79,221,143,.30)':'rgba(255,91,80,.30)';var h=(VB-VT)*b.v/vm;g.fillRect(X(i)-bw/2,VB-h,bw,h)});
- if(ST.mode==='K线'){S.forEach(function(b,i){var u=b.c>=b.o,cl=u?UP:DN;g.strokeStyle=g.fillStyle=cl;g.beginPath();g.moveTo(X(i),Y(b.h));g.lineTo(X(i),Y(b.l));g.stroke();var y1=Y(Math.max(b.o,b.c)),y2=Y(Math.min(b.o,b.c));g.fillRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1))})}
- else{var gr=g.createLinearGradient(0,TP,0,PH);gr.addColorStop(0,'rgba(79,221,143,.28)');gr.addColorStop(1,'rgba(79,221,143,0)');g.beginPath();S.forEach(function(b,i){i?g.lineTo(X(i),Y(b.c)):g.moveTo(X(i),Y(b.c))});g.strokeStyle=UP;g.lineWidth=1.7;g.lineJoin='round';g.stroke();g.lineTo(X(n-1),PH);g.lineTo(X(0),PH);g.closePath();g.fillStyle=gr;g.fill();g.lineWidth=1}
- if(ST.ma){[[5,'#ffb938'],[20,'#5b9cff']].forEach(function(m){var a=mav(S,m[0]),st=0;g.strokeStyle=m[1];g.lineWidth=1.2;g.beginPath();a.forEach(function(v,i){if(v==null)return;st?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v));st=1});g.stroke();g.lineWidth=1})}
- function note(i,val,label,col){var x=X(i),y=Y(val),s=label+' '+f(val)+' · '+S[i].t,w=g.measureText(s).width,rt=x+24+w<pw-4;
-  g.strokeStyle=g.fillStyle=col;g.beginPath();g.arc(x,y,3,0,7);g.fill();
-  g.beginPath();g.moveTo(x+(rt?4:-4),y);g.lineTo(x+(rt?22:-22),y);g.stroke();
-  g.textAlign=rt?'left':'right';g.fillStyle='#f7f9f2';g.fillText(s,x+(rt?27:-27),y+4)}
- note(hiI,S[hiI].h,'最高','#ffb938');note(loI,S[loI].l,'最低','#5b9cff');
- var l=S[n-1],ly=Y(l.c),lc=l.c>=(n>1?S[n-2].c:l.o)?UP:DN;
- g.setLineDash([3,4]);g.strokeStyle=lc;g.beginPath();g.moveTo(0,ly);g.lineTo(pw,ly);g.stroke();g.setLineDash([]);
- g.fillStyle=lc;g.fillRect(pw+1,ly-9,AX-1,18);g.fillStyle='#101400';g.textAlign='left';g.fillText(l.c.toFixed(2),pw+7,ly+4);
- g.fillStyle='#a3ab99';g.textAlign='center';for(var q=0;q<5;q++){var xi=Math.round((q+.5)*(n-1)/5);g.fillText(xl(S[xi].t),Math.min(Math.max(X(xi),24),pw-24),H-6)}
- if(ST.x!=null){var i=Math.max(0,Math.min(n-1,Math.floor(ST.x/step))),xx=X(i),yy=Math.max(TP,Math.min(PH,ST.y));
-  g.setLineDash([4,4]);g.strokeStyle='rgba(255,255,255,.6)';g.beginPath();g.moveTo(xx,TP);g.lineTo(xx,VB);g.moveTo(0,yy);g.lineTo(pw,yy);g.stroke();g.setLineDash([]);
-  var pv=lo+(hi-lo)*(1-(yy-TP)/(PH-TP));g.fillStyle='#fff';g.fillRect(pw+1,yy-9,AX-1,18);g.fillStyle='#0b0d0a';g.textAlign='left';g.fillText(pv.toFixed(2),pw+7,yy+4);
-  var tx=S[i].t,tw=g.measureText(tx).width+14,x0=Math.min(Math.max(xx-tw/2,0),pw-tw+AX);g.fillStyle='#fff';g.fillRect(x0,H-19,tw,17);g.fillStyle='#0b0d0a';g.textAlign='center';g.fillText(tx,x0+tw/2,H-6);
-  if(ST.mode!=='K线'){g.fillStyle='#0b0d0a';g.strokeStyle=UP;g.lineWidth=2;g.beginPath();g.arc(xx,Y(S[i].c),4,0,7);g.fill();g.stroke();g.lineWidth=1}
-  updOH(i)}else updOH(n-1)}
-var cv=$('cv'),cwEl=$('cw');
-function mv(e){var r=cv.getBoundingClientRect();ST.x=e.clientX-r.left;ST.y=e.clientY-r.top;draw()}
-cv.addEventListener('pointerdown',function(e){try{cv.setPointerCapture(e.pointerId)}catch(x){}mv(e)});
-cv.addEventListener('pointermove',mv);
-cv.addEventListener('pointerleave',function(e){if(e.pointerType==='mouse'){ST.x=null;draw()}});
-function seg(id,fn){var g=$(id);g.querySelectorAll('button').forEach(function(b){b.onclick=function(){fn(b,g)}})}
-seg('rg',function(b,g){g.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});ST.rg=b.textContent;ST.x=null;draw()});
-seg('md',function(b,g){g.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});ST.mode=b.textContent;draw()});
-seg('ma',function(b){ST.ma=ST.ma?0:1;b.classList.toggle('on',!!ST.ma);draw()});
-if(window.ResizeObserver)new ResizeObserver(draw).observe(cwEl);
+  var host=$('cw'),canvas=$('cv'),ohlc=$('oh');
+  if(ohlc)ohlc.textContent='授权行情尚未接入';
+  if(!host||!canvas)return;
+  var width=host.clientWidth,height=host.clientHeight;
+  if(width<40||height<40)return;
+  var ratio=Math.max(1,window.devicePixelRatio||1);
+  canvas.width=Math.round(width*ratio);
+  canvas.height=Math.round(height*ratio);
+  var ctx=canvas.getContext('2d');
+  if(!ctx)return;
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  ctx.clearRect(0,0,width,height);
+  ctx.fillStyle='#a3ab99';
+  ctx.font='14px Inter, sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('授权行情尚未接入',width/2,height/2);
+}
+function seg(id,fn){var group=$(id);group.querySelectorAll('button').forEach(function(button){button.onclick=function(){fn(button,group)}})}
+seg('rg',function(button,group){group.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===button)});ST.rg=button.textContent;draw()});
+seg('md',function(button,group){group.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===button)});ST.mode=button.textContent;draw()});
+seg('ma',function(button){ST.ma=ST.ma?0:1;button.classList.toggle('on',!!ST.ma);draw()});
+if(window.ResizeObserver)new ResizeObserver(draw).observe($('cw'));
 window.addEventListener('resize',draw);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(draw);
-
 
 /* Update the visual design from the actual authenticated account API, without trusting local mock balances. */
 window.CN_SYNC_ACCOUNT=function(snapshot){
