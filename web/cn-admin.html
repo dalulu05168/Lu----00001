@@ -706,8 +706,8 @@ root.innerHTML='<style>'+CSS+'</style><div class="app" id="app"></div>';
 var A=root.getElementById('app'),tt,lastKey='';
 var NAME={AA:'Alcoa Corporation',NEM:'Newmont Corporation',AAPL:'Apple Inc.',MSFT:'Microsoft Corporation'};
 var COL={AA:'#6a4cff',NEM:'#3b4757',AAPL:'#4a4f57',MSFT:'#1f6fd0'};
-var MK=['US','HK','CN','MY','RO'],MC={US:'b',HK:'r',CN:'a',MY:'g',RO:'p'};
-var CM={'全部':'m','买入':'g','卖出':'r','股票':'b','基金':'p','IPO':'a','大宗商品':'c','US':'b','HK':'r','CN':'a','MY':'g','RO':'p','1D':'g','5D':'c','1M':'b','6M':'p','YTD':'a','1Y':'k','5Y':'r','All':'m','走势':'g','K线':'a','待成交':'b'};
+var MK=['US','CN'],MC={US:'b',CN:'a'};
+var CM={'全部':'m','买入':'g','卖出':'r','股票':'b','基金':'p','IPO':'a','大宗商品':'c','US':'b','CN':'a','1D':'g','5D':'c','1M':'b','6M':'p','YTD':'a','1Y':'k','5Y':'r','All':'m','走势':'g','K线':'a','待成交':'b'};
 var CAT={US:['AA','AAPL','MSFT']};
 var PATH='M0,110 L40,138 L90,155 L140,160 L190,148 L230,132 L270,144 L310,139 L350,127 L390,151 L430,160 L470,164 L500,151 L540,144 L580,137 L620,104 L650,76 L680,52 L700,34 L715,56 L730,98 L745,118 L760,132';
 var PTS=PATH.slice(1).split(' L').map(function(s){return s.split(',').map(Number)});
@@ -787,7 +787,7 @@ return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-
 function fillO(o){if(os(o)!=='待成交')return;o.st='已成交';D.cash=Math.round((D.cash-o.a)*100)/100;var h=pos(o.s);if(h){h.q+=o.q;h.c=Math.round((h.c+o.a)*100)/100}else D.hold.push({s:o.s,q:o.q,c:o.a});R();toast('订单 '+o.id+' 已成交 · 演示模拟')}
 function stats(){return bxs([['总成交额',usd(tot())],['已实现盈亏（FIFO）',usd(rpnl())],['订单 · 交易通道',D.ord.length+' · '+(D.tc?'<span class="up">已连接</span>':'<span class="am">未连接</span>')],['账户 ····'+D.acct,'<span class="dot"></span>已连接'],['持仓市值','<span class="m">暂不可用</span>'],['最近同步',D.sync]])}
 function alloc(){return '<div class="alloc"><i></i></div><div class="al">'+MK.map(function(k){return tg(k+' '+(k==='US'?100:0)+'%',MC[k])}).join('')+'</div>'}
-function rates(){return '<h3>汇率</h3><div class="m" style="margin-bottom:6px">ECB 日参考汇率 2026-11-04 · 1 USD =</div><div class="g2" style="grid-template-columns:repeat(3,1fr)">'+[['HKD','7.8458','r'],['CNY','6.6723','a'],['MYR','4.0640','g']].map(function(x){return '<div class="bx t-'+x[2]+'"><span class="m">'+x[0]+'</span><span style="color:var(--c)">'+x[1]+'</span></div>'}).join('')+'</div>'}
+function rates(){return '<h3>汇率</h3><div class="m">授权汇率接口尚未接入</div>'}
 function ordRow(o){return '<div class="rw" data-a="ord" data-v="'+D.ord.indexOf(o)+'">'+ic(o.s)+'<div class="l">'+o.s+' · <span class="'+(o.t==='买入'?'up':'dn')+'">'+o.t+'</span><small>'+o.q+' 股 @ $'+f(o.p)+' · '+o.d+'</small></div><div class="r">$'+f(o.a)+'<small>'+tg(os(o),osc(os(o)))+'</small></div></div>'}
 
 /* ---- 行情数据与高级图表 ---- */

@@ -8,12 +8,8 @@ const LISTED = Object.freeze({
   "US:NEM": "NYSE:NEM",
   "US:AAPL": "NASDAQ:AAPL",
   "US:MSFT": "NASDAQ:MSFT",
-  "HK:0700": "HKEX:700",
-  "HK:9988": "HKEX:9988",
   "CN:600519": "SSE:600519",
   "CN:000001": "SZSE:000001",
-  "MY:1155": "MYX:1155",
-  "MY:1023": "MYX:1023"
 });
 
 export function resolveTradingViewSymbol({market,symbol} = {}) {
