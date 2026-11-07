@@ -84,7 +84,9 @@ try{
   assert.ok(login.formHeight>50,"Original login form must remain visible in "+view.label);
   assert.equal(login.background,"rgba(0, 0, 0, 0)","Login logo must have transparent backing");
   assert.equal(login.border,"0px","Login logo must have no border plate");
-  const layout=await evalJS(client,"(()=>{document.getElementById('entryGate').hidden=true;document.getElementById('overview').hidden=false;const rect=s=>{const n=document.querySelector(s);if(!n)return null;const r=n.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}};return {nav:rect('#overview .sidebar'),chart:rect('#overview #stockChart'),transactions:rect('#overview .transaction-list-panel'),trading:rect('#overview .trade-board-side > .order-panel'),holdings:rect('#overview #holdings-section'),watchlist:rect('#overview #markets-section'),accent:getComputedStyle(document.querySelector('#overview')).getPropertyValue('--cn-lime').trim(),scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+  const layout=await evalJS(client,"(()=>{document.getElementById('entryGate').hidden=true;document.getElementById('overview').hidden=false;document.getElementById('internalProductsPanel').hidden=false;document.getElementById('orderForm').hidden=false;const rect=s=>{const n=document.querySelector(s);if(!n)return null;const r=n.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}};return {nav:rect('#overview .sidebar'),chart:rect('#overview #stockChart'),transactions:rect('#overview .transaction-list-panel'),trading:rect('#overview .trade-board-side > .order-panel'),holdings:rect('#overview #holdings-section'),watchlist:rect('#overview #markets-section'),accent:getComputedStyle(document.querySelector('#overview')).getPropertyValue('--cn-lime').trim(),scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+  const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
+  await writeFile(join("artifacts","cn-front-"+view.label+".png"),Buffer.from(shot.data,"base64"));
   assert.equal(layout.accent,"#d7ff00",view.label+" CN design CSS missing");
   for(const key of ["nav","chart","transactions","trading","holdings","watchlist"]){
    assert.ok(layout[key]?.width>140&&layout[key]?.height>10,view.label+" missing module "+key+": "+JSON.stringify(layout));
@@ -93,8 +95,6 @@ try{
   assert.ok(layout.trading.y<=layout.holdings.y,view.label+" trading must appear ahead of holdings");
   if(view.width>=1000)assert.ok(layout.chart.right<=layout.trading.x+8,"desktop trading should be beside chart");
   else assert.ok(layout.scrollWidth<=layout.viewport+12,"narrow layout overflows: "+JSON.stringify(layout));
-  const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
-  await writeFile(join("artifacts","cn-front-"+view.label+".png"),Buffer.from(shot.data,"base64"));
   console.log("FRONT_BROWSER_OK "+JSON.stringify({view:view.label,login,layout}));
  }
  console.log("Chromium browser QA: desktop and narrow PASS");
