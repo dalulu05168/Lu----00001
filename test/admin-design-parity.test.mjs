@@ -64,8 +64,13 @@ test("new charcoal/lime admin design is served and does not replace login page",
   assert.match(css,/#adminWorkspace \.admin-main/);
   assert.match(css,/dialog\[open\]/);
   assert.match(css,/#d7ff00/);
-  // The former public login page and its authentication form are intentionally untouched.
+  const loginLogo=document.querySelector("#admin-login .portal-logo img");
+  assert.equal(loginLogo?.getAttribute("src"),"/cn-login-logo.svg");
+  assert.match(css,/#admin-login\.portal\s*\{[^}]*#090c09/);
+  assert.match(css,/#admin-login \.portal-primary\s*\{[^}]*#d7ff00/);
+  // The admin login keeps its existing markup/auth forms; only its scoped visual skin changes.
   assert.match(html,/class="portal"/);
+  assert.match(html,/id="adminTotpForm"/);
 });
 
 test("mobile navigation and hidden role-specific controls are not overridden by styling",async()=>{

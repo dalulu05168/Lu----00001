@@ -1,7 +1,7 @@
 /*
  * CN Capital / Admin design integration
- * Based on the approved charcoal/lime UI.  Applied only after login.
- * Do not modify admin login, two-factor verification, backend API, or JS hooks.
+ * Based on the approved charcoal/lime UI. Scoped to the admin login and workspace.
+ * Preserves authentication, two-factor verification, backend APIs, and JS hooks.
  * All 10 original admin routes and role restrictions remain available.
  */
 #adminWorkspace {
@@ -215,4 +215,69 @@ body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,
 @media(max-width:440px){
  #adminWorkspace .v4 .stats{grid-template-columns:1fr}
  #adminWorkspace .admin-main{padding:10px}
+}
+
+/* Admin-only login skin. portal.css remains shared and untouched for customers. */
+#admin-login.portal {
+  min-height:100vh;min-height:100svh;color:#f3f7ee;
+  background:
+    radial-gradient(ellipse at 50% -18%,rgba(215,255,0,.12),transparent 45%),
+    radial-gradient(ellipse at 4% 68%,rgba(0,178,183,.12),transparent 42%),
+    radial-gradient(ellipse at 96% 70%,rgba(86,123,42,.12),transparent 40%),
+    #090c09;
+}
+#admin-login .portal-stars {opacity:.3}
+#admin-login .portal-aurora {
+  inset:-15%;background:radial-gradient(ellipse at 45% 35%,rgba(215,255,0,.08),transparent 48%),
+    radial-gradient(ellipse at 72% 58%,rgba(0,178,183,.09),transparent 45%);
+  filter:blur(58px);animation-duration:24s;
+}
+#admin-login .portal-horizon {
+  border-top-color:rgba(215,255,0,.18);box-shadow:0 -16px 52px rgba(103,137,35,.08),
+    120px -2px 75px rgba(0,178,183,.05);
+  background:radial-gradient(ellipse at 50% 0%,#182016 0%,#0b100c 57%,transparent 72%);
+}
+#admin-login .portal-content {width:min(100%,500px);gap:18px}
+#admin-login .portal-logo {width:132px;height:132px;margin-bottom:5px;filter:none}
+#admin-login .portal-logo .cn-capital-mark {filter:drop-shadow(0 0 22px rgba(0,178,183,.16))}
+#admin-login .portal-name {color:#f7f9f2;font-size:clamp(30px,4vw,42px);font-weight:650!important}
+#admin-login .portal-name span {color:#d7ff00}
+#admin-login .portal-subtitle {color:#aab8a3;letter-spacing:.19em}
+#admin-login .portal-card {
+  border-color:#34402f;border-radius:16px;
+  background:linear-gradient(155deg,rgba(24,30,22,.96),rgba(13,17,13,.94));
+  box-shadow:0 24px 80px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.035);
+}
+#admin-login .portal-role-tabs {border-color:#35422f;background:#10150f}
+#admin-login .portal-role-tabs button {color:#b7c2b1}
+#admin-login .portal-role-tabs button[aria-pressed="true"] {
+  color:#eaffc0;background:rgba(215,255,0,.12);box-shadow:inset 0 0 0 1px rgba(215,255,0,.2);
+}
+#admin-login .portal-field {color:#d7dfd1}
+#admin-login .portal-field input {
+  background:#0d120d!important;border-color:#3b4835!important;color:#f3f7ee;
+}
+#admin-login .portal-field input:focus {
+  border-color:#d7ff00!important;box-shadow:0 0 0 3px rgba(215,255,0,.12);
+}
+#admin-login .portal-primary {
+  border-color:#d7ff00;background:#d7ff00;color:#172006;font-weight:650!important;
+}
+#admin-login .portal-primary:hover:not(:disabled) {background:#e5ff4d;border-color:#e5ff4d}
+#admin-login :is(.portal-primary,.portal-text-button,.portal-role-tabs button,.portal-setup-link):focus-visible {
+  outline:2px solid #d7ff00;outline-offset:3px;
+}
+#admin-login .portal-text-button {color:#c3d2ba}
+#admin-login .portal-text-button:hover,#admin-login .portal-setup-link:hover {color:#d7ff00}
+#admin-login .portal-feedback {color:#d7ff00}
+#admin-login .portal-setup-link {color:#aab8a3}
+#admin-login .portal-foot {color:#899580}
+@media(max-width:580px){
+  #admin-login .portal-content {padding:26px 18px 22px;gap:16px}
+  #admin-login .portal-logo {width:118px;height:118px}
+  #admin-login .portal-card {padding:23px 19px 18px}
+  #admin-login .portal-subtitle {letter-spacing:.13em}
+}
+@media(prefers-reduced-motion:reduce){
+  #admin-login .portal-aurora {animation:none}
 }
