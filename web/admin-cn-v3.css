@@ -196,7 +196,7 @@ body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,
  #adminWorkspace #adminTopbar .cn-new-avatar {display:none}
  #adminWorkspace #adminTopbar .cn-logout{min-height:38px;padding:7px 10px}
  #adminWorkspace #adminTopbar #adminMobileNavToggle{
-   display:block;min-height:38px;padding:7px 10px;border:1px solid #526642;
+   display:block!important;min-height:38px;padding:7px 10px;border:1px solid #526642;
    background:#26351d;color:#f2ffe6;border-radius:999px;font-size:12px;
  }
  #adminWorkspace #adminPages{
