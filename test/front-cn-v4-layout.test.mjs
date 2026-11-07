@@ -25,6 +25,17 @@ test("new real desktop shell replaces visible old navigation while retaining ori
   "account-section","fundingRequestForm","bankLinkRequestForm","customerSupportForm",
   "identityUploadForm","internalProductsPanel","catalogItems","logout"])
   assert.ok(v.getElementById(id),"Existing connected functionality missing: "+id);
+ const funding=v.getElementById("fundingRequestForm");
+ assert.ok(funding.closest("dialog"));
+ const trigger=[...v.querySelectorAll(".cn-request-actions button")].find(button=>button.textContent==="充值 / 提现");
+ trigger.click();
+ assert.equal(funding.closest("dialog").hasAttribute("open"),true);
+ v.getElementById("overview").dataset.cnMode="mobile";
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert.equal(funding.closest("dialog"),null,"Mobile keeps original inline forms");
+ v.getElementById("overview").dataset.cnMode="desktop";
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert.ok(funding.closest("dialog"),"Desktop restores dialog forms");
  const newIds=[...v.querySelectorAll("[id]")].map(x=>x.id);
  for(const id of ids)assert.ok(newIds.includes(id),"Removed legacy control ID "+id);
  assert.equal(new Set(newIds).size,newIds.length,"No duplicate IDs allowed");

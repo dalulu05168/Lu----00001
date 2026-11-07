@@ -505,7 +505,7 @@ function renderRecords() {
 
 
 const TRANSACTION_RANGE_LABELS = Object.freeze({
-  all:"All time", "7d":"Last 7 days", "30d":"Last 30 days", "90d":"Last 90 days"
+  all:"全部时间", "7d":"近 7 天", "30d":"近 30 天", "90d":"近 90 天"
 });
 function transactionName(item) {
   return item.product_name || selectionInstruments().find(stock => stock.market === item.market && stock.symbol === item.symbol)?.name || "名称未登记";
@@ -669,6 +669,11 @@ function renderTransactionHistory() {
     const rows = visible.map(item => {
       const row = document.createElement("tr");
       row.dataset.transactionRow = "true";
+      row.tabIndex=0;row.setAttribute("aria-label","查看订单详情");
+      row.addEventListener("click",()=>showTransactionDetail(item));
+      row.addEventListener("keydown",event=>{
+       if(event.key==="Enter"||event.key===" "){event.preventDefault();showTransactionDetail(item);}
+      });
       const symbol = document.createElement("td");
       symbol.className = "transaction-symbol-cell";
       symbol.append(textNode(item.symbol || "—","transaction-symbol-code"),textNode(item.market || "—","transaction-market-code"));
@@ -676,7 +681,7 @@ function renderTransactionHistory() {
       name.className = "transaction-name-cell";
       name.textContent = transactionName(item);
       const side = document.createElement("td");
-      const sideLabel = textNode(item.side === "BUY" ? "↑ Buy" : item.side === "SELL" ? "↓ Sell" : item.side==="REDEEM"?"到期返还":"—",
+      const sideLabel = textNode(item.side === "BUY" ? "↑ 买入" : item.side === "SELL" ? "↓ 卖出" : item.side==="REDEEM"?"到期返还":"—",
         item.side === "BUY" ? "transaction-side side-buy" : item.side === "SELL" ? "transaction-side side-sell" : "transaction-side");
       side.append(sideLabel);
       const price = document.createElement("td");
@@ -692,8 +697,8 @@ function renderTransactionHistory() {
       const time = document.createElement("td");
       time.className = "transaction-time-cell";
       time.textContent = transactionTime(item.created_at);
-      row.append(symbol,name,side,price,quantity,amount,status,time);
-      ["代码","名称","类型","单价","数量","金额（USD）","状态","时间"].forEach((label,index)=>{
+      row.append(symbol,name,side,price,quantity,amount,time,status);
+      ["代码","名称","类型","价格","数量","总额 USD","时间","记录"].forEach((label,index)=>{
         row.cells[index].dataset.label=label;
       });
       return row;
@@ -703,11 +708,39 @@ function renderTransactionHistory() {
   const total = filtered.length;
   const first = total ? start + 1 : 0;
   const last = Math.min(start + transactionPageSize,total);
-  el("transactionPageSummary").textContent = account ? "Showing " + first + "–" + last + " of " + total : "登录后查看";
+  el("transactionPageSummary").textContent = account ? "第 " + first + "–" + last + " 条，共 " + total + " 条" : "登录后查看";
   el("transactionPageNumber").textContent = transactionPage + " / " + pageCount;
   el("transactionPrev").disabled = !account || transactionPage <= 1;
   el("transactionNext").disabled = !account || transactionPage >= pageCount;
   el("exportHistoryButton").disabled = !account || filtered.length === 0;
+}
+
+function showTransactionDetail(item){
+ let dialog=el("transactionDetailDialog");
+ if(!dialog){
+  dialog=document.createElement("dialog");dialog.id="transactionDetailDialog";
+  dialog.className="cn-reference-dialog";dialog.setAttribute("aria-label","订单详情");
+  el("overview").append(dialog);
+ }
+ const title=document.createElement("h2");title.textContent="订单详情";
+ const close=document.createElement("button");close.type="button";
+ close.className="secondary-button";close.textContent="关闭";
+ close.addEventListener("click",()=>dialog.close());
+ const details=document.createElement("dl");
+ for(const [label,value] of [
+  ["代码",item.symbol],["名称",transactionName(item)],
+  ["类型",item.side==="BUY"?"买入":item.side==="SELL"?"卖出":item.side==="REDEEM"?"到期返还":"—"],
+  ["价格",transactionPrice(item)],["数量",item.quantity],
+  ["总额 USD",transactionAmount(item)],["时间",transactionTime(item.created_at)],
+  ["记录编号",item.id]
+ ]){
+  const term=document.createElement("dt");term.textContent=label;
+  const valueNode=document.createElement("dd");valueNode.textContent=String(value??"—");
+  details.append(term,valueNode);
+ }
+ dialog.replaceChildren(title,close,details);
+ if(typeof dialog.showModal==="function")dialog.showModal();
+ else dialog.setAttribute("open","");
 }
 
 function syncClientGate(){
@@ -1310,7 +1343,7 @@ function internalProductCard(item){
  const form=document.createElement('form');form.autocomplete='off';
  const qtyLabel=document.createElement('label');qtyLabel.textContent='参与数量（最低'+item.minimumQuantity+'）';
  const qty=document.createElement('input');qty.type='number';qty.min=String(item.minimumQuantity);qty.max='1000000';qty.step='1';qty.value=String(item.minimumQuantity);qty.required=true;qtyLabel.append(qty);
- const pinLabel=document.createElement('label');pinLabel.textContent='六位商品参与密码';
+ const pinLabel=document.createElement('label');pinLabel.textContent='参与交易密码（六位数字）';
  const pin=document.createElement('input');pin.type='password';pin.inputMode='numeric';pin.pattern='[0-9]{6}';pin.minLength=6;pin.maxLength=6;pin.autocomplete='off';pin.required=true;pinLabel.append(pin);
  const fund=item.itemType==="FUND"&&Number.isInteger(item.fundDays);
  const total=document.createElement('output');const updateTotal=()=>{
@@ -1344,7 +1377,30 @@ function internalProductCard(item){
  if(stock)form.append(textNode("确认后将更新账户余额和持仓，订单不会提交交易所。","stock-sale-note"));
  form.append(button,feedback);
  if(fund)card.append(textNode('持有 '+item.fundDays+' 天 · 期间固定收益 '+(item.fundReturnBps/100)+'% · 到期一次返还本金与收益',''));
- card.append(form);
+ const purchaseDialog=document.createElement('dialog');
+ purchaseDialog.className='cn-reference-dialog';
+ purchaseDialog.setAttribute('aria-label','参与交易 · '+item.name);
+ const heading=document.createElement('h2');heading.textContent='参与交易 · '+item.name;
+ const close=document.createElement('button');close.type='button';
+ close.className='secondary-button';close.textContent='关闭';
+ close.addEventListener('click',()=>{
+  if(internalPurchaseBusy)return;
+  pin.value='';
+  if(typeof purchaseDialog.close==='function')purchaseDialog.close();
+  else purchaseDialog.removeAttribute('open');
+ });
+ purchaseDialog.addEventListener('cancel',event=>{
+  if(internalPurchaseBusy)event.preventDefault();
+  else pin.value='';
+ });
+ purchaseDialog.append(heading,close,form);
+ const open=document.createElement('button');open.type='button';
+ open.className='primary-button';open.textContent='参与交易';
+ open.addEventListener('click',()=>{
+  if(typeof purchaseDialog.showModal==='function')purchaseDialog.showModal();
+  else purchaseDialog.setAttribute('open','');
+ });
+ card.append(open,purchaseDialog);
  form.addEventListener('submit',async event=>{
   event.preventDefault();if(!token||!account||internalPurchaseBusy||(stock&&!stockQuote))return;
   const usedToken=token,quantity=Number(qty.value),fingerprint=item.termsId+':'+item.termsVersion+':'+quantity;
@@ -1368,6 +1424,11 @@ function internalProductCard(item){
     if(stock&&STOCK_QUOTE_ERRORS.has(error.message)){
      stockQuote=null;updateTotal();
      feedback.textContent='报价已变化或暂不可用，请重新获取报价后确认。';
+    }else if(error.message==='Participation password is incorrect'){
+     feedback.textContent='参与交易密码不正确，请核对后重试。';
+     pin.focus();
+    }else if(error.message==='Participation password temporarily locked; retry in 15 minutes'){
+     feedback.textContent='密码尝试次数过多，请在 15 分钟后重试。';
     }else{
      feedback.textContent='购买未确认：'+error.message+'。若网络中断，重试将使用同一请求编号。';
     }

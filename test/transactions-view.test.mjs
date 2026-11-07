@@ -96,7 +96,7 @@ test("dark transactions workspace renders real account orders with filtering, pa
     const malformedRow = el("transactionRows").querySelectorAll("tr[data-transaction-row]")[2];
     assert.equal(malformedRow.children[3].textContent,"—");
     assert.equal(malformedRow.children[5].textContent,"—");
-    assert.equal(malformedRow.children[7].textContent,"—");
+    assert.equal(malformedRow.children[6].textContent,"—");
 
     el("transactionSearch").value = "MSFT";
     el("transactionSearch").dispatchEvent(new dom.window.Event("input",{bubbles:true}));

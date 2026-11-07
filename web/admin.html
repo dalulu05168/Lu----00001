@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CN Capital | 管理控制台</title><link rel="icon" type="image/svg+xml" href="/cn-logo.svg"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/portal.css"><link rel="stylesheet" href="/admin-cn-v3.css"></head>
+<title>CN Capital · 管理后台</title><link rel="icon" type="image/svg+xml" href="/cn-logo.svg"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/portal.css"><link rel="stylesheet" href="/admin-cn-v3.css"></head>
 <body>
 
 <main class="workspace" id="adminRoot">
@@ -66,7 +66,7 @@
         </details><details open><summary class="admin-nav-group">CLIENT OPERATIONS / 客户业务</summary>
         <button type="button" data-admin-page="clients">客户</button>
         <button type="button" data-admin-page="mirror">App 镜像</button>
-        <button type="button" data-admin-page="catalog">证券资料</button>
+        <button type="button" data-admin-page="catalog">产品目录</button>
         <button type="button" data-admin-page="commodities">大宗商品</button>
         <button type="button" data-admin-page="approvals">审批</button>
         <button type="button" data-admin-page="treasury">资金</button>
@@ -351,7 +351,7 @@
         </div>
       </section>
       <section class="admin-pane" data-pane="catalog" hidden>
-        <div class="pane-title"><span>INSTRUMENT DIRECTORY</span><h2>证券资料管理</h2><p>股票、基金与 IPO 资料</p></div>
+        <div class="pane-title"><span>INSTRUMENT DIRECTORY</span><h2>产品目录</h2><p>股票、基金与 IPO 资料</p></div>
         <section class="panel" id="catalogArea">
           <div class="heading"><h3>证券目录</h3><button type="button" id="refreshListings" class="outline">刷新</button></div>
           <form id="listingForm" class="field-grid">
@@ -374,7 +374,7 @@
               <label id="listingHoldingDaysField">买入后持仓天数<input id="listingHoldingDays" type="number" min="0" max="3650" step="1" value="0"></label>
               <label>优惠比例（%）<input id="listingQuickDiscount" type="number" min="0" max="99.99" step="0.01" value="0"></label>
               <label>最低买入数量<input id="listingQuickMinimum" type="number" min="1" max="1000000" step="1" value="1"></label>
-              <label>六位参与密码<input id="listingQuickPassword" type="password" maxlength="6" inputmode="numeric" autocomplete="new-password"></label>
+              <label>参与交易密码（六位数字）<input id="listingQuickPassword" type="password" pattern="[0-9]{6}" minlength="6" maxlength="6" inputmode="numeric" autocomplete="new-password"></label>
               <fieldset id="listingFundFields" class="fund-fields" hidden>
                 <legend>基金到期设置</legend>
                 <label>封面图片链接（HTTPS，选填）<input id="listingFundImage" type="url" maxlength="2048"></label>

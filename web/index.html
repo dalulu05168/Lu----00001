@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#17191c">
   <meta name="description" content="CN Capital Markets — 四地市场、投资组合与账户记录工作台。">
-  <title>CN Capital | CN Capital Markets</title><link rel="icon" type="image/svg+xml" href="/cn-logo.svg">
+  <title>CN Capital · 客户前台</title><link rel="icon" type="image/svg+xml" href="/cn-logo.svg">
   <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/portal.css"><link rel="stylesheet" href="/front-cn-v3.css"><link rel="stylesheet" href="/front-cn-v4.css">
 </head>
 <body>
@@ -101,7 +101,7 @@
         <span class="status-chip" id="connectionStatus"><span class="status-dot"></span><span id="connectionText">连接检测中</span></span>
         <span class="clock" id="clock" aria-label="当前时间">—</span>
         <a href="#intelligence-section" class="header-action">Market Insights <span aria-hidden="true">↗</span></a>
-        <button class="primary-button export-button" id="exportHistoryButton" type="button" disabled title="导出当前已加载并符合筛选条件的订单记录">↓ Export Loaded Records</button>
+        <button class="primary-button export-button" id="exportHistoryButton" type="button" disabled title="导出当前已加载并符合筛选条件的订单记录">导出已加载记录</button>
         <a href="#account-section" class="profile" aria-label="账户信息"><span class="profile-avatar">G</span><span class="profile-label"><span>Account</span></span><span class="chevron">⌄</span></a>
       </div>
     </header>
@@ -127,13 +127,13 @@
 
         <div class="transaction-metrics" aria-label="交易摘要">
           <article class="transaction-metric-card">
-            <div class="transaction-metric-top"><span>Total Volume</span><span class="metric-menu" aria-hidden="true">•••</span></div>
+            <div class="transaction-metric-top"><span>总成交额</span><span class="metric-menu" aria-hidden="true">•••</span></div>
             <div class="transaction-metric-value" id="transactionVolume">—</div>
             <p id="transactionVolumeNote">暂无记录</p>
             <span class="metric-sparkline sparkline-amber" aria-hidden="true"></span>
           </article>
           <article class="transaction-metric-card">
-            <div class="transaction-metric-top"><span>Realized P/L</span><span class="metric-menu" aria-hidden="true">•••</span></div>
+            <div class="transaction-metric-top"><span>已实现盈亏</span><span class="metric-menu" aria-hidden="true">•••</span></div>
             <div class="transaction-metric-value" id="realizedPnl">—</div>
             <p id="realizedPnlNote">暂无收益数据</p>
             <span class="metric-sparkline sparkline-blue" aria-hidden="true"></span>
@@ -150,23 +150,23 @@
         <div class="panel transaction-list-panel">
           <div class="panel-heading transaction-list-heading">
             <div><h2>交易明细</h2><p class="panel-caption">交易明细</p></div>
-            <span class="transaction-range-label" id="transactionRangeLabel">All time</span>
+            <span class="transaction-range-label" id="transactionRangeLabel">全部时间</span>
           </div>
           <div class="transaction-table-wrap">
             <table class="transactions-table">
-              <thead><tr><th>Symbol</th><th>Name</th><th>Type</th><th>Price</th><th>Quantity</th><th>Total (USD)</th><th>Record</th><th>Time</th></tr></thead>
+              <thead><tr><th>代码</th><th>名称</th><th>类型</th><th>价格</th><th>数量</th><th>总额 USD</th><th>时间</th><th>记录</th></tr></thead>
               <tbody id="transactionRows"><tr><td colspan="8" class="transaction-empty">登录后查看账户交易记录</td></tr></tbody>
           </table>
           <p class="account-sync" id="transactionHistoryScope">登录后查看记录范围</p>
           </div>
           <div class="transaction-pagination">
-            <div class="page-size-control"><label for="transactionPageSize">Rows</label><select id="transactionPageSize"><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option></select><span id="transactionPageSummary">0 records</span></div>
-            <div class="page-buttons"><button type="button" id="transactionPrev" disabled>← Previous</button><span id="transactionPageNumber">1</span><button type="button" id="transactionNext" disabled>Next →</button></div>
+            <div class="page-size-control"><label for="transactionPageSize">每页条数</label><select id="transactionPageSize"><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option></select><span id="transactionPageSummary">0 条记录</span></div>
+            <div class="page-buttons"><button type="button" id="transactionPrev" disabled>← 上一页</button><span id="transactionPageNumber">1</span><button type="button" id="transactionNext" disabled>下一页 →</button></div>
           </div>
         </div>
         <div class="primary-grid">
           <section class="panel performance-panel" id="terminal-section" aria-labelledby="performanceTitle">
-            <div class="panel-heading"><h2 id="performanceTitle">Stock Chart / 股票走势</h2><span class="view-label">Third-party chart</span></div>
+            <div class="panel-heading"><h2 id="performanceTitle">股票走势</h2><span class="view-label">Third-party chart</span></div>
             <div class="market-switcher"><span class="filters-label">MARKETS</span><div id="markets" class="market-nav" aria-label="选择市场"></div></div>
             <div class="instrument-selector">
               <span id="marketLabel">US MARKET</span><span class="instrument-separator">·</span><span id="symbolTitle">AAPL</span><span class="instrument-name" id="symbolName">Apple Inc.</span>
@@ -237,23 +237,23 @@
       </div>
 
       <section class="metrics" id="overview-metrics" aria-label="组合指标">
-        <article class="metric-card"><div class="metric-header"><span>Total Portfolio Value</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5 12 5l8 4.5-8 4.5L4 9.5zM4 14l8 4.5 8-4.5M4 18l8 4.5 8-4.5"/></svg></span></div><div class="metric-value" id="portfolioValue">—</div><p id="portfolioValueNote">暂无估值数据</p></article>
+        <article class="metric-card"><div class="metric-header"><span>总资产 USD</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5 12 5l8 4.5-8 4.5L4 9.5zM4 14l8 4.5 8-4.5M4 18l8 4.5 8-4.5"/></svg></span></div><div class="metric-value" id="portfolioValue">—</div><p id="portfolioValueNote">暂无估值数据</p></article>
         <article class="metric-card"><div class="metric-header"><span>今日已实现毛盈亏</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" aria-hidden="true"><path d="M4 20v-8M9 20V8M14 20V4M19 20v-11"/></svg></span></div><div class="metric-value" id="overviewDayRealizedPnl">—</div><p>USD · UTC · 未扣手续费与税费</p></article>
         <article class="metric-card"><div class="metric-header"><span>本月已实现毛盈亏</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 9 11l4 3 8-9M16 5h5v5"/></svg></span></div><div class="metric-value" id="overviewMonthRealizedPnl">—</div><p>USD · UTC · 不含未实现盈亏</p></article>
       </section>
 
       <div class="secondary-grid">
         <section class="panel allocation-panel" aria-labelledby="allocationTitle">
-          <div class="panel-heading"><h2 id="allocationTitle">Allocation</h2><span class="view-label">By Holdings</span></div>
+          <div class="panel-heading"><h2 id="allocationTitle">持仓配置</h2><span class="view-label">按持仓数量</span></div>
           <p class="panel-caption">按市场统计持仓数量</p>
           <div id="marketCards" class="market-cards"></div>
           <div class="allocation-footer">
-            <div><span>Cash Balance</span><strong id="cash">—</strong><small>USD</small></div>
-            <div><span>Orders</span><strong id="orderCount">—</strong><small>records</small></div>
+            <div><span>现金余额</span><strong id="cash">—</strong><small>USD</small></div>
+            <div><span>订单</span><strong id="orderCount">—</strong><small>条记录</small></div>
           </div>
         </section>
         <section class="panel intelligence-panel" id="intelligence-section" aria-labelledby="intelligenceTitle">
-          <div class="panel-heading"><h2 id="intelligenceTitle">Market Intelligence</h2><span class="view-label">Insights</span></div>
+          <div class="panel-heading"><h2 id="intelligenceTitle">市场资讯</h2><span class="view-label">资讯</span></div>
           <p class="panel-caption">Market insights · 市场洞察</p>
           <div class="intelligence-items">
             <div class="intelligence-item"><span class="intelligence-category">美国 · US</span><p><a href="https://www.nasdaq.com/market-activity/quotes/press-releases" target="_blank" rel="noopener noreferrer">查看 Nasdaq 公司新闻</a></p></div>
@@ -301,7 +301,7 @@
 
       <section class="panel workflow-client-panel" id="serviceRequestsPanel" hidden aria-labelledby="serviceRequestsTitle">
         <div class="panel-heading">
-          <div><h2 id="serviceRequestsTitle">Account Requests / 账户申请中心</h2>
+          <div><h2 id="serviceRequestsTitle">账户申请中心</h2>
             <p class="panel-caption">提交请求、追踪审核状态，不代表真实入金或提现到账</p></div>
           <button class="secondary-button" id="refreshServiceRequests" type="button">刷新申请</button>
         </div>
@@ -345,14 +345,14 @@
       </section>
 
       <section class="panel" id="commodityCatalogPanel" hidden aria-labelledby="customerCommodityHeading">
-        <div class="panel-heading"><div><h2 id="customerCommodityHeading">Commodity Directory / 商品目录</h2>
+        <div class="panel-heading"><div><h2 id="customerCommodityHeading">商品目录</h2>
           <p class="panel-caption">仅展示管理员公开发布的商品；价格为人工参考信息，并非实时交易所报价</p></div>
           <button id="refreshCustomerCommodities" type="button" class="secondary-button">刷新目录</button></div>
         <p class="form-feedback" id="customerCommodityStatus" role="status" aria-live="polite"></p>
         <div id="customerCommodityItems" class="customer-commodity-grid"></div>
       </section>
       <section class="panel" id="customerSupportPanel" hidden aria-labelledby="customerSupportHeading">
-        <div class="panel-heading"><div><h2 id="customerSupportHeading">Customer Support / 客户客服</h2>
+        <div class="panel-heading"><div><h2 id="customerSupportHeading">客户客服</h2>
           <p class="panel-caption">消息由账户身份关联保存，可由有权限的客服人员回复</p></div>
           <button id="refreshCustomerSupport" type="button" class="secondary-button">刷新消息</button></div>
         <div id="customerSupportMessages" class="customer-support-messages" role="log" aria-live="polite"></div>
@@ -365,7 +365,7 @@
       </section>
       <section class="panel catalog-panel" id="catalog-section" aria-labelledby="catalogTitle">
         <div class="panel-heading">
-          <h2 id="catalogTitle">Instrument Directory · 证券资料</h2>
+          <h2 id="catalogTitle">证券资料</h2>
           <button class="secondary-button" id="refreshCatalogButton" type="button" hidden>刷新目录</button>
         </div>
         <p class="panel-caption">股票、基金与 IPO</p>

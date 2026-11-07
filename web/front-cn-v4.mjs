@@ -39,6 +39,79 @@
  else if(exportBtn)head.querySelector(".cn-v4-actions").append(exportBtn);
  const conn=document.getElementById("connectionStatus");
  if(conn)head.querySelector(".cn-v4-actions").append(conn);
+
+ // Move existing forms with their event handlers into dialogs.
+ const dialogs=[];
+ const placements=[];
+ function formDialog(node,title,triggerParent){
+  if(!node||!triggerParent)return null;
+  const dialog=document.createElement("dialog");
+  dialog.className="cn-reference-dialog";
+  const heading=document.createElement("h2");heading.textContent=title;
+  heading.id="cnDialogTitle"+dialogs.length;
+  dialog.setAttribute("aria-labelledby",heading.id);
+  const close=document.createElement("button");close.type="button";
+  close.className="secondary-button";close.textContent="关闭";
+  close.addEventListener("click",()=>dialog.close());
+  const placeholder=document.createComment("Original "+title+" location");
+  node.before(placeholder);
+  dialog.append(heading,close,node);o.append(dialog);
+  const sharedFeedback=document.getElementById("serviceRequestFeedback");
+  if(sharedFeedback&&node.id!=="customerSupportPanel"){
+   const feedback=document.createElement("p");feedback.setAttribute("role","status");
+   feedback.setAttribute("aria-live","polite");dialog.append(feedback);
+   const sync=()=>{feedback.textContent=sharedFeedback.textContent;};
+   new MutationObserver(sync).observe(sharedFeedback,{childList:true,subtree:true,characterData:true});
+   sync();
+  }
+  const trigger=document.createElement("button");trigger.type="button";
+  trigger.className="secondary-button";trigger.textContent=title;
+  trigger.addEventListener("click",()=>{
+   if(typeof dialog.showModal==="function")dialog.showModal();
+   else dialog.setAttribute("open","");
+  });
+  triggerParent.append(trigger);dialogs.push(dialog);
+  placements.push({node,placeholder,dialog,trigger});
+  return dialog;
+ }
+ const requests=document.getElementById("serviceRequestsPanel");
+ const requestGrid=requests?.querySelector(".service-request-grid");
+ if(requestGrid){
+  const controls=document.createElement("div");controls.className="cn-request-actions";
+  requestGrid.before(controls);
+  const funding=document.getElementById("fundingRequestForm");
+  const identity=document.getElementById("identityUploadForm")?.closest(".service-request-form");
+  const bank=document.getElementById("bankLinkRequestForm");
+  formDialog(funding,"充值 / 提现",controls);
+  formDialog(identity,"身份资料",controls);
+  formDialog(bank,"银行卡资料",controls);
+ }
+ const support=document.getElementById("customerSupportPanel");
+ const supportHolder=document.createElement("div");supportHolder.hidden=true;
+ const supportDialog=formDialog(support,"客户客服",supportHolder);
+ head.querySelector("#cnV4Support").addEventListener("click",()=>{
+  setTab("account");
+  if(!supportDialog||support.hidden)return;
+  if(typeof supportDialog.showModal==="function")supportDialog.showModal();
+  else supportDialog.setAttribute("open","");
+ });
+ function syncDialogMode(){
+  const mobile=o.dataset.cnMode==="mobile";
+  for(const {node,placeholder,dialog,trigger} of placements){
+   if(mobile&&node.parentNode===dialog){
+    if(dialog.open&&typeof dialog.close==="function")dialog.close();
+    placeholder.after(node);
+   }else if(!mobile&&node.parentNode!==dialog)dialog.append(node);
+   trigger.hidden=mobile;
+  }
+ }
+ syncDialogMode();
+ new MutationObserver(()=>{
+  syncDialogMode();
+  if(o.hidden)o.querySelectorAll("dialog").forEach(dialog=>{
+   if(dialog.open&&typeof dialog.close==="function")dialog.close();
+  });
+ }).observe(o,{attributes:true,attributeFilter:["hidden","data-cn-mode"]});
  const cashSource=document.getElementById("cash");
  const cashTarget=head.querySelector("#cnV4Cash");
  function syncCash(){
@@ -54,13 +127,6 @@
  }
  head.querySelectorAll(".cn-v4-tab").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.cnV4Tab)));
  head.querySelector("#cnV4Balance").addEventListener("click",()=>setTab("account"));
- head.querySelector("#cnV4Support").addEventListener("click",()=>{
-  setTab("account");
-  requestAnimationFrame(()=>{
-   const node=document.getElementById("customerSupportPanel");
-   if(node&&!node.hidden)node.scrollIntoView({behavior:"smooth",block:"start"});
-  });
- });
  head.querySelector("#cnV4Logout").addEventListener("click",()=>{
   const button=document.getElementById("railLogout")||document.getElementById("logout");
   button?.click();

@@ -310,3 +310,37 @@ body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,
   color:#e5ffae;font-weight:600;font-size:12px;text-align:right;
 }
 #adminWorkspace #adminConnectionFeedback {margin:10px 0 0;color:#aebda5;font-size:12px}
+
+/* Reference administration palette and compact capsule navigation. */
+#adminWorkspace{
+ background:radial-gradient(1100px 520px at 0 -6%,#33440f,transparent 62%),
+ radial-gradient(800px 420px at 100% 0,#1b2410,transparent 60%),#0b0d0a;
+ background-attachment:fixed;font-size:12.5px;
+}
+#adminWorkspace .admin-shell{background:transparent}
+#adminWorkspace :is(.panel,.record-detail,.pn){
+ background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.04));
+ border:1px solid rgba(255,255,255,.12);border-radius:14px;
+}
+#adminWorkspace :is(h1,h2,h3,h4,th,button){font-weight:400}
+#adminWorkspace .listing-purchase-fields{
+ border:1px solid rgba(215,255,0,.25);border-radius:12px;padding:14px;
+}
+#adminWorkspace .listing-purchase-fields legend{color:#d7ff00}
+@media(min-width:1200px){
+ #adminWorkspace #adminTopbar{
+  grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto;
+  min-height:52px;padding:6px 18px;gap:10px;
+ }
+ #adminWorkspace #adminPages{
+  grid-column:2;grid-row:1;padding:0;gap:3px;justify-content:center;
+ }
+ #adminWorkspace #adminPages details{padding:0;border:0;gap:0}
+ #adminWorkspace #adminPages button{font-size:11px;padding:5px 8px;min-height:28px}
+ #adminWorkspace #adminPageTitle{display:none}
+ #adminWorkspace #adminTopbar .cn-new-actions{grid-column:3;grid-row:1}
+}
+
+#adminWorkspace :is(button[type="submit"],.dashboard-hero .primary-button){
+ background:#d7ff00;color:#101400;border-color:#d7ff00;border-radius:999px;
+}
