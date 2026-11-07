@@ -104,5 +104,5 @@ try{
  try{cdp?.close()}catch{}
  if(chrome){chrome.kill("SIGTERM");await pause(50);if(chrome.exitCode===null)chrome.kill("SIGKILL")}
  server.closeAllConnections();await new Promise(resolve=>server.close(()=>resolve()));
- await rm(dir,{recursive:true,force:true});
+ await rm(dir,{recursive:true,force:true,maxRetries:15,retryDelay:250});
 }
