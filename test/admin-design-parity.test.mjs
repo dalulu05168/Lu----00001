@@ -48,29 +48,21 @@ test("original login, role security and live admin API logic stay in place",asyn
   assert.match(js,/data-admin-page/);
 });
 
-test("new charcoal/lime admin design is served and does not replace login page",async()=>{
-  const html=await file("web/admin.html");
-  const css=await file("web/admin-cn-v3.css");
-  const gateway=await file("src/http-api.mjs");
-  const document=new JSDOM(html).window.document;
-  const links=[...document.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.getAttribute("href"));
-  assert.deepEqual(links,["/admin.css","/portal.css","/admin-cn-v3.css"]);
-  assert.match(gateway,/"\/admin-cn-v3\.css"/);
-  assert.ok(document.querySelector("#adminWorkspace #adminPages.admin-nav"),"The live nav uses #adminPages itself as .admin-nav");
-  assert.match(css,/#adminWorkspace\s+#adminTopbar\s*\{[^}]*margin-left:\s*0/);
-  assert.match(css,/#adminWorkspace\s+#adminPages\s*\{/);
-  assert.match(css,/#adminWorkspace\s+#adminPages\s*\{\s*position:\s*static;[^}]*min-height:\s*0;[^}]*flex-direction:\s*row/);
-  assert.match(css,/#adminWorkspace\s+#adminPages summary\s*\{display:none!important\}/);
-  assert.match(css,/#adminWorkspace \.admin-main/);
-  assert.match(css,/dialog\[open\]/);
-  assert.match(css,/#d7ff00/);
-  const loginLogo=document.querySelector("#admin-login .portal-logo img");
-  assert.equal(loginLogo?.getAttribute("src"),"/cn-login-logo.svg");
-  assert.match(css,/#admin-login\.portal\s*\{[^}]*#090c09/);
-  assert.match(css,/#admin-login \.portal-primary\s*\{[^}]*#d7ff00/);
-  // The admin login keeps its existing markup/auth forms; only its scoped visual skin changes.
-  assert.match(html,/class="portal"/);
-  assert.match(html,/id="adminTotpForm"/);
+test("restored classic admin sidebar uses original CSS while keeping TOTP and controls",async()=>{
+ const html=await file("web/admin.html"),css=await file("web/admin.css");
+ const doc=new JSDOM(html).window.document;
+ const links=[...doc.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.getAttribute("href"));
+ assert.deepEqual(links,["/admin.css","/portal.css"]);
+ assert.equal(doc.getElementById("adminTopbar").hidden,true);
+ assert.ok(doc.querySelector("#adminWorkspace .admin-shell .admin-nav #adminPages"));
+ assert.equal(doc.querySelectorAll("#adminPages [data-admin-page]").length,10);
+ assert.ok(doc.querySelector("#admin-login .portal-logo img[src='/cn-login-logo.svg']"));
+ assert.ok(doc.getElementById("adminTotpForm"));
+ assert.ok(doc.getElementById("openFundingApprovals"));
+ assert.ok(doc.getElementById("refreshAdminConnectionStatus"));
+ assert.match(css,/\.admin-shell/);
+ assert.match(html,/original-admin-responsive-navigation/);
+ assert.doesNotMatch(html,/href="\/admin-cn-v3\.css"/);
 });
 
 test("mobile navigation and hidden role-specific controls are not overridden by styling",async()=>{
