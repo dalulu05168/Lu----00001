@@ -31,10 +31,8 @@ test("stock symbols use explicit provider exchange codes", () => {
   assert.equal(resolveTradingViewSymbol({market:"US",symbol:"NOT_LISTED"}),null);
   assert.equal(resolveTradingViewSymbol({market:"US",symbol:"AAPL<script>"}),null);
   assert.equal(tradingViewSymbolUrl("NASDAQ:AAPL<script>"),null);
-  // HK/CN/MY were withdrawn (no working free quote source found for them):
-  // their symbols are no longer mapped, even with an otherwise-known code.
-  assert.equal(resolveTradingViewSymbol({market:"HK",symbol:"0700"}),null);
-  assert.equal(resolveTradingViewSymbol({market:"CN",symbol:"600519"}),null);
+  assert.equal(resolveTradingViewSymbol({market:"HK",symbol:"700"}),null);
+  assert.equal(resolveTradingViewSymbol({market:"CN",symbol:"600519"}),"SSE:600519");
   assert.equal(resolveTradingViewSymbol({market:"MY",symbol:"1155"}),null);
 });
 
