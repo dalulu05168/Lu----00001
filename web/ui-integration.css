@@ -169,3 +169,29 @@ img[src="/ui-brand.png"] { object-fit: contain; }
 .mobile-app .mobile-home-balance .balance{font-size:clamp(27px,8vw,40px)}
 
 #overview .cn-layout-assets{display:flex;flex-direction:column;gap:10px;min-width:0}
+
+#overview .cn-reference-account-metrics{display:none}
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="account"]:not([data-cn-mode="mobile"]) .workspace{
+ display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:12px;align-items:start
+}
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="account"]:not([data-cn-mode="mobile"]) .cn-reference-account-metrics{
+ grid-column:1/-1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px
+}
+.cn-reference-account-metric strong{display:block;font-size:22px;color:#d7ff00;margin-top:8px}
+#overview.cn-v4-private .cn-reference-account-metric strong{filter:blur(7px)}
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="account"]:not([data-cn-mode="mobile"]) #account-section{
+ grid-column:2;grid-row:2;grid-template-columns:minmax(0,1fr);min-width:0
+}
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="account"]:not([data-cn-mode="mobile"]) #serviceRequestsPanel{
+ grid-column:1;grid-row:2;min-width:0
+}
+#overview[data-cn-v4-ready="true"][data-cn-v4-tab="account"]:not([data-cn-mode="mobile"]) .workspace>:not(#account-section):not(#serviceRequestsPanel){grid-column:1/-1}
+#adminWorkspace .qa-overview-columns{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:12px;align-items:start}
+#adminWorkspace .qa-overview-columns .pn{margin:0}
+#adminWorkspace .qa-overview-ledger>.pn{margin:0}
+#adminWorkspace .qa-funding-bars{height:180px}
+@media(max-width:980px){
+ #adminWorkspace .qa-overview-columns{grid-template-columns:minmax(0,1fr)}
+ #overview[data-cn-v4-ready="true"][data-cn-v4-tab="account"]:not([data-cn-mode="mobile"]) .workspace{display:block}
+ #overview[data-cn-v4-ready="true"][data-cn-v4-tab="account"]:not([data-cn-mode="mobile"]) .cn-reference-account-metrics{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:12px}
+}

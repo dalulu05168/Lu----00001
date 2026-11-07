@@ -113,15 +113,14 @@
             <div class="sc"><span>充值已入账</span><em id="dashboardDepositPosted" style="font-size:18px">—</em><small>平台余额增加 · USD</small></div>
             <div class="sc"><span>提现已扣账</span><em id="dashboardWithdrawPosted" style="font-size:18px">—</em><small>平台余额减少 · USD</small></div>
           </div>
-          <section class="pn qa-funding-trend"><div class="ph"><span>进出账趋势</span><small>最近 7 天 · 已入账 USD</small></div><div id="dashboardFundingTrend" class="pb qa-funding-days" aria-label="最近七天进出账趋势"></div></section>
-          <p id="dashboardFundingStatus" class="pb mut" role="status" aria-live="polite" style="font-size:12px">正在读取资金申请</p>
-          <div class="pb" style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start">
-            <section class="pn"><div class="ph"><span>近期进出资金申请明细</span><button type="button" class="btn" id="dashboardOpenTreasury">查看全部</button></div>
-              <div style="overflow-x:auto"><table><thead><tr><th>类型</th><th>申请金额 USD</th><th>客户编号</th><th>审核状态</th><th>提交时间</th><th>操作</th></tr></thead><tbody id="dashboardFundingRows"></tbody></table></div>
-            </section>
-            <section class="pn"><div class="ph"><span>待办与处理分布</span></div><div class="pb" id="dashboardFundingBreakdown"></div><div class="pb"><button type="button" class="btn" id="dashboardOpenApprovals">进入审批中心</button></div></section>
+          <div class="pb qa-overview-columns">
+            <section class="pn qa-funding-trend"><div class="ph"><span>进出账趋势</span><small>最近 7 天 · 已入账 USD</small></div><div id="dashboardFundingTrend" class="pb qa-funding-days" aria-label="最近七天进出账趋势"></div></section>
+            <div class="qa-overview-side"><section class="pn"><div class="ph"><span>资金状态分布</span></div><div class="pb" id="dashboardFundingBreakdown"></div><div class="pb"><button type="button" class="btn" id="dashboardOpenApprovals">进入审批中心</button></div></section></div>
           </div>
-          <style>@media(max-width:1000px){#adminWorkspace .v4 .pn>.pb[style*="grid-template-columns:minmax"]{grid-template-columns:1fr!important}}</style>
+          <p id="dashboardFundingStatus" class="pb mut" role="status" aria-live="polite" style="font-size:12px">正在读取资金申请</p>
+          <div class="pb qa-overview-ledger"><section class="pn"><div class="ph"><span>进出资金明细</span><button type="button" class="btn" id="dashboardOpenTreasury">查看全部</button></div>
+              <div style="overflow-x:auto"><table><thead><tr><th>类型</th><th>申请金额 USD</th><th>客户编号</th><th>审核状态</th><th>提交时间</th><th>操作</th></tr></thead><tbody id="dashboardFundingRows"></tbody></table></div>
+            </section></div>
         </section>
         <details class="pn" style="margin-top:16px"><summary class="ph" style="cursor:pointer">系统运行与接入状态</summary>
           <div class="pb">

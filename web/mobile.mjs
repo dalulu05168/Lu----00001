@@ -12,7 +12,7 @@ const S={
  products:null,ledger:null,requests:null,support:null,privateReady:false,
  priceAvailable:false,stockQuoteConfigured:false,quote:null,quoteSymbol:"",
  selected:{market:"US",symbol:"AAPL",name:"Apple Inc."},
- search:"",filter:"全部",loading:true,failed:false,submitting:false,
+ search:"",filter:"全部",orderDays:0,productType:"",loading:true,failed:false,submitting:false,
  error:"",lastUpdated:null,quoteLoading:false,tabBeforeSheet:null
 };
 const mny=cents=>Number.isSafeInteger(Number(cents))?(Number(cents)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}):"—";
@@ -97,29 +97,48 @@ function market(){
  const same=S.quote?.symbol===S.selected.symbol||S.quoteSymbol===S.selected.symbol;
  return '<div class="header-line"><h1>行情</h1>'+buttonAction("刷新报价","quote")+'</div>'
  +'<label class="field">查找证券<input id="mobileSearch" type="search" placeholder="搜索股票代码或名称" value="'+esc(S.search)+'" autocomplete="off"></label>'
+ +panel("市场证券",list?'<div class="list">'+list+'</div>':empty("未找到匹配证券。"))
  +dataPanel("当前标的",marketPanel(S.selected,same?S.quote:null,S.quoteLoading)
  +'<div class="chart phone-market-chart" id="mobileStockChart" aria-label="股票参考走势图"><div class="loading">正在加载参考图表…</div></div><p class="chart-caption">图表来自公开第三方，可能延迟；不作为交易订单结算价格。</p>'
  +'<div class="grid2">'+buttonAction("添加 / 移出自选","favorite-selected")+buttonAction("进入交易","go-trade")+'</div>')
- +panel("市场证券",list?'<div class="list">'+list+'</div>':empty("未找到匹配证券。"))
  +note("仅展示现有后台覆盖的行情。没有可信报价时显示“—”，不生成演示曲线。","info");
+}
+const productTypes=[["","全部"],["STOCK","股票"],["FUND","基金"],["IPO","IPO"],["COMMODITY","大宗商品"]];
+const orderRanges=[[0,"全部时间"],[1,"今日"],[7,"近7天"],[30,"近30天"]];
+function choiceRow(options,active,attribute){
+ return '<div class="phone-data-filters">'+options.map(([value,label])=>
+  '<button type="button" '+attribute+'="'+value+'" aria-selected="'+(value===active)+'">'+label+'</button>').join("")+'</div>';
 }
 function trade(){
  const quoteReady=S.quote?.symbol===S.selected.symbol&&Number.isSafeInteger(S.quote?.priceCents);
  const regularEnabled=S.priceAvailable&&S.selected.market==="US";
  const prod=onlyArray(S.products?.items);
- return '<div class="header-line"><h1>交易</h1>'+buttonAction("获取报价","quote")+'</div>'
+ const products=prod.filter(item=>!S.productType||(item.itemType||item.item_type)===S.productType);
+ return '<div class="header-line"><h1>交易</h1>'+buttonAction("刷新产品","reload")+'</div>'
+ +choiceRow(productTypes,S.productType,"data-product-type")
+ +productCatalog(products,i=>buttonAction("查看参与","product","mini-button",'data-product-index="'+prod.indexOf(products[i])+'"'))
  +panel("证券交易",'<div class="hero-title"><span class="coin">'+esc(S.selected.symbol.slice(0,2))+'</span><div style="flex:1"><strong>'+esc(S.selected.symbol)+'</strong><small>'+esc(S.selected.name)+'</small></div></div><p class="muted">当前报价：'+(quoteReady?amount(S.quote.priceCents):"—")+'</p>'
  +'<form id="mobileOrderForm" class="stack"><label class="field">交易方向<select id="mobileSide"><option value="BUY">买入</option><option value="SELL">卖出</option></select></label>'
  +field("数量（股）","mobileQuantity","number","1",'min="1" max="1000000" step="1" required')
  +'<p class="muted">订单价格由服务端可信行情确定，页面不接受手动价格。</p>'
  +'<button class="primary" type="submit" '+(!regularEnabled?"disabled":"")+'>提交内部订单</button></form>'
  +(!regularEnabled?note("当前可信执行报价未连接，订单不可提交；系统不会伪造成交。"):note("仅为平台内部交易记录，不向交易所或券商发送真实订单。","info")))
- +productCatalog(prod,i=>buttonAction("查看参与","product","mini-button",'data-product-index="'+i+'"'))
+ +watchSection()
+ +orderList(orderRows().slice(0,3),"全部",{showFilters:false,title:"最近交易"})
  +note("购买内部产品需核对当前条款版本，可能要求参与密码；真实交易功能以服务端状态为准。","info");
+}
+function visibleOrderRows(){
+ const records=orderRows();
+ if(!S.orderDays)return records;
+ const dayMs=86400000;
+ const today=Math.floor((Date.now()+28800000)/dayMs)*dayMs-28800000;
+ const since=today-(S.orderDays-1)*dayMs;
+ return records.filter(record=>Date.parse(record.date)>=since);
 }
 function orders(){
  return '<div class="header-line"><h1>订单</h1>'+buttonAction("导出记录","export")+'</div>'
- +orderList(orderRows(),S.filter)
+ +choiceRow(orderRanges,S.orderDays,"data-order-days")
+ +orderList(visibleOrderRows(),S.filter)
  +note("页面仅呈现已从账户服务读取的订单，不提供虚构的“已成交”状态。","info");
 }
 function requestSection(){
@@ -132,8 +151,9 @@ function requestSection(){
 }
 function account(){
  return '<div class="header-line"><h1>我的账户</h1>'+buttonAction("刷新数据","reload")+'</div>'
+ +panel("现金余额 USD",'<div class="balance">'+amount(S.account?.account?.cashCents)+'</div><div class="grid2">'+buttonAction("充值","deposit")+buttonAction("提现","withdraw")+buttonAction("身份审核","kyc")+buttonAction("登记银行账户","bank")+'</div>')
  +accountSummary(S.account?.account,S.lastUpdated)
- +'<div class="grid2">'+buttonAction("银行资料","bank")+buttonAction("身份审核","kyc")+buttonAction("充值申请","deposit")+buttonAction("提现申请","withdraw")+'</div>'
+ +renderHoldings(S.account?.positions,S.ledger?.positions)
  +requestSection()
  +panel("客户客服",'<div class="stack"><div class="list">'+onlyArray(S.support?.messages).slice(-20).map(m=>row(m.senderUserId===S.support?.thread?.clientId?"我的消息":"客服回复",stamp(m.createdAt),'<small>'+esc(String(m.body||"").slice(0,130))+'</small>')).join("")+'</div>'
  +'<form id="mobileSupportForm" class="stack"><label class="field">发送客服消息<textarea id="mobileSupportText" maxlength="4000" required placeholder="输入需要客服处理的问题"></textarea></label>'
@@ -311,6 +331,10 @@ function downloadOrders(){
  setTimeout(()=>URL.revokeObjectURL(url),1200);
 }
 async function onAction(e){
+ const productType=e.target.closest("[data-product-type]");
+ if(productType){S.productType=productType.dataset.productType;render();return;}
+ const orderDays=e.target.closest("[data-order-days]");
+ if(orderDays){S.orderDays=Number(orderDays.dataset.orderDays);render();return;}
  const filter=e.target.closest("[data-filter]");
  if(filter){S.filter=filter.dataset.filter;render();return;}
  const tab=e.target.closest("[data-tab]");

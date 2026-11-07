@@ -74,6 +74,21 @@
   placements.push({node,placeholder,dialog,trigger});
   return dialog;
  }
+ const accountMetrics=document.createElement("div");
+ accountMetrics.className="cn-reference-account-metrics";
+ account.before(accountMetrics);
+ for(const [sourceId,label] of [["portfolioValue","总资产 USD"],["cash","现金余额 USD"],["analyticsPositionCost","持仓成本 USD"],["transactionVolume","总成交额 USD"],["realizedPnl","已实现盈亏 USD"]]){
+  const source=document.getElementById(sourceId);
+  if(!source)continue;
+  const card=document.createElement("section");
+  card.className="panel cn-reference-account-metric";
+  const title=document.createElement("span");
+  title.textContent=label;
+  const value=document.createElement("strong");
+  const sync=()=>{value.textContent=source.textContent.trim()||"—";};
+  new MutationObserver(sync).observe(source,{childList:true,subtree:true,characterData:true});
+  sync();card.append(title,value);accountMetrics.append(card);
+ }
  const requests=document.getElementById("serviceRequestsPanel");
  const requestGrid=requests?.querySelector(".service-request-grid");
  if(requestGrid){

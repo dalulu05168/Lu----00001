@@ -68,7 +68,7 @@ export function orderRecords(orders, ledger) {
     (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
 }
 
-export function orderList(records, filter = "全部") {
+export function orderList(records, filter = "全部", {showFilters = true, title = "平台交易记录"} = {}) {
   const tabs = ["全部", "买入", "卖出"].map(value => '<button type="button" data-filter="' + value
     + '" aria-selected="' + (value === filter) + '">' + value + '</button>').join("");
   const list = records.filter(record => filter === "全部" || (filter === "买入"
@@ -81,8 +81,8 @@ export function orderList(records, filter = "全部") {
     return row(record.name || "订单", details.join(" · "), '<div class="phone-data-value"><strong>'
       + money(record.total) + '</strong><small>' + escape(record.status) + '</small></div>');
   }).join("");
-  return '<div class="phone-data-filters">' + tabs + '</div>'
-    + dataPanel("平台交易记录", list || empty("当前筛选下暂无订单记录"));
+  return (showFilters ? '<div class="phone-data-filters">' + tabs + '</div>' : "")
+    + dataPanel(title, list || empty("当前筛选下暂无订单记录"));
 }
 
 export function accountSummary(account, updated) {
