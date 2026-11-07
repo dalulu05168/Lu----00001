@@ -146,7 +146,12 @@ try{
   assert.ok(requests.every(x=>x.method==="GET"),"Fixture would have modified state");
   console.log("ADMIN_BROWSER_OK "+JSON.stringify({desktop,phone,apiRequests:requests.length,mode:"isolated fixture"}));
 }finally{
-  cdp?.close();if(browser&&!browser.killed)browser.kill("SIGTERM");
+  cdp?.close();
+  if(browser&&browser.exitCode===null){
+    const closed=new Promise(done=>browser.once("exit",done));
+    browser.kill("SIGTERM");
+    await Promise.race([closed,pause(2000)]);
+  }
   await new Promise(done=>server.close(done));
-  await rm(temp,{recursive:true,force:true});
+  await rm(temp,{recursive:true,force:true,maxRetries:12,retryDelay:150});
 }
