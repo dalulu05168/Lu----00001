@@ -436,8 +436,17 @@
 #overview[data-cn-mode="mobile"] [hidden]{display:none!important}
 /* Every one of the five mobile tabs shows the ORIGINAL live DOM/forms in a distinct view.
    Hidden via CSS, never detached/recreated: app.mjs and existing API bindings are preserved. */
-#overview[data-cn-mode="mobile"] :is(.trade-board,.metrics,.secondary-grid,.account-grid,
- #serviceRequestsPanel,#commodityCatalogPanel,#customerSupportPanel,#catalog-section,#records-section){display:none!important}
+/* Avoid mixed :is() specificity: an ID in one item must not suppress unrelated
+   class-based screens (e.g. the market chart after switching tabs). */
+#overview[data-cn-mode="mobile"] .trade-board,
+#overview[data-cn-mode="mobile"] #overview-metrics,
+#overview[data-cn-mode="mobile"] .secondary-grid,
+#overview[data-cn-mode="mobile"] #account-section,
+#overview[data-cn-mode="mobile"] #serviceRequestsPanel,
+#overview[data-cn-mode="mobile"] #commodityCatalogPanel,
+#overview[data-cn-mode="mobile"] #customerSupportPanel,
+#overview[data-cn-mode="mobile"] #catalog-section,
+#overview[data-cn-mode="mobile"] #records-section {display:none!important}
 #overview[data-cn-mode="mobile"][data-cn-view="home"] :is(.trade-board,#overview-metrics){display:flex!important}
 #overview[data-cn-mode="mobile"][data-cn-view="home"] #overview-metrics{display:grid!important}
 #overview[data-cn-mode="mobile"][data-cn-view="home"] #transactions-section{display:none!important}
@@ -445,8 +454,8 @@
 #overview[data-cn-mode="mobile"][data-cn-view="market"] .trade-board{display:flex!important}
 #overview[data-cn-mode="mobile"][data-cn-view="market"] #transactions-section > :not(.primary-grid){display:none!important}
 #overview[data-cn-mode="mobile"][data-cn-view="market"] .trade-board-side > :not(.movers-panel){display:none!important}
-#overview[data-cn-mode="mobile"][data-cn-view="trade"] .trade-board,
-#overview[data-cn-mode="mobile"][data-cn-view="trade"] #catalog-section{display:flex!important}
+#overview[data-cn-mode="mobile"][data-cn-view="trade"] .trade-board{display:flex!important}
+#overview[data-cn-mode="mobile"][data-cn-view="trade"] #catalog-section{display:block!important}
 #overview[data-cn-mode="mobile"][data-cn-view="trade"] #transactions-section{display:none!important}
 #overview[data-cn-mode="mobile"][data-cn-view="trade"] .trade-board-side > :not(.order-panel):not(.holdings-panel){display:none!important}
 #overview[data-cn-mode="mobile"][data-cn-view="orders"] .trade-board{display:flex!important}
