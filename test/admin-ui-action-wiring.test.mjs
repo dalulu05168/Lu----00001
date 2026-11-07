@@ -91,6 +91,9 @@ async function withAdminFixture(role,caseRows,run){
     await waitFor(()=>!el("adminWorkspace").hidden&&el("dashboardFundingRows").querySelector("button.funding-review-link"),"funding dashboard");
     await run({el,doc:dom.window.document,window:dom.window,calls});
   }finally{
+    // Finish fast mocked API promises before tearing down global jsdom objects.
+    // Otherwise a pending dashboard refresh may reject after this test ends.
+    await pause(100);
     globalThis.document=old.document;globalThis.sessionStorage=old.sessionStorage;
     globalThis.fetch=old.fetch;dom.window.close();
   }
