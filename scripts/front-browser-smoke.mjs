@@ -142,5 +142,5 @@ try{
  if(child){child.kill("SIGTERM");await pause(70);if(child.exitCode===null)child.kill("SIGKILL");}
  server.closeAllConnections();
  await new Promise(resolve=>server.close(()=>resolve()));
- await rm(dir,{recursive:true,force:true});
+ await rm(dir,{recursive:true,force:true,maxRetries:15,retryDelay:250});
 }
