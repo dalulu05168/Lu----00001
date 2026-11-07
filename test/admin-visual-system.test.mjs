@@ -10,7 +10,8 @@ test("graphite terminal visual hierarchy preserves information architecture and 
  const doc=dom.window.document;
  const groups=doc.querySelectorAll("#adminPages .admin-nav-group");
  assert.equal(groups.length,3);
- assert.equal(doc.querySelectorAll("#adminPages [data-admin-page]").length,9);
+ assert.deepEqual([...doc.querySelectorAll("#adminPages [data-admin-page]")].map(node=>node.dataset.adminPage),
+   ["dashboard","accounts","clients","mirror","catalog","commodities","approvals","treasury","support","risk","audit"]);
  assert.ok(doc.querySelector(".nav-brand-mark"));
  assert.ok(doc.querySelector(".nav-brand-copy"));
  const dashboard=doc.querySelector('[data-pane="dashboard"]');

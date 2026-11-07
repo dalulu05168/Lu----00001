@@ -9,6 +9,9 @@ It does not alter the web frontend, administrator frontend, database or broker e
 - Real server-backed account summary, internal positions and recent internal order history.
 - Server-backed watchlist create/delete, with the four market codes that the existing API accepts.
 - Customer support conversation GET/POST using the existing server endpoint.
+- In-app password-confirmed account deletion **request** and current request status (not yet completed erasure).
+- Public browser account deletion request form at `/account-deletion` supplied by the shared backend; requires new migration 012.
+- Privacy-policy HTTPS links with release-time validation; operator must supply and publish the actual policy.
 - Pull-to-refresh, filtered transaction list and explicit user-initiated CSV text sharing.
 - Never invent quotes, investment P/L, funds custody, actual broker fills or instrument ownership.
 
@@ -26,8 +29,8 @@ It does not alter the web frontend, administrator frontend, database or broker e
 
 ## Release blockers (not implemented or not independently verified)
 - User-requested branding can be swapped later, but app identifiers / icon / copy must be approved before release.
-- Account deletion mechanism and privacy-policy URL have not been implemented / supplied;
-  existing web service permits registration and must be assessed against store deletion rules.
+- Deletion request intake is implemented, but **completed data erasure** and responsible operations workflow are not yet implemented. Not store-ready.
+- Official privacy policy URL and public support URL are not supplied or deployed.
 - No screenshots, store metadata, app review demo account, distribution certs, or signing credentials supplied.
 - No on-device Android/iOS run, build, binary, review approval or live store publication has been verified.
 - Existing /api/account snapshot is capped at 100 order records; the UI must not imply full historical coverage.
@@ -46,3 +49,6 @@ The mobile app exposes the codes only when adding watchlist instruments and labe
 Apple's financial app/entity requirements and minimum native functionality, and Google Play's
 Financial features declaration, apply. Independent legal and compliance review is necessary.
 Use store accounts owned by the entity entitled to offer the declared financial service.
+
+## Submission verification gate
+Run `npm run release:verify` with a real Expo project ID, verified HTTPS API/policy/support URLs, and documentary signoff environment variables (see `mobile/store/release-checklist.md`). This command must fail until those missing requirements are fulfilled; it can never certify store approval. The public web deletion page also requires the latest branch to be deployed and DB migration 012 applied. No deployment or migration has been applied by these commits.

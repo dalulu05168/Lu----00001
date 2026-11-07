@@ -9,6 +9,7 @@ import {listWatchlist,addWatchlistItem,removeWatchlistItem} from "./watchlist-se
 import {submitClientRequest,listClientRequests} from "./operational-workflows.mjs";
 import {listCommodityProducts} from "./commodity-products.mjs";
 import {getCustomerSupport,sendCustomerSupportMessage} from "./support-messages.mjs";
+import {getAccountDeletionRequest,requestAccountDeletion} from "./account-deletion-service.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
 async function readBody(req,maxBodyBytes){
@@ -33,9 +34,9 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   // exact custom hostnames have distinct landing pages; preview URLs stay intact.
   const hostname=String(req.headers.host??"").toLowerCase().split(":")[0];
   const adminLanding=hostname==="admin.nuvexapro.com";
-  if(req.method==="GET" && ["/","/index.html","/app.mjs","/styles.css","/admin.html","/admin.mjs","/admin.css","/portal.css","/portal.mjs","/market-allocation.mjs","/favicon.svg"].includes(url.pathname)){
+  if(req.method==="GET" && ["/","/index.html","/app.mjs","/styles.css","/admin.html","/admin.mjs","/admin.css","/portal.css","/portal.mjs","/market-allocation.mjs","/favicon.svg","/account-deletion","/account-deletion.mjs"].includes(url.pathname)){
    const file=(adminLanding&&(url.pathname==="/"||url.pathname==="/index.html"))
-     ?"admin.html":url.pathname==="/"?"index.html":url.pathname.slice(1);
+     ?"admin.html":url.pathname==="/"?"index.html":url.pathname==="/account-deletion"?"account-deletion.html":url.pathname.slice(1);
    try{const bytes=await readFile(new URL("../web/"+file,import.meta.url));res.writeHead(200,{"content-type":file.endsWith(".mjs")?"text/javascript; charset=utf-8":file.endsWith(".css")?"text/css; charset=utf-8":file.endsWith(".svg")?"image/svg+xml":"text/html; charset=utf-8","cache-control":"no-store"});res.end(bytes);return;}
    catch{return send(res,404,{error:"Not found"});}
   }
@@ -49,10 +50,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/requests","/api/commodities","/api/support","/api/account/deletion-request"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/account/deletion-request"&&!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/requests"&&!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/commodities"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/support"&&!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
@@ -112,6 +114,23 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
     if([400,403,404,409].includes(err.statusCode))return send(res,err.statusCode,{error:err.message});
     return send(res,500,{error:"Internal server error"});
    }
+  }
+  if(route==="/api/account/deletion-request"){
+    try{
+      if(req.method==="GET")return send(res,200,await getAccountDeletionRequest(db,session.userId));
+      const payload=JSON.parse(await readBody(req,maxBodyBytes));
+      if(!payload||typeof payload!=="object"||Array.isArray(payload)||
+         Object.keys(payload).some(k=>!["password","confirmation"].includes(k)))
+        return send(res,400,{error:"Invalid deletion request"});
+      return send(res,202,await requestAccountDeletion(db,session.userId,payload));
+    }catch(err){
+      if(err.statusCode===413)return send(res,413,{error:"Request too large"});
+      if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
+      if(err.message==="Invalid deletion credentials")return send(res,401,{error:"Invalid deletion credentials"});
+      if(err.message==="Invalid deletion confirmation")return send(res,400,{error:"Invalid deletion confirmation"});
+      if(err.code==="42P01")return send(res,503,{error:"Deletion workflow not provisioned"});
+      return send(res,500,{error:"Deletion request not recorded"});
+    }
   }
   if(route==="/api/account"){
    try{return send(res,200,await getAccountSnapshot(db,session.accountId));}

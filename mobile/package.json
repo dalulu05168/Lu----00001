@@ -11,7 +11,8 @@
     "test": "node --test verify/core.check.mjs",
     "check": "npm run typecheck && npm test",
     "postinstall": "node scripts/prepare-assets.mjs",
-    "prepare-assets": "node scripts/prepare-assets.mjs"
+    "prepare-assets": "node scripts/prepare-assets.mjs",
+    "release:verify": "node scripts/verify-store-release.mjs"
   },
   "dependencies": {
     "expo": "~58.0.0",

@@ -83,3 +83,66 @@ test("generated iOS and Android app icons are 1024px PNG images",async()=>{
     assert.equal(buffer.readUInt32BE(20),1024);
   }
 });
+
+test("in-app deletion API sends password re-verification and reads server-confirmed status",async()=>{
+  const {deletionStatus,submitDeletionRequest}=await import("../src/api.ts");
+  const original=globalThis.fetch,prior=process.env.EXPO_PUBLIC_API_BASE_URL;
+  try{
+    process.env.EXPO_PUBLIC_API_BASE_URL="https://secure.example";
+    const calls=[];
+    globalThis.fetch=async(url,init)=>{
+      calls.push({url:String(url),init});
+      return new Response(JSON.stringify({status:"REQUESTED",requestId:"r1",requestedAt:"2026-11-04"}),{status:init?.method==="POST"?202:200,headers:{"content-type":"application/json"}});
+    };
+    assert.equal((await deletionStatus("abc")).status,"REQUESTED");
+    assert.equal((await submitDeletionRequest("abc","secret")).status,"REQUESTED");
+    assert.equal(calls[1].url,"https://secure.example/api/account/deletion-request");
+    assert.equal(calls[1].init.method,"POST");
+    assert.equal(calls[1].init.headers.authorization,"Bearer abc");
+    assert.deepEqual(JSON.parse(calls[1].init.body),{password:"secret",confirmation:"DELETE MY ACCOUNT"});
+  }finally{globalThis.fetch=original;if(prior===undefined)delete process.env.EXPO_PUBLIC_API_BASE_URL;else process.env.EXPO_PUBLIC_API_BASE_URL=prior;}
+});
+test("privacy/deletion links allow verified HTTPS only",async()=>{
+  const {safeHttpsUrl}=await import("../src/links.ts");
+  assert.equal(safeHttpsUrl("javascript:alert(1)"),null);
+  assert.equal(safeHttpsUrl("http://example.com/legal"),null);
+  assert.equal(safeHttpsUrl("https://localhost/privacy"),null);
+  assert.equal(safeHttpsUrl("https://verified.example.org/privacy"),"https://verified.example.org/privacy");
+});
+
+test("release gate rejects unsigned or legally unapproved store submission",async()=>{
+ const {releaseIssues,loadAppConfig}=await import("../scripts/release-policy.mjs");
+ const config=await loadAppConfig();
+ const blockers=releaseIssues(config,{});
+ assert.ok(blockers.length>=10);
+ assert.ok(blockers.some(x=>x.includes("Expo project ID")));
+ assert.ok(blockers.some(x=>x.includes("real monitored")));
+ assert.ok(blockers.some(x=>x.includes("PRIVACY_POLICY_URL")));
+});
+test("release gate validates configuration separately from production network evidence",async()=>{
+ const {releaseIssues,loadAppConfig,liveReleaseChecks}=await import("../scripts/release-policy.mjs");
+ const cfg=await loadAppConfig();
+ cfg.expo.extra={...cfg.expo.extra,eas:{projectId:"test-unit-config-not-real"}};
+ const env={
+  EXPO_PUBLIC_API_BASE_URL:"https://api.operator.example.org",
+  EXPO_PUBLIC_PRIVACY_POLICY_URL:"https://legal.operator.example.org/privacy",
+  RELEASE_SUPPORT_URL:"https://support.operator.example.org/help",
+  RELEASE_LEGAL_ENTITY:"Test verified operator (unit test only)",
+  RELEASE_ALLOWED_COUNTRIES:"TEST"
+ };
+ for(const key of ["RELEASE_IOS_STORE_ACCOUNT_VERIFIED","RELEASE_ANDROID_STORE_ACCOUNT_VERIFIED","RELEASE_APP_IDS_APPROVED",
+   "RELEASE_FINANCIAL_LEGAL_REVIEW","RELEASE_DATA_RETENTION_APPROVED","RELEASE_DELETION_PROCESS_OPERATIONAL",
+   "RELEASE_PRIVACY_DISCLOSURES_APPROVED","RELEASE_REVIEW_ACCOUNT_READY","RELEASE_DEVICE_TESTS_PASSED"]){
+   env[key]="true";
+ }
+ assert.deepEqual(releaseIssues(cfg,env),[]);
+ const fetcher=async(url)=>new Response(url.endsWith("/ready")
+  ?JSON.stringify({status:"ready",database:"connected"})
+  :url.endsWith("/account-deletion")?"<html>NuvexaPro <form id='deletionForm'>account deletion</form></html>"
+  :"Policy or support information. ".repeat(12),{status:200,headers:{"content-type":"text/plain"}});
+ const checks=await liveReleaseChecks(env,fetcher);
+ assert.equal(checks.length,4);
+ assert.ok(checks.every(x=>x.passed));
+ const broken=await liveReleaseChecks(env,async()=>new Response("Not Found",{status:404}));
+ assert.ok(broken.every(x=>!x.passed));
+});
