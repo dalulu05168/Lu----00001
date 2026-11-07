@@ -82,7 +82,7 @@ function home(){
  const basis=S.analytics?.historyAvailable?amount(S.analytics?.positionCostCents):"—";
  const hero=S.watchlist?.[0]||supportedStocks()[0]||null;
  const heading=hero?'<div class="hero-title"><span class="coin">'+esc(hero.symbol.slice(0,2))+'</span><div style="flex:1"><strong>开始交易</strong><small>'+esc(hero.symbol)+' · '+esc(hero.name||hero.symbol)+'</small></div><span class="hero-go">去下单 ›</span></div>':'<div class="hero-title"><strong>开始交易</strong><span class="hero-go">查看行情 ›</span></div>';
- return '<div><div class="eyebrow">欢迎使用 CN Capital</div><h1>我的交易账户</h1><div class="eyebrow">现金余额 USD</div><div class="balance">'+balance+'</div><div class="balance-sub">持仓成本 '+basis+'</div></div>'
+ return '<div class="mobile-home-balance"><h1 class="sr-only">我的交易账户</h1><div class="eyebrow">现金余额 USD</div><div class="balance">'+balance+'</div><div class="balance-sub">持仓成本 '+basis+'</div></div>'
  +'<button class="card lime" data-action="go-trade" style="display:block;text-align:left;width:100%;color:inherit">'+heading+'<div class="hero-pr"><strong>'+esc(hero?.symbol||"查看市场")+'</strong><span class="hero-go">›</span></div></button>'
  +'<div class="actions"><button class="action" data-action="deposit"><span class="action-icon">＋</span>充值</button><button class="action withdraw" data-action="withdraw"><span class="action-icon">↓</span>提现</button><button class="action orders" data-tab="orders"><span class="action-icon">☷</span>订单</button></div>'
  +renderHoldings(S.account?.positions,S.ledger?.positions)+watchSection()

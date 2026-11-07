@@ -16,7 +16,7 @@
  head.setAttribute("aria-label","CN Capital 客户交易工作台");
  head.innerHTML=[
   '<a class="cn-v4-brand" href="#transactions-section" aria-label="CN Capital 交易">',
-  '<img src="/cn-logo.svg" width="36" height="36" alt="" decoding="async">',
+  '<img src="/ui-brand.png" width="36" height="36" alt="" decoding="async">',
   '<span><b>CN Capital</b><small>PRIVATE · TRADING</small></span></a>',
   '<nav class="cn-v4-tabs" aria-label="交易工作台模块">',
   '<button type="button" class="cn-v4-tab" data-cn-v4-tab="trade" aria-current="page">交易</button>',
@@ -114,9 +114,34 @@
  }).observe(o,{attributes:true,attributeFilter:["hidden","data-cn-mode"]});
  const cashSource=document.getElementById("cash");
  const cashTarget=head.querySelector("#cnV4Cash");
+ const balancePanel=document.createElement("section");
+ balancePanel.className="panel cn-layout-balance";
+ balancePanel.innerHTML='<div class="panel-heading"><h2>我的资产</h2></div><div class="cn-layout-cash">—</div><p>现金余额 USD</p><div class="cn-layout-shortcuts"></div>';
+ const assetsColumn=document.createElement("div");
+ assetsColumn.className="cn-layout-assets";
+ board.prepend(assetsColumn);
+ assetsColumn.append(balancePanel);
+ const holdings=board.querySelector("#holdings-section");
+ if(holdings)assetsColumn.append(holdings);
+ const shortcuts=balancePanel.querySelector(".cn-layout-shortcuts");
+ const serviceButtons=[...document.querySelectorAll(".cn-request-actions button")];
+ for(const [index,label] of ["充值","提现","身份资料","银行卡"].entries()){
+  const button=document.createElement("button");
+  button.type="button";button.className="secondary-button";button.textContent=label;
+  button.addEventListener("click",()=>{
+   if(index<2){
+    const kind=document.getElementById("fundingRequestKind");
+    if(kind)kind.value=index===0?"DEPOSIT":"WITHDRAWAL";
+   }
+   setTab("account");serviceButtons[index<2?0:index-1]?.click();
+  });
+  shortcuts.append(button);
+ }
+
  function syncCash(){
   const v=String(cashSource?.textContent||"—").trim();
   cashTarget.textContent=(v==="—"||v==="")?"—":v.startsWith("$")?v:"$"+v;
+  balancePanel.querySelector(".cn-layout-cash").textContent=cashTarget.textContent;
  }
  if(cashSource){new MutationObserver(syncCash).observe(cashSource,{subtree:true,characterData:true,childList:true});syncCash();}
  function setTab(name,scroll=true){

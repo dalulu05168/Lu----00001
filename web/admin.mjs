@@ -1308,7 +1308,7 @@ function fundingMoney(cents){
 }
 function clearFundingDashboard(message='正在读取资金申请'){
  for(const id of ['dashboardDepositAmount','dashboardWithdrawAmount','dashboardPendingCount','dashboardDepositPosted','dashboardWithdrawPosted','dashboardDepositCount','dashboardWithdrawCount'])el(id).textContent='—';
- el('dashboardFundingRows').replaceChildren();el('dashboardFundingBreakdown').replaceChildren();el('dashboardFundingStatus').textContent=message;
+ el('dashboardFundingTrend').replaceChildren();el('dashboardFundingRows').replaceChildren();el('dashboardFundingBreakdown').replaceChildren();el('dashboardFundingStatus').textContent=message;
 }
 function renderFundingDashboard(rows){
  const sum=(kind,source=rows)=>source.filter(x=>x.kind===kind).reduce((total,x)=>total+BigInt(x.amountCents),0n);
@@ -1319,6 +1319,26 @@ function renderFundingDashboard(rows){
  el('dashboardWithdrawCount').textContent=rows.filter(x=>x.kind==='WITHDRAWAL').length+' 笔提现申请';
  el('dashboardPendingCount').textContent=String(rows.filter(x=>['SUBMITTED','UNDER_REVIEW'].includes(x.status)).length);
  const posted=rows.filter(x=>x.settlementStatus==='INTERNAL_POSTED');
+ const trend=el('dashboardFundingTrend');
+ trend.replaceChildren();
+ const days=Array.from({length:7},(_,i)=>{
+  const date=new Date(Date.now()-(6-i)*86400000).toISOString().slice(0,10);
+  const records=posted.filter(row=>String(row.settledAt??row.reviewedAt??row.createdAt??'').slice(0,10)===date);
+  return {date,deposit:sum('DEPOSIT',records),withdrawal:sum('WITHDRAWAL',records)};
+ });
+ const peak=days.flatMap(day=>[day.deposit,day.withdrawal]).reduce((max,value)=>value>max?value:max,1n);
+ for(const day of days){
+  const cell=plainNode('div','','qa-funding-day');
+  const bars=plainNode('div','','qa-funding-bars');
+  for(const [kind,value] of [['deposit',day.deposit],['withdrawal',day.withdrawal]]){
+   const bar=plainNode('span','','qa-funding-'+kind);
+   bar.style.height=Number(value*100n/peak)+'%';
+   bar.title=(kind==='deposit'?'充值 ':'提现 ')+fundingMoney(value);
+   bars.append(bar);
+  }
+  cell.append(bars,plainNode('small',day.date.slice(5)));trend.append(cell);
+ }
+
  el('dashboardDepositPosted').textContent=fundingMoney(sum('DEPOSIT',posted));
  el('dashboardWithdrawPosted').textContent=fundingMoney(sum('WITHDRAWAL',posted));
  const target=el('dashboardFundingRows');target.replaceChildren();

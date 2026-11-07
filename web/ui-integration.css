@@ -135,3 +135,37 @@ img[src="/ui-brand.png"] { object-fit: contain; }
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+
+#overview .cn-layout-balance{display:none}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .cn-layout-balance{display:block}
+#overview .cn-layout-cash{font-size:30px;color:#d7ff00;margin:12px 0 4px;font-variant-numeric:tabular-nums}
+#overview.cn-v4-private .cn-layout-cash{filter:blur(7px)}
+#overview .cn-layout-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:12px}
+#overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board>.metrics{
+  grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px
+}
+@media(min-width:1120px){
+  #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board{
+    grid-template-columns:minmax(215px,.82fr) minmax(0,1.85fr) minmax(265px,1fr);
+  }
+  #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board>.cn-layout-assets{
+    grid-column:1;grid-row:2
+  }
+  #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board>#transactions-section{
+    grid-column:2;grid-row:2 / span 2
+  }
+  #overview[data-cn-v4-ready="true"]:not([data-cn-mode="mobile"]) .trade-board>.trade-board-side{
+    grid-column:3;grid-row:2 / span 2
+  }
+}
+#adminWorkspace .qa-funding-trend{margin:12px 0}
+.qa-funding-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.qa-funding-day{text-align:center;min-width:0}
+.qa-funding-bars{height:106px;display:flex;align-items:end;justify-content:center;gap:5px;border-bottom:1px solid #ffffff24}
+.qa-funding-bars span{width:18%;max-width:22px;border-radius:3px 3px 0 0}
+.qa-funding-deposit{background:#d7ff00}
+.qa-funding-withdrawal{background:#e8c27a}
+.mobile-app .mobile-home-balance{padding:4px 0}
+.mobile-app .mobile-home-balance .balance{font-size:clamp(27px,8vw,40px)}
+
+#overview .cn-layout-assets{display:flex;flex-direction:column;gap:10px;min-width:0}
