@@ -88,21 +88,16 @@ try{
   await pause(200);
   await evalJS(client,"document.getElementById('entryGate').hidden=true;document.getElementById('overview').hidden=false");
   if(view.width>=1000){
-   const layout=await evalJS(client,"(()=>{document.getElementById('internalProductsPanel').hidden=false;document.getElementById('orderForm').hidden=false;const rect=s=>{const r=document.querySelector(s)?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}:null};return {mode:document.getElementById('overview').dataset.cnMode,nav:rect('#cnV4Header'),oldSidebar:rect('#overview .sidebar'),chart:rect('#overview #stockChart'),transactions:rect('#overview .transaction-list-panel'),trading:rect('#overview .trade-board-side > .order-panel'),holdings:rect('#overview #holdings-section'),watchlist:rect('#overview #markets-section'),accent:getComputedStyle(document.querySelector('#overview')).getPropertyValue('--cn-lime').trim(),scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+   // User-requested restoration: old sidebar and ALL original API-bound IDs,
+   // NOT the deleted CN v4 synthetic two-tab header.
+   const layout=await evalJS(client,"(()=>{const rect=s=>{const r=document.querySelector(s)?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height}:null};const app=document.getElementById('overview');return {mode:app.dataset.cnMode,nav:rect('#cnV4Header'),oldSidebar:rect('#overview .sidebar'),chart:rect('#overview #stockChart'),transactions:rect('#overview .transaction-list-panel'),trading:rect('#overview .trade-board-side > .order-panel'),holdings:rect('#overview #holdings-section'),watchlist:rect('#overview #markets-section'),formHooks:['orderForm','fundingRequestForm','identityUploadForm','bankLinkRequestForm','customerSupportForm'].every(id=>!!document.getElementById(id)),scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
    assert.equal(layout.mode,"desktop");
-   assert.equal(layout.accent,"#d7ff00");
-   for(const key of ["nav","chart","transactions","trading","holdings","watchlist"]){
-    assert.ok(layout[key]?.width>140&&layout[key]?.height>10,"desktop module missing "+key);
-   }
-   assert.equal(layout.oldSidebar?.height,0,"Deprecated sidebar must not remain visible in new desktop UI");
-   const route=await evalJS(client,"(()=>{const o=document.getElementById('overview');const a=document.querySelector('#cnV4Header [data-cn-v4-tab=account]');if(!a)return null;a.click();const acct=document.querySelector('#account-section').getBoundingClientRect();const trading=document.querySelector('.trade-board').getBoundingClientRect();const first=o.dataset.cnV4Tab;document.querySelector('#cnV4Header [data-cn-v4-tab=trade]').click();return {first,accountHeight:acct.height,tradeHiddenHeight:trading.height,back:o.dataset.cnV4Tab}})()");
-   assert.ok(route&&route.first==="account"&&route.accountHeight>80&&route.tradeHiddenHeight===0&&route.back==="trade","New CN trade/account screens must toggle while retaining all forms");
-   assert.ok(layout.chart.y<layout.transactions.y,"desktop chart precedes history");
-   assert.ok(layout.trading.y<=layout.holdings.y,"desktop trading panel precedes holdings");
-   assert.ok(layout.chart.right<=layout.trading.x+8,"desktop trading panel sits beside chart");
+   assert.equal(layout.nav,null,"Replaced CN v4 two-tab header must be removed");
+   assert.ok(layout.oldSidebar?.width>140&&layout.oldSidebar?.height>100,"The original sidebar must be restored");
+   assert.equal(layout.formHooks,true,"Original customer service workflows must remain");
    const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
    await writeFile(join("artifacts","cn-front-desktop.png"),Buffer.from(shot.data,"base64"));
-   console.log("FRONT_BROWSER_OK "+JSON.stringify({view:"desktop",login,layout}));
+   console.log("FRONT_BROWSER_OK "+JSON.stringify({view:"desktop",login,layout,mode:"restored original UI, not authenticated"}));
   }else{
    const mobile=await evalJS(client,"(()=>{const o=document.getElementById('overview');const r=s=>{const e=document.querySelector(s);const v=e?.getBoundingClientRect();return v?{x:v.x,y:v.y,width:v.width,height:v.height}:null};return {mode:o.dataset.cnMode,view:o.dataset.cnView,hero:r('#cnMobileHero'),header:r('#cnMobileHeader'),bottom:r('#cnMobileTabs'),originalSidebar:r('#overview .sidebar'),cash:document.getElementById('cnMobileCash').textContent.trim(),tabCount:document.querySelectorAll('#cnMobileTabs button[data-cn-tab]').length,deviceChrome:document.querySelectorAll('.isl,.mirror-status-bar,.sb').length,bodyWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
    assert.equal(mobile.mode,"mobile","narrow screen must choose mobile UI automatically");
