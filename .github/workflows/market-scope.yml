@@ -1,0 +1,42 @@
+name: US-CN market scope verification
+on:
+  push:
+    branches: ['dev/remove-hk-my-markets-20261108']
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'web/**'
+      - 'db/**'
+      - 'test/**'
+      - '.github/workflows/market-scope.yml'
+permissions:
+  contents: read
+jobs:
+  verify-scope-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+      - name: Execute market, authentication-boundary and UI tests
+        run: >
+          node --test
+          test/ledger.test.mjs
+          test/market-data.test.mjs
+          test/market-allocation.test.mjs
+          test/catalog-instruments.test.mjs
+          test/stock-chart.test.mjs
+          test/web-ui.test.mjs
+          test/http-api.test.mjs
+          test/admin-controls.test.mjs
+      - name: Build the frontend
+        run: npm run build
+      - name: Validate generated entrypoints
+        run: |
+          test -s public/index.html
+          test -s public/app.mjs
+          test -s public/market-allocation.mjs
+          test -s public/stock-chart.mjs
