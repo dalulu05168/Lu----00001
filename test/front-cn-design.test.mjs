@@ -19,7 +19,8 @@ test("real front keeps login/register/account controls, order actions and underl
  assert.equal(doc.querySelector("#entryGate .portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
  assert.equal(doc.querySelector("#overview .sidebar-logo img")?.getAttribute("src"),"/cn-logo.svg");
  assert.equal(doc.querySelector("#overview #terminal-section")?.id,"terminal-section");
- assert.doesNotMatch(doc.querySelector("#entryGate").textContent,/模拟交易/);\n assert.match(doc.querySelector("#overview").textContent,/模拟交易平台/);
+ assert.doesNotMatch(doc.querySelector("#entryGate").textContent,/模拟交易/);
+ assert.match(doc.querySelector("#overview").textContent,/模拟交易平台/);
 });
 test("actual frontend script still binds live APIs and market chart, not demo fixture data",async()=>{
  const js=await get("web/app.mjs");
