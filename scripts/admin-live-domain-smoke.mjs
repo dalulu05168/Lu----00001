@@ -36,11 +36,16 @@ assert.ok(login.body.includes('src="/cn-login-logo.svg"'),"Animated CN logo is m
 assert.ok(!login.body.includes('class="portal-subtitle"'),"Obsolete admin login subtitle is visible");
 assert.ok(!login.body.includes('class="portal-foot"'),"Obsolete admin login footer is visible");
 assert.equal((login.body.match(/data-admin-page=/g)||[]).length,10,"Expected all 10 management modules");
+for(const id of ["dashboardFundingRows","fundingRequestRows","openFundingApprovals","refreshAdminConnectionStatus","adminReadyResult","adminMirrorResult","adminConnectionFeedback"])
+  assert.ok(login.body.includes('id="'+id+'"'),"New admin operation missing on deployed page: "+id);
+assert.match(login.body,/<th>操作<\/th>/,"Funding overview must expose the approval action column");
 
 const css=await get("/admin-cn-v3.css");
 assert.match(css.response.headers.get("content-type")||"",/text\/css/);
 assert.match(css.body,/#adminWorkspace #adminTopbar/);
 assert.match(css.body,/#adminWorkspace #adminPages/);
+assert.match(css.body,/#adminWorkspace \.funding-review-link/);
+assert.match(css.body,/#adminWorkspace \.admin-ops-toolbar/);
 assert.ok(css.body.includes("display:block!important;min-height:38px"),"Production still serves the old hidden narrow-screen menu rule");
 
 const logo=await get("/cn-login-logo.svg");
@@ -54,6 +59,9 @@ const app=await get("/admin.mjs");
 assert.match(app.response.headers.get("content-type")||"",/javascript/);
 assert.match(app.body,/adminLoginForm/);
 assert.match(app.body,/adminTotpForm/);
+assert.match(app.body,/function showFundingReview\(/,"Funding row drilldown handler missing");
+assert.match(app.body,/function checkAdminConnections\(/,"Live status handler missing");
+assert.match(app.body,/el\("refreshAdminConnectionStatus"\)\.addEventListener/);
 
 const ready=await get("/ready");
 assert.match(ready.response.headers.get("content-type")||"",/application\/json/);
