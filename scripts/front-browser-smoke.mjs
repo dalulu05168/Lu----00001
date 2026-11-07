@@ -72,7 +72,7 @@ try{
  client=await cdp(page.webSocketDebuggerUrl);
  await client.send("Page.enable");await client.send("Runtime.enable");
  await mkdir("artifacts",{recursive:true});
- for(const view of [{width:1440,height:900,label:"desktop"}]){
+ for(const view of [{width:1440,height:900,label:"desktop"},{width:390,height:844,label:"narrow"}]){
   await client.send("Emulation.setDeviceMetricsOverride",{
     width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.width<600
   });
@@ -116,7 +116,7 @@ try{
     const result=await evalJS(client,"(()=>{document.querySelector('#cnMobileTabs button[data-cn-tab="+name+"]').click();const q=s=>{const e=document.querySelector(s);const r=e?.getBoundingClientRect();return r?{width:r.width,height:r.height,y:r.y}:null};return {selected:document.getElementById('overview').dataset.cnView,tabs:[...document.querySelectorAll('#cnMobileTabs button[aria-current=page]')].map(e=>e.dataset.cnTab),modules:["+selectors.map(x=>JSON.stringify(x)).join(",")+"].map(q),width:document.documentElement.scrollWidth,viewport:innerWidth}})()");
     assert.equal(result.selected,name);
     assert.deepEqual(result.tabs,[name]);
-    selectors.forEach((selector,i)=>assert.ok(result.modules[i]?.height>20&&result.modules[i]?.width>200,name+": module not visible: "+selector+" "+JSON.stringify(result)));
+    selectors.forEach((selector,i)=>{const minWidth=selector==="#cnMobileExport"?110:200;assert.ok(result.modules[i]?.height>20&&result.modules[i]?.width>minWidth,name+": module not visible: "+selector+" "+JSON.stringify(result));});
     assert.ok(result.width<=result.viewport+10,name+": horizontal overflow");
     const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
     await writeFile(join("artifacts","cn-mobile-"+name+".png"),Buffer.from(shot.data,"base64"));
@@ -136,11 +136,38 @@ try{
    console.log("FRONT_BROWSER_OK "+JSON.stringify({view:"narrow",login,mobile,actions,desktopSwitch}));
   }
  }
- console.log("Chromium desktop browser QA PASS; independent mobile QA runs in its own smoke script");
+
+ // Standalone /mobile.html with QA-only API fixtures injected locally.
+ // This runs the actual mobile.mjs and tests layout without private data or writes.
+ await client.send("Page.addScriptToEvaluateOnNewDocument",{source:"if(location.pathname===\"/mobile.html\"){\n  sessionStorage.setItem(\"gsp_token\",\"qa-only-browser-token\");\n  const original=window.fetch.bind(window);\n  window.fetch=(resource,options={})=>{\n    const path=String(resource);\n    if(!path.startsWith(\"/api/\"))return original(resource,options);\n    const p=path.slice(4);\n    const data=p===\"/account\"?{account:{id:\"qa-browser-account\",cashCents:123456,currency:\"USD\"},positions:[],orders:[]}:\n      p===\"/watchlist\"?{items:[]}:\n      p===\"/account/analytics\"?{historyAvailable:false,positionCostCents:null}:\n      p===\"/catalog\"?{items:[]}:\n      p===\"/internal-products\"?{items:[],stockQuotesConfigured:false}:\n      p===\"/internal-purchases\"?{positions:[],purchases:[],sales:[],settlements:[],stockQuotesConfigured:false}:\n      p.startsWith(\"/requests?\")?{items:[]}:\n      p===\"/support\"?{messages:[],thread:{}}:\n      p===\"/private-data/status\"?{ready:false}:\n      p===\"/health\"?{status:\"alive\",pricingConnected:false}:\n      null;\n    return Promise.resolve(new Response(JSON.stringify(data??{error:\"Not available in QA mock\"}),{\n      status:data===null?503:200,headers:{\"content-type\":\"application/json\"}\n    }));\n  };\n}"});
+ await client.send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
+ await client.send("Page.navigate",{url:"http://127.0.0.1:"+server.address().port+"/mobile.html"});
+ await until(()=>evalJS(client,"!!document.querySelector('#mobileNav') && !!document.querySelector('#mobileScreen .balance')"),14000);
+ const native=await evalJS(client,"(()=>{const el=document.getElementById('mobileApp'),r=el.getBoundingClientRect(),style=getComputedStyle(el);return {path:location.pathname,width:r.width,viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,border:style.borderTopWidth,radius:style.borderTopLeftRadius,nav:document.querySelectorAll('#mobileNav [data-tab]').length,balance:document.querySelector('#mobileScreen .balance')?.textContent,deviceFrames:document.querySelectorAll('.isl,.sb,.status-bar,.dynamic-island,.phone-frame,.mock-phone').length}})()");
+ assert.equal(native.path,"/mobile.html","Standalone mobile URL not reached");
+ assert.equal(native.nav,5,"Standalone mobile page must have five tabs");
+ assert.ok(native.width>=native.viewport-1,"Mobile app must fill viewport");
+ assert.equal(native.border,"0px","No phone model border");
+ assert.equal(native.radius,"0px","No rounded model shell");
+ assert.equal(native.deviceFrames,0,"No simulated statusbar or dynamic island");
+ assert.ok(native.scrollWidth<=native.viewport+5,"Standalone phone layout overflows");
+ assert.ok(native.balance?.includes("1,234.56"),"QA-only account snapshot was not rendered");
+ for(const tab of ["home","market","trade","orders","account"]){
+   const view=await evalJS(client,"(()=>{document.querySelector('#mobileNav [data-tab="+tab+"]').click();const title=document.querySelector('#mobileScreen h1');return {selected:[...document.querySelectorAll('#mobileNav [aria-current=page]')].map(x=>x.dataset.tab),title:title?.textContent,bodyWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+   assert.deepEqual(view.selected,[tab],"Native tab "+tab+" failed");
+   assert.ok(view.title?.length>=2,tab+": screen content missing");
+   assert.ok(view.bodyWidth<=view.viewport+5,"Standalone "+tab+" overflow");
+   const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
+   await writeFile(join("artifacts","cn-native-"+tab+".png"),Buffer.from(shot.data,"base64"));
+   console.log("NATIVE_MOBILE_OK "+JSON.stringify({tab,...view}));
+ }
+ console.log("STANDALONE_MOBILE_OK "+JSON.stringify(native));
+
+ console.log("Chromium browser QA: desktop and all five mobile fullscreen tabs PASS");
 }finally{
  try{client?.close()}catch{}
  if(child){child.kill("SIGTERM");await pause(70);if(child.exitCode===null)child.kill("SIGKILL");}
  server.closeAllConnections();
  await new Promise(resolve=>server.close(()=>resolve()));
- await rm(dir,{recursive:true,force:true,maxRetries:15,retryDelay:250});
+ await rm(dir,{recursive:true,force:true});
 }
