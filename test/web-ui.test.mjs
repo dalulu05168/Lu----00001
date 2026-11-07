@@ -68,7 +68,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("markets").querySelectorAll("button").length, 2);
     assert.equal(el("marketCards").querySelectorAll("button").length, 2);
     assert.equal(el("quotePrice").textContent, "—");
-    assert.equal(el("performanceTitle").textContent,"Stock Chart / 股票走势");
+    assert.equal(el("performanceTitle").textContent,"股票走势");
     assert.equal(el("stockChart").querySelector("script"),null);
     assert.match(el("stockChart").textContent,/登录后查看公开走势图/);
     assert.doesNotMatch(html,/TradingView|tradingview|在数据源查看/);
