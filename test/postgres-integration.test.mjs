@@ -98,6 +98,11 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
       db.query("INSERT INTO watchlist_items(account_id,market,symbol) VALUES($1,$2,$3)",[registerA.value.accountId,"HK","0700"]),
       /check constraint/
     );
+    await assert.rejects(
+      db.query("INSERT INTO positions(account_id,market,symbol,quantity) VALUES($1,$2,$3,$4)",
+        [registerA.value.accountId,"MY","1155",1]),
+      /check constraint/
+    );
     const removeSaved = await request("/api/watchlist", {
       method:"DELETE",token:tokenA,body:{market:"CN",symbol:"600519"}
     });

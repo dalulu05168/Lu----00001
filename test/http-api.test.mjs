@@ -19,6 +19,16 @@ test("rejects unauthenticated order",async()=>withServer(async base=>{
 test("rejects client-controlled account ID",async()=>withServer(async base=>{
  const res=await fetch(base+"/api/orders",{method:"POST",headers:{authorization:"Bearer good","idempotency-key":"key-12345678"},body:JSON.stringify({accountId:"other"})});assert.equal(res.status,400);
 }));
+test("authenticated order API rejects Hong Kong and Malaysia markets before pricing",async()=>withServer(async base=>{
+ for(const market of ["HK","MY"]){
+  const res=await fetch(base+"/api/orders",{
+   method:"POST",headers:{"content-type":"application/json",authorization:"Bearer good","idempotency-key":"blocked-market-"+market},
+   body:JSON.stringify({market,symbol:"AAPL",side:"BUY",quantity:1})
+  });
+  assert.equal(res.status,400);
+  assert.equal((await res.json()).error,"Unsupported market");
+ }
+}));
 test("rejects invalid JSON",async()=>withServer(async base=>{
  const res=await fetch(base+"/api/orders",{method:"POST",headers:{authorization:"Bearer good","idempotency-key":"key-12345678"},body:"{"});assert.equal(res.status,400);
 }));

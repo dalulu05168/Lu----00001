@@ -60,6 +60,12 @@ test("securities directory rejects legacy purchase and discount fields",async()=
     id:randomUUID(),status:"PUBLISHED",purchasePassword:"long-password-123"
   }),/Invalid listing update/);
 });
+test("master listing API rejects unsupported Hong Kong and Malaysia instruments",async()=>{
+ const actor={role:"MASTER",userId:randomUUID()};
+ for(const market of ["HK","MY"]){
+  await assert.rejects(createListing({},actor,{itemType:"STOCK",market,symbol:"AAPL",name:"No listing"}),/Invalid listing fields/);
+ }
+});
 test("subaccounts cannot publish stock fund or IPO listings",async()=>{
   for(const type of ["STOCK","FUND","IPO"]){
     await assert.rejects(createListing({}, {role:"SUBADMIN",userId:randomUUID()}, {
