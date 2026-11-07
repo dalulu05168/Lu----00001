@@ -72,7 +72,7 @@ try{
  client=await cdp(page.webSocketDebuggerUrl);
  await client.send("Page.enable");await client.send("Runtime.enable");
  await mkdir("artifacts",{recursive:true});
- for(const view of [{width:1440,height:900,label:"desktop"},{width:390,height:844,label:"narrow"}]){
+ for(const view of [{width:1440,height:900,label:"desktop"}]){
   await client.send("Emulation.setDeviceMetricsOverride",{
     width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.width<600
   });
@@ -136,7 +136,7 @@ try{
    console.log("FRONT_BROWSER_OK "+JSON.stringify({view:"narrow",login,mobile,actions,desktopSwitch}));
   }
  }
- console.log("Chromium browser QA: desktop and all five mobile fullscreen tabs PASS");
+ console.log("Chromium desktop browser QA PASS; independent mobile QA runs in its own smoke script");
 }finally{
  try{client?.close()}catch{}
  if(child){child.kill("SIGTERM");await pause(70);if(child.exitCode===null)child.kill("SIGKILL");}
