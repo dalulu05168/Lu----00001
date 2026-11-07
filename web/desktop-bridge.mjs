@@ -3,6 +3,7 @@ import { mountStockChart } from './stock-chart.mjs';
 
 // Isolated desktop adapter, not shared with mobile.
 const token = sessionStorage.getItem('gsp_token');
+const readOnlyPreview = new URLSearchParams(location.search).get('preview') === '1';
 const ready = () => document.documentElement.classList.add('cn-ready');
 const errorView = (message) => {
   document.body.innerHTML = '';
@@ -75,4 +76,17 @@ async function run() {
     ready();
   } catch (error) { errorView(error?.message || '账户加载失败'); }
 }
-run();
+if (readOnlyPreview) {
+  // Render's static preview cannot serve /api/account. Do not make an auth
+  // request, reuse an existing token, or allow fake local submission events.
+  document.body.classList.add('desktop-readonly-preview');
+  const notice = document.getElementById('desktop-public-preview');
+  if (notice) notice.hidden = false;
+  document.querySelectorAll('button, input, select').forEach(control => {
+    if (control.matches('.nav .tn, #hidebtn')) return;
+    control.disabled = true;
+  });
+  ready();
+} else {
+  run();
+}
