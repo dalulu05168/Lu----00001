@@ -1,0 +1,40 @@
+name: Restore original customer and admin workspaces
+on:
+  push:
+    branches: ['restore/frontend-admin-pre-ui-20261107']
+  pull_request:
+    paths:
+      - 'web/index.html'
+      - 'web/admin.html'
+      - 'test/restore-original-workspaces.test.mjs'
+      - '.github/workflows/restore-original-workspaces.yml'
+permissions:
+  contents: read
+jobs:
+  restore-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check existing live backend JS
+        run: |
+          node --check web/app.mjs
+          node --check web/admin.mjs
+          node --check src/http-api.mjs
+      - name: Confirm original workbenches and same-origin HTTP paths
+        run: node --test test/restore-original-workspaces.test.mjs
+      - name: Build
+        run: npm run build
+      - name: Verify build outputs
+        run: |
+          test -s public/index.html
+          test -s public/admin.html
+          test -s public/app.mjs
+          test -s public/admin.mjs
+          ! grep -q 'front-cn-v4.mjs' public/index.html
+          ! grep -q 'admin-cn-v3.css' public/admin.html

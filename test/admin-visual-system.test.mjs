@@ -11,10 +11,10 @@ test("graphite terminal visual hierarchy preserves information architecture and 
  const groups=doc.querySelectorAll("#adminPages .admin-nav-group");
  assert.equal(groups.length,3);
  assert.equal(doc.querySelectorAll("#adminPages [data-admin-page]").length,10);
- const logo=doc.querySelector("#adminTopbar .cn-new-brand img.cn-new-logo");
- assert.ok(logo,"The new CN Capital top navigation must contain the actual logo");
+ const logo=doc.querySelector("#adminTopbar .nav-heading .nav-brand-mark img");
+ assert.ok(logo,"Restored original sidebar must retain the verified current logo");
  assert.equal(logo.getAttribute("src"),"/cn-logo.svg");
- assert.ok(doc.querySelector("#adminTopbar .cn-new-brand span"));
+ assert.ok(doc.querySelector("#adminTopbar .nav-heading .nav-brand-copy"));
  const dashboard=doc.querySelector('[data-pane="dashboard"]');
  assert.ok(dashboard.querySelector(".dashboard-hero"));
  assert.ok(dashboard.querySelector(".dashboard-hero-art"));

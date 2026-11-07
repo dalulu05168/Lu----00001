@@ -9,7 +9,7 @@ test("both existing login pages use the independent animated N logo and retain a
   assert.equal(userDoc.querySelector("#entryGate .portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
   assert.equal(adminDoc.querySelector("#admin-login .portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
   assert.equal(userDoc.querySelector(".sidebar-logo .cn-capital-mark")?.getAttribute("src"),"/cn-logo.svg");
-  assert.equal(adminDoc.querySelector("#adminTopbar .cn-new-logo")?.getAttribute("src"),"/cn-logo.svg");
+  assert.equal(adminDoc.querySelector("#adminTopbar .nav-heading .nav-brand-mark img")?.getAttribute("src"),"/cn-logo.svg");
   for(const id of ["adminLoginForm","adminTotpForm","totpCode","adminWorkspace","adminLogout"])
     assert.ok(adminDoc.getElementById(id),id);
   assert.match(front,/id="authForm"/);

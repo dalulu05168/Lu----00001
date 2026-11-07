@@ -118,8 +118,10 @@ try{
     const x=await js(cdp,desktopState);
     return x?.active==="dashboard"?x:null;
   });
-  assert.equal(desktop.background,"rgb(11, 13, 10)","New charcoal CSS not applied");
-  assert.equal(desktop.topDisplay,"grid","Expected new CSS grid admin topbar");
+  // Owner-requested restore: the original sidebar uses the original admin.css
+  // and retains real functionality. The replacement charcoal topbar is removed.
+  assert.equal(desktop.background,"rgba(0, 0, 0, 0)","Original sidebar should not have new topbar surface");
+  assert.notEqual(desktop.topDisplay,"none","Restored original administrator navigation must be visible");
   assert.notEqual(desktop.navDisplay,"none");
   assert.equal(desktop.role,"主账户");
   assert.equal(desktop.tabs,10);
