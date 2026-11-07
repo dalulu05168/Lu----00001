@@ -54,7 +54,7 @@ test("new charcoal/lime admin design is served and does not replace login page",
   const gateway=await file("src/http-api.mjs");
   const document=new JSDOM(html).window.document;
   const links=[...document.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.getAttribute("href"));
-  assert.deepEqual(links,["/admin.css","/portal.css","/admin-cn-v3.css"]);
+  assert.deepEqual(links,["/admin.css","/portal.css","/admin-cn-v3.css","/scrollbars.css","/ui-integration.css"]);
   assert.match(gateway,/"\/admin-cn-v3\.css"/);
   assert.ok(document.querySelector("#adminWorkspace #adminPages.admin-nav"),"The live nav uses #adminPages itself as .admin-nav");
   assert.match(css,/#adminWorkspace\s+#adminTopbar\s*\{[^}]*margin-left:\s*0/);
@@ -65,7 +65,7 @@ test("new charcoal/lime admin design is served and does not replace login page",
   assert.match(css,/dialog\[open\]/);
   assert.match(css,/#d7ff00/);
   const loginLogo=document.querySelector("#admin-login .portal-logo img");
-  assert.equal(loginLogo?.getAttribute("src"),"/cn-login-logo.svg");
+  assert.equal(loginLogo?.getAttribute("src"),"/ui-brand.png");
   assert.match(css,/#admin-login\.portal\s*\{[^}]*#090c09/);
   assert.match(css,/#admin-login \.portal-primary\s*\{[^}]*#d7ff00/);
   // The admin login keeps its existing markup/auth forms; only its scoped visual skin changes.

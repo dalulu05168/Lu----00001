@@ -54,7 +54,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   // exact custom hostnames have distinct landing pages; preview URLs stay intact.
   const hostname=String(req.headers.host??"").toLowerCase().split(":")[0];
   const adminLanding=hostname==="admin.nuvexapro.com";
-  if(req.method==="GET" && ["/","/index.html","/app.mjs","/stock-chart.mjs","/styles.css","/admin.html","/admin.mjs","/admin.css","/admin-cn-v3.css","/portal.css","/portal.mjs","/market-allocation.mjs","/favicon.svg","/cn-capital.png","/cn-logo.svg","/cn-login-logo.svg","/front-cn-v3.css","/front-cn-v4.css","/front-cn-v4.mjs","/mobile.html","/mobile.css","/mobile.mjs","/mobile-entry.mjs"].includes(url.pathname)){
+  if(req.method==="GET" && ["/","/index.html","/app.mjs","/stock-chart.mjs","/styles.css","/admin.html","/admin.mjs","/admin.css","/admin-cn-v3.css","/portal.css","/portal.mjs","/scrollbars.css","/ui-integration.css","/ui-intro.mjs","/phone-holdings.mjs","/phone-pages.mjs","/ui-brand.png","/market-allocation.mjs","/favicon.svg","/cn-capital.png","/cn-logo.svg","/cn-login-logo.svg","/front-cn-v3.css","/front-cn-v4.css","/front-cn-v4.mjs","/mobile.html","/mobile.css","/mobile.mjs","/mobile-entry.mjs"].includes(url.pathname)){
    const mobileLanding=hostname==="m.nuvexapro.com";
    const file=(mobileLanding&&(url.pathname==="/"||url.pathname==="/index.html"))
      ?"mobile.html":(adminLanding&&(url.pathname==="/"||url.pathname==="/index.html"))

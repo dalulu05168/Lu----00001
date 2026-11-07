@@ -16,8 +16,8 @@ test("real front keeps login/register/account controls, order actions and underl
    "internalProductsPanel","accountAnalyticsStatus","transactionPageSummary"];
  for(const id of ids)assert.ok(doc.getElementById(id),"Missing live user control "+id);
  assert.equal([...doc.querySelectorAll("[id]")].length,new Set([...doc.querySelectorAll("[id]")].map(x=>x.id)).size);
- assert.equal(doc.querySelector("#entryGate .portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
- assert.equal(doc.querySelector("#overview .sidebar-logo img")?.getAttribute("src"),"/cn-logo.svg");
+ assert.equal(doc.querySelector("#entryGate .portal-logo img")?.getAttribute("src"),"/ui-brand.png");
+ assert.equal(doc.querySelector("#overview .sidebar-logo img")?.getAttribute("src"),"/ui-brand.png");
  assert.equal(doc.querySelector("#overview #terminal-section")?.id,"terminal-section");
  assert.doesNotMatch(doc.querySelector("#entryGate").textContent,/模拟交易/);
  assert.match(doc.querySelector("#overview").textContent,/模拟交易平台/);

@@ -87,6 +87,7 @@ test("master can open a scoped client App mirror with account records and clear 
     const chartConfig=JSON.parse(el("mirrorAppScreen").querySelector("script").textContent);
     assert.equal(chartConfig.symbol,"NYSE:AA");
     assert.equal(chartConfig.locale,"zh_CN");
+    assert.equal(el("mirrorAppScreen").querySelector(".phone-market-identity strong").textContent,"AA");
     const chartPicker=el("mirrorAppScreen").querySelector("select");
     chartPicker.value="NASDAQ:AAPL";
     chartPicker.dispatchEvent(new dom.window.Event("change"));
@@ -97,6 +98,7 @@ test("master can open a scoped client App mirror with account records and clear 
     dom.window.document.querySelector('[data-mirror-tab="trade"]').click();
     await pause(40);
     const trade=el("mirrorAppScreen").querySelector("form");
+    assert.match(el("mirrorAppScreen").querySelector(".phone-data-card").textContent,/Newmont.*优惠 10%/);
     assert.match(trade.textContent,/NEM.*实付 9\.00 USD/);
     const [pin,password]=trade.querySelectorAll('input[type="password"]');
     pin.value="001234";password.value="synthetic-admin-password";
@@ -109,8 +111,17 @@ test("master can open a scoped client App mirror with account records and clear 
     assert.match(el("mirrorStatus").textContent,/购买已记录/);
     dom.window.document.querySelector('[data-mirror-tab="positions"]').click();
     assert.match(el("mirrorAppScreen").textContent,/AAPL/);
+    const cards=el("mirrorAppScreen").querySelectorAll(".phone-holding-card");
+    assert.equal(cards.length,2);
+    assert.match(cards[1].textContent,/Alcoa.*10 股.*1,020\.80/);
     dom.window.document.querySelector('[data-mirror-tab="orders"]').click();
     assert.match(el("mirrorAppScreen").textContent,/买入/);
+    el("mirrorAppScreen").querySelector('[data-filter="卖出"]').click();
+    assert.match(el("mirrorAppScreen").textContent,/当前筛选下暂无订单记录/);
+    el("mirrorAppScreen").querySelector('[data-filter="买入"]').click();
+    assert.equal(el("mirrorAppScreen").querySelectorAll(".phone-data-row").length,1);
+    dom.window.document.querySelector('[data-mirror-tab="assets"]').click();
+    assert.match(el("mirrorAppScreen").querySelector(".phone-account-grid").textContent,/USD.*129.00/);
     dom.window.document.querySelector('[data-mirror-tab="watchlist"]').click();
     assert.match(el("mirrorAppScreen").textContent,/MSFT/);
     assert.ok(requests.some(x=>x.url.includes("/api/admin/mirror?clientId=")&&x.options.headers.authorization==="Bearer admin-test-token"));

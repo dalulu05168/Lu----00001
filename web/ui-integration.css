@@ -1,0 +1,90 @@
+/* Shared presentation for the client, administrator and phone snapshot. */
+img[src="/ui-brand.png"] { object-fit: contain; }
+#entryGate, #admin-login {
+  background: radial-gradient(ellipse at 18% 18%, #1b3a7a, transparent 53%),
+    radial-gradient(ellipse at 90% 92%, #6a3410, transparent 44%), #05060a;
+}
+:is(#entryGate, #admin-login) .portal-card {
+  background: linear-gradient(150deg, #151a2aef, #0b0e18f5);
+  border-color: #7285a65c;
+  border-radius: 24px;
+}
+:is(#entryGate, #admin-login) .portal-primary {
+  background: linear-gradient(110deg, #67e3dc, #a7eedc);
+  border-color: #8de6d7;
+  color: #06352f;
+}
+:is(#entryGate, #admin-login) .portal-logo img {background: transparent;}
+.ui-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 18% 18%, #1b3a7a, transparent 54%),
+    radial-gradient(ellipse at 90% 92%, #6a3410, transparent 45%), #05060a;
+  animation: ui-intro-fade 1.8s both;
+}
+.ui-intro img {
+  width: min(32vw, 142px);
+  height: auto;
+  filter: drop-shadow(0 0 25px #96c8ff88);
+  animation: ui-intro-mark 1.3s cubic-bezier(.17,.8,.26,1) both;
+}
+@keyframes ui-intro-mark {from {opacity:0;transform:scale(.62)} to {opacity:1;transform:scale(1)}}
+@keyframes ui-intro-fade {0%, 62% {opacity:1} 100% {opacity:0}}
+#overview.ui-entry, #adminWorkspace.ui-entry {animation: ui-workspace-in .45s ease-out both;}
+@keyframes ui-workspace-in {from {opacity:.55;transform:translateY(4px)} to {opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce) {
+  .ui-intro { display:none; }
+  #overview.ui-entry, #adminWorkspace.ui-entry { animation:none; }
+}
+#mirrorDialog .mirror-phone { min-width: 0; }
+#adminWorkspace #mirrorDialog .mirror-device {
+  width: 390px;
+  max-width: none;
+  height: 844px;
+  min-height: 844px;
+  max-height: none;
+  zoom: var(--ui-mirror-scale, 1);
+  background: #0b0b0b;
+}
+#mirrorDialog .mirror-screen {min-height:0;overflow:auto;}
+#mirrorDialog .mirror-brand {width:30px;height:28px;flex:none;}
+.mobile-app {min-width:0;background:#0b0b0b;}
+.mobile-head {background:#10120fee;}
+.phone-holdings-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#f7f8f2}
+.phone-holdings-heading h2{margin:0;font-size:17px;line-height:1.5;font-weight:600}
+.phone-holdings-heading>span{font-size:11px;border-radius:15px;background:#d7ff0026;color:#d7ff00;padding:3px 9px}
+.phone-holdings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.phone-holding-card{min-width:0;overflow-wrap:anywhere;border:1px solid #ffffff17;background:#ffffff0d;border-radius:18px;padding:15px;color:#f7f8f2;font-size:13px;line-height:1.5}
+.phone-holding-card>div{display:flex;align-items:center;gap:9px}
+.phone-holding-card>div>span{width:33px;height:33px;flex:none;display:grid;place-items:center;border-radius:50%;background:#4946dc;color:white;font-size:12px}
+.phone-holding-card>div>strong{font-size:14px;font-weight:550}
+.phone-holding-card p{margin:9px 0 0}
+.phone-holding-card p:first-of-type,.phone-holding-card small{color:#bfc8b4}
+.phone-holding-card small{display:block;margin-top:6px}
+.phone-holding-empty{padding:25px 16px;text-align:center;color:#b5c0ae;border:1px dashed #ffffff17;border-radius:14px}
+#mirrorDialog .mirror-screen[data-shared-holdings]{padding:15px 16px;gap:14px}
+.phone-data-card{min-width:0;padding:15px;border:1px solid #ffffff17;border-radius:18px;background:#ffffff0d;color:#f7f8f2;font:400 13px/1.5 Inter,"Noto Sans SC",system-ui,sans-serif;overflow-wrap:anywhere}
+.phone-data-card h2{margin:0 0 12px;color:inherit;font-size:14px;font-weight:600}
+.phone-data-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #ffffff13}
+.phone-data-row:last-child{border-bottom:0;padding-bottom:0}
+.phone-data-row strong,.phone-data-row small,.phone-account-grid strong,.phone-account-grid small,.phone-market-identity small{display:block}
+.phone-data-row small,.phone-data-muted,.phone-account-grid small,.phone-market-identity small{color:#bfc8b4;font-size:11px}
+.phone-data-value,.phone-data-action{text-align:right;flex:none}
+.phone-data-empty{margin:0;padding:20px 12px;text-align:center;color:#bfc8b4;border:1px dashed #ffffff17;border-radius:14px}
+.phone-data-filters{display:flex;gap:7px;flex-wrap:wrap}
+.phone-data-filters button{border:0;border-radius:18px;background:#ffffff12;color:#bfc8b4;padding:7px 13px;font:inherit}
+.phone-data-filters button[aria-selected="true"]{background:#d7ff00;color:#101400}
+.phone-market-identity{display:flex;align-items:center;gap:11px}
+.phone-market-identity>span{width:37px;height:37px;flex:none;display:grid;place-items:center;border-radius:50%;background:#4946dc;color:white;font-size:12px}
+.phone-market-identity strong{font-size:16px}
+.phone-market-price{font-size:29px;font-weight:650}
+.phone-market-chart{min-height:260px;margin-top:10px;border:1px solid #ffffff17;border-radius:15px;background:#0b0e09;overflow:hidden}
+.phone-account-id{display:block;overflow-wrap:anywhere;font-size:17px}
+.phone-account-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}
+.phone-account-grid>div{padding:12px;border:1px solid #ffffff17;border-radius:14px;background:#ffffff08}
+#adminWorkspace #mirrorDialog .mirror-screen[data-shared-page]{display:flex;flex-direction:column;gap:14px;padding:15px 16px}
+#adminWorkspace #mirrorDialog .mirror-screen[data-shared-page]>*{flex-shrink:0}

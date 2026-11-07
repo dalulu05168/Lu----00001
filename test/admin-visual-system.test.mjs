@@ -13,7 +13,7 @@ test("graphite terminal visual hierarchy preserves information architecture and 
  assert.equal(doc.querySelectorAll("#adminPages [data-admin-page]").length,10);
  const logo=doc.querySelector("#adminTopbar .cn-new-brand img.cn-new-logo");
  assert.ok(logo,"The new CN Capital top navigation must contain the actual logo");
- assert.equal(logo.getAttribute("src"),"/cn-logo.svg");
+ assert.equal(logo.getAttribute("src"),"/ui-brand.png");
  assert.ok(doc.querySelector("#adminTopbar .cn-new-brand span"));
  const dashboard=doc.querySelector('[data-pane="dashboard"]');
  assert.ok(dashboard.querySelector(".dashboard-hero"));

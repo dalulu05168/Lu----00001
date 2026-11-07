@@ -6,10 +6,10 @@ const read=path=>readFile(new URL("../"+path,import.meta.url),"utf8");
 test("both existing login pages use the independent animated N logo and retain authentication controls",async()=>{
   const [front,admin]=await Promise.all([read("web/index.html"),read("web/admin.html")]);
   const userDoc=new JSDOM(front).window.document,adminDoc=new JSDOM(admin).window.document;
-  assert.equal(userDoc.querySelector("#entryGate .portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
-  assert.equal(adminDoc.querySelector("#admin-login .portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
-  assert.equal(userDoc.querySelector(".sidebar-logo .cn-capital-mark")?.getAttribute("src"),"/cn-logo.svg");
-  assert.equal(adminDoc.querySelector("#adminTopbar .cn-new-logo")?.getAttribute("src"),"/cn-logo.svg");
+  assert.equal(userDoc.querySelector("#entryGate .portal-logo img")?.getAttribute("src"),"/ui-brand.png");
+  assert.equal(adminDoc.querySelector("#admin-login .portal-logo img")?.getAttribute("src"),"/ui-brand.png");
+  assert.equal(userDoc.querySelector(".sidebar-logo .cn-capital-mark")?.getAttribute("src"),"/ui-brand.png");
+  assert.equal(adminDoc.querySelector("#adminTopbar .cn-new-logo")?.getAttribute("src"),"/ui-brand.png");
   for(const id of ["adminLoginForm","adminTotpForm","totpCode","adminWorkspace","adminLogout"])
     assert.ok(adminDoc.getElementById(id),id);
   assert.match(front,/id="authForm"/);

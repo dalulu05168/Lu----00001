@@ -1,3 +1,5 @@
+import {accountSummary,dataPanel,marketPanel,orderList,orderRecords,productCatalog} from "./phone-pages.mjs";
+import {renderHoldings} from "./phone-holdings.mjs";
 import {mountStockChart} from "./stock-chart.mjs";
 
 // All displayed balances/holdings/orders originate from the authenticated API.
@@ -24,7 +26,6 @@ const note=(label,kind="")=>'<div class="note '+kind+'">'+esc(label)+'</div>';
 const row=(title,detail,right="",action="")=>'<article class="row"'+action+'><div class="meta"><strong>'+esc(title)+'</strong><small>'+esc(detail)+'</small></div><div class="right">'+right+'</div></article>';
 const panel=(title,body,extra="")=>'<section class="card"><header class="card-head"><h3>'+esc(title)+'</h3>'+extra+'</header>'+body+'</section>';
 const field=(name,id,type="text",val="",attrs="")=>'<label class="field">'+esc(name)+'<input id="'+esc(id)+'" type="'+esc(type)+'" value="'+esc(val)+'" '+attrs+'></label>';
-const moneyValue=p=>Number(p?.cost_cents??p?.costCents??NaN);
 const loginUrl=()=>location.hostname==="m.nuvexapro.com"?"https://www.nuvexapro.com/":"/";
 function invalidate(){sessionStorage.removeItem(TOKEN_KEY);location.replace(loginUrl());}
 function mobileError(error){const message=String(error?.message??error);$("mobileConnection").className="connection bad";$("mobileConnection").textContent="同步失败";S.error=message;toast(message);}
@@ -62,36 +63,11 @@ function supportedStocks(){
  }
  return [...result.values()];
 }
-function holdingRows(){
- const result=[];
- for(const p of onlyArray(S.account?.positions)){
-  if(!p?.symbol||Number(p.quantity)<=0)continue;
-  result.push({symbol:p.symbol,market:p.market,quantity:Number(p.quantity),cost:moneyValue(p),name:p.name||p.symbol,source:"account"});
- }
- for(const p of onlyArray(S.ledger?.positions)){
-  if(!p?.code&&!p?.symbol)continue;
-  if(Number(p.quantity)<=0)continue;
-  result.push({symbol:p.symbol||p.code,market:p.market||"",quantity:Number(p.quantity),cost:moneyValue(p),name:p.name||p.code,source:"internal",locked:p.manually_locked,unlocked:p.unlocked_quantity});
- }
- return result;
-}
 function orderRows(){
- const result=[];
- for(const o of onlyArray(S.account?.orders))result.push({type:o.side==="SELL"?"卖出":"买入",name:o.symbol,quantity:o.quantity,
-  date:o.created_at??o.createdAt,price:o.price_cents??o.priceCents,total:o.amount_usd_cents??o.totalCents,status:o.status||"已记录",id:o.id});
- for(const o of onlyArray(S.ledger?.purchases))result.push({type:"内部购买",name:o.product_code??o.productCode??"商品",quantity:o.quantity,date:o.created_at??o.createdAt,
-  price:o.unit_price_cents,total:o.total_cents,status:o.status||"已记录",id:o.id});
- for(const o of onlyArray(S.ledger?.sales))result.push({type:"内部卖出",name:o.symbol??"证券",quantity:o.quantity,date:o.created_at??o.createdAt,
-  price:o.unit_price_cents,total:o.total_cents,status:o.status||"已记录",id:o.id});
- return result.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+ return orderRecords(S.account?.orders,S.ledger);
 }
 function buttonAction(label,action,className="secondary",attrs=""){
  return '<button class="'+className+'" type="button" data-action="'+action+'" '+attrs+'>'+label+'</button>';
-}
-function holdingsSection(){
- const holdings=holdingRows();
- const content=holdings.length?'<div class="cards2">'+holdings.map(p=>'<div class="card holding"><div class="hero-title"><span class="coin">'+esc(String(p.symbol).slice(0,2))+'</span><strong>'+esc(p.name)+'</strong></div><span class="quantity">'+esc(p.symbol)+' · '+p.quantity+' 股</span><span class="cost">成本 '+amount(p.cost)+'</span></div>').join("")+'</div>':empty("账户暂无持仓记录");
- return '<div class="header-line"><h2>我的持仓</h2><span class="count">'+holdings.length+'</span></div>'+content;
 }
 function watchSection(){
  const items=onlyArray(S.watchlist);
@@ -109,7 +85,7 @@ function home(){
  return '<div><div class="eyebrow">欢迎使用 CN Capital</div><h1>我的交易账户</h1><div class="eyebrow">现金余额 USD</div><div class="balance">'+balance+'</div><div class="balance-sub">持仓成本 '+basis+'</div></div>'
  +'<button class="card lime" data-action="go-trade" style="display:block;text-align:left;width:100%;color:inherit">'+heading+'<div class="hero-pr"><strong>'+esc(hero?.symbol||"查看市场")+'</strong><span class="hero-go">›</span></div></button>'
  +'<div class="actions"><button class="action" data-action="deposit"><span class="action-icon">＋</span>充值</button><button class="action withdraw" data-action="withdraw"><span class="action-icon">↓</span>提现</button><button class="action orders" data-tab="orders"><span class="action-icon">☷</span>订单</button></div>'
- +holdingsSection()+watchSection()
+ +renderHoldings(S.account?.positions,S.ledger?.positions)+watchSection()
  +note("内部账户记录，不连接券商。行情或市值不可用时不显示虚构价格。","info");
 }
 function market(){
@@ -119,10 +95,10 @@ function market(){
   '<button class="mini-button '+(watch.has(x.market+":"+x.symbol)?"active":"")+'" data-action="favorite" data-market="'+esc(x.market)+'" data-symbol="'+esc(x.symbol)+'">'+(watch.has(x.market+":"+x.symbol)?"★":"☆")+'</button>',
   ' data-symbol="'+esc(x.symbol)+'" data-market="'+esc(x.market)+'"')).join("");
  const same=S.quote?.symbol===S.selected.symbol||S.quoteSymbol===S.selected.symbol;
- const quote=S.quote&&same?amount(S.quote.priceCents):"—";
  return '<div class="header-line"><h1>行情</h1>'+buttonAction("刷新报价","quote")+'</div>'
  +'<label class="field">查找证券<input id="mobileSearch" type="search" placeholder="搜索股票代码或名称" value="'+esc(S.search)+'" autocomplete="off"></label>'
- +panel("当前标的",'<div class="hero-title"><span class="coin">'+esc(S.selected.symbol.slice(0,2))+'</span><div style="flex:1"><strong>'+esc(S.selected.symbol)+'</strong><small>'+esc(S.selected.name)+'</small></div></div><div class="symbol-price">'+quote+'</div><div class="muted">'+(S.quoteLoading?"正在读取报价…":S.quote?"只读参考报价 · "+esc(stamp(S.quote.timestampMs)):"可信报价暂不可用")+'</div><div class="chart" id="mobileStockChart" aria-label="股票参考走势图"><div class="loading">正在加载参考图表…</div></div><p class="chart-caption">图表来自公开第三方，可能延迟；不作为交易订单结算价格。</p>'
+ +dataPanel("当前标的",marketPanel(S.selected,same?S.quote:null,S.quoteLoading)
+ +'<div class="chart phone-market-chart" id="mobileStockChart" aria-label="股票参考走势图"><div class="loading">正在加载参考图表…</div></div><p class="chart-caption">图表来自公开第三方，可能延迟；不作为交易订单结算价格。</p>'
  +'<div class="grid2">'+buttonAction("添加 / 移出自选","favorite-selected")+buttonAction("进入交易","go-trade")+'</div>')
  +panel("市场证券",list?'<div class="list">'+list+'</div>':empty("未找到匹配证券。"))
  +note("仅展示现有后台覆盖的行情。没有可信报价时显示“—”，不生成演示曲线。","info");
@@ -131,10 +107,6 @@ function trade(){
  const quoteReady=S.quote?.symbol===S.selected.symbol&&Number.isSafeInteger(S.quote?.priceCents);
  const regularEnabled=S.priceAvailable&&S.selected.market==="US";
  const prod=onlyArray(S.products?.items);
- const cards=prod.map((p,i)=>{
-  const k=p.itemType||p.item_type||"";
-  return '<article class="row"><div class="meta"><strong>'+esc(p.name||p.code||"产品")+'</strong><small>'+esc(k)+' · '+esc(p.code||p.symbol||"")+'</small></div><div class="right">'+buttonAction("查看参与","product","mini-button",'data-product-index="'+i+'"')+'</div></article>';
- }).join("");
  return '<div class="header-line"><h1>交易</h1>'+buttonAction("获取报价","quote")+'</div>'
  +panel("证券交易",'<div class="hero-title"><span class="coin">'+esc(S.selected.symbol.slice(0,2))+'</span><div style="flex:1"><strong>'+esc(S.selected.symbol)+'</strong><small>'+esc(S.selected.name)+'</small></div></div><p class="muted">当前报价：'+(quoteReady?amount(S.quote.priceCents):"—")+'</p>'
  +'<form id="mobileOrderForm" class="stack"><label class="field">交易方向<select id="mobileSide"><option value="BUY">买入</option><option value="SELL">卖出</option></select></label>'
@@ -142,17 +114,12 @@ function trade(){
  +'<p class="muted">订单价格由服务端可信行情确定，页面不接受手动价格。</p>'
  +'<button class="primary" type="submit" '+(!regularEnabled?"disabled":"")+'>提交内部订单</button></form>'
  +(!regularEnabled?note("当前可信执行报价未连接，订单不可提交；系统不会伪造成交。"):note("仅为平台内部交易记录，不向交易所或券商发送真实订单。","info")))
- +panel("内部产品和大宗交易",prod.length?'<div class="list">'+cards+'</div>':empty("尚无可参与产品或暂时无法同步"))
+ +productCatalog(prod,i=>buttonAction("查看参与","product","mini-button",'data-product-index="'+i+'"'))
  +note("购买内部产品需核对当前条款版本，可能要求参与密码；真实交易功能以服务端状态为准。","info");
 }
 function orders(){
- const values=orderRows();
- const selected=values.filter(o=>S.filter==="全部"||(S.filter==="买入"?o.type.includes("买入")||o.type.includes("购买"):o.type.includes("卖出")));
- const list=selected.map(x=>row(x.name||"订单",x.type+" · "+esc(x.quantity??"—")+" · "+stamp(x.date),
-  '<strong>'+amount(x.total)+'</strong><small>'+esc(x.status)+'</small>')).join("");
- const opts=["全部","买入","卖出"].map(x=>'<button type="button" data-filter="'+x+'" aria-selected="'+(x===S.filter)+'">'+x+'</button>').join("");
- return '<div class="header-line"><h1>订单</h1>'+buttonAction("导出记录","export")+'</div><div class="inline-tabs">'+opts+'</div>'
- +panel("平台交易记录",list?'<div class="list">'+list+'</div>':empty("当前筛选下暂无订单记录"))
+ return '<div class="header-line"><h1>订单</h1>'+buttonAction("导出记录","export")+'</div>'
+ +orderList(orderRows(),S.filter)
  +note("页面仅呈现已从账户服务读取的订单，不提供虚构的“已成交”状态。","info");
 }
 function requestSection(){
@@ -164,11 +131,8 @@ function requestSection(){
  return panel("审核申请记录",list?'<div class="list">'+list+'</div>':empty("暂无申请"));
 }
 function account(){
- const a=S.account?.account||{};
- const code=String(a.id||"");
  return '<div class="header-line"><h1>我的账户</h1>'+buttonAction("刷新数据","reload")+'</div>'
- +panel("账户摘要",'<div class="eyebrow">账户编号</div><h2 style="word-break:break-all">'+esc(code?"••••"+code.slice(-8):"—")+'</h2>'
- +'<div class="grid2"><div class="card"><div class="eyebrow">币种</div><strong>'+esc(a.currency||"—")+'</strong></div><div class="card"><div class="eyebrow">现金</div><strong>'+amount(a.cashCents)+'</strong></div></div><div class="muted">最近同步 '+stamp(S.lastUpdated)+'</div>')
+ +accountSummary(S.account?.account,S.lastUpdated)
  +'<div class="grid2">'+buttonAction("银行资料","bank")+buttonAction("身份审核","kyc")+buttonAction("充值申请","deposit")+buttonAction("提现申请","withdraw")+'</div>'
  +requestSection()
  +panel("客户客服",'<div class="stack"><div class="list">'+onlyArray(S.support?.messages).slice(-20).map(m=>row(m.senderUserId===S.support?.thread?.clientId?"我的消息":"客服回复",stamp(m.createdAt),'<small>'+esc(String(m.body||"").slice(0,130))+'</small>')).join("")+'</div>'

@@ -1,3 +1,5 @@
+import {accountSummary,dataPanel,marketPanel,orderList,orderRecords,productCatalog} from "./phone-pages.mjs";
+import {renderHoldings} from "./phone-holdings.mjs";
 import {mountStockChart,mountStockHistory,resolveTradingViewSymbol} from "./stock-chart.mjs";
 const el=id=>document.getElementById(id);
 if(document.location?.hostname==="admin.nuvexapro.com"){
@@ -487,7 +489,8 @@ async function renderMirrorTrade(view,snap){
   try{
     const {items,stockQuotesConfigured}=await api("/admin/mirror-purchases");
     if(!current())return;
-    if(!items.length){notice.textContent="暂无可购买产品";return;}
+    notice.insertAdjacentHTML("beforebegin",productCatalog(items));
+    if(!items.length){notice.remove();return;}
     notice.textContent="使用所选客户的平台余额购买，订单和持仓记入该客户账户。";
     const form=document.createElement("form");form.className="mirror-trade-form";
     function field(labelText,control){
@@ -588,7 +591,10 @@ function renderMirrorMarket(view,snap){
   if(showReference)instruments.set(resolveTradingViewSymbol(reference),reference);
   const label=plainNode("label",showReference?"参考标的走势图":"走势图");label.className="mirror-chart-picker";
   const select=document.createElement("select");label.append(select);
-  const host=document.createElement("div");host.className="mirror-chart";
+  const card=document.createElement("div");
+  card.innerHTML=dataPanel("当前标的",'<div data-market-identity></div><div class="mirror-chart phone-market-chart"></div>');
+  const host=card.querySelector(".mirror-chart");
+  const identity=card.querySelector("[data-market-identity]");
   for(const [code,item] of instruments){
     const option=plainNode("option",item.name?code+" · "+item.name:code);
     option.value=code;select.append(option);
@@ -597,6 +603,7 @@ function renderMirrorMarket(view,snap){
   let chartSerial=0;
   const renderChart=()=>{
     const item=instruments.get(select.value),serial=++chartSerial;
+    identity.innerHTML=marketPanel(item);
     mountStockChart(host,item,{mobile:true});
     if(item.market!=="US")return;
     const token=adminToken,symbol=item.symbol;
@@ -612,7 +619,8 @@ function renderMirrorMarket(view,snap){
     note.textContent="公开参考行情 · 可能延迟";
     renderChart();
   });
-  view.append(label,host,note);
+  view.append(label,card.firstElementChild);
+  host.after(note);
   renderChart();
 }
 function renderMirrorWatchlist(view,snap){
@@ -678,39 +686,45 @@ function setMirrorScreen(){
   view.parentElement.dataset.activePage=mirrorActiveTab;
   el("mirrorPageTitle").textContent={watchlist:"自选",market:"行情",trade:"交易",positions:"持仓",orders:"订单",assets:"资产"}[mirrorActiveTab];
   view.scrollTop=0;
+  view.removeAttribute("data-shared-holdings");
+  view.removeAttribute("data-shared-page");
   if(!mirrorSnapshot){view.append(plainNode("p","请选择客户以读取账户快照","muted"));return;}
   const snap=mirrorSnapshot;
+  if(["trade","market","orders","assets"].includes(mirrorActiveTab))view.setAttribute("data-shared-page",mirrorActiveTab);
   if(mirrorActiveTab==="trade"){void renderMirrorTrade(view,snap);return;}
   if(mirrorActiveTab==="market"){renderMirrorMarket(view,snap);return;}
   if(mirrorActiveTab==="watchlist"){renderMirrorWatchlist(view,snap);return;}
-  const formats={
-    assets:()=>[["账户编号",snap.account?.id?"•••• "+snap.account.id.slice(-8):"—"],["账面币种",snap.account?.currency],["持仓记录",(snap.positions?.length??0)+(snap.internalProducts?.positions?.length??0)],["交易记录",(snap.orders?.length??0)+(snap.internalProducts?.purchases?.length??0)+(snap.internalProducts?.sales?.length??0)+(snap.internalProducts?.settlements?.length??0)],["自选标的",snap.watchlist?.length??0]],
-    positions:()=>[
-      ...(snap.positions??[]).map(p=>[p.market+" · "+p.symbol,Number(p.quantity).toLocaleString("en-US")+" 股"]),
-      ...(snap.internalProducts?.positions??[]).map(p=>[p.name+" · "+p.code,"数量 "+p.quantity+" · 成本 "+cashFmt(p.cost_cents)+" USD"+
-        (p.item_type==="STOCK"?(p.manually_locked?" · 人工锁仓":" · 持有期已满 "+p.unlocked_quantity+" 股"):"")])
-    ],
-    orders:()=>[
-      ...(snap.orders??[]).map(o=>({name:(o.side==="BUY"?"买入":"卖出")+" · "+o.market+":"+o.symbol,
-        detail:"数量 "+o.quantity+" · "+cashFmt(o.amount_usd_cents)+" USD",at:o.created_at})),
-      ...(snap.internalProducts?.purchases??[]).map(p=>({name:"买入 · "+p.product_name+" · "+p.product_code,
-        detail:"数量 "+p.quantity+" · 实付 "+cashFmt(p.total_cents)+" USD"+(p.due_at||p.stock_unlock_at?" · 到期 "+dateLabel(p.due_at??p.stock_unlock_at):""),at:p.created_at})),
-      ...(snap.internalProducts?.sales??[]).map(p=>({name:"卖出 · "+p.symbol,
-        detail:"数量 "+p.quantity+" · 到账 "+cashFmt(p.total_cents)+" USD",at:p.created_at})),
-      ...(snap.internalProducts?.settlements??[]).map(p=>({name:"到期返还 · "+p.product_name+" · "+p.product_code,
-        detail:"本金 "+cashFmt(p.total_cents)+" USD · 收益 "+cashFmt(p.profit_cents)+" USD",at:p.settled_at}))
-    ].sort((a,b)=>(Date.parse(b.at)||0)-(Date.parse(a.at)||0)).map(o=>[o.name,o.detail+(o.at?" · "+dateLabel(o.at):"")])
-  };
-  const rows=formats[mirrorActiveTab]?.()??[];
-  if(!rows.length){view.append(plainNode("p","该客户暂无对应记录","muted"));return;}
-  const wrapper=document.createElement("div");wrapper.className="mirror-records";
-  for(const [name,value] of rows){
-    const line=document.createElement("div");line.className="mirror-record";
-    line.append(plainNode("span",name),plainNode("span",value));wrapper.append(line);
+  if(mirrorActiveTab==="positions"){
+    view.setAttribute("data-shared-holdings","");
+    view.innerHTML=renderHoldings(snap.positions,snap.internalProducts?.positions);
+    appendMirrorStockLocks(view,snap);
+    return;
+  }
+  if(mirrorActiveTab==="orders"){
+    view.innerHTML=orderList(orderRecords(snap.orders,snap.internalProducts));
+    return;
+  }
+  view.innerHTML=accountSummary(snap.account,snap.checkedAt);
+  const totals=[
+    ["持仓记录",(snap.positions?.length??0)+(snap.internalProducts?.positions?.length??0)],
+    ["交易记录",orderRecords(snap.orders,snap.internalProducts).length],
+    ["自选标的",snap.watchlist?.length??0]
+  ];
+  const wrapper=plainNode("div","","mirror-records");
+  for(const [label,value] of totals){
+    const line=plainNode("div","","mirror-record");
+    line.append(plainNode("span",label),plainNode("span",value));wrapper.append(line);
   }
   view.append(wrapper);
-  if(mirrorActiveTab==="positions")appendMirrorStockLocks(view,snap);
 }
+
+el("mirrorAppScreen").addEventListener("click",event=>{
+  const filter=event.target.closest("[data-filter]");
+  if(!filter||mirrorActiveTab!=="orders"||!mirrorSnapshot)return;
+  const view=el("mirrorAppScreen");
+  view.innerHTML=orderList(orderRecords(mirrorSnapshot.orders,mirrorSnapshot.internalProducts),filter.dataset.filter);
+  view.querySelector('[aria-selected="true"]')?.focus();
+});
 
 function setMirrorOperationTab(tab){
  const name=tab==="requests"?"requests":"controls";

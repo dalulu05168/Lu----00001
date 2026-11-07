@@ -14,7 +14,7 @@ test("customer login remains functional but contains no redundant footer, taglin
  assert.equal(login.querySelector(".portal-foot"),null);
  assert.equal(login.querySelector(".portal-sim-note"),null);
  assert.equal(login.querySelector(".portal-subtitle"),null);
- assert.equal(login.querySelector(".portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
+ assert.equal(login.querySelector(".portal-logo img")?.getAttribute("src"),"/ui-brand.png");
  assert.ok(dom.getElementById("overview"),"Actual account workspace must remain");
  assert.ok(html.includes("/mobile-entry.mjs"),"Current mobile routing must remain");
 });
@@ -28,7 +28,7 @@ test("administrator login and real 2FA controls stay while bottom labels disappe
   assert.ok(login.querySelector("#"+id),id+" removed");
  assert.equal(login.querySelector(".portal-foot"),null);
  assert.equal(login.querySelector(".portal-subtitle"),null);
- assert.equal(login.querySelector(".portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
+ assert.equal(login.querySelector(".portal-logo img")?.getAttribute("src"),"/ui-brand.png");
  assert.ok(doc.getElementById("bootstrapForm"),"Admin setup flow must remain");
 });
 
