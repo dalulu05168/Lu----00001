@@ -31,7 +31,10 @@ test("CN front design retains all original customer, quote, transaction, and wor
  assert.ok(html.includes('src="/app.mjs"'),"Original client API implementation must remain loaded");
  assert.ok(html.includes('src="/cn-terminal-ui.mjs"'),"New UI modal bridge should load separately");
  assert.equal(doc.querySelector("#entryGate .portal-logo img")?.getAttribute("src"),"/cn-login-logo.svg");
- assert.equal(doc.querySelector(".sidebar-logo .cn-capital-mark")?.getAttribute("src"),"/cn-logo.svg");
+ assert.equal(doc.querySelector(".sidebar-logo .nuvexa-desktop-mark")?.textContent,"N");
+ assert.match(doc.title,/NUVEXA PRO/);
+ assert.equal(doc.querySelector(".portal-name")?.textContent,"NUVEXA PRO");
+ assert.equal(doc.querySelector(".portal-foot"),null,"Redundant login footer must be removed");
 });
 test("actual old customer forms move into CN dialogs and keep their attached submit listeners",async()=>{
  const html=await source("web/index.html");
@@ -106,4 +109,20 @@ test("live HTTP server serves customer frontend, new design assets and keeps adm
   server.closeAllConnections();
   await new Promise((resolve,reject)=>server.close(e=>e?reject(e):resolve()));
  }
+});
+
+test("customer login uses an N-only slow silver mark while keeping the original auth hooks",async()=>{
+ const html=await source("web/index.html"),logo=await source("web/cn-login-logo.svg"),css=await source("web/cn-terminal-v4.css");
+ assert.match(html,/id="entryForm"/);
+ assert.match(html,/id="entryEmail"/);
+ assert.match(html,/id="entryPassword"/);
+ assert.match(html,/src="\/portal.mjs"/);
+ assert.match(html,/src="\/app.mjs"/);
+ assert.match(logo,/NUVEXA PRO 银白色 N 标识/);
+ assert.match(logo,/rotateY/);
+ assert.match(logo,/28s/);
+ assert.match(logo,/prefers-reduced-motion/);
+ assert.doesNotMatch(html,/class="portal-subtitle"/);
+ assert.match(html,/内部模拟交易/,"Simulation disclosure must not disappear");
+ assert.match(css,/\.nuvexa-desktop-mark/);
 });
