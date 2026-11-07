@@ -29,6 +29,14 @@
   </div>
 </section>
 <div class="app-shell" id="overview" hidden>
+<header id="cnMobileHeader" hidden aria-label="CN Capital 手机端导航">
+  <div class="cnm-identity"><img src="/cn-logo.svg" alt="" width="39" height="39" decoding="async">
+    <div><strong>CN Capital</strong><small id="cnMobilePageTitle">账户总览</small></div>
+  </div>
+  <div class="cnm-header-actions"><button type="button" id="cnModeSwitch" title="切换至电脑界面">电脑模式</button></div>
+</header>
+<button type="button" id="cnDesktopReturn" hidden>返回手机模式</button>
+
   <aside class="sidebar" aria-label="主导航">
   <a class="sidebar-logo" href="#overview" aria-label="CN Capital Markets">
     <span class="brand-mark" aria-hidden="true"><img class="cn-capital-mark" src="/cn-logo.svg" width="192" height="192" decoding="async" alt=""></span>
@@ -99,6 +107,20 @@
     </header>
 
     <div class="workspace">
+      <section id="cnMobileHero" class="cnm-hero" aria-label="真实账户现金与操作" hidden>
+  <div class="cnm-hero-head"><span>现金余额 · USD</span><span class="cnm-account-status" id="cnMobileState">账户读取中</span></div>
+  <output id="cnMobileCash" class="cnm-big-balance" aria-live="polite">—</output>
+  <div class="cnm-detail"><span>账户估值：<b id="cnMobileAssets">—</b></span><span>持仓：<b id="cnMobileHoldings">—</b></span><span>自选：<b id="cnMobileWatchCount">—</b></span></div>
+  <div class="cnm-quick-actions" aria-label="快捷功能">
+    <button class="cnm-action" type="button" data-cn-action="deposit"><span class="cnm-action-icon" aria-hidden="true">＋</span><span>充值申请</span></button>
+    <button class="cnm-action" type="button" data-cn-action="withdraw"><span class="cnm-action-icon" aria-hidden="true">↓</span><span>提现申请</span></button>
+    <button class="cnm-action" type="button" data-cn-action="history"><span class="cnm-action-icon" aria-hidden="true">≡</span><span>交易记录</span></button>
+    <button class="cnm-action" type="button" data-cn-action="support"><span class="cnm-action-icon" aria-hidden="true">✦</span><span>联系客服</span></button>
+  </div>
+  <p style="font-size:10px;line-height:1.5;color:#91a087;margin:13px 0 0">数据以登录后的账户接口为准；买卖及资金均为平台内部模拟记录。</p>
+</section>
+<button id="cnMobileExport" type="button" hidden>导出当前已加载的交易记录</button>
+
       <div class="trade-board">
       <section class="transactions-section" id="transactions-section" aria-labelledby="transactionsTitle">
         <h2 id="transactionsTitle" class="sr-only">交易明细</h2>
@@ -357,7 +379,119 @@
       <footer class="app-footer"><span>CN Capital · CN Capital Markets</span></footer>
     </div>
   </main>
+<nav id="cnMobileTabs" hidden aria-label="手机端底部导航">
+ <button type="button" data-cn-tab="home" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v9H3z"/><path d="M9 20v-7h6v7"/></svg><span>首页</span></button>
+ <button type="button" data-cn-tab="market"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V5m0 14h18M6 15l4-5 4 3 5-8"/></svg><span>行情</span></button>
+ <button type="button" data-cn-tab="trade"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-4-4m4 4-4 4M20 17H4l4-4m-4 4 4 4"/></svg><span>交易</span></button>
+ <button type="button" data-cn-tab="orders"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>订单</span></button>
+ <button type="button" data-cn-tab="account"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg><span>账户</span></button>
+</nav>
 </div>
+<script>
+/* A full-width mobile interface over the original authenticated DOM, not a
+   device-frame embed. No demo datasets and no duplicate API requests. */
+(() => {
+ const overview=document.getElementById('overview');
+ const tabs=document.getElementById('cnMobileTabs');
+ const mobileHeader=document.getElementById('cnMobileHeader');
+ const hero=document.getElementById('cnMobileHero');
+ const mobileExport=document.getElementById('cnMobileExport');
+ const desktopReturn=document.getElementById('cnDesktopReturn');
+ const labels={home:'账户总览',market:'市场与自选',trade:'交易中心',orders:'交易记录',account:'账户与服务'};
+ const parameters=()=>new URL(location.href).searchParams;
+ function preferredMobile(){
+   const hint=navigator.userAgentData?.mobile===true;
+   const mobileUA=/iPhone|iPod|Android.*Mobile|Windows Phone/i.test(navigator.userAgent);
+   const small=innerWidth<=600;
+   const touchViewport=matchMedia('(max-width: 780px) and (pointer: coarse)').matches;
+   return hint||mobileUA||small||touchViewport;
+ }
+ const override=()=>{const value=parameters().get('view');return value==='desktop'||value==='mobile'?value:null};
+ function updateMode(){
+   const auto=preferredMobile();
+   const mode=override()??(auto?'mobile':'desktop');
+   overview.dataset.cnMode=mode;
+   overview.dataset.cnPreferred=auto?'mobile':'desktop';
+   // The original login is always left alone. These controls are inside
+   // #overview and only visible after its existing auth logic displays it.
+   const active=mode==='mobile';
+   mobileHeader.hidden=!active;tabs.hidden=!active;
+   hero.hidden=!active;mobileExport.hidden=!active;
+   desktopReturn.hidden=!(mode==='desktop'&&auto);
+   document.documentElement.dataset.cnMobile=active?'true':'false';
+   return mode;
+ }
+ function setOverride(mode){
+   const target=new URL(location.href);
+   target.searchParams.set('view',mode);
+   history.replaceState(history.state,'',target.pathname+target.search+target.hash);
+   updateMode();window.scrollTo(0,0);
+ }
+ function showTab(name,selector){
+   if(!Object.hasOwn(labels,name))return;
+   overview.dataset.cnView=name;
+   document.getElementById('cnMobilePageTitle').textContent=labels[name];
+   tabs.querySelectorAll('[data-cn-tab]').forEach(button=>{
+     if(button.dataset.cnTab===name)button.setAttribute('aria-current','page');
+     else button.removeAttribute('aria-current');
+   });
+   window.scrollTo({top:0,behavior:'instant'});
+   if(selector)requestAnimationFrame(()=>{
+     const target=document.querySelector(selector);
+     if(target&&!target.hidden&&target.getBoundingClientRect().height>0)
+       target.scrollIntoView({block:'start',behavior:'instant'});
+   });
+ }
+ function syncNumbers(){
+   const copy=(source,target,fallback='—')=>{
+     const value=document.getElementById(source)?.textContent?.trim();
+     document.getElementById(target).textContent=value||fallback;
+   };
+   copy('accountCashValue','cnMobileCash');
+   copy('portfolioValue','cnMobileAssets');
+   copy('positionCount','cnMobileHoldings');
+   copy('savedWatchlistCount','cnMobileWatchCount');
+   copy('accountStatus','cnMobileState','账户读取中');
+   mobileExport.disabled=document.getElementById('exportHistoryButton')?.disabled!==false;
+ }
+ for(const id of ['accountCashValue','portfolioValue','positionCount','savedWatchlistCount','accountStatus']){
+   const node=document.getElementById(id);
+   if(node)new MutationObserver(syncNumbers).observe(node,{characterData:true,childList:true,subtree:true});
+ }
+ new MutationObserver(syncNumbers).observe(document.getElementById('exportHistoryButton'),{attributes:true,attributeFilter:['disabled']});
+ tabs.addEventListener('click',event=>{
+   const button=event.target.closest('button[data-cn-tab]');
+   if(button)showTab(button.dataset.cnTab);
+ });
+ hero.addEventListener('click',event=>{
+   const button=event.target.closest('button[data-cn-action]');
+   if(!button)return;
+   switch(button.dataset.cnAction){
+     case 'deposit':
+     case 'withdraw':{
+       const deposit=button.dataset.cnAction==='deposit';
+       const field=document.getElementById('fundingRequestKind');
+       if(field)field.value=deposit?'DEPOSIT':'WITHDRAWAL';
+       showTab('account','#fundingRequestForm');
+       break;
+     }
+     case 'history':showTab('orders');break;
+     case 'support':showTab('account','#customerSupportPanel');break;
+   }
+ });
+ mobileExport.addEventListener('click',()=>{
+   const source=document.getElementById('exportHistoryButton');
+   if(source&&!source.disabled)source.click();
+ });
+ document.getElementById('cnModeSwitch').addEventListener('click',()=>setOverride('desktop'));
+ desktopReturn.addEventListener('click',()=>{setOverride('mobile');showTab('home')});
+ window.addEventListener('resize',updateMode,{passive:true});
+ window.addEventListener('orientationchange',updateMode,{passive:true});
+ window.addEventListener('popstate',()=>{updateMode();showTab(overview.dataset.cnView||'home')});
+ overview.dataset.cnView='home';
+ updateMode();syncNumbers();showTab('home');
+})();
+</script>
 <script type="module" src="/portal.mjs"></script>
 <script type="module" src="/app.mjs"></script>
 </body>
