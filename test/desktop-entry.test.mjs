@@ -13,3 +13,16 @@ test('static preview is read-only with no authentication fetch',async()=>{
   assert.match(bridge,/\} else \{\s*run\(\);/);
 });
 test('desktop data is authenticated, no fabricated quote or balance',async()=>{const d=await file('web/desktop.html');assert.match(d,/window\.CN_SYNC_ACCOUNT/);assert.match(d,/Number\.isSafeInteger\(a\.cashCents\)/);assert.match(d,/synthetic OHLC/);assert.doesNotMatch(d,/DATA\.reqs\.unshift\(/);assert.match(d,/h\.c!=null/);assert.match(d,/申请接口尚未接入，未提交任何充值或提现请求/);assert.doesNotMatch(d,/998937\.60|function mkDaily\(|2026-11-04 · 1 USD/);});
+
+test('read-only preview does not misrepresent disconnected account as zero activity',async()=>{
+ const d=await file('web/desktop.html');
+ assert.match(d,/nord:'—',nhold:'—',nreq:'—'/);
+ assert.match(d,/账户交易数据未连接/);
+ assert.match(d,/账户持仓数据未连接/);
+ assert.match(d,/申请记录接口未连接/);
+ assert.match(d,/桌面端布局|电脑端布局/);
+ assert.match(d,/desktop-orders-summary/);
+ assert.match(d,/\.desktop-preview-notice\{display:flex;flex:none/);
+ assert.doesNotMatch(d,/\.desktop-preview-notice\{[^}]*position:fixed/);
+ assert.match(d,/if\(!IS_READONLY_PREVIEW\)\{\['pointerdown'/);
+});
