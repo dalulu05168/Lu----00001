@@ -30,8 +30,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cn-front-browser-smoke
-          path: artifacts/cn-front-*.png
+          name: cn-mobile-and-desktop-browser-smoke
+          path: artifacts/cn-*.png
           if-no-files-found: ignore
       - name: Build static frontend
         run: npm run build
