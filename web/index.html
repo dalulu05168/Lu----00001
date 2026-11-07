@@ -7,8 +7,11 @@
   <meta name="description" content="Global Stock Platform — 四地市场、投资组合与账户记录工作台。">
   <title>Global Stock Platform | Investment</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/cn-login.css">
 </head>
 <body>
+<script>try{document.body.classList.add(sessionStorage.getItem("gsp_token")?"cn-routing":"cn-guest")}catch{document.body.classList.add("cn-guest")}</script>
+<div id="cn-entry-gate" class="cn-login-screen" hidden><main class="cn-login-card"><div class="cn-login-mark" role="img" aria-label="N"><span>N</span></div><div id="cn-entry-form-slot"></div></main></div>
 <div class="app-shell" id="overview">
   <aside class="sidebar" aria-label="主导航">
   <a class="sidebar-logo" href="#overview" aria-label="Global Stock Platform">

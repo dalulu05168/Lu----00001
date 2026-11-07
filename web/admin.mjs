@@ -87,6 +87,7 @@ el("adminLoginForm").addEventListener("submit",async event=>{
     el("adminPassword").value="";el("adminOtp").value="";
     setText("loginFeedback","管理员验证成功");
     await showDashboard();
+    if (!el("adminWorkspace").hidden) window.dispatchEvent(new Event("gsp:admin-authenticated"));
   }catch(error){setText("loginFeedback",error.message)}
   finally{button.disabled=false;}
 });

@@ -723,6 +723,7 @@ el("authForm").addEventListener("submit",async event => {
     sessionStorage.setItem("gsp_token",token);
     el("password").value = "";
     await refreshAccount();
+    if (account) window.dispatchEvent(new Event("gsp:authenticated"));
   } catch(error) {
     el("authFeedback").textContent = error.message;
   } finally {

@@ -46,3 +46,24 @@ test('US chart vendor remains present and includes AA and NEM', async () => {
   const bridge=await source('web/cn-terminal-bridge.mjs');
   assert.match(bridge,/mountStockChart/);
 });
+
+test('unified N login gate preserves both real authentication forms', async () => {
+  const customer=await source('web/index.html');
+  const admin=await source('web/admin.html');
+  const css=await source('web/cn-login.css');
+  const clientRoute=await source('web/cn-entry-redirect.mjs');
+  const adminRoute=await source('web/cn-admin-entry-redirect.mjs');
+  assert.match(customer,/id="cn-entry-gate"/);
+  assert.match(customer,/id="authForm"/);
+  assert.match(admin,/id="adminLoginForm"/);
+  assert.match(admin,/id="adminOtp"/);
+  assert.doesNotMatch(admin,/管理员使用独立的双因素验证；客户会话不具备后台权限。/);
+  assert.match(customer,/cn-login\.css/);
+  assert.match(admin,/cn-login\.css/);
+  assert.match(css,/cn-n-slow-orbit/);
+  assert.match(css,/20s linear infinite/);
+  assert.match(css,/radial-gradient\(circle/);
+  assert.match(clientRoute,/location\.replace\('\/cn-terminal\.html'\)/);
+  assert.match(adminRoute,/location\.replace\('\/cn-admin\.html'\)/);
+  assert.match(clientRoute,/slot\.appendChild\(accountFormHost\)/);
+});
