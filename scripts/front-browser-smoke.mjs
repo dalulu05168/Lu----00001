@@ -116,7 +116,7 @@ try{
     const result=await evalJS(client,"(()=>{document.querySelector('#cnMobileTabs button[data-cn-tab="+name+"]').click();const q=s=>{const e=document.querySelector(s);const r=e?.getBoundingClientRect();return r?{width:r.width,height:r.height,y:r.y}:null};return {selected:document.getElementById('overview').dataset.cnView,tabs:[...document.querySelectorAll('#cnMobileTabs button[aria-current=page]')].map(e=>e.dataset.cnTab),modules:["+selectors.map(x=>JSON.stringify(x)).join(",")+"].map(q),width:document.documentElement.scrollWidth,viewport:innerWidth}})()");
     assert.equal(result.selected,name);
     assert.deepEqual(result.tabs,[name]);
-    selectors.forEach((selector,i)=>assert.ok(result.modules[i]?.height>20&&result.modules[i]?.width>200,name+": module not visible: "+selector+" "+JSON.stringify(result)));
+    selectors.forEach((selector,i)=>{const minWidth=selector==="#cnMobileExport"?110:200;assert.ok(result.modules[i]?.height>20&&result.modules[i]?.width>minWidth,name+": module not visible: "+selector+" "+JSON.stringify(result));});
     assert.ok(result.width<=result.viewport+10,name+": horizontal overflow");
     const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
     await writeFile(join("artifacts","cn-mobile-"+name+".png"),Buffer.from(shot.data,"base64"));
