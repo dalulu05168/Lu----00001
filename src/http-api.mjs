@@ -1,3 +1,4 @@
+import {handleMobileSession} from "./mobile-session.mjs";
 import { isDatabaseReady } from "./readiness.mjs";
 import {handleAdminApi} from "./admin-http.mjs";
 import { createServer } from "node:http";
@@ -54,7 +55,9 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const hostname=String(req.headers.host??"").toLowerCase().split(":")[0];
   const adminLanding=hostname==="admin.nuvexapro.com";
   if(req.method==="GET" && ["/","/index.html","/app.mjs","/stock-chart.mjs","/styles.css","/admin.html","/admin.mjs","/admin.css","/admin-cn-v3.css","/portal.css","/portal.mjs","/market-allocation.mjs","/favicon.svg","/cn-capital.png","/cn-logo.svg","/cn-login-logo.svg","/front-cn-v3.css","/front-cn-v4.css","/front-cn-v4.mjs","/mobile.html","/mobile.css","/mobile.mjs","/mobile-entry.mjs"].includes(url.pathname)){
-   const file=(adminLanding&&(url.pathname==="/"||url.pathname==="/index.html"))
+   const mobileLanding=hostname==="m.nuvexapro.com";
+   const file=(mobileLanding&&(url.pathname==="/"||url.pathname==="/index.html"))
+     ?"mobile.html":(adminLanding&&(url.pathname==="/"||url.pathname==="/index.html"))
      ?"admin.html":url.pathname==="/"?"index.html":url.pathname.slice(1);
    try{const bytes=await readFile(new URL("../web/"+file,import.meta.url));res.writeHead(200,{"content-type":file.endsWith(".mjs")?"text/javascript; charset=utf-8":file.endsWith(".css")?"text/css; charset=utf-8":file.endsWith(".svg")?"image/svg+xml":file.endsWith(".png")?"image/png":"text/html; charset=utf-8","cache-control":"no-store"});res.end(bytes);return;}
    catch{return send(res,404,{error:"Not found"});}
@@ -70,6 +73,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    try{return send(res,200,await referenceFx());}
    catch{return send(res,503,{error:"Reference FX unavailable"});}
   }
+  if(route==="/api/auth/mobile-session")return handleMobileSession(req,res,db,resolveSession);
   if(await handleAdminApi(req,res,route,db,resolveSession,getStockQuote,authLimiter))return;
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";

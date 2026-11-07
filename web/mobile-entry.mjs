@@ -3,7 +3,8 @@
 const gate=document.getElementById("entryGate");
 const desktop=document.getElementById("overview");
 function deviceMode(){
- const preferred=sessionStorage.getItem("cn_view_mode");
+ const requested=new URLSearchParams(location.search||"").get("view");
+ const preferred=["desktop","mobile"].includes(requested)?requested:sessionStorage.getItem("cn_view_mode");
  if(preferred==="desktop")return false;
  if(preferred==="mobile")return true;
  const ua=navigator.userAgent||"";
@@ -14,12 +15,31 @@ function deviceMode(){
  return phone || (narrow&&touch&&!tablet);
 }
 let navigating=false;
-function routeAfterAuthentication(){
+async function routeAfterAuthentication(){
  if(navigating||!deviceMode()||!sessionStorage.getItem("gsp_token"))return;
  if(!gate||!desktop)return;
  if(!desktop.hidden&&gate.hidden){
   navigating=true;
-  location.replace("/mobile.html");
+  try{
+   if(!["www.nuvexapro.com","nuvexapro.com"].includes(location.hostname)){
+    location.replace("/mobile.html");return;
+   }
+   const response=await fetch("/api/auth/mobile-session",{method:"POST",cache:"no-store",
+    headers:{authorization:"Bearer "+sessionStorage.getItem("gsp_token")}});
+   if(!response.ok)throw Error("Mobile sign-in unavailable");
+   const result=await response.json();
+   if(result.url==="/mobile.html"){location.replace(result.url);return;}
+   if(result.url!=="https://m.nuvexapro.com/"||typeof result.handoff!=="string"||
+    !/^[A-Za-z0-9_-]{43}$/.test(result.handoff))throw Error("Invalid mobile destination");
+   location.replace(result.url+"#handoff="+result.handoff);
+  }catch{
+   navigating=false;
+   // The authenticated desktop workspace remains usable after a failed handoff.
+   const retry=document.createElement("button");
+   retry.type="button";retry.textContent="进入手机端";
+   retry.addEventListener("click",()=>{retry.remove();void routeAfterAuthentication();});
+   desktop.prepend(retry);
+  }
  }
 }
 if(gate&&desktop){

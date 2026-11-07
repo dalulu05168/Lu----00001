@@ -73,6 +73,9 @@ test("Render gateway routes frontend mobile static assets and keeps admin landin
   }
   const front=await fetchHost("/","nuvexapro.com");
   const admin=await fetchHost("/","admin.nuvexapro.com");
+  const mobile=await fetchHost("/","m.nuvexapro.com");
+  assert.equal(mobile.status,200);assert.match(mobile.text,/id="mobileApp"/);
+  assert.doesNotMatch(mobile.text,/id="entryGate"/);
   assert.equal(front.status,200);assert.match(front.text,/id="entryGate"/);
   assert.equal(admin.status,200);assert.match(admin.text,/id="adminLoginForm"/);
  }finally{server.closeAllConnections();await new Promise(resolve=>server.close(()=>resolve()));}
