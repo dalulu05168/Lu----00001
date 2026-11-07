@@ -5,11 +5,11 @@ import { JSDOM } from "jsdom";
 
 test("public trading pages disclose the simulation plainly to customers",async()=>{
   const index=await readFile(new URL("../web/index.html",import.meta.url),"utf8");
-  // The customer must be told, on the login screen and inside the app, that this is a
+  // Customer must be told inside the authenticated app, not in the login footer, that this is a
   // simulation: no real money, no real securities, no broker/exchange order routing.
-  assert.match(index,/模拟交易平台/,"login/app must state it is a simulation");
-  assert.match(index,/不涉及真实资金/);
-  assert.match(index,/不向(任何)?(交易所|券商)/);
+  const parsed=new JSDOM(index).window.document;\n  assert.doesNotMatch(parsed.getElementById("entryGate").textContent,/模拟交易平台/);\n  const disclosed=parsed.getElementById("overview").textContent;\n  assert.match(disclosed,/模拟交易平台/,"authenticated account app must disclose simulated orders");
+  assert.match(disclosed,/不涉及真实资金/);
+  assert.match(disclosed,/不向(任何)?(交易所|券商)/);
   const admin=await readFile(new URL("../web/admin.mjs",import.meta.url),"utf8");
   assert.match(admin,/模拟账户（无实盘）/);
   assert.match(admin,/真实账户（待接券商）/);
