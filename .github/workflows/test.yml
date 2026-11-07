@@ -42,6 +42,8 @@ jobs:
           name: cn-mobile-fullscreen-qa
           path: artifacts/cn-mobile-*.png
           if-no-files-found: ignore
+      - name: Check live mobile app on apex and www (GET only)
+        run: node scripts/mobile-live-domain-smoke.mjs
       - name: Build static frontend
         run: npm run build
       - name: Verify built entrypoints
