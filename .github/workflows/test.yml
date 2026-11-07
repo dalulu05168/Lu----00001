@@ -7,7 +7,9 @@ permissions:
   contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Issue #42: ubuntu-latest changed to 26.04, where the inherited CDP Chromium launcher timed out.
+    # Pin the frontend browser integration runner; keep PostgreSQL job unchanged.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
