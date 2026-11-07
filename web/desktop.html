@@ -219,10 +219,16 @@ td .sk{height:11px}
 #cw #cv[hidden],#favaa,#csbtn,#badge,#rg,#md,#ma{display:none!important}
 @media(min-width:901px){.top{min-height:56px}.pg{gap:12px;padding:12px 18px 16px}}
 </style>
+<style>
+.desktop-preview-notice[hidden]{display:none!important}
+.desktop-preview-notice{display:flex;align-items:center;justify-content:center;gap:16px;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:110;max-width:calc(100vw - 24px);width:max-content;padding:11px 17px;border:1px solid #8793a344;border-radius:999px;background:#111b24f2;box-shadow:0 8px 28px #000b;color:#e2edf4;font-size:12px;text-align:center;line-height:1.5}
+.desktop-readonly-preview button:not(.tn):not(#hidebtn),.desktop-readonly-preview input,.desktop-readonly-preview select{cursor:not-allowed;opacity:.55}
+@media(max-width:700px){.desktop-preview-notice{bottom:8px;border-radius:12px;line-height:1.5}}
+</style>
 <style id="cn-guard">html:not(.cn-ready) body{visibility:hidden!important}</style>
 </head>
 <body>
-
+<div id="desktop-public-preview" class="desktop-preview-notice" hidden role="status">NUVEXA PRO · 桌面只读设计预览｜账户与报价未连接｜任何操作不会提交</div>
 <header class="top">
 <div class="brand">
 <span class="desktop-n-logo" aria-hidden="true">N</span>
@@ -387,6 +393,7 @@ td .sk{height:11px}
 var TRADING_ENABLED=false;   // 行情授权后改为 true，下单弹窗的「提交订单」即可使用
 var API=null;                // 交易下单及申请类 API 暂未接入；认证数据由 desktop-bridge 独立同步
 var IDLE_MS=15*60*1000;      // 无操作自动锁定时间
+var IS_READONLY_PREVIEW=new URLSearchParams(location.search).get('preview')==='1';
 
 /* ========== 唯一数据源：页面所有数字都由这里计算，不会互相矛盾 ========== */
 var DATA={acct:'',sync:'待同步',cashOverride:0,names:{},disc:{},watch:[],fav:[],orders:[],holds:[],reqs:[],chat:[]};
@@ -403,6 +410,7 @@ function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;
 function stc(s){return s.indexOf('已记录')>-1||s.indexOf('已添加')>-1?'ok':s.indexOf('待补充')>-1?'wa':'in'}
 function now(){var d=new Date(),p=function(n){return n<10?'0'+n:n};return p(d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes())}
 function bind(){var m={cash:f(cash()),cost:DATA.holds.length?'—':'0.00',traded:f(traded()),realized:'—',total:DATA.holds.length?'—':f(cash()),nord:DATA.orders.length,nhold:DATA.holds.length,nreq:DATA.reqs.length,acct:'····'+DATA.acct,sync:DATA.sync,src:DATA.src};
+ if(IS_READONLY_PREVIEW)Object.assign(m,{cash:'—',cost:'—',traded:'—',realized:'—',total:'—',acct:'未登录',sync:'无数据'});
  document.querySelectorAll('[data-b]').forEach(function(e){var v=m[e.dataset.b];if(v!=null)e.textContent=v})}
 
 /* ========== 渲染 ========== */
