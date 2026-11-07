@@ -221,14 +221,15 @@ td .sk{height:11px}
 </style>
 <style>
 .desktop-preview-notice[hidden]{display:none!important}
-.desktop-preview-notice{display:flex;align-items:center;justify-content:center;gap:16px;position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:110;max-width:calc(100vw - 24px);width:max-content;padding:11px 17px;border:1px solid #8793a344;border-radius:999px;background:#111b24f2;box-shadow:0 8px 28px #000b;color:#e2edf4;font-size:12px;text-align:center;line-height:1.5}
+.desktop-preview-notice{display:flex;flex:none;align-items:center;justify-content:center;gap:8px;margin:8px 14px 0;padding:8px 12px;border:1px solid #8793a344;border-radius:10px;background:#111b24ef;color:#e2edf4;font-size:12px;text-align:center;line-height:1.5}
 .desktop-readonly-preview button:not(.tn):not(#hidebtn),.desktop-readonly-preview input,.desktop-readonly-preview select{cursor:not-allowed;opacity:.55}
-@media(max-width:700px){.desktop-preview-notice{bottom:8px;border-radius:12px;line-height:1.5}}
+.desktop-mobile-hint{display:none}
+.desktop-readonly-preview #desktop-allocation{display:none}
+@media(max-width:900px){.desktop-mobile-hint{display:inline}.desktop-preview-notice{margin:8px 10px 0;padding:8px 10px;flex-wrap:wrap}}
 </style>
 <style id="cn-guard">html:not(.cn-ready) body{visibility:hidden!important}</style>
 </head>
 <body>
-<div id="desktop-public-preview" class="desktop-preview-notice" hidden role="status">NUVEXA PRO · 桌面只读设计预览｜账户与报价未连接｜任何操作不会提交</div>
 <header class="top">
 <div class="brand">
 <span class="desktop-n-logo" aria-hidden="true">N</span>
@@ -241,7 +242,7 @@ td .sk{height:11px}
 <div class="rel"><button class="btn" id="csbtn" aria-expanded="false" aria-controls="cp"><span class="dot" style="margin-right:6px"></span>客服</button><span class="badge" id="badge" hidden></span></div>
 <div class="av">L</div></div>
 </header>
-
+<div id="desktop-public-preview" class="desktop-preview-notice" hidden role="status">NUVEXA PRO · 电脑端只读设计预览｜账户与报价未连接｜任何操作不会提交 <span class="desktop-mobile-hint">当前为电脑端布局，请在电脑浏览器查看。</span></div>
 <main>
 <!-- 交易 -->
 <section class="pg show" id="p-trade">
@@ -261,7 +262,7 @@ td .sk{height:11px}
 <div class="al"><div class="seg" id="flt"><button class="on">全部</button><button>买入</button><button>卖出</button></div></div>
 <div class="ar"><button class="btn" id="exp">导出已加载记录</button></div></div>
 <div class="sy"><table><thead><tr><th>代码</th><th>名称</th><th>类型</th><th>价格</th><th>数量</th><th>总额 USD</th><th>时间</th><th>记录</th></tr></thead><tbody class="fd" id="tb-ord"></tbody></table></div>
-<div class="note">统计基于完整历史 <span data-b="nord"></span> 笔；筛选、分页和导出仅作用于已加载记录。点击任意一行查看订单记录详情。</div>
+<div class="note" id="desktop-orders-summary">统计基于完整历史 <span data-b="nord"></span> 笔；筛选、分页和导出仅作用于已加载记录。点击任意一行查看订单记录详情。</div>
 </div>
 </div>
 
@@ -283,7 +284,7 @@ td .sk{height:11px}
 <div class="kv"><span>总资产</span><span class="amt lime" data-b="total"></span></div>
 <div class="kv"><span>订单 · 交易通道</span><span><span data-b="nord"></span> · <span class="tw">未连接</span></span></div>
 <div class="kv"><span>账户 <span data-b="acct"></span></span><span><span class="dot"></span>内部账户记录</span></div></div>
-<div class="pb ctr" style="padding-top:2px"><div class="mut" style="font-size:10.5px">配置 · 按持仓数量 ｜ 账户同步 <span data-b="sync"></span></div><div class="alloc"><i></i></div><div class="mut" style="font-size:10.5px;display:flex;justify-content:space-around"><span>US 100%</span><span>HK 0%</span><span>CN 0%</span><span>MY 0%</span><span>RO 0%</span></div></div>
+<div class="pb ctr" id="desktop-allocation" style="padding-top:2px"><div class="mut" style="font-size:10.5px">配置 · 按持仓数量 ｜ 账户同步 <span data-b="sync"></span></div><div class="alloc"><i></i></div><div class="mut" style="font-size:10.5px;display:flex;justify-content:space-around"><span>US 100%</span><span>HK 0%</span><span>CN 0%</span><span>MY 0%</span><span>RO 0%</span></div></div>
 </div>
 
 <div class="pn fill">
@@ -410,24 +411,25 @@ function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;
 function stc(s){return s.indexOf('已记录')>-1||s.indexOf('已添加')>-1?'ok':s.indexOf('待补充')>-1?'wa':'in'}
 function now(){var d=new Date(),p=function(n){return n<10?'0'+n:n};return p(d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes())}
 function bind(){var m={cash:f(cash()),cost:DATA.holds.length?'—':'0.00',traded:f(traded()),realized:'—',total:DATA.holds.length?'—':f(cash()),nord:DATA.orders.length,nhold:DATA.holds.length,nreq:DATA.reqs.length,acct:'····'+DATA.acct,sync:DATA.sync,src:DATA.src};
- if(IS_READONLY_PREVIEW)Object.assign(m,{cash:'—',cost:'—',traded:'—',realized:'—',total:'—',acct:'未登录',sync:'无数据'});
+ if(IS_READONLY_PREVIEW)Object.assign(m,{cash:'—',cost:'—',traded:'—',realized:'—',total:'—',nord:'—',nhold:'—',nreq:'—',acct:'未登录',sync:'未连接'});
  document.querySelectorAll('[data-b]').forEach(function(e){var v=m[e.dataset.b];if(v!=null)e.textContent=v})}
 
 /* ========== 渲染 ========== */
 var FLT='全部';
 function rOrders(){var L=DATA.orders.map(function(o,i){return [o,i]}).filter(function(x){return FLT==='全部'||x[0].t===FLT});
- $('tb-ord').innerHTML=L.length?L.map(function(x){var o=x[0];return '<tr class="click" tabindex="0" data-i="'+x[1]+'" title="点击查看成交详情"><td>'+o.s+'</td><td class="mut">'+DATA.names[o.s]+'</td><td class="'+(o.t==='买入'?'up':'dn')+'">'+(o.t==='买入'?'↑ ':'↓ ')+o.t+'</td><td>'+f(o.p)+'</td><td>'+o.q+'</td><td class="amt">'+f(o.a)+'</td><td class="mut">'+o.d+'</td><td><span class="chip ok">已记录</span></td></tr>'}).join(''):'<tr><td colspan="8" class="mut" style="padding:20px 0">无符合条件的记录</td></tr>'}
-function rHolds(){$('tb-hold').innerHTML=DATA.holds.length?DATA.holds.map(function(h){return '<tr class="click" tabindex="0" data-s="'+h.s+'" title="点击卖出"><td>'+h.s+' <span class="mut">'+DATA.names[h.s].split(' ')[0]+'</span></td><td>'+h.q+'</td><td class="amt">'+(h.c==null?'—':f(h.c))+'</td></tr>'}).join(''):'<tr><td colspan="3" class="mut" style="padding:16px 0">暂无持仓</td></tr>'}
+ $('tb-ord').innerHTML=L.length?L.map(function(x){var o=x[0];return '<tr class="click" tabindex="0" data-i="'+x[1]+'" title="点击查看成交详情"><td>'+o.s+'</td><td class="mut">'+DATA.names[o.s]+'</td><td class="'+(o.t==='买入'?'up':'dn')+'">'+(o.t==='买入'?'↑ ':'↓ ')+o.t+'</td><td>'+f(o.p)+'</td><td>'+o.q+'</td><td class="amt">'+f(o.a)+'</td><td class="mut">'+o.d+'</td><td><span class="chip ok">已记录</span></td></tr>'}).join(''):'<tr><td colspan="8" class="mut" style="padding:20px 0">'+(IS_READONLY_PREVIEW?'账户交易数据未连接':'无符合条件的记录')+'</td></tr>'}
+function rHolds(){$('tb-hold').innerHTML=DATA.holds.length?DATA.holds.map(function(h){return '<tr class="click" tabindex="0" data-s="'+h.s+'" title="点击卖出"><td>'+h.s+' <span class="mut">'+DATA.names[h.s].split(' ')[0]+'</span></td><td>'+h.q+'</td><td class="amt">'+(h.c==null?'—':f(h.c))+'</td></tr>'}).join(''):'<tr><td colspan="3" class="mut" style="padding:16px 0">'+(IS_READONLY_PREVIEW?'账户持仓数据未连接':'暂无持仓')+'</td></tr>'}
 function rWatch(){$('tb-watch').innerHTML=DATA.watch.map(function(s){var on=DATA.fav.indexOf(s)>-1;return '<tr><td>'+s+'</td><td class="mut">'+DATA.names[s]+'</td><td><button class="star'+(on?' on':'')+'" data-s="'+s+'" aria-label="自选" aria-pressed="'+on+'">'+(on?'★':'☆')+'</button></td></tr>'}).join('');
  $('watchsub').textContent='自选列表尚未连接账户接口';
  var b=$('favaa');b.textContent=DATA.fav.indexOf('AA')>-1?'已自选':'+ 自选'}
 function rReqs(){$('tb-req').innerHTML=DATA.reqs.map(function(r,i){return '<tr class="click" tabindex="0" data-i="'+i+'"><td>'+r.k+'</td><td class="amt'+(r.a?'':' mut')+'">'+(r.a?f(r.a):'—')+'</td><td><span class="chip '+stc(r.st)+'">'+r.st+'</span></td><td class="mut">'+r.d+'</td></tr>'}).join('');
- $('req-empty').hidden=DATA.reqs.length>0}
+ $('req-empty').hidden=DATA.reqs.length>0;
+ if(IS_READONLY_PREVIEW)$('req-empty').textContent='申请记录接口未连接'}
 function rStat(){var g={};DATA.reqs.forEach(function(r){g[r.st]=(g[r.st]||0)+1});
  $('req-stat').innerHTML=Object.keys(g).map(function(k){return '<div class="kv"><span>'+k+'</span><span class="chip '+stc(k)+'">'+g[k]+'</span></div>'}).join('')}
 var SEC='股票';
 function rProd(){var b=$('pbody');b.innerHTML='<div class="bn in">'+esc(SEC)+'：产品目录及授权报价暂未接入，无法展示有效产品或优惠，当前下单功能暂停。</div><div style="padding:12px 0 2px"><button type="button" class="btn w" disabled>交易暂不可用</button></div>'}
-function renderAll(){bind();rOrders();rHolds();rWatch();rReqs();rStat();rProd();renderBadge();var cl=$('cvload');if(cl)cl.hidden=true;clearInterval(skTimer);if(skActive){skActive=false;reveal()}}
+function renderAll(){bind();rOrders();rHolds();rWatch();rReqs();rStat();rProd();renderBadge();if(IS_READONLY_PREVIEW){$('desktop-orders-summary').textContent='账户数据未连接，无法查询真实历史订单或进行导出';}var cl=$('cvload');if(cl)cl.hidden=true;clearInterval(skTimer);if(skActive){skActive=false;reveal()}}
 
 /* ========== 提示 / 弹窗管理 ========== */
 var tt;function toast(t){var e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},2400)}
@@ -552,7 +554,7 @@ $('f-chat').onsubmit=function(e){e.preventDefault();var i=$('cmsg'),t=i.value.tr
 
 /* ========== 自动锁定 / 快捷键 ========== */
 var idle;function arm(){clearTimeout(idle);idle=setTimeout(function(){if(!(openM&&openM.id==='m-lock')){openModal('m-lock');chat(false)}},IDLE_MS)}
-['pointerdown','keydown','wheel'].forEach(function(ev){document.addEventListener(ev,arm,{passive:true})});arm();
+if(!IS_READONLY_PREVIEW){['pointerdown','keydown','wheel'].forEach(function(ev){document.addEventListener(ev,arm,{passive:true})});arm();}
 document.addEventListener('keydown',function(e){var t=e.target.tagName;
  if(e.key==='Enter'&&e.target.matches&&e.target.matches('tr.click'))e.target.click();
  if(e.key==='Tab'&&openM){var q=[].slice.call(openM.querySelectorAll('button:not([disabled]),input:not([type=file]),select,textarea,[tabindex="0"]')).filter(function(x){return x.offsetParent});if(q.length){var a=q[0],z=q[q.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}}
