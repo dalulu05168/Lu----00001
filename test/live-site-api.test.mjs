@@ -1,8 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const ORIGIN = "https://trade.maacropierce.com";
-const isGitHubCI = process.env.GITHUB_ACTIONS === "true";
+// External deployment smoke checks are intentionally opt-in. CI unit tests must
+// not depend on a hard-coded production host or fail when no site is deployed.
+const ORIGIN = (process.env.LIVE_SITE_ORIGIN || "").replace(/\/$/, "");
+const isLiveCheck = process.env.RUN_LIVE_SITE_TESTS === "true";
+if (isLiveCheck && (!/^https:\/\/[^/]+$/.test(ORIGIN) || ORIGIN.includes("localhost"))) {
+  throw new Error("RUN_LIVE_SITE_TESTS requires an HTTPS LIVE_SITE_ORIGIN");
+}
 const targets = [
   ["/", 200, "GET"],
   ["/admin.html", 200, "GET"],
@@ -24,7 +29,7 @@ const targets = [
 ];
 
 for (const [path, expected, method] of targets) {
-  test("public route " + method + " " + path, { skip: !isGitHubCI, timeout: 25000 }, async () => {
+  test("public route " + method + " " + path, { skip: !isLiveCheck, timeout: 25000 }, async () => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 19000);
     try {
