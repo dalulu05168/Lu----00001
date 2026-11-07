@@ -41,6 +41,7 @@ const css=await get("/admin-cn-v3.css");
 assert.match(css.response.headers.get("content-type")||"",/text\/css/);
 assert.match(css.body,/#adminWorkspace #adminTopbar/);
 assert.match(css.body,/#adminWorkspace #adminPages/);
+assert.ok(css.body.includes("display:block!important;min-height:38px"),"Production still serves the old hidden narrow-screen menu rule");
 
 const logo=await get("/cn-login-logo.svg");
 assert.match(logo.response.headers.get("content-type")||"",/image\/svg\+xml/);
