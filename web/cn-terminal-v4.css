@@ -215,3 +215,12 @@
 #entryGate .portal-logo .cn-capital-mark{width:100%;height:100%;object-fit:contain;background:transparent!important;filter:drop-shadow(0 7px 18px rgba(0,0,0,.36))}
 #overview .sidebar-logo .cn-capital-mark{background:transparent!important}
 #overview .cn-quick-actions button:focus-visible{outline:2px solid #d7ff00;outline-offset:2px}
+
+/* Issue #42: customer-desktop-only branding; never change admin or phone assets. */
+#entryGate .portal-logo{width:106px;height:106px;margin:0 0 13px}
+#entryGate .portal-name{font-size:clamp(30px,4vw,43px);font-weight:500;letter-spacing:.12em}
+#entryGate .portal-name span{color:#dbe2ea}
+#entryGate .portal-content{gap:14px}
+#entryGate .portal-sim-note{font-size:11px;line-height:1.6;opacity:.76;margin:13px 0 0;text-align:center}
+#overview .sidebar-logo .nuvexa-desktop-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:9px;border:1px solid #a2aebc;box-shadow:0 1px 16px #a8bac12a;background:linear-gradient(135deg,#32404a,#0c131b);color:#f3f6fa;font:600 28px/1 Arial,sans-serif}
+@media(prefers-reduced-motion:reduce){#entryGate .portal-logo img{animation:none!important}}
