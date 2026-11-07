@@ -407,14 +407,14 @@ function $(id){return document.getElementById(id)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function stc(s){return s.indexOf('已记录')>-1||s.indexOf('已添加')>-1?'ok':s.indexOf('待补充')>-1?'wa':'in'}
 function now(){var d=new Date(),p=function(n){return n<10?'0'+n:n};return p(d.getMonth()+1)+'/'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes())}
-function bind(){var m={cash:f(cash()),cost:f(cost()),traded:f(traded()),realized:f(realized()),total:f(cash()+cost()),nord:DATA.orders.length,nhold:DATA.holds.length,nreq:DATA.reqs.length,acct:'····'+DATA.acct,sync:DATA.sync,src:DATA.src};
+function bind(){var m={cash:f(cash()),cost:DATA.authenticated?'—':f(cost()),traded:f(traded()),realized:DATA.authenticated?'—':f(realized()),total:DATA.authenticated?'—':f(cash()+cost()),nord:DATA.orders.length,nhold:DATA.holds.length,nreq:DATA.reqs.length,acct:'····'+DATA.acct,sync:DATA.sync,src:DATA.src};
  document.querySelectorAll('[data-b]').forEach(function(e){var v=m[e.dataset.b];if(v!=null)e.textContent=v})}
 
 /* ========== 渲染 ========== */
 var FLT='全部';
 function rOrders(){var L=DATA.orders.map(function(o,i){return [o,i]}).filter(function(x){return FLT==='全部'||x[0].t===FLT});
  $('tb-ord').innerHTML=L.length?L.map(function(x){var o=x[0];return '<tr class="click" tabindex="0" data-i="'+x[1]+'" title="点击查看成交详情"><td>'+o.s+'</td><td class="mut">'+DATA.names[o.s]+'</td><td class="'+(o.t==='买入'?'up':'dn')+'">'+(o.t==='买入'?'↑ ':'↓ ')+o.t+'</td><td>'+f(o.p)+'</td><td>'+o.q+'</td><td class="amt">'+f(o.a)+'</td><td class="mut">'+o.d+'</td><td><span class="chip ok">已记录</span></td></tr>'}).join(''):'<tr><td colspan="8" class="mut" style="padding:20px 0">无符合条件的记录</td></tr>'}
-function rHolds(){$('tb-hold').innerHTML=DATA.holds.length?DATA.holds.map(function(h){return '<tr class="click" tabindex="0" data-s="'+h.s+'" title="点击卖出"><td>'+h.s+' <span class="mut">'+DATA.names[h.s].split(' ')[0]+'</span></td><td>'+h.q+'</td><td class="amt">'+f(h.c)+'</td></tr>'}).join(''):'<tr><td colspan="3" class="mut" style="padding:16px 0">暂无持仓</td></tr>'}
+function rHolds(){$('tb-hold').innerHTML=DATA.holds.length?DATA.holds.map(function(h){return '<tr class="click" tabindex="0" data-s="'+h.s+'" title="点击卖出"><td>'+h.s+' <span class="mut">'+DATA.names[h.s].split(' ')[0]+'</span></td><td>'+h.q+'</td><td class="amt">'+(h.c==null?'—':f(h.c))+'</td></tr>'}).join(''):'<tr><td colspan="3" class="mut" style="padding:16px 0">暂无持仓</td></tr>'}
 function rWatch(){$('tb-watch').innerHTML=DATA.watch.map(function(s){var on=DATA.fav.indexOf(s)>-1;return '<tr><td>'+s+'</td><td class="mut">'+DATA.names[s]+'</td><td><button class="star'+(on?' on':'')+'" data-s="'+s+'" aria-label="自选" aria-pressed="'+on+'">'+(on?'★':'☆')+'</button></td></tr>'}).join('');
  $('watchsub').textContent='行情暂不可用 · 已自选 '+DATA.fav.length;
  var b=$('favaa');b.textContent=DATA.fav.indexOf('AA')>-1?'已自选':'+ 自选'}
@@ -423,7 +423,7 @@ function rReqs(){$('tb-req').innerHTML=DATA.reqs.map(function(r,i){return '<tr c
 function rStat(){var g={};DATA.reqs.forEach(function(r){g[r.st]=(g[r.st]||0)+1});
  $('req-stat').innerHTML=Object.keys(g).map(function(k){return '<div class="kv"><span>'+k+'</span><span class="chip '+stc(k)+'">'+g[k]+'</span></div>'}).join('')}
 var SEC='股票';
-function rProd(){var b=$('pbody');
+function rProd(){var b=$('pbody');if(DATA.authenticated){var type=SEC==='股票'?'STOCK':SEC==='基金'?'FUND':'IPO';var list=(DATA.catalog||[]).filter(function(x){return x.itemType===type});b.innerHTML=list.length?list.map(function(x){return '<div class="kv"><span>'+esc(x.market+':'+x.symbol)+'</span><span>'+esc(x.name||x.symbol)+'</span></div>'}).join(''):'<div class="mut" style="padding:12px">暂无已发布证券资料</div>';return}
  if(SEC!=='股票'){b.innerHTML='<div class="bn in">'+SEC+' 暂无已发布产品 · 请点击「刷新产品」</div>';return}
  b.innerHTML='<div class="kv"><span style="color:var(--tx)">AA Alcoa Corporation</span><span class="chip in">优惠 '+DATA.disc.AA+'%</span></div>'
  +'<div class="kv"><span>买入后持有</span><span>0 天</span></div>'
@@ -675,9 +675,11 @@ window.CN_SYNC_ACCOUNT=function(snapshot){
   var a=snapshot.account || {};
   DATA.acct=String(a.id||'').slice(-8);
   DATA.cashOverride=Number.isSafeInteger(a.cashCents)?a.cashCents/100:0;
+  DATA.authenticated=true;
+  DATA.watch=[];DATA.fav=[];DATA.catalog=[];
   DATA.holds=(snapshot.positions||[]).filter(function(p){return Number(p.quantity)>0}).map(function(p){
     var code=String(p.symbol||'');DATA.names[code]=DATA.names[code]||code;
-    return {s:code,q:Number(p.quantity),c:0};
+    return {s:code,q:Number(p.quantity),c:null};
   });
   DATA.orders=(snapshot.orders||[]).map(function(o){
     var code=String(o.symbol||'');DATA.names[code]=DATA.names[code]||code;
@@ -688,8 +690,18 @@ window.CN_SYNC_ACCOUNT=function(snapshot){
   DATA.reqs=[];DATA.chat=[];
   DATA.sync=new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+' MYT';
   renderAll();draw();
+
 };
 
+window.CN_SYNC_WATCHLIST=function(items){
+  DATA.watch=(Array.isArray(items)?items:[]).filter(function(x){return x.market==='US'&&typeof x.symbol==='string'}).map(function(x){return x.symbol});
+  DATA.watch.forEach(function(x){DATA.names[x]=DATA.names[x]||x});
+  rWatch();
+};
+window.CN_SYNC_CATALOG=function(items){
+  DATA.catalog=Array.isArray(items)?items:[];
+  rProd();
+};
 /* ========== 启动 ========== */
 renderChat();loadData().then(draw);
 })();

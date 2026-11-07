@@ -1,8 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const ORIGIN = "https://trade.maacropierce.com";
+// Live endpoint checks run only when the correct site origin is explicitly configured.
+// The previous hard-coded unrelated site made normal CI depend on an external hostname.
+const ORIGIN = process.env.LIVE_SITE_ORIGIN || "";
 const isGitHubCI = process.env.GITHUB_ACTIONS === "true";
+const runLive = isGitHubCI && /^https:\/\/[^/]+$/.test(ORIGIN);
 const targets = [
   ["/", 200, "GET"],
   ["/admin.html", 200, "GET"],
@@ -24,7 +27,7 @@ const targets = [
 ];
 
 for (const [path, expected, method] of targets) {
-  test("public route " + method + " " + path, { skip: !isGitHubCI, timeout: 25000 }, async () => {
+  test("public route " + method + " " + path, { skip: !runLive, timeout: 25000 }, async () => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 19000);
     try {
