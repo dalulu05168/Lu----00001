@@ -67,3 +67,38 @@ const ready=await get("/ready");
 assert.match(ready.response.headers.get("content-type")||"",/application\/json/);
 assert.equal(JSON.parse(ready.body).status,"ready","Backend database is not ready");
 console.log("ADMIN_LIVE_OK: admin hostname serves current login, CSS, 40s rotating N and 10 modules; database ready. Authenticated role workflows are not part of this public-only smoke.");
+
+
+/* Issue #42 acceptance: verify the DEPLOYED admin control wiring, not just CSS.
+ * Public GET requests only; never send a password, bearer token or mutate state. */
+for(const id of ["refreshAdminConnectionStatus","adminReadyResult","adminMirrorResult",
+  "openFundingApprovals","dashboardFundingRows","fundingRequestRows",
+  "workflowReviewForm","workflowSubmit","adminLogout"]){
+ assert.ok(login.body.includes('id="'+id+'"'),"Missing production admin control "+id);
+}
+for(const marker of ["checkAdminConnections","showFundingReview","fundingReviewTargetId",
+  '"/admin/workflow-requests"',"adminConnectionSerial"]){
+ assert.ok(app.body.includes(marker),"Production admin UI lacks functional event/API wiring: "+marker);
+}
+assert.ok(css.body.includes(".funding-review-link"),"Production funding buttons lack new admin styling");
+
+const health=await get("/api/health");
+assert.equal(JSON.parse(health.body).status,"alive","Public health endpoint is unavailable");
+
+async function expectLoginRequired(path){
+ const url=origin+path;
+ const response=await fetch(url,{
+  method:"GET",redirect:"manual",signal:AbortSignal.timeout(20000),
+  headers:{Accept:"application/json","Cache-Control":"no-cache"}
+ });
+ assert.equal(response.status,401,"Endpoint must reject an unauthenticated GET: "+path);
+ assert.match(response.headers.get("content-type")||"",/application\/json/);
+ const payload=await response.json();
+ assert.equal(payload.error,"Authentication required","Expected login gate on "+path);
+ console.log("ADMIN_AUTH_BOUNDARY "+JSON.stringify({path,http:response.status,body:"Authentication required"}));
+}
+for(const path of ["/api/admin/me","/api/admin/clients","/api/admin/mirror-status",
+ "/api/admin/workflow-requests?category=FUNDING","/api/account"]){
+ await expectLoginRequired(path);
+}
+console.log("ADMIN_ISSUE42_LIVE_OK: 9 deployed controls, JS approval/health bindings and 5 unauthenticated access guards checked. No production credentials or writes.");
