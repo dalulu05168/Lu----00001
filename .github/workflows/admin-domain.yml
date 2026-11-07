@@ -1,0 +1,35 @@
+name: Admin public-domain acceptance
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/admin-domain.yml'
+      - 'scripts/admin-live-domain-smoke.mjs'
+      - 'test/admin*.test.mjs'
+      - 'web/admin*'
+      - 'web/cn-login-logo.svg'
+      - 'src/admin-*'
+      - 'src/http-api.mjs'
+  push:
+    branches: ['dev/restore-four-role-platform-20261103']
+    paths:
+      - '.github/workflows/admin-domain.yml'
+      - 'scripts/admin-live-domain-smoke.mjs'
+      - 'test/admin*.test.mjs'
+      - 'web/admin*'
+      - 'web/cn-login-logo.svg'
+      - 'src/admin-*'
+      - 'src/http-api.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-admin-live:
+    name: Production admin hostname GET smoke (no credentials)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only GET of live admin login, CSS, JS, SVG and health
+        run: node scripts/admin-live-domain-smoke.mjs
