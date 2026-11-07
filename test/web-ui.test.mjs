@@ -65,7 +65,7 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("entryGate").hidden,false,"customer must see login first");
     assert.equal(el("overview").hidden,true,"workspace must be inaccessible before login");
     assert.match(el("entryGate").textContent,/CN Capital/);
-    assert.equal(el("markets").querySelectorAll("button").length, 2);
+    assert.equal(el("markets").querySelectorAll("button").length, 5);
     assert.equal(el("marketCards").querySelectorAll("button").length, 2);
     assert.equal(el("quotePrice").textContent, "—");
     assert.equal(el("performanceTitle").textContent,"股票走势");
@@ -78,10 +78,10 @@ test("trading terminal renders, switches markets, and handles account session wi
     assert.equal(el("accountSummary").hidden, true);
     assert.equal(el("refreshAccountButton").hidden, true);
     assert.equal(el("orderForm").querySelector('button[type="submit"]').disabled, true);
-    // HK/CN/MY were withdrawn: only US and RO remain, so this exercises
+    // This also exercises
     // cross-market switching via RO, then within-market switching via US's
     // two instruments.
-    el("markets").querySelectorAll("button")[1].click();
+    el("markets").querySelectorAll("button")[4].click();
     assert.equal(el("symbolTitle").textContent, "BRD");
     el("markets").querySelectorAll("button")[0].click();
     el("symbols").querySelectorAll("button")[1].click();

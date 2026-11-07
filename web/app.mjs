@@ -1,14 +1,18 @@
 import { summarizeMarketHoldings } from "./market-allocation.mjs";
 import { mountStockChart, resolveTradingViewSymbol } from "./stock-chart.mjs";
-// HK/CN/MY withdrawn: no working free quote source was found for them, so
-// they are no longer presented as selectable markets anywhere in the app.
 const MARKETS = [
   {code:"US",label:"美国市场",exchange:"NYSE / NASDAQ",currency:"USD",icon:"US",sub:"United States"},
+  {code:"HK",label:"香港市场",exchange:"HKEX",currency:"HKD",icon:"HK",sub:"Hong Kong"},
+  {code:"CN",label:"中国内地市场",exchange:"SSE",currency:"CNY",icon:"CN",sub:"China"},
+  {code:"MY",label:"马来西亚市场",exchange:"MYX",currency:"MYR",icon:"MY",sub:"Malaysia"},
   {code:"RO",label:"罗马尼亚市场",exchange:"BVB",currency:"RON",icon:"RO",sub:"Romania"}
 ];
 const INSTRUMENTS = [
   {market:"US",symbol:"AAPL",name:"Apple Inc."},
   {market:"US",symbol:"MSFT",name:"Microsoft Corporation"},
+  {market:"HK",symbol:"700",name:"腾讯控股"},
+  {market:"CN",symbol:"600519",name:"贵州茅台"},
+  {market:"MY",symbol:"1155",name:"Malayan Banking Berhad"},
   {market:"RO",symbol:"BRD",name:"BRD – Groupe Société Générale"}
 ];
 const el = id => document.getElementById(id);
@@ -103,14 +107,28 @@ function selectionInstruments(){
   const identities=new Set(published.map(item=>item.market+":"+item.symbol));
   return [...published,...INSTRUMENTS.filter(item=>!identities.has(item.market+":"+item.symbol))];
 }
+let movingAverage=false;
+el("stockChartMa").addEventListener("click",()=>{
+ movingAverage=!movingAverage;
+ renderChart();
+});
 function renderChart(){
   const host=el("stockChart");
+  const ma=el("stockChartMa");
+  ma.disabled=!token||!account||!resolveTradingViewSymbol(selected);
+  ma.setAttribute("aria-pressed",String(movingAverage&&!ma.disabled));
   if(!token||!account){
     host.replaceChildren(makeEmpty("登录后查看公开走势图"));delete host.dataset.chartSymbol;
     host.classList.remove("chart--external");return;
   }
+  if(["HK","MY"].includes(selected.market)){
+    host.replaceChildren(makeEmpty("暂无可用数据"));
+    delete host.dataset.chartSymbol;
+    host.classList.remove("chart--external");
+    return;
+  }
   host.classList.add("chart--external");
-  mountStockChart(host,selected);
+  mountStockChart(host,selected,{movingAverage});
 }
 function renderMarkets() {
   const allocation = summarizeMarketHoldings(account&&!internalHoldingsUnavailable?
@@ -133,7 +151,7 @@ function renderMarkets() {
     return button;
   });
   el("markets").replaceChildren(...marketButtons);
-  const cards = MARKETS.map(item => {
+  const cards = MARKETS.filter(item=>allocation.markets[item.code]).map(item => {
     const count = allocation.markets[item.code];
     const button = document.createElement("button");
     button.type = "button";
@@ -267,7 +285,7 @@ function renderWatchlistControl() {
   const button=el("watchlistToggle");
   const saved=watchlist.some(item=>item.market===selected.market&&item.symbol===selected.symbol);
   button.textContent=saved?"★ 已加入自选":"☆ 加入自选";
-  button.disabled=!token||watchlistBusy;
+  button.disabled=!token||watchlistBusy||!["US","RO"].includes(selected.market);
   button.setAttribute("aria-pressed",String(saved));
   const feedback=el("watchlistFeedback");
   if(!token) feedback.textContent="";
@@ -739,12 +757,24 @@ function showTransactionDetail(item){
   details.append(term,valueNode);
  }
  dialog.replaceChildren(title,close,details);
+ const matchingProduct=[...document.querySelectorAll("[data-participation-symbol]")]
+  .find(button=>item.market==="US"&&button.dataset.participationSymbol===item.symbol);
+ if(matchingProduct){
+  const buyAgain=document.createElement("button");buyAgain.type="button";
+  buyAgain.className="primary-button";buyAgain.textContent="再次买入";
+  buyAgain.addEventListener("click",()=>{
+   if(!matchingProduct.isConnected)return;
+   dialog.close();matchingProduct.click();
+  });
+  dialog.append(buyAgain);
+ }
  if(typeof dialog.showModal==="function")dialog.showModal();
  else dialog.setAttribute("open","");
 }
 
 function syncClientGate(){
   const admitted=Boolean(token&&account);
+  if(admitted&&el("overview").hidden)lastActivity=Date.now();
   el("entryGate").hidden=admitted;
   el("overview").hidden=!admitted;
   if(!admitted&&token)el("entryFeedback").textContent=accountRefreshing?"正在验证账户状态…":el("authFeedback").textContent;
@@ -1098,7 +1128,28 @@ function renderServiceRequests(){
   const title=document.createElement("strong");title.textContent=serviceDescription(item);
   const time=document.createElement("span");time.textContent=item.createdAt?
    new Date(item.createdAt).toLocaleString("zh-CN"):"等待记录时间";
-  row.append(title,time);target.append(row);
+  const progress=document.createElement("button");progress.type="button";
+  progress.className="secondary-button";progress.textContent="查看进度";
+  progress.addEventListener("click",()=>{
+   let dialog=el("serviceProgressDialog");
+   if(!dialog){
+    dialog=document.createElement("dialog");dialog.id="serviceProgressDialog";
+    dialog.className="cn-reference-dialog";dialog.setAttribute("aria-label","申请进度");
+    el("overview").append(dialog);
+   }
+   const heading=document.createElement("h2");heading.textContent="申请进度";
+   const close=document.createElement("button");close.type="button";
+   close.className="secondary-button";close.textContent="关闭";
+   close.addEventListener("click",()=>dialog.close());
+   const steps=document.createElement("ol");
+   for(const label of ["已提交 · "+time.textContent,"当前状态 · "+title.textContent]){
+    const step=document.createElement("li");step.textContent=label;steps.append(step);
+   }
+   dialog.replaceChildren(heading,close,steps);
+   if(typeof dialog.showModal==="function")dialog.showModal();
+   else dialog.setAttribute("open","");
+  });
+  row.append(title,time,progress);target.append(row);
  }
 }
 async function refreshServiceRequests(){
@@ -1219,6 +1270,38 @@ el("customerSupportForm").addEventListener("submit",async event=>{
 });
 
 el("refreshServiceRequests").addEventListener("click",()=>{void refreshServiceRequests()});
+// Capture desktop submissions before the existing API handlers run.
+for(const [formId,summary] of [
+ ["fundingRequestForm",()=>[(el("fundingRequestKind").value==="DEPOSIT"?"充值":"提现")+" · "+money(validateUsdCents(el("fundingRequestAmount").value))+" USD"]],
+ ["bankLinkRequestForm",()=>[el("bankRequestName").value.trim(),"账户尾号 · "+(privateDataReady?el("bankRequestNumber").value:el("bankRequestLast4").value).slice(-4)]],
+ ["identityUploadForm",()=>["已选择身份证正反面。确认后将加密上传并提交审核。"]]
+]){
+ const form=el(formId);
+ let confirmed=false;
+ form.addEventListener("submit",event=>{
+  if(confirmed||!token||!account||el("overview").dataset.cnV4Ready!=="true"||el("overview").dataset.cnMode==="mobile")return;
+  event.preventDefault();event.stopImmediatePropagation();
+  let lines;
+  try{lines=summary();}catch(error){el("serviceRequestFeedback").textContent=error.message;return;}
+  const usedToken=token,submitter=event.submitter;
+  const preview=document.createElement("dialog");
+  preview.className="cn-reference-dialog";preview.setAttribute("aria-label","申请预览");
+  const title=document.createElement("h2");title.textContent="申请预览";
+  const cancel=document.createElement("button");cancel.type="button";cancel.textContent="返回修改";cancel.className="secondary-button";
+  const submit=document.createElement("button");submit.type="button";submit.textContent="确认提交";submit.className="primary-button";
+  cancel.addEventListener("click",()=>preview.close());
+  preview.addEventListener("close",()=>preview.remove(),{once:true});
+  submit.addEventListener("click",()=>{
+   preview.close();
+   if(token!==usedToken||serviceBusy)return;
+   confirmed=true;
+   try{form.requestSubmit(submitter??undefined);}finally{confirmed=false;}
+  });
+  preview.append(title,cancel,...lines.map(line=>textNode(line,"form-feedback")),submit);
+  el("overview").append(preview);preview.showModal();
+ },true);
+}
+
 el("fundingRequestForm").addEventListener("submit",async event=>{
  event.preventDefault();
  try{
@@ -1243,6 +1326,23 @@ el("startKycRequest").addEventListener("click",async()=>{
  await submitService("KYC",{},el("startKycRequest"));
 });
 
+let idleLocked=false;
+let lastActivity=Date.now();
+function checkIdle(){
+ if(!token||!account||el("overview").dataset.cnMode==="mobile"||Date.now()-lastActivity<15*60*1000)return;
+ idleLocked=true;
+ el("logout").click();
+}
+for(const type of ["pointerdown","keydown","focusin"]){
+ document.addEventListener(type,()=>{
+  if(document.hidden)return;
+  checkIdle();
+  lastActivity=Date.now();
+ },true);
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkIdle();});
+if(typeof window!=="undefined")window.setInterval(checkIdle,1000);
+
 el("railLogout").addEventListener("click",() => {
   if (token) el("logout").click();
   else el("account-section").scrollIntoView({behavior:"smooth",block:"start"});
@@ -1250,7 +1350,8 @@ el("railLogout").addEventListener("click",() => {
 el("logout").addEventListener("click",async () => {
   if (!token) return;
   const expiredToken=token;
-  resetClientSession("已退出账户");
+  resetClientSession(idleLocked?"账户因 15 分钟无操作已锁定，请重新登录。":"已退出账户");
+  idleLocked=false;
   el("logout").disabled = true;
   try {
     await request("/auth/logout",{method:"POST",token:expiredToken});
@@ -1396,6 +1497,7 @@ function internalProductCard(item){
  purchaseDialog.append(heading,close,form);
  const open=document.createElement('button');open.type='button';
  open.className='primary-button';open.textContent='参与交易';
+ if(stock)open.dataset.participationSymbol=item.code;
  open.addEventListener('click',()=>{
   if(typeof purchaseDialog.showModal==='function')purchaseDialog.showModal();
   else purchaseDialog.setAttribute('open','');

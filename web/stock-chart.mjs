@@ -3,9 +3,9 @@
 export const TRADING_VIEW_WIDGET_SCRIPT =
   "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
 
-// HK/CN/MY withdrawn: no working free quote source was found for them, so
-// they are no longer presented as selectable markets anywhere in the app.
+// Explicit vendor symbols for public charts.
 const LISTED = Object.freeze({
+  "CN:600519": "SSE:600519",
   "US:AAPL": "NASDAQ:AAPL",
   "US:MSFT": "NASDAQ:MSFT",
   "US:AA": "NYSE:AA",
@@ -82,10 +82,11 @@ export function mountStockHistory(host,points){
   host.replaceChildren(svg,status);
 }
 
-export function mountStockChart(host, instrument, {mobile=false} = {}) {
+export function mountStockChart(host, instrument, {mobile=false,movingAverage=false} = {}) {
   if (!host) throw new Error("Missing chart container");
   const symbol = resolveTradingViewSymbol(instrument);
-  if (host.dataset.chartSymbol === symbol) return symbol;
+  if (host.dataset.chartSymbol === symbol && host.dataset.chartMa === String(movingAverage)) return symbol;
+  host.dataset.chartMa = String(movingAverage);
   const doc = host.ownerDocument;
   host.dataset.chartSymbol = symbol ?? "";
   if (!symbol) {
@@ -133,6 +134,7 @@ export function mountStockChart(host, instrument, {mobile=false} = {}) {
     hide_volume: true,
     save_image: false,
     withdateranges: !mobile,
+    studies: movingAverage ? ["MASimple@tv-basicstudies"] : [],
     calendar: false
   });
   const showUnavailable = () => {
