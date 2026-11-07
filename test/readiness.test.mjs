@@ -10,7 +10,7 @@ const names=["app_users","accounts","positions","orders","cash_ledger","user_ses
  "client_kyc_requests","client_bank_link_requests","client_workflow_audit","admin_subaccount_policies",
  "admin_subaccount_control_audit","commodity_products","commodity_product_audit","support_threads",
  "support_messages","support_status_audit","internal_product_terms","internal_purchases",
- "internal_product_positions","internal_purchase_attempts","internal_product_terms_audit","admin_mirror_purchase_audit","private_customer_submissions","private_customer_access_audit","fund_maturities","stock_position_locks","stock_position_lock_audit","internal_stock_sales","internal_stock_sale_lots","admin_totp_challenges"];
+ "internal_product_positions","internal_purchase_attempts","internal_product_terms_audit","admin_mirror_purchase_audit","private_customer_submissions","private_customer_access_audit","fund_maturities","stock_position_locks","stock_position_lock_audit","internal_stock_sales","internal_stock_sale_lots","admin_totp_challenges","mobile_session_handoffs"];
 const catalog=missing=>({query:async sql=>{
  const row={};for(const [,name] of sql.matchAll(/to_regclass\('public\.([a-z_]+)'\)/g))row[name]=name===missing?null:name;
  return {rows:[row]};

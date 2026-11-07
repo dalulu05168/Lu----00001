@@ -25,7 +25,8 @@ const row=(title,detail,right="",action="")=>'<article class="row"'+action+'><di
 const panel=(title,body,extra="")=>'<section class="card"><header class="card-head"><h3>'+esc(title)+'</h3>'+extra+'</header>'+body+'</section>';
 const field=(name,id,type="text",val="",attrs="")=>'<label class="field">'+esc(name)+'<input id="'+esc(id)+'" type="'+esc(type)+'" value="'+esc(val)+'" '+attrs+'></label>';
 const moneyValue=p=>Number(p?.cost_cents??p?.costCents??NaN);
-function invalidate(){sessionStorage.removeItem(TOKEN_KEY);location.replace("/");}
+const loginUrl=()=>location.hostname==="m.nuvexapro.com"?"https://www.nuvexapro.com/":"/";
+function invalidate(){sessionStorage.removeItem(TOKEN_KEY);location.replace(loginUrl());}
 function mobileError(error){const message=String(error?.message??error);$("mobileConnection").className="connection bad";$("mobileConnection").textContent="同步失败";S.error=message;toast(message);}
 async function api(path,options={}){
  const auth=token;
@@ -335,7 +336,7 @@ async function onSubmit(e){
 async function logout(){
  const current=token;token=null;sessionStorage.removeItem(TOKEN_KEY);
  try{await fetch("/api/auth/logout",{method:"POST",headers:{"authorization":"Bearer "+current,"content-type":"application/json"}})}catch{}
- location.replace("/");
+ location.replace(loginUrl());
 }
 function downloadOrders(){
  const list=orderRows();
@@ -371,7 +372,7 @@ async function onAction(e){
  else if(action==="kyc")kyc();
  else if(action==="product")product(Number(a.dataset.productIndex));
  else if(action==="product-quote")await productQuote();
- else if(action==="desktop"){sessionStorage.setItem("cn_view_mode","desktop");location.assign("/");}
+ else if(action==="desktop"){sessionStorage.setItem("cn_view_mode","desktop");location.assign(location.hostname==="m.nuvexapro.com"?"https://www.nuvexapro.com/?view=desktop":"/");}
  else if(action==="logout")await logout();
  else if(action==="export")downloadOrders();
  else if(action==="kyc-request"){
@@ -390,4 +391,28 @@ $("mobileDialogClose").addEventListener("click",closeSheet);
 $("mobileSheet").addEventListener("click",e=>{if(e.target===$("mobileSheet"))closeSheet()});
 $("mobileRefresh").addEventListener("click",refresh);
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mobileSheet").hidden)closeSheet()});
-if(!token)invalidate();else void refresh();
+async function startMobile(){
+ if(location.hostname==="m.nuvexapro.com"&&location.hash.startsWith("#handoff=")){
+  const handoff=location.hash.slice("#handoff=".length);
+  history.replaceState(null,"",location.pathname+location.search);
+  sessionStorage.removeItem(TOKEN_KEY);
+  token=null;
+  try{
+   if(!/^[A-Za-z0-9_-]{43}$/.test(handoff)){invalidate();return;}
+   const response=await fetch("/api/auth/mobile-session",{method:"POST",cache:"no-store",
+    headers:{authorization:"Handoff "+handoff}});
+   if(response.ok){
+    const session=await response.json();
+    if(typeof session.token!=="string")throw Error("Invalid session");
+    token=session.token;sessionStorage.setItem(TOKEN_KEY,token);
+   }else if(response.status!==401)throw Error("Mobile sign-in unavailable");
+  }catch(error){
+   mobileError(error);
+   $("mobileScreen").replaceChildren();
+   const link=document.createElement("a");link.href=loginUrl();link.textContent="返回登录";
+   $("mobileScreen").append(link);return;
+  }
+ }
+ if(!token)invalidate();else await refresh();
+}
+void startMobile();

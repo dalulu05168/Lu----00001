@@ -9,7 +9,7 @@ const REQUIRED_TABLES = Object.freeze([
   "admin_mirror_purchase_audit",
   "private_customer_submissions", "private_customer_access_audit", "fund_maturities",
   "stock_position_locks", "stock_position_lock_audit", "internal_stock_sales", "internal_stock_sale_lots",
-  "admin_totp_challenges"
+  "admin_totp_challenges","mobile_session_handoffs"
 ]);
 
 // A successful database ping is not enough: the app schema must be installed.
