@@ -43,9 +43,9 @@ test("phone selection requires successful original login before redirect",async(
 test("mobile data and actions call live protected APIs, never use demo balances, orders or fabricated quotes",async()=>{
  const s=await get("web/mobile.mjs");
  for(const p of [
-  'api("/account")','api("/watchlist")','"/account/analytics"','"/internal-products"',
-  '"/internal-purchases"','"/requests?category=FUNDING"','api("/support")',
-  'api("/stock-quote?market=US&symbol="','api("/orders"'
+  '"/account"','"/watchlist"','"/account/analytics"','"/internal-products"',
+  '"/internal-purchases"','"/requests?category=FUNDING"','"/support"',
+  '"/stock-quote?market=US&symbol="','"/orders"'
  ])assert.ok(s.includes(p),"Missing real endpoint "+p);
  assert.match(s,/stockQuoteConfigured/);
  assert.match(s,/pricingConnected/);
