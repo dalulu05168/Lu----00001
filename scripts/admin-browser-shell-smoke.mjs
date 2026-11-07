@@ -129,8 +129,14 @@ try{
   await mkdir(output,{recursive:true});
   const image=await cdp.send("Page.captureScreenshot",{format:"png"});
   await writeFile(new URL("cn-admin-qa-desktop.png",output),Buffer.from(image.data,"base64"));
-  await cdp.send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
-  const phone=await until(async()=>js(cdp,mobileState));
+  await cdp.send("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:false});
+  await cdp.send("Page.reload",{ignoreCache:true});
+  let lastPhone=null;
+  const phone=await until(async()=>{
+    lastPhone=await js(cdp,mobileState);
+    return lastPhone?.width<=650&&lastPhone?.mobileMenu!=="none"?lastPhone:null;
+  },9000).catch(error=>{throw Error(error.message+"; observed mobile state: "+JSON.stringify(lastPhone));});
+  console.log("ADMIN_MOBILE_VIEWPORT "+JSON.stringify(phone));
   assert.equal(phone.workspaceVisible,true);
   assert.notEqual(phone.mobileMenu,"none","Mobile navigation button hidden");
   assert.equal(phone.navDisplay,"none","Mobile navigation unexpectedly expanded");
