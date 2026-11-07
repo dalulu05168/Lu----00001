@@ -6,18 +6,18 @@ import {
   mountStockChart
 } from "../web/stock-chart.mjs";
 
-test("stock symbols use explicit provider exchange codes across four markets", () => {
+test("stock symbols use explicit US and CN provider exchange codes", () => {
   const expected = [
     ["US","AAPL","NASDAQ:AAPL"], ["US","MSFT","NASDAQ:MSFT"],
-    ["HK","0700","HKEX:700"], ["HK","9988","HKEX:9988"],
-    ["CN","600519","SSE:600519"], ["CN","000001","SZSE:000001"],
-    ["MY","1155","MYX:1155"], ["MY","1023","MYX:1023"]
+    ["CN","600519","SSE:600519"], ["CN","000001","SZSE:000001"]
   ];
   for(const [market,symbol,provider] of expected) {
     assert.equal(resolveTradingViewSymbol({market,symbol}),provider);
     assert.match(tradingViewSymbolUrl(provider),/^https:\/\/www\.tradingview\.com\/symbols\//);
   }
   assert.equal(resolveTradingViewSymbol({market:"US",symbol:"NOT_LISTED"}),null);
+  assert.equal(resolveTradingViewSymbol({market:"HK",symbol:"0700"}),null);
+  assert.equal(resolveTradingViewSymbol({market:"MY",symbol:"1155"}),null);
   assert.equal(resolveTradingViewSymbol({market:"US",symbol:"AAPL<script>"}),null);
   assert.equal(tradingViewSymbolUrl("NASDAQ:AAPL<script>"),null);
 });
@@ -44,11 +44,11 @@ test("official widget is configured with the selected stock, attribution and no 
     assert.equal(host.querySelector(".tradingview-widget-copyright a").href,"https://www.tradingview.com/symbols/NASDAQ-AAPL/");
     assert.equal(mountStockChart(host,{market:"US",symbol:"AAPL"}),"NASDAQ:AAPL");
     assert.equal(host.querySelector("script"),first,"account refresh should not repeatedly load external chart");
-    mountStockChart(host,{market:"HK",symbol:"0700"});
-    assert.equal(JSON.parse(host.querySelector("script").textContent).symbol,"HKEX:700");
+    mountStockChart(host,{market:"CN",symbol:"600519"});
+    assert.equal(JSON.parse(host.querySelector("script").textContent).symbol,"SSE:600519");
     assert.notEqual(host.querySelector("script"),first);
     assert.equal(host.querySelector("iframe"),null,"test does not fabricate returned third-party data");
-    mountStockChart(host,{market:"HK",symbol:"UNKNOWN"});
+    mountStockChart(host,{market:"HK",symbol:"0700"});
     assert.equal(host.querySelector("script"),null);
     assert.match(host.textContent,/尚未配置/);
   } finally {dom.window.close();}

@@ -60,7 +60,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     if(!session?.userId){response(res,401,{error:"Authentication required"});return true;}
     if(route==="/api/catalog"){
       const data=await db.query(`SELECT id,item_type,market,symbol,display_name
-        FROM listings WHERE status='PUBLISHED' ORDER BY created_at DESC LIMIT 100`);
+        FROM listings WHERE status='PUBLISHED' AND market IN ('US','CN') ORDER BY created_at DESC LIMIT 100`);
       response(res,200,{items:data.rows.map(x=>({
         id:x.id,itemType:x.item_type,market:x.market,symbol:x.symbol,name:x.display_name
       }))});return true;
