@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080a07">
+<meta name="description" content="CN Capital 移动交易工作台，使用原有账户数据和内部交易记录。">
+<title>CN Capital · 手机端</title>
+<link rel="icon" href="/cn-logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/mobile.css">
+</head>
+<body>
+<div class="mobile-app" id="mobileApp">
+  <header class="mobile-head">
+    <a class="mobile-brand" href="/"><img src="/cn-logo.svg" width="38" height="38" alt=""><span>CN Capital<small>PRIVATE MARKET</small></span></a>
+    <div class="head-actions"><span id="mobileConnection" role="status" class="connection">正在连接</span><button id="mobileRefresh" type="button" aria-label="刷新账户和行情" title="刷新">↻</button></div>
+  </header>
+  <main class="mobile-content" id="mobileContent">
+    <section class="mobile-screen" id="mobileScreen" role="tabpanel" aria-live="polite"><div class="loading">正在安全读取账户…</div></section>
+  </main>
+  <nav class="mobile-nav" id="mobileNav" aria-label="手机端主导航">
+    <button type="button" data-tab="home" aria-current="page"><span class="nav-icon">⌂</span><span>自选</span></button>
+    <button type="button" data-tab="market"><span class="nav-icon">⌁</span><span>行情</span></button>
+    <button type="button" data-tab="trade"><span class="nav-icon">⇄</span><span>交易</span></button>
+    <button type="button" data-tab="orders"><span class="nav-icon">☷</span><span>订单</span></button>
+    <button type="button" data-tab="account"><span class="nav-icon">◉</span><span>账户</span></button>
+  </nav>
+  <div class="toast" id="mobileToast" role="status" aria-live="polite" hidden></div>
+  <div class="mobile-sheet-backdrop" id="mobileSheet" hidden><section class="mobile-sheet" role="dialog" aria-modal="true" aria-labelledby="mobileDialogTitle"><header><h2 id="mobileDialogTitle">确认操作</h2><button id="mobileDialogClose" type="button" aria-label="关闭">×</button></header><div id="mobileDialogBody"></div></section></div>
+</div>
+<script type="module" src="/mobile.mjs"></script>
+</body>
+</html>
