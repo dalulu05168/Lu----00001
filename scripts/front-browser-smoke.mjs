@@ -84,20 +84,59 @@ try{
   assert.ok(login.formHeight>50,"Original login form must remain visible in "+view.label);
   assert.equal(login.background,"rgba(0, 0, 0, 0)","Login logo must have transparent backing");
   assert.equal(login.border,"0px","Login logo must have no border plate");
-  const layout=await evalJS(client,"(()=>{document.getElementById('entryGate').hidden=true;document.getElementById('overview').hidden=false;document.getElementById('internalProductsPanel').hidden=false;document.getElementById('orderForm').hidden=false;const rect=s=>{const n=document.querySelector(s);if(!n)return null;const r=n.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}};return {nav:rect('#overview .sidebar'),chart:rect('#overview #stockChart'),transactions:rect('#overview .transaction-list-panel'),trading:rect('#overview .trade-board-side > .order-panel'),holdings:rect('#overview #holdings-section'),watchlist:rect('#overview #markets-section'),accent:getComputedStyle(document.querySelector('#overview')).getPropertyValue('--cn-lime').trim(),scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
-  const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
-  await writeFile(join("artifacts","cn-front-"+view.label+".png"),Buffer.from(shot.data,"base64"));
-  assert.equal(layout.accent,"#d7ff00",view.label+" CN design CSS missing");
-  for(const key of ["nav","chart","transactions","trading","holdings","watchlist"]){
-   assert.ok(layout[key]?.width>140&&layout[key]?.height>10,view.label+" missing module "+key+": "+JSON.stringify(layout));
+  // The real desktop app and the mobile native full-screen UI share the same auth/API DOM.
+  await pause(200);
+  await evalJS(client,"document.getElementById('entryGate').hidden=true;document.getElementById('overview').hidden=false");
+  if(view.width>=1000){
+   const layout=await evalJS(client,"(()=>{document.getElementById('internalProductsPanel').hidden=false;document.getElementById('orderForm').hidden=false;const rect=s=>{const r=document.querySelector(s)?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}:null};return {mode:document.getElementById('overview').dataset.cnMode,nav:rect('#overview .sidebar'),chart:rect('#overview #stockChart'),transactions:rect('#overview .transaction-list-panel'),trading:rect('#overview .trade-board-side > .order-panel'),holdings:rect('#overview #holdings-section'),watchlist:rect('#overview #markets-section'),accent:getComputedStyle(document.querySelector('#overview')).getPropertyValue('--cn-lime').trim(),scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+   assert.equal(layout.mode,"desktop");
+   assert.equal(layout.accent,"#d7ff00");
+   for(const key of ["nav","chart","transactions","trading","holdings","watchlist"]){
+    assert.ok(layout[key]?.width>140&&layout[key]?.height>10,"desktop module missing "+key);
+   }
+   assert.ok(layout.chart.y<layout.transactions.y,"desktop chart precedes history");
+   assert.ok(layout.trading.y<=layout.holdings.y,"desktop trading panel precedes holdings");
+   assert.ok(layout.chart.right<=layout.trading.x+8,"desktop trading panel sits beside chart");
+   const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
+   await writeFile(join("artifacts","cn-front-desktop.png"),Buffer.from(shot.data,"base64"));
+   console.log("FRONT_BROWSER_OK "+JSON.stringify({view:"desktop",login,layout}));
+  }else{
+   const mobile=await evalJS(client,"(()=>{const o=document.getElementById('overview');const r=s=>{const e=document.querySelector(s);const v=e?.getBoundingClientRect();return v?{x:v.x,y:v.y,width:v.width,height:v.height}:null};return {mode:o.dataset.cnMode,view:o.dataset.cnView,hero:r('#cnMobileHero'),header:r('#cnMobileHeader'),bottom:r('#cnMobileTabs'),originalSidebar:r('#overview .sidebar'),cash:document.getElementById('cnMobileCash').textContent.trim(),tabCount:document.querySelectorAll('#cnMobileTabs button[data-cn-tab]').length,deviceChrome:document.querySelectorAll('.isl,.mirror-status-bar,.sb').length,bodyWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+   assert.equal(mobile.mode,"mobile","narrow screen must choose mobile UI automatically");
+   assert.equal(mobile.view,"home");
+   assert.equal(mobile.tabCount,5,"native app must have 5 bottom tabs");
+   assert.ok(mobile.header?.height>=40,"mobile brand header missing");
+   assert.ok(mobile.bottom?.height>=50,"mobile bottom tabs missing");
+   assert.ok(mobile.hero?.width>=view.width-36,"hero must be full width, not a 390px device shell");
+   assert.equal(mobile.originalSidebar?.height,0,"legacy desktop sidebar must be absent in mobile mode");
+   assert.equal(mobile.deviceChrome,0,"fake device notch/statusbar is forbidden");
+   assert.equal(mobile.cash,"—","mobile starts with no pretend account balance");
+   assert.ok(mobile.bodyWidth<=mobile.viewport+5,"mobile home overflows width");
+   const check=async(name,selectors)=>{
+    const result=await evalJS(client,"(()=>{document.querySelector('#cnMobileTabs button[data-cn-tab="+name+"]').click();const q=s=>{const e=document.querySelector(s);const r=e?.getBoundingClientRect();return r?{width:r.width,height:r.height,y:r.y}:null};return {selected:document.getElementById('overview').dataset.cnView,tabs:[...document.querySelectorAll('#cnMobileTabs button[aria-current=page]')].map(e=>e.dataset.cnTab),modules:["+selectors.map(x=>JSON.stringify(x)).join(",")+"].map(q),width:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+    assert.equal(result.selected,name);
+    assert.deepEqual(result.tabs,[name]);
+    selectors.forEach((selector,i)=>assert.ok(result.modules[i]?.height>20&&result.modules[i]?.width>200,name+": module not visible: "+selector+" "+JSON.stringify(result)));
+    assert.ok(result.width<=result.viewport+10,name+": horizontal overflow");
+    const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
+    await writeFile(join("artifacts","cn-mobile-"+name+".png"),Buffer.from(shot.data,"base64"));
+    console.log("MOBILE_VIEW_OK "+JSON.stringify({name,modules:result.modules,viewport:result.viewport}));
+   };
+   await check("home",["#cnMobileHero","#holdings-section","#markets-section"]);
+   await check("market",["#terminal-section","#markets-section"]);
+   await evalJS(client,"document.getElementById('internalProductsPanel').hidden=false;document.getElementById('orderForm').hidden=false");
+   await check("trade",["#overview .trade-board-side > .order-panel","#holdings-section"]);
+   await check("orders",["#overview .transaction-list-panel","#cnMobileExport"]);
+   await evalJS(client,"document.getElementById('serviceRequestsPanel').hidden=false;document.getElementById('customerSupportPanel').hidden=false");
+   await check("account",["#account-section","#fundingRequestForm","#customerSupportPanel"]);
+   const actions=await evalJS(client,"(()=>{document.querySelector('[data-cn-tab=home]').click();document.querySelector('[data-cn-action=withdraw]').click();return {tab:document.getElementById('overview').dataset.cnView,request:document.getElementById('fundingRequestKind').value}})()");
+   assert.deepEqual(actions,{tab:"account",request:"WITHDRAWAL"},"withdraw action must use existing form but never submit it");
+   const desktopSwitch=await evalJS(client,"(()=>{document.getElementById('cnModeSwitch').click();const a=document.getElementById('overview').dataset.cnMode;document.getElementById('cnDesktopReturn').click();return {desktop:a,restored:document.getElementById('overview').dataset.cnMode}})()");
+   assert.deepEqual(desktopSwitch,{desktop:"desktop",restored:"mobile"},"manual switch between desktop and mobile must work");
+   console.log("FRONT_BROWSER_OK "+JSON.stringify({view:"narrow",login,mobile,actions,desktopSwitch}));
   }
-  assert.ok(layout.chart.y<layout.transactions.y,view.label+" chart must appear above transaction history");
-  assert.ok(layout.trading.y<=layout.holdings.y,view.label+" trading must appear ahead of holdings");
-  if(view.width>=1000)assert.ok(layout.chart.right<=layout.trading.x+8,"desktop trading should be beside chart");
-  else assert.ok(layout.scrollWidth<=layout.viewport+12,"narrow layout overflows: "+JSON.stringify(layout));
-  console.log("FRONT_BROWSER_OK "+JSON.stringify({view:view.label,login,layout}));
  }
- console.log("Chromium browser QA: desktop and narrow PASS");
+ console.log("Chromium browser QA: desktop and all five mobile fullscreen tabs PASS");
 }finally{
  try{client?.close()}catch{}
  if(child){child.kill("SIGTERM");await pause(70);if(child.exitCode===null)child.kill("SIGKILL");}
