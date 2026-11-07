@@ -188,3 +188,7 @@
 @media(prefers-reduced-motion:reduce){
  #overview .cn-v4-header *{transition:none!important}
 }
+
+#overview .cn-v4-disclosure{grid-column:1/-1;margin:6px 0 0;padding:11px 13px;
+ border:1px solid rgba(232,194,122,.18);border-radius:10px;color:#c1cbb6;
+ background:rgba(232,194,122,.045);font-size:11px;line-height:1.55}
