@@ -436,7 +436,7 @@
 #overview[data-cn-mode="mobile"] [hidden]{display:none!important}
 /* Every one of the five mobile tabs shows the ORIGINAL live DOM/forms in a distinct view.
    Hidden via CSS, never detached/recreated: app.mjs and existing API bindings are preserved. */
-#overview[data-cn-mode="mobile"] :is(.trade-board,.metrics,.secondary-grid,.account-grid,
+#overview[data-cn-mode="mobile"] :where(.trade-board,.metrics,.secondary-grid,.account-grid,
  #serviceRequestsPanel,#commodityCatalogPanel,#customerSupportPanel,#catalog-section,#records-section){display:none!important}
 #overview[data-cn-mode="mobile"][data-cn-view="home"] :is(.trade-board,#overview-metrics){display:flex!important}
 #overview[data-cn-mode="mobile"][data-cn-view="home"] #overview-metrics{display:grid!important}

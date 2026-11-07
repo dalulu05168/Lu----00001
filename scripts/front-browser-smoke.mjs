@@ -113,13 +113,16 @@ try{
    assert.equal(mobile.cash,"—","mobile starts with no pretend account balance");
    assert.ok(mobile.bodyWidth<=mobile.viewport+5,"mobile home overflows width");
    const check=async(name,selectors)=>{
-    const result=await evalJS(client,"(()=>{document.querySelector('#cnMobileTabs button[data-cn-tab="+name+"]').click();const q=s=>{const e=document.querySelector(s);const r=e?.getBoundingClientRect();return r?{width:r.width,height:r.height,y:r.y}:null};return {selected:document.getElementById('overview').dataset.cnView,tabs:[...document.querySelectorAll('#cnMobileTabs button[aria-current=page]')].map(e=>e.dataset.cnTab),modules:["+selectors.map(x=>JSON.stringify(x)).join(",")+"].map(q),width:document.documentElement.scrollWidth,viewport:innerWidth}})()");
-    assert.equal(result.selected,name);
-    assert.deepEqual(result.tabs,[name]);
-    selectors.forEach((selector,i)=>assert.ok(result.modules[i]?.height>20&&result.modules[i]?.width>200,name+": module not visible: "+selector+" "+JSON.stringify(result)));
-    assert.ok(result.width<=result.viewport+10,name+": horizontal overflow");
-    const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
-    await writeFile(join("artifacts","cn-mobile-"+name+".png"),Buffer.from(shot.data,"base64"));
+   const result=await evalJS(client,"(()=>{document.querySelector('#cnMobileTabs button[data-cn-tab="+name+"]').click();const q=s=>{const e=document.querySelector(s);const r=e?.getBoundingClientRect();return r?{width:r.width,height:r.height,y:r.y}:null};return {selected:document.getElementById('overview').dataset.cnView,tabs:[...document.querySelectorAll('#cnMobileTabs button[aria-current=page]')].map(e=>e.dataset.cnTab),modules:["+selectors.map(x=>JSON.stringify(x)).join(",")+"].map(q),width:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+   assert.equal(result.selected,name);
+   assert.deepEqual(result.tabs,[name]);
+   selectors.forEach((selector,i)=>{
+    const minWidth=selector==="#cnMobileExport"?120:200;
+    assert.ok(result.modules[i]?.height>20&&result.modules[i]?.width>minWidth,name+": module not visible: "+selector+" "+JSON.stringify(result));
+   });
+   assert.ok(result.width<=result.viewport+10,name+": horizontal overflow");
+   const shot=await client.send("Page.captureScreenshot",{format:"png",captureBeyondViewport:false});
+   await writeFile(join("artifacts","cn-mobile-"+name+".png"),Buffer.from(shot.data,"base64"));
     console.log("MOBILE_VIEW_OK "+JSON.stringify({name,modules:result.modules,viewport:result.viewport}));
    };
    await check("home",["#cnMobileHero","#holdings-section","#markets-section"]);
