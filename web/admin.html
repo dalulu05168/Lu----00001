@@ -1,7 +1,14 @@
 <!doctype html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CN Capital | 管理控制台</title><link rel="icon" type="image/svg+xml" href="/cn-logo.svg"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/portal.css"></head>
+<title>CN Capital | 管理控制台</title><link rel="icon" type="image/svg+xml" href="/cn-logo.svg"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/portal.css"><style id="original-admin-responsive-navigation">
+/* The original side navigation remains, but must be operable on 390px screens. */
+@media(max-width:650px){
+ #adminWorkspace .admin-nav #adminMobileNavToggle{display:block!important}
+ #adminWorkspace .admin-nav #adminPages{display:none!important}
+ #adminWorkspace .admin-nav[data-mobile-open="true"] #adminPages{display:grid!important}
+}
+</style></head>
 <body>
 
 <main class="workspace" id="adminRoot">
@@ -57,8 +64,8 @@
 
 <section id="adminWorkspace" hidden aria-label="管理工作台">
   <div class="admin-shell">
-    <aside class="admin-nav" id="adminTopbar" aria-label="管理导航">
-      <div class="nav-heading"><span class="nav-brand-mark" aria-hidden="true"><img class="cn-capital-mark" src="/cn-capital.png" width="192" height="192" decoding="async" alt=""></span><span class="nav-brand-copy"><strong>CN Capital</strong><small>管理工作台 · SECURE OPERATIONS</small></span></div>
+    <aside class="admin-nav" id="adminTopbar" aria-label="管理导航" hidden>
+      <div class="nav-heading"><span class="nav-brand-mark" aria-hidden="true"><img class="cn-capital-mark" src="/cn-logo.svg" width="192" height="192" decoding="async" alt=""></span><span class="nav-brand-copy"><strong>CN Capital</strong><small>管理工作台 · SECURE OPERATIONS</small></span></div>
       <div class="nav-identity"><span id="adminRole">—</span><span class="server-status">账户密码会话</span></div>
       <button type="button" id="adminMobileNavToggle" class="outline" aria-controls="adminPages" aria-expanded="false">打开菜单</button>
       <nav id="adminPages">
