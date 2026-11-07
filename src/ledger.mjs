@@ -1,4 +1,4 @@
-export const MARKETS = Object.freeze(["US","HK","CN","MY"]);
+export const MARKETS = Object.freeze(["US","CN"]);
 export function createAccount(initialCashCents = 1_000_000) {
   if (!Number.isSafeInteger(initialCashCents) || initialCashCents < 0) throw new Error("Invalid opening balance");
   return { cashCents: initialCashCents, positions: {}, orders: [] };

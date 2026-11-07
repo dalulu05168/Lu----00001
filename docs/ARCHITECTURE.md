@@ -1,7 +1,7 @@
 # Global Stock Platform — Architecture V1
 
 ## Scope and constraints
-- Markets: US / HK / CN / MY.
+- Markets: US / CN. Hong Kong (HK) and Malaysia (MY) are unsupported and must not be offered in the UI, APIs, catalog, watchlists or new database writes.
 - Licensed, read-only market data; no broker order transport.
 - Internal-only accounting. No deposits, withdrawals, or representation of real securities ownership.
 - Main product branding is neutral; transaction and asset disclosures must remain explicit.

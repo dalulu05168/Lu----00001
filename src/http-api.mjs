@@ -104,6 +104,7 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    if(!data||typeof data!=="object"||Array.isArray(data))return send(res,400,{error:"Invalid body"});
    const allowed=["side","market","symbol","quantity"];
    if(Object.keys(data).some(k=>!allowed.includes(k)))return send(res,400,{error:"Unexpected fields"});
+   if(!["US","CN"].includes(data.market))return send(res,400,{error:"Unsupported market"});
    // Do not trust a browser-supplied execution price or FX rate.
    // Until a licensed read-only quote service and pricing policy are configured,
    // the HTTP endpoint is disabled instead of creating misleading orders.

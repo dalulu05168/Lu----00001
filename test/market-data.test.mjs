@@ -11,3 +11,11 @@ test("gateway rejects instrument mismatch",async()=>{
  const gateway=createReadOnlyPricingGateway({provider:{getQuote:async()=>quote},now:()=>now});
  await assert.rejects(gateway({market:"US",symbol:"MSFT"}),/mismatch/);
 });
+
+test("unsupported market quotes and gateway requests are rejected",async()=>{
+ for(const market of ["HK","MY"]){
+  assert.throws(()=>validateQuote({...quote,market},{now}),/Invalid quote identity/);
+  const gateway=createReadOnlyPricingGateway({provider:{getQuote:async()=>quote},now:()=>now});
+  await assert.rejects(gateway({market,symbol:"AAPL"}),/Invalid instrument/);
+ }
+});

@@ -33,7 +33,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_supported_markets_us_cn.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -74,24 +74,32 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     assert.equal(initiallyEmpty.status,200);
     assert.deepEqual(initiallyEmpty.value.items,[]);
     const saved = await request("/api/watchlist", {
-      method:"POST",token:tokenA,body:{market:"HK",symbol:"9988"}
+      method:"POST",token:tokenA,body:{market:"CN",symbol:"600519"}
     });
     assert.equal(saved.status,200);
     const savedA = await request("/api/watchlist", {token:tokenA});
-    assert.deepEqual(savedA.value.items.map(item=>item.market+":"+item.symbol),["HK:9988"]);
+    assert.deepEqual(savedA.value.items.map(item=>item.market+":"+item.symbol),["CN:600519"]);
     const isolatedB = await request("/api/watchlist", {token:tokenB});
     assert.deepEqual(isolatedB.value.items,[]);
     const persisted = await db.query(
       "SELECT market,symbol FROM watchlist_items WHERE account_id=$1",[registerA.value.accountId]
     );
     assert.equal(persisted.rows.length,1);
-    assert.equal(persisted.rows[0].symbol,"9988");
+    assert.equal(persisted.rows[0].symbol,"600519");
     const badInstrument = await request("/api/watchlist", {
-      method:"POST",token:tokenA,body:{market:"HK",symbol:"<script>"}
+      method:"POST",token:tokenA,body:{market:"CN",symbol:"<script>"}
     });
     assert.equal(badInstrument.status,400);
+    for(const unsupported of ["HK","MY"]){
+      const rejected=await request("/api/watchlist",{method:"POST",token:tokenA,body:{market:unsupported,symbol:"AAPL"}});
+      assert.equal(rejected.status,400);
+    }
+    await assert.rejects(
+      db.query("INSERT INTO watchlist_items(account_id,market,symbol) VALUES($1,$2,$3)",[registerA.value.accountId,"HK","0700"]),
+      /check constraint/
+    );
     const removeSaved = await request("/api/watchlist", {
-      method:"DELETE",token:tokenA,body:{market:"HK",symbol:"9988"}
+      method:"DELETE",token:tokenA,body:{market:"CN",symbol:"600519"}
     });
     assert.equal(removeSaved.status,200);
     assert.deepEqual((await request("/api/watchlist",{token:tokenA})).value.items,[]);

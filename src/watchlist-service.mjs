@@ -1,4 +1,4 @@
-const MARKETS = new Set(["US", "HK", "CN", "MY"]);
+const MARKETS = new Set(["US", "CN"]);
 const SYMBOL_PATTERN = /^[A-Z0-9][A-Z0-9.-]{0,23}$/;
 
 export function validateWatchlistInstrument(value) {
