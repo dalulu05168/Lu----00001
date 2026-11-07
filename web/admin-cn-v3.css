@@ -281,3 +281,25 @@ body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,
 @media(prefers-reduced-motion:reduce){
   #admin-login .portal-aurora {animation:none}
 }
+
+/* Funding rows: link existing scoped approval API, never mutate from the summary. */
+#adminWorkspace .funding-toolbar {display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#adminWorkspace .funding-review-link {
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:none;min-height:32px;padding:5px 13px;
+  border:1px solid #687c4e;border-radius:999px;
+  background:rgba(215,255,0,.075);color:#e5ffae;
+  font-size:12px;line-height:1.35;white-space:nowrap;cursor:pointer;
+}
+#adminWorkspace .funding-review-link:hover:not(:disabled) {
+  color:#172006;background:#d7ff00;border-color:#d7ff00;
+}
+#adminWorkspace .funding-request-row {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+#adminWorkspace .funding-request-row>div {flex:1;min-width:0;overflow-wrap:anywhere}
+#adminWorkspace #dashboardFundingRows td:last-child {white-space:nowrap}
+@media(max-width:650px){
+  #adminWorkspace .funding-request-row {align-items:flex-start;flex-direction:column}
+  #adminWorkspace .funding-toolbar {justify-content:flex-start}
+}
