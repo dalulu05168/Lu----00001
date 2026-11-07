@@ -1,8 +1,9 @@
 import {randomUUID} from "node:crypto";
 import {hashPassword,verifyPassword,createSession,revokeSession,rejectUnknownAccount} from "./auth.mjs";
+const phonePattern=/^\+[1-9]\d{7,14}$/;
 const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function registerAccount(db,{email,password,openingCashCents=0,inviteCode}){
- if(typeof email!=="string"||email.length>254||!emailPattern.test(email))throw new Error("Invalid email");
+ if(typeof email!=="string"||email.length>254||!(emailPattern.test(email)||phonePattern.test(email.trim())))throw new Error("Invalid email");
  if(!Number.isSafeInteger(openingCashCents)||openingCashCents<0||openingCashCents>100_000_000_00)throw new Error("Invalid opening balance");
  const passwordHash=await hashPassword(password);
  const client=await db.connect();

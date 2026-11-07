@@ -13,7 +13,7 @@
     <div class="portal-card">
       <div class="portal-role-tabs" role="group" aria-label="管理员账户类型"><button type="button" data-role-choice="MASTER" aria-pressed="true">主账户</button><button type="button" data-role-choice="SUBADMIN" aria-pressed="false">子账户</button></div>
       <form id="adminLoginForm" autocomplete="on">
-        <label class="portal-field">管理员邮箱<input type="email" id="adminEmail" autocomplete="username" placeholder="Email" required></label>
+        <label class="portal-field">管理员手机号<input type="tel" inputmode="tel" pattern="\+[1-9][0-9]{7,14}" title="请输入含国家区号的国际手机号" id="adminEmail" autocomplete="username" placeholder="+ 国家区号和手机号" required></label>
         <label class="portal-field">后台登录密码<input type="password" id="adminPassword" autocomplete="current-password" placeholder="Password" required></label>
         <button type="submit" class="portal-primary">进入管理后台</button>
       </form>
@@ -37,7 +37,7 @@
   <div class="heading"><h2>主账户初次配置</h2><button type="button" class="outline" id="closeAdminSetup">返回登录</button></div>
   <p class="muted">仅首次创建主账户时使用。请通过授权管理员获取初始化凭证。</p>
   <form id="bootstrapForm" class="field-grid">
-    <label>主账户邮箱<input id="bootstrapEmail" type="email" autocomplete="username" required></label>
+    <label>主账户手机号<input id="bootstrapEmail" type="tel" inputmode="tel" pattern="\+[1-9][0-9]{7,14}" title="请输入含国家区号的国际手机号" autocomplete="username" required></label>
     <label>设置密码（至少12位）<input id="bootstrapPassword" type="password" minlength="12" autocomplete="new-password" required></label>
     <label>项目初始化凭证<input id="bootstrapKey" type="password" autocomplete="off" required></label>
     <button type="submit">创建主账户</button>
@@ -47,7 +47,7 @@
     <h3>已有主账户但无法登录</h3>
     <p class="muted">旧版未完成设置的主账户可以凭初始化凭证仅重置一次密码；已正常使用的账户不能通过此入口重置。</p>
     <form id="recoverForm" class="field-grid">
-      <label>主账户邮箱<input type="email" id="recoverEmail" autocomplete="username" required></label>
+      <label>主账户手机号<input type="tel" inputmode="tel" pattern="\+[1-9][0-9]{7,14}" title="请输入含国家区号的国际手机号" id="recoverEmail" autocomplete="username" required></label>
       <label>新登录密码（至少12位）<input type="password" id="recoverPassword" autocomplete="new-password" minlength="12" required></label>
       <label>项目初始化凭证<input type="password" id="recoverKey" autocomplete="off" required></label>
       <button type="submit">重置尚未完成设置的账户密码</button>
@@ -140,7 +140,7 @@
         <section class="panel" id="subadminArea">
           <div class="heading"><h3>子账户及邀请码</h3><button type="button" id="refreshSubadmins" class="outline">刷新</button></div>
           <form id="subadminForm" class="field-grid">
-            <label>子账户邮箱<input id="subadminEmail" type="email" required autocomplete="off"></label>
+            <label>子账户手机号<input id="subadminEmail" type="tel" inputmode="tel" pattern="\+[1-9][0-9]{7,14}" title="请输入含国家区号的国际手机号" required autocomplete="off"></label>
             <label>初始密码（至少12位）<input id="subadminPassword" type="password" minlength="12" required autocomplete="new-password"></label>
             <button type="submit">创建子账户和邀请码</button>
           </form>
@@ -177,7 +177,7 @@
           <section class="panel client-list-panel">
             <div class="heading client-list-toolbar"><div><h3>客户列表</h3><p id="clientDirectoryCount" class="muted">正在加载客户</p></div>
               <div class="client-list-actions">
-                <label class="client-search-label">搜索客户 <input id="clientDirectorySearch" type="search" placeholder="邮箱或客户编号" autocomplete="off"></label>
+                <label class="client-search-label">搜索客户 <input id="clientDirectorySearch" type="search" placeholder="手机号或客户编号" autocomplete="off"></label>
                 <button type="button" id="refreshClients" class="outline">刷新</button>
               </div>
             </div>
@@ -251,7 +251,7 @@
             <div class="heading"><h3>可查看客户</h3><button type="button" id="refreshMirrorClients" class="outline">刷新客户</button></div>
             <p id="mirrorAvailability" class="muted" role="status">正在检查镜像状态</p>
             <label class="mirror-search-label" for="mirrorClientSearch">查找客户</label>
-            <input type="search" id="mirrorClientSearch" class="mirror-search" placeholder="按客户邮箱查找" autocomplete="off" aria-label="按客户邮箱查找">
+            <input type="search" id="mirrorClientSearch" class="mirror-search" placeholder="按客户手机号查找" autocomplete="off" aria-label="按客户手机号查找">
             <p id="mirrorMatchCount" class="muted" role="status"></p>
             <div id="mirrorClientList" class="admin-list"><p class="muted">登录后加载权限范围内的客户。</p></div>
           </section>

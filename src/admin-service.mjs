@@ -5,6 +5,7 @@ import {generateTotpSecret,verifyTotpCode,totpUri,base32Encode} from "./totp.mjs
 import {adminTotpKey,sealTotpSecret,openTotpSecret} from "./admin-totp-storage.mjs";
 
 
+const PHONE=/^\+[1-9]\d{7,14}$/;
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function matchBootstrapKey(value){
   const proof=process.env.ADMIN_BOOTSTRAP_SECRET;
@@ -20,7 +21,7 @@ const MARKETS=new Set(["US","RO"]);
 const TYPES=new Set(["STOCK","FUND","IPO"]);
 function invalid(message){const error=new Error(message);error.statusCode=400;throw error;}
 function getEmail(value) {
-  if(typeof value!=="string"||value.length>254||!EMAIL.test(value))invalid("Invalid email");
+  if(typeof value!=="string"||value.length>254||!(EMAIL.test(value)||PHONE.test(value.trim())))invalid("Invalid email");
   return value.trim().toLowerCase();
 }
 function safeListing(value){
@@ -42,7 +43,7 @@ export async function roleFor(db,session) {
   }:null;
 }
 export async function bootstrapMaster(db,{email,password,setupKey}){
-  const allowed=process.env.ADMIN_MASTER_EMAIL?.trim().toLowerCase();
+  const allowed=(process.env.ADMIN_MASTER_PHONE ?? process.env.ADMIN_MASTER_EMAIL)?.trim().toLowerCase();
   const normalized=getEmail(email);
   if(!allowed||normalized!==allowed||!matchBootstrapKey(setupKey))invalid("Invalid setup proof");
   const passwordHash=await hashPassword(password),userId=randomUUID(),accountId=randomUUID();
@@ -63,7 +64,7 @@ export async function bootstrapMaster(db,{email,password,setupKey}){
 }
 export async function recoverPendingMaster(db,{email,password,setupKey}){
   const normalized=getEmail(email);
-  const allowed=process.env.ADMIN_MASTER_EMAIL?.trim().toLowerCase();
+  const allowed=(process.env.ADMIN_MASTER_PHONE ?? process.env.ADMIN_MASTER_EMAIL)?.trim().toLowerCase();
   if(!allowed||normalized!==allowed||!matchBootstrapKey(setupKey))invalid("Invalid setup proof");
   const hash=await hashPassword(password);
   const c=await db.connect();let tx=false;

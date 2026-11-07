@@ -118,7 +118,7 @@ function openClientDetail(clientId){
   el("clientDetailSubhead").textContent=c.subadmin_user_id?"由所属子账号管理的客户":"直接注册客户";
   setClientDetailTab("overview");
   const target=el("clientDetailFields");target.replaceChildren(
-    detailRow("客户邮箱",c.email),detailRow("客户编号",c.id),
+    detailRow("客户手机号",c.email),detailRow("客户编号",c.id),
     detailRow("归属子账号",c.subadmin_user_id||"未绑定子账号"),
     detailRow("关联时间",dateLabel(c.created_at)),
     detailRow("账户管理策略","请查看下方 VIP、登录、提现及贷款申请资格"),
@@ -137,7 +137,7 @@ function openSubadminDetail(userId){
   }
   selectedSubadminId=c.user_id;
   const target=el("subadminDetailFields");target.replaceChildren(
-    detailRow("管理员邮箱",c.email),detailRow("子账号编号",c.user_id),
+    detailRow("管理员手机号",c.email),detailRow("子账号编号",c.user_id),
     detailRow("邀请码",c.code||"未提供"),
     detailRow("邀请码使用次数",String(c.uses??0)+" / "+String(c.max_uses??"—")),
     detailRow("邀请码到期",dateLabel(c.expires_at)),
@@ -1711,7 +1711,7 @@ el("bootstrapForm").addEventListener("submit",async event=>{
       email:el("bootstrapEmail").value.trim(),password:el("bootstrapPassword").value,setupKey:el("bootstrapKey").value
     }});
     el("bootstrapPassword").value="";el("bootstrapKey").value="";
-    setText("bootstrapFeedback",result.ready?"主账户创建成功。现在返回登录页面，使用刚设置的邮箱和密码登录。":"创建失败");
+    setText("bootstrapFeedback",result.ready?"主账户创建成功。现在返回登录页面，使用刚设置的手机号和密码登录。":"创建失败");
   }catch(error){setText("bootstrapFeedback",error.message);}
   finally{button.disabled=false;}
 });
@@ -1722,7 +1722,7 @@ el("recoverForm").addEventListener("submit",async event=>{
       email:el("recoverEmail").value.trim(),password:el("recoverPassword").value,setupKey:el("recoverKey").value
     }});
     el("recoverPassword").value="";el("recoverKey").value="";
-    setText("recoverFeedback",result.ready?"密码已经更新。请返回登录页面，输入主账户邮箱与新密码。":"更新失败");
+    setText("recoverFeedback",result.ready?"密码已经更新。请返回登录页面，输入主账户手机号与新密码。":"更新失败");
   }catch(error){setText("recoverFeedback",error.message);}
   finally{button.disabled=false;}
 });
@@ -1738,7 +1738,7 @@ el("subadminForm").addEventListener("submit",async event=>{
     const heading=document.createElement("p");heading.textContent="子账户已创建，请将邀请码交给对应管理员。";
     const code=document.createElement("code");code.textContent="邀请码："+data.inviteCode;
     box.append(heading,code);
-    setText("subadminFeedback","子管理员使用邮箱和所设置的密码直接登录。");
+    setText("subadminFeedback","子管理员使用手机号和所设置的密码直接登录。");
     await refreshSubadmins();
   }catch(error){setText("subadminFeedback",error.message)}
   finally{button.disabled=false;}

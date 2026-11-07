@@ -67,7 +67,7 @@ test("master authenticates with password then a TOTP code, rejecting wrong passw
   }
 });
 
-test("an already-enrolled admin's second login only asks for a TOTP code, not setup",async()=>{
+test("an already-enrolled admin's phone login uses the existing TOTP binding, not setup",async()=>{
   const previousKey=process.env.ADMIN_TOTP_KEY;
   process.env.ADMIN_TOTP_KEY="a".repeat(64);
   try{
@@ -79,7 +79,7 @@ test("an already-enrolled admin's second login only asks for a TOTP code, not se
     const secret=openTotpSecret(state.totpSecretCiphertext,adminTotpKey(),userId);
     await verifyAdminTotp(db,{pendingToken:enrolled.pendingToken,code:totpCode(secret)});
 
-    const step1=await adminLogin(db,{email:"admin@example.test",password:"correct-password-2026"});
+    const step1=await adminLogin(db,{email:"+40700000001",password:"correct-password-2026"});
     assert.equal(step1.totpRequired,true);
     assert.equal(step1.totpSetupRequired,undefined);
     assert.equal(step1.secret,undefined);
