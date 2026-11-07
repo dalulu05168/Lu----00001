@@ -1,0 +1,55 @@
+name: Desktop live workbench Chromium
+on:
+  push:
+    branches: ['ui/customer-live-terminal-20261107']
+    paths:
+      - 'web/index.html'
+      - 'web/cn-terminal-v4.css'
+      - 'web/cn-terminal-ui.mjs'
+      - 'web/cn-login-logo.svg'
+      - 'test/cn-live-frontend-integration.test.mjs'
+      - 'test/desktop-live-chromium.mjs'
+      - '.github/workflows/desktop-live-chromium.yml'
+  pull_request:
+    paths:
+      - 'web/index.html'
+      - 'web/cn-terminal-v4.css'
+      - 'web/cn-terminal-ui.mjs'
+      - 'web/cn-login-logo.svg'
+      - 'test/cn-live-frontend-integration.test.mjs'
+      - 'test/desktop-live-chromium.mjs'
+      - '.github/workflows/desktop-live-chromium.yml'
+permissions:
+  contents: read
+jobs:
+  desktop-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies and browser runner
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Static asset and JS syntax checks
+        run: |
+          node --check web/app.mjs
+          node --check web/cn-terminal-ui.mjs
+          node --check web/portal.mjs
+          test -s web/cn-login-logo.svg
+      - name: Original API hooks and form regression
+        run: node --test test/cn-live-frontend-integration.test.mjs
+      - name: Headless Chromium desktop smoke (isolated local server)
+        run: node test/desktop-live-chromium.mjs
+      - name: Preserve browser screenshots and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-live-chromium
+          path: artifacts/desktop-live-browser/
+          if-no-files-found: warn
+          retention-days: 14
