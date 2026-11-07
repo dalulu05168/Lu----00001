@@ -786,7 +786,7 @@ return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-
 +(s==='待成交'?'<div class="bn">撤销后，占用的可用资金会立即释放。</div><div class="two"><button class="cta gh" data-a="close">关闭</button><button class="cta red" data-a="cancelo">撤销订单</button></div>':'<button class="cta gh" data-a="close">关闭</button>')+'</div>'}
 function fillO(o){if(os(o)!=='待成交')return;o.st='已成交';D.cash=Math.round((D.cash-o.a)*100)/100;var h=pos(o.s);if(h){h.q+=o.q;h.c=Math.round((h.c+o.a)*100)/100}else D.hold.push({s:o.s,q:o.q,c:o.a});R();toast('订单 '+o.id+' 已成交 · 演示模拟')}
 function stats(){return bxs([['总成交额',usd(tot())],['已实现盈亏（FIFO）',usd(rpnl())],['订单 · 交易通道',D.ord.length+' · '+(D.tc?'<span class="up">已连接</span>':'<span class="am">未连接</span>')],['账户 ····'+D.acct,'<span class="dot"></span>已连接'],['持仓市值','<span class="m">暂不可用</span>'],['最近同步',D.sync]])}
-function alloc(){return '<div class="alloc"><i></i></div><div class="al">'+MK.map(function(k){return tg(k+' '+(k==='US'?100:0)+'%',MC[k])}).join('')+'</div>'}
+function alloc(){return '<div class="al"><span class="m">持仓分布待账户数据同步</span></div>'}
 function rates(){return '<h3>汇率</h3><div class="m">授权汇率接口尚未接入</div>'}
 function ordRow(o){return '<div class="rw" data-a="ord" data-v="'+D.ord.indexOf(o)+'">'+ic(o.s)+'<div class="l">'+o.s+' · <span class="'+(o.t==='买入'?'up':'dn')+'">'+o.t+'</span><small>'+o.q+' 股 @ $'+f(o.p)+' · '+o.d+'</small></div><div class="r">$'+f(o.a)+'<small>'+tg(os(o),osc(os(o)))+'</small></div></div>'}
 
