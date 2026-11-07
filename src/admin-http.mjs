@@ -39,7 +39,7 @@ function safeError(error){
   if(error instanceof SyntaxError)return {status:400,error:"Invalid JSON"};
   if(error?.statusCode===401)return {status:401,error:"Invalid admin credentials"};
   if(error?.statusCode===400)return {status:400,error:error.message};
-  if(error?.statusCode===404)return {status:404,error:"Client not found"};
+  if(error?.statusCode===404)return {status:404,error:"Record not found"};
   if(error?.statusCode===403)return {status:403,error:error.code==="PARTICIPATION_PASSWORD_INCORRECT"
     ?"Participation password is incorrect":"Master permission required"};
   if(error?.statusCode===409)return {status:409,error:error.message};
