@@ -15,9 +15,9 @@ test("dashboard follows the supplied dark charcoal transactions visual direction
   assert.ok(weights.every(weight => weight >= 300 && weight <= 700), "Use a restrained font hierarchy");
   assert.match(html, /id="transactions-section"/);
   assert.match(html, /id="transactionRows"/);
-  assert.ok(html.includes('src="/cn-logo.svg"'), "CN vector logo must be visible");
+  assert.ok(html.includes('src="/cn-logo.svg"'), "The supplied transparent CN vector mark must be visible");
   assert.ok(html.includes('src="/cn-login-logo.svg"'));
-  assert.ok(html.includes('type="image/svg+xml" href="/cn-logo.svg"'));
+  assert.ok(html.includes('rel="icon" type="image/svg+xml" href="/cn-logo.svg"'));
   assert.match(html, /class="metrics"/);
   assert.match(html, /class="primary-grid"/);
   assert.match(html, /class="secondary-grid"/);

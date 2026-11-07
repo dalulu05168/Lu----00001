@@ -1,0 +1,283 @@
+/*
+ * CN Capital / Admin design integration
+ * Based on the approved charcoal/lime UI. Scoped to the admin login and workspace.
+ * Preserves authentication, two-factor verification, backend APIs, and JS hooks.
+ * All 10 original admin routes and role restrictions remain available.
+ */
+#adminWorkspace {
+  --bg:#0b0d0a; --panel:#161b14; --border:#303b2b;
+  --fg:#f7f9f2; --dim:#b8c3b1; --green:#d7ff00; --amber:#ffb938;
+  --cn-accent:#d7ff00; --cn-soft:rgba(215,255,0,.11);
+  --cn-glass:rgba(255,255,255,.045); --cn-fine:rgba(255,255,255,.12);
+  color:var(--fg); background:#0b0d0a;
+  font-family:Inter,"Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+/* Real markup: the brand, #adminPages and logout buttons share one top header. */
+#adminWorkspace #adminTopbar {
+  position:sticky;top:0;z-index:30;margin-left:0;width:100%;box-sizing:border-box;
+  display:grid;grid-template-columns:minmax(200px,auto) minmax(0,1fr) auto;
+  grid-template-rows:auto auto;align-items:center;gap:6px 18px;
+  min-height:94px;padding:12px clamp(16px,2.3vw,32px) 0;
+  background:rgba(11,13,10,.98);border:0;border-bottom:1px solid #35402e;
+  box-shadow:0 8px 22px rgba(0,0,0,.18);backdrop-filter:blur(12px);
+}
+#adminWorkspace #adminTopbar[hidden] {display:none!important}
+#adminWorkspace #adminTopbar .cn-new-brand {
+  grid-column:1;grid-row:1;display:flex;align-items:center;gap:10px;min-width:0;
+}
+#adminWorkspace #adminTopbar .cn-new-logo {
+  width:44px;height:44px;display:block;object-fit:contain;flex:none;
+  background:transparent!important;border:0!important;padding:0!important;
+  box-shadow:none!important;border-radius:0!important;
+}
+#adminWorkspace #adminTopbar .cn-new-brand>span {
+  display:flex;flex-direction:column;gap:3px;color:#f7f9f2;
+  font-size:15px;font-weight:700;line-height:1.1;white-space:nowrap;
+}
+#adminWorkspace #adminTopbar .cn-new-brand small {
+  color:#c4d1bc;font-size:9px;letter-spacing:.1em;font-weight:450;
+}
+#adminWorkspace #adminTopbar .cn-new-actions {
+  grid-column:3;grid-row:1;display:flex;align-items:center;justify-content:flex-end;
+  gap:10px;min-width:0;
+}
+#adminWorkspace #adminTopbar .cn-new-avatar {
+  display:inline-flex;align-items:center;justify-content:center;min-width:66px;min-height:34px;
+  border-radius:999px;padding:5px 12px;border:1px solid #3a4a33;
+  background:#1b2617;color:#dcecd6;font-size:12px;
+}
+#adminWorkspace #adminTopbar .cn-logout {
+  border:1px solid #485b41;background:#273121;color:#f0f7eb;
+  border-radius:999px;min-height:34px;padding:6px 16px;font-size:12px;
+}
+#adminWorkspace #adminTopbar .cn-logout:hover {border-color:#d7ff00;color:#d7ff00}
+#adminWorkspace #adminTopbar .cn-current-title {
+  grid-column:2;grid-row:1;min-width:0;justify-self:start;
+  color:#e4eee0;font-size:13px;font-weight:500;letter-spacing:.01em;
+}
+#adminWorkspace #adminTopbar #adminMobileNavToggle {display:none}
+#adminWorkspace #adminPages {
+  position:static;inset:auto;z-index:auto;height:auto;min-height:0;align-self:center;
+  grid-column:1/-1;grid-row:2;
+  display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-start;align-items:center;gap:10px;
+  width:100%;min-width:0;max-height:none;margin:0;padding:3px 0 10px;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#465b37 transparent;
+  border:0;background:transparent;box-shadow:none;
+}
+#adminWorkspace #adminPages details {
+  display:inline-flex;align-items:center;gap:2px;min-width:max-content;
+  padding:0 8px 0 0;border-right:1px solid #34422d;flex:none;
+}
+#adminWorkspace #adminPages details:last-child{border-right:0}
+#adminWorkspace #adminPages summary {display:none!important}
+#adminWorkspace #adminPages button {
+  display:inline-flex;width:auto;min-height:35px;
+  justify-content:center;align-items:center;padding:6px 12px;
+  border-radius:999px;border:1px solid transparent;
+  background:transparent;color:#bbcbb5;white-space:nowrap;
+  font-size:12px;font-weight:500;cursor:pointer;
+}
+#adminWorkspace #adminPages button:hover{background:rgba(255,255,255,.08);color:#fff}
+#adminWorkspace #adminPages button[aria-current="page"] {
+  background:rgba(215,255,0,.12);border-color:rgba(215,255,0,.24);color:#d7ff00;
+}
+#adminWorkspace #adminPages button[hidden],
+#adminWorkspace #adminPages details[hidden]{display:none!important}
+#adminWorkspace .admin-shell {
+  display:block;min-height:calc(100dvh - 95px);
+  border:0;border-radius:0;overflow:visible;background:#0b0d0a;
+}
+#adminWorkspace .admin-main {
+  flex:1;min-height:500px;min-width:0;overflow-x:clip;
+  padding:clamp(16px,2vw,32px);
+  background:radial-gradient(950px 450px at 0% -4%,rgba(103,137,35,.12),transparent 70%),
+             radial-gradient(700px 320px at 100% -3%,rgba(58,77,28,.11),transparent 65%),#0b0d0a;
+}
+#adminWorkspace .admin-pane {max-width:1710px;margin:0 auto}
+#adminWorkspace .admin-pane[hidden] {display:none!important}
+#adminWorkspace .pane-title {margin:0 0 20px}
+#adminWorkspace .pane-title>span {color:#d5ebaa;letter-spacing:.15em;font-size:10px;font-weight:550}
+#adminWorkspace .pane-title h2 {font-size:clamp(22px,2vw,30px);font-weight:650;letter-spacing:-.04em;color:#f7f9f2}
+#adminWorkspace .pane-title p {color:#b9c6b0;font-size:12px;max-width:80ch}
+#adminWorkspace .panel,#adminWorkspace .pn,
+#adminWorkspace .record-detail,#adminWorkspace .policy-management {
+  border:1px solid #343f2f;border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.035));
+  box-shadow:none;color:#f1f5e9;
+}
+#adminWorkspace .panel {padding:20px;margin-bottom:16px}
+#adminWorkspace .panel h2,#adminWorkspace .panel h3 {color:#f7f9f2}
+#adminWorkspace .heading {border-color:#34402d}
+#adminWorkspace .muted,#adminWorkspace .record-field span,
+#adminWorkspace .record-boundary {color:#b6c3ad}
+#adminWorkspace .summary-card,#adminWorkspace .v4 .sc {
+  min-height:105px;border:1px solid #384630;border-radius:13px;
+  background:linear-gradient(155deg,rgba(255,255,255,.075),rgba(255,255,255,.025));
+  box-shadow:none;
+}
+#adminWorkspace .summary-card output,
+#adminWorkspace .v4 .sc em {color:#f5f9ef;font-weight:600;letter-spacing:-.02em}
+#adminWorkspace .v4 {
+  --v4-bg:#0b0d0a;--v4-pn:rgba(255,255,255,.05);
+  --v4-ln:rgba(222,249,206,.16);--v4-ln2:rgba(222,249,206,.25);
+  --v4-tx:#f7f9f2;--v4-mut:#b8c3b1;--v4-ac:#d7ff00;
+  --v4-acb:rgba(215,255,0,.13);--v4-up:#4fdd8f;--v4-dn:#ff6b5a;
+  --v4-am:#ffb938;--v4-ink:#101400;
+}
+#adminWorkspace .v4 .pn {border:1px solid #34402d;border-radius:14px;background:rgba(255,255,255,.045)}
+#adminWorkspace .v4 .ph {border-color:#35432f;color:#eff5eb}
+#adminWorkspace .v4 .sc.gold {
+  border-color:rgba(215,255,0,.34);background:linear-gradient(140deg,rgba(215,255,0,.13),rgba(215,255,0,.025));
+}
+#adminWorkspace .v4 .sc.gold em {color:#d7ff00}
+#adminWorkspace .v4 .btn.p,
+#adminWorkspace .btn.p,
+#adminWorkspace button[type="submit"]:not(.outline) {
+  background:#d7ff00;border:1px solid #d7ff00;color:#172006;
+  border-radius:999px;font-weight:600;
+}
+#adminWorkspace .btn.p:hover:not(:disabled),
+#adminWorkspace button[type="submit"]:hover:not(:disabled) {background:#e5ff4d;filter:none}
+#adminWorkspace .outline,
+#adminWorkspace .btn:not(.p),
+#adminWorkspace button[type="button"]:not(.outline):not(.portal-text-button) {
+  border-radius:999px;
+}
+#adminWorkspace .outline,#adminWorkspace .btn:not(.p) {
+  background:#252e21;border:1px solid #44523c;color:#e3ecdf;
+}
+#adminWorkspace .outline:hover:not(:disabled),
+#adminWorkspace .btn:not(.p):hover:not(:disabled) {background:#313f2a;border-color:#8db252;color:#f7ffef}
+#adminWorkspace button:focus-visible,
+#adminWorkspace a:focus-visible,
+#adminWorkspace input:focus-visible,
+#adminWorkspace select:focus-visible,
+#adminWorkspace textarea:focus-visible {outline:2px solid #d7ff00;outline-offset:2px}
+#adminWorkspace :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]) {
+  border-radius:9px;background:#161c15;border-color:#46533f;color:#f3f6ef;
+}
+#adminWorkspace select option {background:#141a13;color:#f4f6ef}
+#adminWorkspace table {border-collapse:collapse}
+#adminWorkspace th {background:rgba(255,255,255,.045);color:#bec9b4;border-color:#394532}
+#adminWorkspace td {border-color:#333d2d;color:#edf1e9}
+#adminWorkspace tbody tr:hover {background:rgba(215,255,0,.035)}
+#adminWorkspace .client-directory-columns {background:rgba(255,255,255,.035);border-color:#394532;color:#bbc7b5}
+#adminWorkspace .client-directory-row:hover {background:rgba(215,255,0,.04)}
+#adminWorkspace .client-workspace-tabs {border-color:#374533}
+#adminWorkspace .client-workspace-tabs button[aria-selected="true"],
+#adminWorkspace .mirror-operation-tabs button[aria-selected="true"] {color:#d7ff00;border-bottom-color:#d7ff00;background:rgba(215,255,0,.065)}
+#adminWorkspace .record-field strong {color:#f4f7ef}
+#adminWorkspace .mirror-layout>* {min-width:0}
+#adminWorkspace .mirror-operations,#adminWorkspace .mirror-client-panel {scrollbar-width:thin}
+#adminWorkspace .dashboard-hero {border-radius:14px}
+#adminWorkspace .dashboard-hero-art {opacity:.38}
+#adminWorkspace #adminMobileNavToggle {display:none}
+body:has(#adminWorkspace:not([hidden])) dialog[open] {
+  color:#f1f6eb;background:#181d16;border:1px solid #45563c;
+  border-radius:15px;box-shadow:0 22px 80px rgba(0,0,0,.6);
+}
+body:has(#adminWorkspace:not([hidden])) dialog::backdrop {background:rgba(0,0,0,.73);backdrop-filter:blur(3px)}
+/* Original module event handlers still listen on #adminPages buttons.
+   Their mobile state is set on #adminPages itself by setMobileNavExpanded(). */
+@media(max-width:1050px){
+ #adminWorkspace #adminTopbar {grid-template-columns:minmax(0,1fr) auto}
+ #adminWorkspace #adminTopbar .cn-current-title{display:none}
+ #adminWorkspace #adminTopbar .cn-new-actions{grid-column:2}
+ #adminWorkspace .admin-main{padding:16px}
+}
+@media(max-width:650px){
+ #adminWorkspace #adminTopbar {min-height:66px;grid-template-columns:minmax(0,1fr) auto;padding:11px 12px;gap:8px}
+ #adminWorkspace #adminTopbar .cn-new-brand {grid-column:1;grid-row:1}
+ #adminWorkspace #adminTopbar .cn-new-logo{height:36px;width:36px}
+ #adminWorkspace #adminTopbar .cn-new-brand>span{font-size:13px}
+ #adminWorkspace #adminTopbar .cn-new-brand small{font-size:8px}
+ #adminWorkspace #adminTopbar .cn-new-actions{grid-column:2;grid-row:1;gap:6px}
+ #adminWorkspace #adminTopbar .cn-new-avatar {display:none}
+ #adminWorkspace #adminTopbar .cn-logout{min-height:38px;padding:7px 10px}
+ #adminWorkspace #adminTopbar #adminMobileNavToggle{
+   display:block;min-height:38px;padding:7px 10px;border:1px solid #526642;
+   background:#26351d;color:#f2ffe6;border-radius:999px;font-size:12px;
+ }
+ #adminWorkspace #adminPages{
+   display:none!important;grid-column:1/-1;grid-row:2;
+   max-height:65dvh;overflow-y:auto;overflow-x:hidden;
+   flex-direction:column;align-items:stretch;width:100%;gap:4px;padding:8px 0 4px;
+ }
+ #adminWorkspace #adminPages[data-mobile-open="true"]{display:flex!important}
+ #adminWorkspace #adminPages details{display:grid;min-width:0;width:100%;gap:3px;padding:6px 0 8px;border:0;border-bottom:1px solid #37452f}
+ #adminWorkspace #adminPages summary {display:block;color:#a9bc9d;font-size:10px;letter-spacing:.1em;padding:4px 10px;cursor:pointer}
+ #adminWorkspace #adminPages button{display:block;text-align:left;min-height:42px;width:100%;white-space:normal}
+ #adminWorkspace .admin-main{padding:12px}
+ #adminWorkspace .v4 .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #adminWorkspace .client-workspace-header{align-items:stretch}
+}
+@media(max-width:440px){
+ #adminWorkspace .v4 .stats{grid-template-columns:1fr}
+ #adminWorkspace .admin-main{padding:10px}
+}
+
+/* Admin-only login skin. portal.css remains shared and untouched for customers. */
+#admin-login.portal {
+  min-height:100vh;min-height:100svh;color:#f3f7ee;
+  background:
+    radial-gradient(ellipse at 50% -18%,rgba(215,255,0,.12),transparent 45%),
+    radial-gradient(ellipse at 4% 68%,rgba(0,178,183,.12),transparent 42%),
+    radial-gradient(ellipse at 96% 70%,rgba(86,123,42,.12),transparent 40%),
+    #090c09;
+}
+#admin-login .portal-stars {opacity:.3}
+#admin-login .portal-aurora {
+  inset:-15%;background:radial-gradient(ellipse at 45% 35%,rgba(215,255,0,.08),transparent 48%),
+    radial-gradient(ellipse at 72% 58%,rgba(0,178,183,.09),transparent 45%);
+  filter:blur(58px);animation-duration:24s;
+}
+#admin-login .portal-horizon {
+  border-top-color:rgba(215,255,0,.18);box-shadow:0 -16px 52px rgba(103,137,35,.08),
+    120px -2px 75px rgba(0,178,183,.05);
+  background:radial-gradient(ellipse at 50% 0%,#182016 0%,#0b100c 57%,transparent 72%);
+}
+#admin-login .portal-content {width:min(100%,500px);gap:18px}
+#admin-login .portal-logo {width:132px;height:132px;margin-bottom:5px;filter:none}
+#admin-login .portal-logo .cn-capital-mark {filter:drop-shadow(0 0 22px rgba(0,178,183,.16))}
+#admin-login .portal-name {color:#f7f9f2;font-size:clamp(30px,4vw,42px);font-weight:650!important}
+#admin-login .portal-name span {color:#d7ff00}
+#admin-login .portal-subtitle {color:#aab8a3;letter-spacing:.19em}
+#admin-login .portal-card {
+  border-color:#34402f;border-radius:16px;
+  background:linear-gradient(155deg,rgba(24,30,22,.96),rgba(13,17,13,.94));
+  box-shadow:0 24px 80px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.035);
+}
+#admin-login .portal-role-tabs {border-color:#35422f;background:#10150f}
+#admin-login .portal-role-tabs button {color:#b7c2b1}
+#admin-login .portal-role-tabs button[aria-pressed="true"] {
+  color:#eaffc0;background:rgba(215,255,0,.12);box-shadow:inset 0 0 0 1px rgba(215,255,0,.2);
+}
+#admin-login .portal-field {color:#d7dfd1}
+#admin-login .portal-field input {
+  background:#0d120d!important;border-color:#3b4835!important;color:#f3f7ee;
+}
+#admin-login .portal-field input:focus {
+  border-color:#d7ff00!important;box-shadow:0 0 0 3px rgba(215,255,0,.12);
+}
+#admin-login .portal-primary {
+  border-color:#d7ff00;background:#d7ff00;color:#172006;font-weight:650!important;
+}
+#admin-login .portal-primary:hover:not(:disabled) {background:#e5ff4d;border-color:#e5ff4d}
+#admin-login :is(.portal-primary,.portal-text-button,.portal-role-tabs button,.portal-setup-link):focus-visible {
+  outline:2px solid #d7ff00;outline-offset:3px;
+}
+#admin-login .portal-text-button {color:#c3d2ba}
+#admin-login .portal-text-button:hover,#admin-login .portal-setup-link:hover {color:#d7ff00}
+#admin-login .portal-feedback {color:#d7ff00}
+#admin-login .portal-setup-link {color:#aab8a3}
+#admin-login .portal-foot {color:#899580}
+@media(max-width:580px){
+  #admin-login .portal-content {padding:26px 18px 22px;gap:16px}
+  #admin-login .portal-logo {width:118px;height:118px}
+  #admin-login .portal-card {padding:23px 19px 18px}
+  #admin-login .portal-subtitle {letter-spacing:.13em}
+}
+@media(prefers-reduced-motion:reduce){
+  #admin-login .portal-aurora {animation:none}
+}

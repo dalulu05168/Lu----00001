@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CN Capital | 管理控制台</title><link rel="icon" type="image/png" href="/cn-capital.png"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/portal.css"></head>
+<title>CN Capital | 管理控制台</title><link rel="icon" type="image/svg+xml" href="/cn-logo.svg"><link rel="stylesheet" href="/admin.css"><link rel="stylesheet" href="/portal.css"><link rel="stylesheet" href="/admin-cn-v3.css"></head>
 <body>
-<header class="topbar" id="adminTopbar" hidden><h1 id="adminPageTitle">全局运营总览</h1><a href="/" data-client-home>返回客户前台</a></header>
+
 <main class="workspace" id="adminRoot">
 <section id="admin-login" class="portal" aria-label="管理员登录">
   <canvas class="portal-stars" aria-hidden="true"></canvas><div class="portal-aurora" aria-hidden="true"></div><div class="portal-horizon" aria-hidden="true"></div>
   <div class="portal-content">
-    <div class="portal-brand"><div class="portal-logo"><img class="cn-capital-mark" src="/cn-capital.png" width="192" height="192" decoding="async" alt=""></div><div class="portal-name">CN <span>Capital</span></div><div class="portal-subtitle">ADMIN CONSOLE · CN CAPITAL · MARKET OPERATIONS</div></div>
+    <div class="portal-brand"><div class="portal-logo"><img class="cn-capital-mark" src="/cn-login-logo.svg" width="192" height="192" decoding="async" alt=""></div><div class="portal-name">CN <span>Capital</span></div><div class="portal-subtitle">ADMIN CONSOLE · CN CAPITAL · MARKET OPERATIONS</div></div>
     <div class="portal-card">
       <div class="portal-role-tabs" role="group" aria-label="管理员账户类型"><button type="button" data-role-choice="MASTER" aria-pressed="true">主账户</button><button type="button" data-role-choice="SUBADMIN" aria-pressed="false">子账户</button></div>
       <form id="adminLoginForm" autocomplete="on">
@@ -54,29 +54,35 @@
     <p id="recoverFeedback" class="feedback" role="status"></p>
   </div>
 </section>
+
 <section id="adminWorkspace" hidden aria-label="管理工作台">
-  <div class="admin-shell">
-    <aside class="admin-nav" aria-label="管理导航">
-      <div class="nav-heading"><span class="nav-brand-mark" aria-hidden="true"><img class="cn-capital-mark" src="/cn-capital.png" width="192" height="192" decoding="async" alt=""></span><span class="nav-brand-copy"><strong>CN Capital</strong><small>管理工作台 · SECURE OPERATIONS</small></span></div>
-      <div class="nav-identity"><span id="adminRole">—</span><span class="server-status">账户密码会话</span></div>
-      <button type="button" id="adminMobileNavToggle" class="outline" aria-controls="adminPages" aria-expanded="false">打开菜单</button>
-      <nav id="adminPages">
+  <header id="adminTopbar" class="cn-admin-top top" hidden>
+    <div class="cn-new-brand brand"><img class="cn-new-logo cn-capital-mark" src="/cn-logo.svg" width="44" height="44" decoding="async" alt="CN Capital Logo"><span>CN Capital<small>ADMIN · CONSOLE</small></span></div>
+    <nav id="adminPages" class="admin-nav cn-new-tabs nav" aria-label="管理导航">
+      
         <details open><summary class="admin-nav-group">WORKSPACE / 工作区</summary>
-        <button type="button" data-admin-page="dashboard" aria-current="page">概览 / Overview</button>
-        <button type="button" data-admin-page="accounts">子账户 / Subaccounts</button>
+        <button type="button" data-admin-page="dashboard" aria-current="page">概览</button>
+        <button type="button" data-admin-page="accounts">子账户</button>
         </details><details open><summary class="admin-nav-group">CLIENT OPERATIONS / 客户业务</summary>
-        <button type="button" data-admin-page="clients">客户管理 / Clients</button>
-        <button type="button" data-admin-page="mirror">客户 App 镜像 / App Mirror</button>
-        <button type="button" data-admin-page="catalog">证券资料 / Instruments</button>
-        <button type="button" data-admin-page="commodities">大宗商品 / Commodities</button>
-        <button type="button" data-admin-page="approvals">审批中心 / Approvals</button>
-        <button type="button" data-admin-page="treasury">资金申请记录 / Treasury</button>
-        <button type="button" data-admin-page="support">客户客服 / Support</button>
+        <button type="button" data-admin-page="clients">客户</button>
+        <button type="button" data-admin-page="mirror">App 镜像</button>
+        <button type="button" data-admin-page="catalog">证券资料</button>
+        <button type="button" data-admin-page="commodities">大宗商品</button>
+        <button type="button" data-admin-page="approvals">审批</button>
+        <button type="button" data-admin-page="treasury">资金</button>
+        <button type="button" data-admin-page="support">客服</button>
         </details><details open data-required-role="MASTER"><summary class="admin-nav-group">GOVERNANCE / 治理审计</summary>
-        <button type="button" data-admin-page="audit" data-required-role="MASTER">审计与报表 / Audit</button>
-      </details></nav>
-      <button type="button" id="adminLogout" class="outline logout">退出管理后台</button>
-    </aside>
+        <button type="button" data-admin-page="audit" data-required-role="MASTER">审计</button>
+      </details>
+    </nav>
+    <div class="cn-new-actions right">
+      <span class="cn-new-avatar av" id="adminRole" title="当前管理员权限">—</span>
+      <button type="button" id="adminMobileNavToggle" class="cn-mobile-menu btn" aria-controls="adminPages" aria-expanded="false">打开菜单</button>
+      <button type="button" id="adminLogout" class="cn-logout btn">退出</button>
+    </div>
+    <span id="adminPageTitle" class="cn-current-title" aria-live="polite">全局运营总览</span>
+  </header>
+  <div class="admin-shell">
     <div class="admin-main">
       <section class="admin-pane v4" data-pane="dashboard" aria-label="真实数据概览">
         <div class="pane-title dashboard-hero">
@@ -406,6 +412,11 @@
           </form>
           <p id="commodityFeedback" class="feedback" role="status" aria-live="polite"></p>
           <div id="commodityItems" class="admin-list"></div>
+          <div id="commodityAuditPanel" class="panel" hidden>
+            <div class="heading"><h3 id="commodityAuditTitle">商品变更审计</h3><button id="commodityAuditClose" type="button" class="outline">关闭</button></div>
+            <p id="commodityAuditStatus" class="feedback" role="status" aria-live="polite"></p>
+            <div id="commodityAuditItems" class="admin-list"></div>
+          </div>
         </section>
       </section>
       <section class="admin-pane" data-pane="approvals" hidden>

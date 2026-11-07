@@ -1347,7 +1347,7 @@ el("workflowReviewForm").addEventListener("submit",async event=>{
 
 
 /* Commodity directory is administrator-managed and explicitly not live market data. */
-let commodityEditingId=null,commodityRows=[],commoditySerial=0;
+let commodityEditingId=null,commodityRows=[],commoditySerial=0,commodityAuditSerial=0;
 const COMMODITY_CATEGORIES={PRECIOUS_METAL:"贵金属",ENERGY:"能源",AGRICULTURE:"农产品",
  INDUSTRIAL_METAL:"工业金属",OTHER:"其他"};
 function commodityPrice(value){
@@ -1394,10 +1394,39 @@ function renderCommodityItems(items){
    const btn=document.createElement("button");btn.type="button";btn.className="outline";
    btn.textContent="编辑";btn.addEventListener("click",()=>openCommodityEditor(item));row.append(btn);
    const termsButton=document.createElement('button');termsButton.type='button';termsButton.className='outline';termsButton.textContent='折扣与交易设置';termsButton.addEventListener('click',()=>openProductTerms('COMMODITY',item));row.append(termsButton);
+   const auditButton=document.createElement("button");auditButton.type="button";auditButton.className="outline";
+   auditButton.textContent="查看审计";auditButton.addEventListener("click",()=>void showCommodityAudit(item));row.append(auditButton);
   }
   target.append(row);
  }
 }
+async function showCommodityAudit(item){
+ const serial=++commodityAuditSerial,token=adminToken,panel=el("commodityAuditPanel"),target=el("commodityAuditItems");
+ panel.hidden=false;el("commodityAuditTitle").textContent="商品变更审计 · "+item.sku;
+ el("commodityAuditStatus").textContent="正在读取商品审计记录";target.replaceChildren();
+ try{
+  const data=await api("/admin/commodity-audit?id="+encodeURIComponent(item.id));
+  if(serial!==commodityAuditSerial||token!==adminToken)return;
+  const items=Array.isArray(data.items)?data.items:[];
+  if(!items.length)target.append(plainNode("p","暂无商品变更审计记录","muted"));
+  for(const audit of items){
+   const action=audit.action==="CREATE"?"创建":audit.action==="UPDATE"?"更新":String(audit.action??"记录");
+   const states=[audit.previous_status?"原状态："+audit.previous_status:"",audit.new_status?"新状态："+audit.new_status:""].filter(Boolean).join(" · ");
+   const when=audit.recorded_at?dateLabel(audit.recorded_at):"时间未知";
+   const row=itemRow(action,[(states||"商品资料变更"),"操作人："+(audit.actor_user_id??"—"),when].join(" · "));
+   if(audit.reason){const reason=document.createElement("small");reason.textContent="原因："+audit.reason;row.append(reason);}
+   target.append(row);
+  }
+  el("commodityAuditStatus").textContent="已读取 "+items.length+" 条商品审计记录";
+ }catch(error){
+  if(serial===commodityAuditSerial&&token===adminToken)el("commodityAuditStatus").textContent="读取审计失败："+error.message;
+ }
+}
+function closeCommodityAudit(){
+ commodityAuditSerial++;el("commodityAuditPanel").hidden=true;
+ el("commodityAuditItems").replaceChildren();el("commodityAuditStatus").textContent="";
+}
+el("commodityAuditClose").addEventListener("click",closeCommodityAudit);
 async function refreshCommodityItems(){
  const serial=++commoditySerial,usedToken=adminToken;
  el("commodityFeedback").textContent="正在读取商品目录";
@@ -1679,7 +1708,8 @@ function resetAdminSession(message){
   subadminDirectory=[];closeClientDetail();closeSubadminDetail();
   caseSerial++;fundingSerial++;caseRows=[];clearCaseSelection();
   el("workflowItems").replaceChildren();el("fundingRequestRows").replaceChildren();
-  commoditySerial++;commodityRows=[];resetCommodityEditor();el("commodityItems").replaceChildren();
+  commoditySerial++;commodityRows=[];commodityAuditSerial++;resetCommodityEditor();el("commodityItems").replaceChildren();
+  el("commodityAuditPanel").hidden=true;el("commodityAuditItems").replaceChildren();el("commodityAuditStatus").textContent="";
   resetSupportWorkspace();
   unifiedAuditSerial++;
   clearFundingDashboard('登录后读取资金数据');
