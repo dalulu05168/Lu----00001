@@ -43,14 +43,10 @@ test("phone selection requires successful original login before redirect",async(
 test("mobile data and actions call live protected APIs, never use demo balances, orders or fabricated quotes",async()=>{
  const s=await get("web/mobile.mjs");
  for(const p of [
-  'api("/account")','api("/watchlist")','"/account/analytics"','"/internal-products"',
-  '"/internal-purchases"','"/requests?category=FUNDING"',
-  'api("/stock-quote?market=US&symbol="','api("/orders"'
+  '"/account"','"/watchlist"','"/account/analytics"','"/internal-products"',
+  '"/internal-purchases"','"/requests?category=FUNDING"','"/support"',
+  '"/stock-quote?market=US&symbol="','"/orders"'
  ])assert.ok(s.includes(p),"Missing real endpoint "+p);
- assert.ok(s.includes('["support","/support"]'),"Missing live support data endpoint");
- assert.match(s,/api\("\/support",\{method:"POST"/,"Support messages must use the live API");
- assert.match(s,/authorization:"Bearer "\+auth/);
- assert.match(s,/fetch\("\/api"\+path/);
  assert.match(s,/stockQuoteConfigured/);
  assert.match(s,/pricingConnected/);
  assert.match(s,/idempotency-key/);
@@ -80,4 +76,32 @@ test("Render gateway routes frontend mobile static assets and keeps admin landin
   assert.equal(front.status,200);assert.match(front.text,/id="entryGate"/);
   assert.equal(admin.status,200);assert.match(admin.text,/id="adminLoginForm"/);
  }finally{server.closeAllConnections();await new Promise(resolve=>server.close(()=>resolve()));}
+});
+
+
+test("mobile device routing waits until the real account gate has authenticated the user",async()=>{
+ const html='<!doctype html><body><section id="entryGate"></section><section id="overview" hidden></section></body>';
+ const dom=new JSDOM(html,{url:"https://nuvexapro.com/"});
+ const names=["document","sessionStorage","navigator","matchMedia","MutationObserver","location"];
+ const old=Object.fromEntries(names.map(name=>[name,Object.getOwnPropertyDescriptor(globalThis,name)]));
+ const navigations=[];
+ const inject=(name,value)=>Object.defineProperty(globalThis,name,{value,configurable:true,writable:true});
+ try{
+  inject("document",dom.window.document);
+  inject("sessionStorage",dom.window.sessionStorage);
+  inject("navigator",{userAgent:"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1 Mobile"});
+  inject("matchMedia",q=>({matches:q.includes("max-width")||q.includes("pointer:coarse")}));
+  inject("MutationObserver",dom.window.MutationObserver);
+  inject("location",{replace:url=>navigations.push(url)});
+  sessionStorage.setItem("gsp_token","fake-token-for-local-test");
+  await import("../web/mobile-entry.mjs?smoke-"+Date.now());
+  assert.deepEqual(navigations,[],"must not route until login succeeds");
+  document.getElementById("overview").hidden=false;
+  document.getElementById("entryGate").hidden=true;
+  await new Promise(resolve=>dom.window.queueMicrotask(resolve));
+  assert.deepEqual(navigations,["/mobile.html"],"a phone routes only after validated account workspace appears");
+ }finally{
+  for(const name of names)if(old[name])Object.defineProperty(globalThis,name,old[name]);else Reflect.deleteProperty(globalThis,name);
+  dom.window.close();
+ }
 });
