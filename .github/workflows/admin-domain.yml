@@ -33,3 +33,12 @@ jobs:
           node-version: '22'
       - name: Read-only GET of live admin login, CSS, JS, SVG and health
         run: node scripts/admin-live-domain-smoke.mjs
+      - name: Chromium login-to-admin workspace with isolated session fixture
+        run: node scripts/admin-browser-shell-smoke.mjs
+      - name: Save admin desktop and narrow screen screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cn-admin-workspace-chromium-qa
+          path: artifacts/cn-admin-qa-*.png
+          if-no-files-found: ignore
