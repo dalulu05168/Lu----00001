@@ -88,12 +88,15 @@ try{
   await pause(200);
   await evalJS(client,"document.getElementById('entryGate').hidden=true;document.getElementById('overview').hidden=false");
   if(view.width>=1000){
-   const layout=await evalJS(client,"(()=>{document.getElementById('internalProductsPanel').hidden=false;document.getElementById('orderForm').hidden=false;const rect=s=>{const r=document.querySelector(s)?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}:null};return {mode:document.getElementById('overview').dataset.cnMode,nav:rect('#overview .sidebar'),chart:rect('#overview #stockChart'),transactions:rect('#overview .transaction-list-panel'),trading:rect('#overview .trade-board-side > .order-panel'),holdings:rect('#overview #holdings-section'),watchlist:rect('#overview #markets-section'),accent:getComputedStyle(document.querySelector('#overview')).getPropertyValue('--cn-lime').trim(),scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
+   const layout=await evalJS(client,"(()=>{document.getElementById('internalProductsPanel').hidden=false;document.getElementById('orderForm').hidden=false;const rect=s=>{const r=document.querySelector(s)?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right}:null};return {mode:document.getElementById('overview').dataset.cnMode,nav:rect('#cnV4Header'),oldSidebar:rect('#overview .sidebar'),chart:rect('#overview #stockChart'),transactions:rect('#overview .transaction-list-panel'),trading:rect('#overview .trade-board-side > .order-panel'),holdings:rect('#overview #holdings-section'),watchlist:rect('#overview #markets-section'),accent:getComputedStyle(document.querySelector('#overview')).getPropertyValue('--cn-lime').trim(),scrollWidth:document.documentElement.scrollWidth,viewport:innerWidth}})()");
    assert.equal(layout.mode,"desktop");
    assert.equal(layout.accent,"#d7ff00");
    for(const key of ["nav","chart","transactions","trading","holdings","watchlist"]){
     assert.ok(layout[key]?.width>140&&layout[key]?.height>10,"desktop module missing "+key);
    }
+   assert.equal(layout.oldSidebar?.height,0,"Deprecated sidebar must not remain visible in new desktop UI");
+   const route=await evalJS(client,"(()=>{const o=document.getElementById('overview');const a=document.querySelector('#cnV4Header [data-cn-v4-tab=account]');if(!a)return null;a.click();const acct=document.querySelector('#account-section').getBoundingClientRect();const trading=document.querySelector('.trade-board').getBoundingClientRect();const first=o.dataset.cnV4Tab;document.querySelector('#cnV4Header [data-cn-v4-tab=trade]').click();return {first,accountHeight:acct.height,tradeHiddenHeight:trading.height,back:o.dataset.cnV4Tab}})()");
+   assert.ok(route&&route.first==="account"&&route.accountHeight>80&&route.tradeHiddenHeight===0&&route.back==="trade","New CN trade/account screens must toggle while retaining all forms");
    assert.ok(layout.chart.y<layout.transactions.y,"desktop chart precedes history");
    assert.ok(layout.trading.y<=layout.holdings.y,"desktop trading panel precedes holdings");
    assert.ok(layout.chart.right<=layout.trading.x+8,"desktop trading panel sits beside chart");
