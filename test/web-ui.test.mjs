@@ -7,7 +7,10 @@ test("public trading pages disclose the simulation plainly to customers",async()
   const index=await readFile(new URL("../web/index.html",import.meta.url),"utf8");
   // Customer must be told inside the authenticated app, not in the login footer, that this is a
   // simulation: no real money, no real securities, no broker/exchange order routing.
-  const parsed=new JSDOM(index).window.document;\n  assert.doesNotMatch(parsed.getElementById("entryGate").textContent,/模拟交易平台/);\n  const disclosed=parsed.getElementById("overview").textContent;\n  assert.match(disclosed,/模拟交易平台/,"authenticated account app must disclose simulated orders");
+  const parsed=new JSDOM(index).window.document;
+  assert.doesNotMatch(parsed.getElementById("entryGate").textContent,/模拟交易平台/);
+  const disclosed=parsed.getElementById("overview").textContent;
+  assert.match(disclosed,/模拟交易平台/,"authenticated account app must disclose simulated orders");
   assert.match(disclosed,/不涉及真实资金/);
   assert.match(disclosed,/不向(任何)?(交易所|券商)/);
   const admin=await readFile(new URL("../web/admin.mjs",import.meta.url),"utf8");
