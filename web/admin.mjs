@@ -1359,6 +1359,26 @@ async function refreshFundingOverview(){
   el("fundingSummaryStatus").textContent="仅统计申请记录，实际资金划转尚未接入。";
  }catch(error){if(serial===fundingSerial&&adminToken===usedToken){clearFundingDashboard('资金数据读取失败：'+error.message);el("fundingRequestRows").replaceChildren();for(const id of ['depositRequestTotal','withdrawRequestTotal','pendingRequestTotal','approvedRequestTotal'])el(id).textContent='—';el("fundingSummaryStatus").textContent="读取失败："+error.message;}}
 }
+let adminConnectionSerial=0;
+async function checkAdminConnections(){
+ const token=adminToken,serial=++adminConnectionSerial;
+ if(!token)return;
+ el("adminReadyResult").textContent="检测中";
+ el("adminMirrorResult").textContent="检测中";
+ el("adminConnectionFeedback").textContent="正在读取现有健康检查和管理员镜像状态接口。";
+ const [health,mirror]=await Promise.allSettled([
+  fetch("/ready",{method:"GET",cache:"no-store",signal:AbortSignal.timeout(10000)})
+   .then(async response=>({statusCode:response.status,body:await response.json()})),
+  api("/admin/mirror-status")
+ ]);
+ if(serial!==adminConnectionSerial||token!==adminToken)return;
+ const serviceReady=health.status==="fulfilled"&&health.value.statusCode===200&&health.value.body?.status==="ready";
+ el("adminReadyResult").textContent=serviceReady?"已连接 · 数据库就绪":health.status==="fulfilled"?"尚未就绪（HTTP "+health.value.statusCode+"）":"服务检查失败";
+ const mirrorReady=mirror.status==="fulfilled"&&mirror.value.ready===true;
+ el("adminMirrorResult").textContent=mirrorReady?"只读镜像已就绪":mirror.status==="fulfilled"?"只读镜像尚未就绪":"镜像接口读取失败";
+ el("adminConnectionFeedback").textContent="服务："+(serviceReady?"正常":"需检查")+"；镜像："+(mirrorReady?"就绪":"未就绪")+"。此处仅显示真实接口响应，不代表证券行情、银行转账或外部服务已接通。";
+}
+el("refreshAdminConnectionStatus").addEventListener("click",()=>void checkAdminConnections());
 el('refreshDashboardFunding').addEventListener('click',()=>void refreshFundingOverview());
 el('dashboardOpenTreasury').addEventListener('click',()=>activateAdminPane('treasury'));
 el('dashboardOpenApprovals').addEventListener('click',()=>{fundingReviewTargetId=null;el('workflowCategory').value='FUNDING';activateAdminPane('approvals');});
@@ -1748,7 +1768,9 @@ function resetAdminSession(message){
   mirrorPurchaseKeys.clear();
   clearMirrorOperations();closeMirrorDialog();
   subadminDirectory=[];closeClientDetail();closeSubadminDetail();
-  caseSerial++;fundingSerial++;caseRows=[];fundingReviewTargetId=null;clearCaseSelection();
+  caseSerial++;fundingSerial++;adminConnectionSerial++;caseRows=[];fundingReviewTargetId=null;clearCaseSelection();
+  for(const id of ["adminReadyResult","adminMirrorResult"])el(id).textContent="尚未检测";
+  el("adminConnectionFeedback").textContent="只读检查，不会修改业务数据。";
   el("workflowItems").replaceChildren();el("fundingRequestRows").replaceChildren();
   commoditySerial++;commodityRows=[];commodityAuditSerial++;resetCommodityEditor();el("commodityItems").replaceChildren();
   el("commodityAuditPanel").hidden=true;el("commodityAuditItems").replaceChildren();el("commodityAuditStatus").textContent="";
