@@ -33,7 +33,7 @@ try{
  await admin.locator("#adminLoginForm").waitFor({state:"visible",timeout:12000});
  assert.equal(await admin.locator("#adminTotpForm").count(),1);
  assert.equal(await admin.locator("#adminWorkspace").isVisible(),false,"Admin TOTP login required before workspace");
- await admin.evaluate(()=>{document.getElementById("admin-login").hidden=true;document.getElementById("adminWorkspace").hidden=false;});
+ await admin.evaluate(()=>{document.getElementById("admin-login").hidden=true;document.getElementById("adminWorkspace").hidden=false;document.getElementById("adminTopbar").hidden=false;});
  const state=await admin.evaluate(()=>({
   nav:getComputedStyle(document.querySelector("#adminPages")).display,
   sidebar:getComputedStyle(document.querySelector("#adminTopbar")).display,
