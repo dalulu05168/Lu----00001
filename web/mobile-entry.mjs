@@ -16,9 +16,17 @@ function deviceMode(){
 }
 let navigating=false;
 async function routeAfterAuthentication(){
- if(navigating||!deviceMode()||!sessionStorage.getItem("gsp_token"))return;
+ if(navigating||!sessionStorage.getItem("gsp_token"))return;
  if(!gate||!desktop)return;
  if(!desktop.hidden&&gate.hidden){
+  if(!deviceMode()){
+   const qaHosts=["localhost","127.0.0.1","cn-capital-phone-qa-p6ma.onrender.com"];
+   if(qaHosts.includes(location.hostname)&&!new URLSearchParams(location.search).has("classic")){
+    navigating=true;
+    location.replace("/front-approved.html");
+   }
+   return;
+  }
   navigating=true;
   try{
    if(!["www.nuvexapro.com","nuvexapro.com"].includes(location.hostname)){
