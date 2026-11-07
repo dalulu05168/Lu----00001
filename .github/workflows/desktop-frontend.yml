@@ -6,6 +6,7 @@ on:
       - "web/desktop-bridge.mjs"
       - "web/cn-entry-redirect.mjs"
       - "test/desktop-entry.test.mjs"
+      - "test/desktop-preview-chromium.mjs"
       - ".github/workflows/desktop-frontend.yml"
   push:
     branches:
@@ -14,7 +15,7 @@ permissions:
   contents: read
 jobs:
   desktop:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,10 +23,15 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Install isolated Chromium smoke dependency
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
       - name: Check desktop JS syntax
         run: |
           node --check web/desktop-bridge.mjs
           node --check web/cn-entry-redirect.mjs
+          node --check test/desktop-preview-chromium.mjs
       - name: Run isolated desktop tests
         run: node --test test/desktop-entry.test.mjs
       - name: Build desktop static assets
@@ -37,3 +43,13 @@ jobs:
           test -s public/cn-entry-redirect.mjs
           grep -q 'desktop-bridge.mjs' public/desktop.html
           grep -q 'location.replace' public/cn-entry-redirect.mjs
+      - name: Verify real desktop Chromium layout and read-only boundaries
+        run: node test/desktop-preview-chromium.mjs
+      - name: Upload Chromium preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-preview-chromium
+          path: artifacts/desktop-static-preview/
+          if-no-files-found: warn
+          retention-days: 14
