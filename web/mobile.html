@@ -9,7 +9,14 @@ window.CN_SET_TOKEN=function(token){try{if(token)localStorage.setItem('cncap.ses
   var mirror='';try{mirror=new URLSearchParams(location.search).get('mirror')||''}catch(e){}
   window.CN_MIRROR_EMAIL=mirror;
   window.CN_MIRROR_TOKEN='';
-  window.CN_MIRROR_READY=mirror?fetch('/api/admin/mirror/session?email='+encodeURIComponent(mirror)).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){window.CN_MIRROR_TOKEN=j.token;return j}).catch(function(){return null}):Promise.resolve(null);
+  window.CN_MIRROR_READY=mirror?(function(){
+ var adminToken='';try{adminToken=localStorage.getItem('cncap.session')||''}catch(e){}
+ return fetch('/api/admin/mirror/session?email='+encodeURIComponent(mirror),
+  {headers:adminToken?{Authorization:'Bearer '+adminToken}:{},cache:'no-store'})
+ .then(function(r){if(!r.ok)throw new Error('Mirror session unauthorized');return r.json()})
+ .then(function(j){if(!j||typeof j.token!=='string'||!j.token)throw new Error('Invalid mirror session');window.CN_MIRROR_TOKEN=j.token;return j})
+ .catch(function(){return null});
+})():Promise.resolve(null);
 })();
 (function(){
   var raw=window.fetch.bind(window);
