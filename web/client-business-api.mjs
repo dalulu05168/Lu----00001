@@ -9,6 +9,9 @@ function failure(code, message, status, cause) {
 }
 function integer(value, min = 0) {
   if ((typeof value !== 'number' && typeof value !== 'string') || String(value).trim() === '') return null;
+  // Database bigint values may arrive as decimal strings. Reject JS coercions
+  // such as 1e3, 0x10 or whitespace rather than silently altering quantities.
+  if (typeof value === 'string' && !/^-?(?:0|[1-9]\d*)$/.test(value)) return null;
   const number = Number(value);
   return Number.isSafeInteger(number) && number >= min ? number : null;
 }
@@ -37,18 +40,23 @@ export function normalizeAccountSnapshot(payload) {
   shape(payload, '账户');
   const account = shape(payload.account, '账户');
   const cashCents = integer(account.cashCents);
-  if (!nonEmptyId(account.id) || cashCents === null || typeof account.currency !== 'string' || !account.currency) {
+  if (!nonEmptyId(account.id) || cashCents === null || account.currency !== 'USD') {
     throw failure('INVALID_RESPONSE', '账户余额未能确认');
   }
   if (!Array.isArray(payload.positions) || !Array.isArray(payload.orders)) {
     throw failure('INVALID_RESPONSE', '持仓或订单数据未能确认');
   }
+  const positionsSeen = new Set();
   const positions = payload.positions.map(item => {
     const ref = identity(item);
     const quantity = integer(item.quantity, 1);
     if (quantity === null) throw failure('INVALID_RESPONSE', '持仓数量无效');
+    const key = ref.market + ':' + ref.symbol;
+    if (positionsSeen.has(key)) throw failure('INVALID_RESPONSE', '持仓记录重复');
+    positionsSeen.add(key);
     return {...ref, quantity};
   });
+  const orderIds = new Set();
   const orders = payload.orders.map(item => {
     const ref = identity(item);
     const quantity = integer(item.quantity, 1);
@@ -59,6 +67,8 @@ export function normalizeAccountSnapshot(payload) {
         !Number.isFinite(Date.parse(item.created_at))) {
       throw failure('INVALID_RESPONSE', '订单记录无效');
     }
+    if (orderIds.has(item.id)) throw failure('INVALID_RESPONSE', '订单记录重复');
+    orderIds.add(item.id);
     return {id:item.id, ...ref, side:item.side, quantity, priceCents, amountUsdCents,
       createdAt:new Date(item.created_at).toISOString()};
   });
@@ -90,24 +100,41 @@ export function normalizeAnalytics(payload) {
   return result;
 }
 
+/**
+ * Display-eligible quote contract. A vendor's raw `entitled:true`, token,
+ * `entitlement` description, or HTTP 200 is NOT a reviewed license grant.
+ * The same-origin API must attach displayPermission only after verifying its
+ * server-owned grant for this market/source/currency and current time.
+ */
 export function normalizeVerifiedQuote(payload, expected, {nowMs = Date.now(), maxAgeMs = MAX_QUOTE_AGE_MS} = {}) {
   const ref = identity(expected);
   const quote = shape(payload, '行情');
-  const priceCents = integer(quote.priceCents, 1);
+  const currency = ref.market === 'CN' ? 'CNY' : 'USD';
+  const cents = quote.priceCents == null ? null : integer(quote.priceCents, 1);
+  const priceMicros = quote.priceMicros == null ?
+    (cents === null || !Number.isSafeInteger(cents * 10_000) ? null : cents * 10_000) :
+    integer(quote.priceMicros, 1);
   const timestampMs = quote.timestampMs;
-  if (quote.market !== ref.market || quote.symbol !== ref.symbol || priceCents === null ||
-      quote.currency !== (ref.market === 'CN' ? 'CNY' : 'USD') ||
-      !nonEmptyId(quote.source) || !Number.isFinite(timestampMs) ||
-      !Number.isFinite(nowMs) || timestampMs > nowMs + 5000 || nowMs - timestampMs > maxAgeMs ||
-      quote.stale === true || quote.status === 'unavailable') {
+  if (quote.market !== ref.market || quote.symbol !== ref.symbol || priceMicros === null ||
+      (quote.priceCents != null && (cents === null || priceMicros !== cents * 10_000)) ||
+      quote.currency !== currency || !nonEmptyId(quote.source) ||
+      !Number.isSafeInteger(timestampMs) || !Number.isSafeInteger(nowMs) ||
+      !Number.isSafeInteger(maxAgeMs) || maxAgeMs <= 0 || maxAgeMs > MAX_QUOTE_AGE_MS ||
+      timestampMs > nowMs + 5_000 || nowMs - timestampMs > maxAgeMs ||
+      quote.stale !== false || quote.status !== 'FRESH') {
     throw failure('QUOTE_UNAVAILABLE', '当前行情不可用，请刷新后重试', 503);
   }
-  // Explicit display permission is needed. Older QA /stock-quote lacks this field.
-  if (quote.entitled !== true && quote.permission !== 'allowed') {
+  const permission = quote.displayPermission;
+  if (permission?.customerDisplayAllowed !== true || permission?.market !== ref.market ||
+      permission?.source !== quote.source || permission?.currency !== currency ||
+      !Number.isSafeInteger(permission?.validUntilMs) || permission.validUntilMs < nowMs) {
     throw failure('QUOTE_NOT_ENTITLED', '当前行情不可用，请刷新后重试', 503);
   }
-  return {...ref, priceCents, currency:quote.currency, source:quote.source,
-    timestampMs, stale:false};
+  // `priceCents === null` for a true sub-cent quote; never round a display
+  // quote to fit the existing internal-order cents ledger.
+  return {...ref, currency, source:quote.source, timestampMs,
+    priceMicros, priceCents:priceMicros % 10_000 === 0 ? priceMicros / 10_000 : null,
+    price:priceMicros / 1_000_000, stale:false};
 }
 
 export function createClientBusinessApi({getToken, fetchImpl = fetch,
@@ -116,6 +143,9 @@ export function createClientBusinessApi({getToken, fetchImpl = fetch,
   // Must be enabled explicitly after QA/server permission verification; defaults are read-only.
   const allowed = Object.freeze({trading:capabilities.trading === true,
     supportWrites:capabilities.supportWrites === true, requestWrites:capabilities.requestWrites === true});
+  function assertSameSession(token, message='登录账户已切换，请重新加载') {
+    if (getToken() !== token) throw failure('SESSION_CHANGED', message, 401);
+  }
   async function call(path,{method='GET', body, key}={}) {
     const token = getToken();
     if (typeof token !== 'string' || !token) throw failure('AUTH_REQUIRED', '请先登录', 401);
@@ -130,6 +160,8 @@ export function createClientBusinessApi({getToken, fetchImpl = fetch,
       throw failure('NETWORK_UNAVAILABLE', '网络连接失败，请核对操作结果后再试', undefined, cause);
     }
     const data = response.status === 204 ? null : await response.json().catch(() => null);
+    // An old request must never render into a newly signed-in customer's UI.
+    assertSameSession(token);
     if (!response.ok) {
       const status = response.status;
       const code = status === 401 ? 'AUTH_REQUIRED' : status === 403 ? 'FORBIDDEN'
@@ -146,6 +178,19 @@ export function createClientBusinessApi({getToken, fetchImpl = fetch,
   }
   const getAccount = async () => normalizeAccountSnapshot(await call('/account'));
   const getAnalytics = async () => normalizeAnalytics(await call('/account/analytics'));
+  async function loadOverview() {
+    const token = getToken();
+    if (typeof token !== 'string' || !token) throw failure('AUTH_REQUIRED', '请先登录', 401);
+    const results = await Promise.allSettled([getAccount(),getAnalytics()]);
+    assertSameSession(token);
+    const fatal = results.find(item => item.status === 'rejected' &&
+      (item.reason?.status === 401 || item.reason?.status === 403));
+    if (fatal) throw fatal.reason;
+    const entry = item => item.status === 'fulfilled'
+      ? {state:'ready', data:item.value, errorCode:null}
+      : {state:'unavailable',data:null,errorCode:item.reason?.code || 'API_ERROR'};
+    return {account:entry(results[0]),analytics:entry(results[1])};
+  }
   async function getQuote(item) {
     const ref = identity(item);
     return normalizeVerifiedQuote(await call('/stock-quote?market=' + ref.market + '&symbol=' + encodeURIComponent(ref.symbol)),ref,{nowMs:now()});
@@ -160,12 +205,15 @@ export function createClientBusinessApi({getToken, fetchImpl = fetch,
     if (typeof message !== 'string' || !message.trim() || message.trim().length > 4000) {
       throw failure('INVALID_MESSAGE','消息内容无效');
     }
+    const token = getToken();
     const result = shape(await call('/support',{method:'POST',body:{message:message.trim()}}),'客服发送');
+    assertSameSession(token, '客服消息状态待核对，请重新登录查看');
     const id = result.message?.id;
     if (!nonEmptyId(id)) throw failure('SUPPORT_UNCONFIRMED', '消息已发送，但结果尚未确认');
     let updated;
     try { updated = await getSupport(); }
     catch (cause) { throw failure('SUPPORT_READBACK_FAILED','消息已发送，但无法确认结果，请刷新记录核对',cause.status,cause); }
+    assertSameSession(token, '客服消息状态待核对，请重新登录查看');
     if (!updated.messages.some(item=>item.id===id && item.body===message.trim())) {
       throw failure('SUPPORT_UNCONFIRMED','消息已发送，但服务器未确认记录');
     }
@@ -182,11 +230,14 @@ export function createClientBusinessApi({getToken, fetchImpl = fetch,
     if (!/^[A-Z_]{2,48}$/.test(category) || !body || typeof body !== 'object' || Array.isArray(body)) {
       throw failure('INVALID_REQUEST','申请参数无效');
     }
+    const token = getToken();
     const data = shape(await call('/requests?category=' + category,{method:'POST',body}),'业务申请');
+    assertSameSession(token, '业务申请状态待核对，请重新登录查看');
     if (!nonEmptyId(data.item?.id)) throw failure('REQUEST_UNCONFIRMED','申请已提交，但结果尚未确认');
     let items;
     try { items = await getRequests(category); }
     catch (cause) { throw failure('REQUEST_READBACK_FAILED','申请已提交，但无法确认结果，请刷新记录核对',cause.status,cause); }
+    assertSameSession(token, '业务申请状态待核对，请重新登录查看');
     if (!items.some(item=>item.id===data.item.id)) throw failure('REQUEST_UNCONFIRMED','申请已提交，但服务器未确认记录');
     return {item:data.item,items};
   }
@@ -196,17 +247,26 @@ export function createClientBusinessApi({getToken, fetchImpl = fetch,
     const count = integer(quantity,1);
     if (!['BUY','SELL'].includes(side) || count === null) throw failure('INVALID_ORDER','交易参数无效');
     const key = transactionKey(idempotencyKey);
+    const token = getToken();
     // Price and FX are intentionally not supplied by the browser: server verifies both.
     const result = shape(await call('/orders',{method:'POST',body:{side,...ref,quantity:count},key}),'订单提交');
+    assertSameSession(token, '订单状态待核对，请重新登录后查看订单');
     const orderId = result.order?.id;
     if (!nonEmptyId(orderId)) throw failure('ORDER_UNCONFIRMED','订单已提交，但服务器未返回订单标识');
     let snapshot;
     try { snapshot = await getAccount(); }
     catch (cause) { throw failure('ORDER_READBACK_FAILED','订单已提交，但回读失败，请核对订单记录后再试',cause.status,cause); }
+    assertSameSession(token, '订单状态待核对，请重新登录后查看订单');
     const committed = snapshot.orders.find(item=>item.id===orderId && item.side===side &&
       item.market===ref.market && item.symbol===ref.symbol && item.quantity===count);
     if (!committed) throw failure('ORDER_UNCONFIRMED','订单已提交，但服务器未确认成交记录');
+    const acknowledgedPrice = result.order.priceCents ?? result.order.price_cents;
+    const acknowledgedAmount = result.order.amountCents ?? result.order.amount_usd_cents;
+    if ((acknowledgedPrice != null && integer(acknowledgedPrice,1) !== committed.priceCents) ||
+        (acknowledgedAmount != null && integer(acknowledgedAmount,1) !== committed.amountUsdCents)) {
+      throw failure('ORDER_UNCONFIRMED','订单已提交，但服务器成交金额与回读记录不一致');
+    }
     return {order:committed,snapshot,replayed:result.replayed === true};
   }
-  return Object.freeze({getAccount,getAnalytics,getQuote,getSupport,sendSupport,getRequests,submitRequest,submitInternalOrder});
+  return Object.freeze({getAccount,getAnalytics,loadOverview,getQuote,getSupport,sendSupport,getRequests,submitRequest,submitInternalOrder});
 }
