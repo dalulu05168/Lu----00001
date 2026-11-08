@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { placeInternalOrder } from "./order-service.mjs";
+import {postVerifiedInternalOrder} from "./internal-order-http-adapter.mjs";
 import {registerAccount,loginAccount,logoutAccount,getAccountSnapshot} from "./account-service.mjs";
 import {listWatchlist,addWatchlistItem,removeWatchlistItem} from "./watchlist-service.mjs";
 import {submitClientRequest,listClientRequests} from "./operational-workflows.mjs";
@@ -44,7 +45,7 @@ async function readBody(req,maxBodyBytes){
  return payload;
 }
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
-export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,getStockQuote=getUsStockQuote,maxBodyBytes=8192,referenceFx=createReferenceFx(),authLimiter=createAuthRateLimiter()}){
+export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,getStockQuote=getUsStockQuote,maxBodyBytes=8192,referenceFx=createReferenceFx(),authLimiter=createAuthRateLimiter(),verifiedTrading=null}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  let privateUploads=0;
  return createServer(async(req,res)=>{
@@ -240,6 +241,19 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    if(!data||typeof data!=="object"||Array.isArray(data))return send(res,400,{error:"Invalid body"});
    const allowed=["side","market","symbol","quantity"];
    if(Object.keys(data).some(k=>!allowed.includes(k)))return send(res,400,{error:"Unexpected fields"});
+   // Opt-in, fail-closed verified execution. The existing route and its other
+   // customer features are unchanged unless the server supplies this contract.
+   // A live vendor quote alone cannot authorize trading: the server must also
+   // provide independently reviewed display/execution rights, FX and session
+   // rules, and explicitly set tradingEnabled.
+   if(verifiedTrading!==null){
+    const outcome=await postVerifiedInternalOrder({
+     db,session,idempotencyKey:key,body:data,...verifiedTrading,
+     // An explicit boolean is mandatory; no environment/client truthiness.
+     tradingEnabled:verifiedTrading?.tradingEnabled===true
+    });
+    return send(res,outcome.status,outcome.body);
+   }
    // Do not trust a browser-supplied execution price or FX rate.
    // resolveExecutionPrice is the only source of truth for price/FX/timestamp;
    // when absent (no provider wired at all), fail closed instead of guessing.
@@ -266,6 +280,10 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   }catch(err){
    if(err.statusCode===413)return send(res,413,{error:"Request too large"});
    if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});
+   if(verifiedTrading!==null){
+    const status=[400,401,403,404,409,413,429,503].includes(err.statusCode)?err.statusCode:503;
+    return send(res,status,{error:status===503?"Verified internal order unavailable":status===403?"Order access denied":err.message});
+   }
    if(/quote|pricing|entitlement|instrument|FX rate/i.test(err.message??""))return send(res,503,{error:"Verified market pricing unavailable"});
    const status=errorStatus(err.message??"");
    return send(res,status,{error:status===500?"Internal server error":err.message});
