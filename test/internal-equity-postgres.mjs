@@ -6,6 +6,7 @@ import {executeLicensedInternalOrder} from "../src/internal-equity-execution.mjs
 import {placeInternalOrder} from "../src/order-service.mjs";
 import {getAccountAnalytics} from "../src/account-analytics.mjs";
 import {getAccountSnapshot} from "../src/account-service.mjs";
+import {valueInternalStockPortfolio} from "../src/internal-stock-portfolio-valuation.mjs";
 
 // Real ephemeral PostgreSQL; only external quote calls use deterministic
 // licensed-format fixtures. This is NOT proof of live provider access.
@@ -137,6 +138,24 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(analytics.method,"FIFO");
   assert.equal(analytics.realizedPnlCents,5700);
   assert.equal(analytics.positionCostCents,22800);
+  const valuation=await valueInternalStockPortfolio({
+    accountSnapshot:account,analytics,
+    resolveQuote:instrument=>marketData.getQuote(instrument,{purpose:"internalSimulationPricing"}),
+    resolveFxQuote:pair=>fxData.getQuote({...pair,purpose:"internalPricing"}),
+    authorizeUsage,authorizeFxUsage,now:clock
+  });
+  assert.equal(valuation.valuationAvailable,true);
+  assert.equal(valuation.marketValueCents,33500);
+  assert.equal(valuation.unrealizedPnlCents,10700);
+  assert.equal(valuation.portfolioValueCents,116400);
+  const noQuoteValuation=await valueInternalStockPortfolio({
+    accountSnapshot:account,analytics,
+    resolveQuote:async()=>{throw Error("No market price");},
+    authorizeUsage,now:clock
+  });
+  assert.equal(noQuoteValuation.valuationAvailable,false);
+  assert.equal(noQuoteValuation.unrealizedPnlCents,null);
+  assert.equal(noQuoteValuation.portfolioValueCents,null);
   const [stored,ledger,evidence]=await Promise.all([
    db.query("SELECT id,market,side,amount_usd_cents FROM orders WHERE account_id=$1 ORDER BY created_at",[accountId]),
    db.query("SELECT order_id,delta_cents FROM cash_ledger WHERE account_id=$1 AND order_id IS NOT NULL",[accountId]),
