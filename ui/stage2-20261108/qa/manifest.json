@@ -1,0 +1,43 @@
+{
+  "generated_date": "2026-11-08",
+  "source": "GPT Library /交易平台/CN_Capital_新版三端_清除假数据_待对接.zip",
+  "files": {
+    "前台.html": {
+      "source_sha256": "2eff10b9b4e02730a2434cc196b6451fc412d05c23ec1711a146026b646e049d",
+      "cleaned_sha256": "e7a2c144df41c05655dff9e8480a32d3360cd2757754dcce4369afc2a325e7a5",
+      "source_bytes": 153857,
+      "cleaned_bytes": 154695,
+      "stage2_cleaned_sha256": "f9b38dd10837052bbb00731e9cdd27a2e0d6423cfc9200aafe558e7816bd159a",
+      "stage2_bytes": 154465
+    },
+    "手机端.html": {
+      "source_sha256": "62ad772cec52c8e844fbf05e90afe73d1ce1e1ae013c13adffb71cd2301ca91b",
+      "cleaned_sha256": "12d3661f779d3e537ccc6744aff3a18479a75d15bf5ed71c3496c049f99f0fbf",
+      "source_bytes": 82547,
+      "cleaned_bytes": 79633,
+      "stage2_cleaned_sha256": "07bf03895275a265e86ead549585fd28e7629d8db11253f42ff7bc9afb2d4a81",
+      "stage2_bytes": 79411
+    },
+    "后台.html": {
+      "source_sha256": "a7fc08450f4238beaebcaaf336d589d682fab8f60c1c44316aecd31be2f8b98d",
+      "cleaned_sha256": "289518ac384ccfb138cc719dbb5d8ce3313cd4493ecd78d96ceaede5a4d5acfd",
+      "source_bytes": 169979,
+      "cleaned_bytes": 167304,
+      "stage2_cleaned_sha256": "f4a49976a7ef0358753f20ed87eb26d989c46d6f8c5f40853c95c2924a0b76e0",
+      "stage2_bytes": 167082
+    }
+  },
+  "stage2": {
+    "date": "2026-11-08",
+    "base_candidate_zip_sha256": "9ed7b73f2aa65df484a608aeebf8f285fe89c2085726802eeaf4f77e7fc526db",
+    "change": "Removed random intraday OHLCV/volume fabrication from three chart selectors, dynamically filtered actual bars only; JS only; no CSS/HTML DOM change.",
+    "tests": {
+      "static": "PASS / 3 HTML / 13 scripts",
+      "chart_source": "PASS / 21 isolated cases",
+      "preservation": "PASS / exact markup/CSS/IDs/static-controls",
+      "chromium": "PASS / 9 isolated cases",
+      "backend_api": "NOT TESTED",
+      "production": "NOT DEPLOYED"
+    }
+  }
+}
