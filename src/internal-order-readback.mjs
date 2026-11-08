@@ -58,6 +58,21 @@ export async function getVerifiedInternalOrderReceipt(db,accountId,orderId){
   if(!Number.isFinite(stamp)||!Number.isFinite(traded)||
      stamp>traded+5000 || traded-stamp>60_000)
     throw failure("QUOTE_TIMESTAMP_MISMATCH");
+  // The persisted FX provenance must be as recent as the equity quote
+  // under the same execution time window. A historical CNY/USD conversion
+  // may not be presented later as a confirmed fresh trade receipt.
+  if(r.market==="CN"){
+    if(typeof r.fx_source!=="string"||!r.fx_source.trim()||
+       typeof r.fx_license_ref!=="string"||!r.fx_license_ref.trim())
+      throw failure("FX_EVIDENCE_UNAVAILABLE");
+    const fxStamp=r.fx_at instanceof Date?r.fx_at.getTime():Date.parse(r.fx_at);
+    if(!Number.isFinite(fxStamp)||fxStamp>traded+5000||
+       traded-fxStamp>60_000)
+      throw failure("FX_TIMESTAMP_MISMATCH");
+  }else if(r.fx_at!==null||r.fx_source!==null||r.fx_license_ref!==null||
+            fx!==1_000_000n){
+    throw failure("EVIDENCE_MISMATCH");
+  }
   const record=Object.freeze({
    id:r.id,market:r.market,symbol:r.symbol,side:r.side,
    quantity:Number(quantity),execution:"INTERNAL_ONLY",
