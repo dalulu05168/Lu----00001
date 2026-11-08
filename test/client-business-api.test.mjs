@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createClientBusinessApi,normalizeAccountSnapshot,normalizeAnalytics,normalizeVerifiedQuote,
-  normalizePublishedCatalog,normalizeClientWatchlist}
+  normalizePublishedCatalog,normalizeClientWatchlist,normalizeMarketHistory,
+ normalizeConsistentPortfolio,normalizeExecutedOrder,normalizeInternalProducts,normalizeInternalPurchaseAccount}
   from '../web/client-business-api.mjs';
 
 function response(status,data){return {ok:status>=200&&status<300,status,async json(){return data;}};}
@@ -14,6 +15,18 @@ const sampleAnalytics=()=>({currency:'USD',method:'FIFO',basis:'INTERNAL_GROSS',
   sellVolumeCents:1000,volumeCents:3000,realizedPnlCents:-200,
   dayRealizedPnlCents:-200,monthRealizedPnlCents:-200,positionCostCents:1000,portfolioValueCents:null});
 
+const nowMs=Date.parse('2026-11-08T00:00:00Z');
+const grant=(market='US')=>({customerDisplayAllowed:true,market,currency:market==='US'?'USD':'CNY',source:'Twelve Data',validUntilMs:nowMs+60000});
+const committedOrder=({id='order-1',side='BUY',market='US',symbol='AAPL',quantity=2,priceCents=18200,amountCents=36400}={})=>{
+const base={id,side,market,symbol,quantity};return {replayed:false,
+order:{...base,priceCents,amountCents,fxUsdMicros:1000000,execution:'INTERNAL_ONLY'},
+receipt:{...base,unitPriceCents:priceCents,amountUsdCents:amountCents,fxUsdMicros:1000000,cashDeltaCents:side==='BUY'?-amountCents:amountCents,execution:'INTERNAL_ONLY',quoteSource:'Twelve Data',quoteTimestampMs:nowMs-1000,quoteCurrency:market==='US'?'USD':'CNY'},
+quote:{source:'Twelve Data',timestampMs:nowMs-1000,currency:market==='US'?'USD':'CNY',priceCents}}};
+const history=(market='US')=>({status:'HISTORICAL',market,symbol:market==='US'?'AAPL':'600519',name:'Issuer',currency:market==='US'?'USD':'CNY',interval:'1day',timezone:'EXCHANGE_LOCAL_DATE',source:'Twelve Data',displayPermission:grant(market),values:[{datetime:'2026-11-06',open:10,high:12,low:9,close:11,volume:100}]});
+const portfolio=()=>({accountSnapshot:{account:{id:'account-A',cashCents:10550,currency:'USD'},positions:[{market:'US',symbol:'AAPL',quantity:2}],orders:sampleAccount().orders},
+analytics:{...sampleAnalytics(),holdingCount:1,positionCostCents:20000,asOf:'2026-11-08T00:00:00Z'},
+valuation:{currency:'USD',method:'FIFO',valuationAvailable:true,realizedPnlCents:-200,unrealizedPnlCents:2000,marketValueCents:22000,portfolioValueCents:32550,quotes:[{market:'US',symbol:'AAPL',quantity:2,priceCents:11000,marketValueCents:22000,currency:'USD',quoteTimestampMs:nowMs-1000,source:'Twelve Data'}]},
+snapshotAt:'2026-11-08T00:00:00Z'});
 function api(fetchImpl,{capabilities={},token='session-A',now=()=>Date.parse('2026-11-08T00:00:00Z')}={}){
   return createClientBusinessApi({getToken:()=>token,fetchImpl,capabilities,now});
 }
@@ -33,7 +46,7 @@ test('account balances, positions and latest order shape are read from server an
 test('missing data and unsupported markets reject instead of displaying a fake zero',()=>{
   assert.throws(()=>normalizeAccountSnapshot({...sampleAccount(),account:{id:'a',currency:'USD'}}),e=>e.code==='INVALID_RESPONSE');
   assert.throws(()=>normalizeAccountSnapshot({...sampleAccount(),positions:null}),e=>e.code==='INVALID_RESPONSE');
-  assert.throws(()=>normalizeAccountSnapshot({...sampleAccount(),positions:[{market:'RO',symbol:'ABC',quantity:3}]}),e=>e.code==='INVALID_INSTRUMENT');
+  assert.equal(normalizeAccountSnapshot({...sampleAccount(),positions:[{market:'RO',symbol:'ABC',quantity:3}]}).positions[0].legacyReadOnly,true);
   assert.throws(()=>normalizeAccountSnapshot({...sampleAccount(),orders:[{id:'1'}]}),e=>e.code==='INVALID_INSTRUMENT');
 });
 test('analytics preserves realized loss and unknown unrealized data; missing history never becomes zero',async()=>{
@@ -93,7 +106,7 @@ test('internal order sends no client price and confirms committed server order b
   const calls=[];
   const mock=async(url,options)=>{
     calls.push([url,options]);
-    if(url==='/api/orders')return response(201,{replayed:false,order:{id:'order-1'}});
+    if(url==='/api/orders')return response(201,committedOrder());
     if(url==='/api/account')return response(200,sampleAccount());
     throw Error('Unexpected path');
   };
@@ -110,13 +123,13 @@ test('internal order sends no client price and confirms committed server order b
 });
 test('order response 201 without persisted order is NOT success',async()=>{
   const client=api(async(url)=>response(url==='/api/orders'?201:200,
-    url==='/api/orders'?{order:{id:'unpersisted'}}:sampleAccount()),{capabilities:{trading:true}});
+    url==='/api/orders'?committedOrder({id:'unpersisted'}):sampleAccount()),{capabilities:{trading:true}});
   await assert.rejects(()=>client.submitInternalOrder({side:'BUY',market:'US',symbol:'AAPL',quantity:2,
     idempotencyKey:'persistent-key-123'}),e=>e.code==='ORDER_UNCONFIRMED');
 });
 test('order acknowledged then account readback 503 preserves uncertain state',async()=>{
   const client=api(async(url)=>response(url==='/api/orders'?201:503,
-    url==='/api/orders'?{order:{id:'order-1'}}:{}),{capabilities:{trading:true}});
+    url==='/api/orders'?committedOrder():{}),{capabilities:{trading:true}});
   await assert.rejects(()=>client.submitInternalOrder({side:'BUY',market:'US',symbol:'AAPL',quantity:2,
     idempotencyKey:'retry-same-key-001'}),e=>e.code==='ORDER_READBACK_FAILED'&&e.status===503);
 });
@@ -206,7 +219,7 @@ test('obsolete account response cannot leak into a newly signed-in session',asyn
 test('session switch during post-order readback returns uncertainty, not confirmation',async()=>{
   let token='user-A';
   const fetchImpl=async(url)=>{
-    if(url==='/api/orders')return response(201,{order:{id:'order-1'}});
+    if(url==='/api/orders')return response(201,committedOrder());
     if(url==='/api/account'){
       token='user-B';
       return response(200,sampleAccount());
@@ -219,7 +232,7 @@ test('session switch during post-order readback returns uncertainty, not confirm
 });
 test('acknowledged execution price/amount must equal committed order readback',async()=>{
   const client=api(async url=>url==='/api/orders' ?
-    response(201,{order:{id:'order-1',priceCents:999,amountCents:1998}}) :
+    response(201,committedOrder({priceCents:999,amountCents:1998})) :
     response(200,sampleAccount()),{capabilities:{trading:true}});
   await assert.rejects(()=>client.submitInternalOrder({side:'BUY',market:'US',symbol:'AAPL',quantity:2,
     idempotencyKey:'same-order-1000'}),e=>e.code==='ORDER_UNCONFIRMED');
@@ -373,3 +386,60 @@ test('watchlist wrong token or changed session during POST cannot read another a
     e=>e.code==='SESSION_CHANGED'&&e.status===401);
   assert.deepEqual(calls,['GET','POST']);
 });
+
+test('stage3 historical US and CN OHLCV data use server historical source only',async()=>{
+for(const market of ['US','CN']){const h=history(market);const c=api(async url=>{assert.match(url,/^\/api\/stock-history\?/);return response(200,h)});
+const out=await c.getStockHistory({market,symbol:h.symbol});assert.equal(out.values[0].close,11);assert.equal(out.name,'Issuer');}});
+test('stage3 history license, missing route and malformed candles fail closed',async()=>{
+const h=history();for(const invalid of [{...h,displayPermission:null},{...h,values:[{...h.values[0],high:2}]},{...h,symbol:'MSFT'}])
+assert.throws(()=>normalizeMarketHistory(invalid,{market:'US',symbol:'AAPL'},{nowMs}),e=>e.code==='HISTORY_UNAVAILABLE');
+await assert.rejects(()=>api(async()=>response(404,{})).getStockHistory({market:'US',symbol:'AAPL'}),e=>e.status===404);});
+test('stage3 live market instrument derives name and MIC only from verified API quote',async()=>{
+const q={market:'US',symbol:'AAPL',name:'Apple Inc.',mic:'XNAS',priceMicros:182003450,priceCents:null,price:182.00345,status:'FRESH',stale:false,currency:'USD',timestampMs:nowMs-1000,source:'Twelve Data',displayPermission:grant()};
+const out=await api(async()=>response(200,q)).getMarketInstrument({market:'US',symbol:'AAPL'});
+assert.equal(out.priceCents,null);assert.equal(out.name,'Apple Inc.');});
+test('stage3 consistent portfolio is from server PG snapshot and FIFO, not invented balance',async()=>{
+const out=await api(async url=>{assert.equal(url,'/api/account/portfolio');return response(200,portfolio())}).getPortfolio();
+assert.equal(out.account.account.cashCents,10550);assert.equal(out.valuation.unrealizedPnlCents,2000);});
+test('stage3 contradictory valuation or unavailable endpoint cannot show fake profit',async()=>{
+const x=portfolio();x.valuation={...x.valuation,portfolioValueCents:0};
+assert.throws(()=>normalizeConsistentPortfolio(x,{nowMs}),e=>e.code==='INVALID_RESPONSE');
+await assert.rejects(()=>api(async()=>response(404,{})).getPortfolio(),e=>e.status===404);});
+test('stage3 portfolio missing quotes keeps unrealized and value unknown',()=>{
+const x=portfolio();x.valuation={currency:'USD',method:'FIFO',valuationAvailable:false,reason:'QUOTE_UNAVAILABLE',quotes:[]};
+const out=normalizeConsistentPortfolio(x,{nowMs});assert.equal(out.valuation.unrealizedPnlCents,null);});
+test('stage3 order must include matching persistent receipt and quote',()=>{
+const o=committedOrder();assert.equal(normalizeExecutedOrder(o,{side:'BUY',market:'US',symbol:'AAPL',quantity:2}).order.amountCents,36400);
+assert.throws(()=>normalizeExecutedOrder({...o,receipt:null},{side:'BUY',market:'US',symbol:'AAPL',quantity:2}),e=>e.code==='ORDER_UNVERIFIED');});
+test('stage3 verified internal sell re-reads committed order',async()=>{
+const sale=committedOrder({id:'sale-1',side:'SELL',quantity:1,priceCents:11100,amountCents:11100});
+const account=sampleAccount();account.orders=[{...account.orders[0],id:'sale-1',side:'SELL',quantity:1,price_cents:11100,amount_usd_cents:11100}];
+const out=await api(async(url)=>response(200,url==='/api/orders'?sale:account),{capabilities:{trading:true}})
+.submitInternalOrder({side:'SELL',market:'US',symbol:'AAPL',quantity:1,idempotencyKey:'sell-proof-abc'});
+assert.equal(out.receipt.cashDeltaCents,11100);});
+test('stage3 encrypted bank and KYC routes remain accessible',async()=>{
+const id='a1234567-1234-4234-8234-123456789abc';
+const x=api(async url=>response(200,url==='/api/private-data/status'?{ready:true}:{kind:'BANK_LINK',payload:{bankName:'Bank'}}));
+assert.deepEqual(await x.getPrivateStorageStatus(),{ready:true});
+assert.equal((await x.readPrivateSubmission('BANK_LINK',id)).bankName,'Bank');});
+test('stage3 bank submission requires durable workflow readback',async()=>{
+const id='a1234567-1234-4234-8234-123456789abc';
+const x=api(async(url,opts)=>url==='/api/private-data/status'?response(200,{ready:true}):
+opts.method==='POST'?response(201,{item:{id,category:'BANK_LINK'}}):response(200,{items:[]}),
+{capabilities:{privateDataWrites:true}});
+await assert.rejects(()=>x.submitPrivateSubmission('BANK_LINK',{bankName:'Bank',accountNumber:'1234567890'}),e=>e.code==='PRIVATE_UNCONFIRMED');});
+test('stage3 existing funds product and purchase account routes retained',async()=>{
+const id='a1234567-1234-4234-8234-123456789abc';const item={termsId:id,name:'Fund',code:'FUND1',itemType:'FUND',tradingEnabled:true,termsVersion:2};
+const x=api(async url=>response(200,url==='/api/internal-products'?{items:[item]}:{execution:'INTERNAL_ONLY',positions:[],purchases:[],settlements:[],sales:[]}));
+assert.equal((await x.getInternalProducts())[0].name,'Fund');assert.deepEqual((await x.getInternalPurchases()).purchases,[]);});
+test('stage3 unsafe legacy stock product path remains closed',async()=>{
+const id='a1234567-1234-4234-8234-123456789abc';
+const x=api(async()=>response(200,{items:[{termsId:id,name:'Stock',code:'AAPL',itemType:'STOCK',tradingEnabled:true,termsVersion:1}]}),{capabilities:{productWrites:true}});
+await assert.rejects(()=>x.buyInternalProduct({termsId:id,termsVersion:1,quantity:1,participationPassword:'123456',idempotencyKey:'stock-buy-1234'}),e=>e.status===503);});
+test('stage3 desktop and mobile use same null-aware terminal API envelope',async()=>{
+const fake=async url=>url==='/api/account'?response(200,sampleAccount()):url==='/api/account/analytics'?response(200,sampleAnalytics()):
+url==='/api/catalog'||url==='/api/watchlist'||url==='/api/internal-products'||url.startsWith('/api/requests?')?response(200,{items:[]}):
+url==='/api/internal-purchases'?response(200,{execution:'INTERNAL_ONLY',positions:[],purchases:[],settlements:[],sales:[]}):
+url==='/api/support'?response(200,{thread:null,messages:[]}):response(404,{error:'Not found'});
+const a=await api(fake).loadTerminalData(),b=await api(fake).loadTerminalData();
+assert.deepEqual(a,b);assert.equal(a.portfolio.state,'unavailable');assert.equal(a.account.data.account.cashCents,10550);});
