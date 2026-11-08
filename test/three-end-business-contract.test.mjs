@@ -71,3 +71,7 @@ test('unexpected null analytics and missing CN quote fail without exposing sensi
   assert.doesNotMatch(JSON.stringify(r),/secret customer|secret admin|acc-1/);
  }finally{await f.close();}
 });
+test('bearer credentials are never sent to a remote plaintext HTTP origin',async()=>{
+ await assert.rejects(runBusinessContractGate({baseUrl:'http://qa.example.test',remoteReadonly:true,
+  clientToken:'secret customer',adminToken:'secret admin',fetchImpl:()=>{throw Error('fetch must not run')}}),/HTTPS/);
+});
