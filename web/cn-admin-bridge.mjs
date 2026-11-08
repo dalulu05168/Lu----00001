@@ -3,7 +3,7 @@ const token=sessionStorage.getItem('gsp_admin_token');
 const root=document.getElementById('adminVerifiedApp');
 const el=id=>document.getElementById(id);
 const ready=()=>document.documentElement.classList.add('cn-ready');
-const state={role:null,clients:null,subadmins:null,listings:null};
+const state={role:null,clients:null,subadmins:null,listings:null,invalidated:false};
 const headers=()=>({Authorization:'Bearer '+token,Accept:'application/json'});
 const cell=(row,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');row.appendChild(td);return td};
 const when=value=>{if(!value)return '—';const d=new Date(value);return Number.isNaN(d.getTime())?'—':d.toLocaleString('zh-CN')};
@@ -13,7 +13,7 @@ function renderRows(id,items,callback,columns){
  if(!items.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=columns;td.textContent='暂无记录';td.style.textAlign='center';td.style.color='var(--mut)';tr.appendChild(td);tbody.appendChild(tr);return;}
  for(const item of items){const tr=document.createElement('tr');callback(tr,item);tbody.appendChild(tr);}
 }
-function invalidate(){sessionStorage.removeItem('gsp_admin_token');root.hidden=true;location.replace('/admin.html');}
+function invalidate(){state.invalidated=true;sessionStorage.removeItem('gsp_admin_token');root.hidden=true;location.replace('/admin.html');}
 async function api(path,{method='GET',body}={}){
  const r=await fetch('/api/admin/'+path,{method,headers:{...headers(),...(body?{'Content-Type':'application/json'}:{})},cache:'no-store',...(body?{body:JSON.stringify(body)}:{})});
  if(r.status===401||r.status===403){invalidate();throw Error('管理员会话无效');}
@@ -157,6 +157,7 @@ async function run(){
   el('listingCreateSection').hidden=identity.role!=='MASTER';
   wire();
   await Promise.all([loadClients(),loadSubadmins(),loadListings()]);
+  if(state.invalidated)return;
   root.hidden=false;ready();
  }catch(e){errorView(e.message||'后台暂不可用');}
 }
