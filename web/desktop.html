@@ -400,7 +400,7 @@ var DATA={acct:'',sync:'待同步',cashOverride:0,names:{},disc:{},watch:[],fav:
 function sum(a,fn){return a.reduce(function(x,y){return x+fn(y)},0)}
 function cost(){return DATA.holds.some(function(h){return h.c==null||!Number.isFinite(h.c)})?NaN:sum(DATA.holds,function(h){return h.c})}
 function traded(){return sum(DATA.orders,function(o){return o.a})}
-function realized(){return DATA.orders.length ? NaN : 0}
+function realized(){return NaN}
 function cash(){if(DATA.cashOverride!=null)return DATA.cashOverride;
  return sum(DATA.reqs.filter(function(r){return r.k==='充值申请'&&r.st.indexOf('成功')>-1}),function(r){return r.a})-traded()}
 function held(s){var h=DATA.holds.filter(function(x){return x.s===s})[0];return h||null}
@@ -416,8 +416,8 @@ function bind(){var m={cash:f(cash()),cost:DATA.holds.length?'—':'0.00',traded
 /* ========== 渲染 ========== */
 var FLT='全部';
 function rOrders(){var L=DATA.orders.map(function(o,i){return [o,i]}).filter(function(x){return FLT==='全部'||x[0].t===FLT});
- $('tb-ord').innerHTML=L.length?L.map(function(x){var o=x[0];return '<tr class="click" tabindex="0" data-i="'+x[1]+'" title="点击查看成交详情"><td>'+o.s+'</td><td class="mut">'+DATA.names[o.s]+'</td><td class="'+(o.t==='买入'?'up':'dn')+'">'+(o.t==='买入'?'↑ ':'↓ ')+o.t+'</td><td>'+f(o.p)+'</td><td>'+o.q+'</td><td class="amt">'+f(o.a)+'</td><td class="mut">'+o.d+'</td><td><span class="chip ok">已记录</span></td></tr>'}).join(''):'<tr><td colspan="8" class="mut" style="padding:20px 0">无符合条件的记录</td></tr>'}
-function rHolds(){$('tb-hold').innerHTML=DATA.holds.length?DATA.holds.map(function(h){return '<tr class="click" tabindex="0" data-s="'+h.s+'" title="点击卖出"><td>'+h.s+' <span class="mut">'+DATA.names[h.s].split(' ')[0]+'</span></td><td>'+h.q+'</td><td class="amt">'+(h.c==null?'—':f(h.c))+'</td></tr>'}).join(''):'<tr><td colspan="3" class="mut" style="padding:16px 0">暂无持仓</td></tr>'}
+ $('tb-ord').innerHTML=L.length?L.map(function(x){var o=x[0];return '<tr class="click" tabindex="0" data-i="'+x[1]+'" title="点击查看成交详情"><td>'+esc(o.s)+'</td><td class="mut">'+esc(DATA.names[o.s]||o.s)+'</td><td class="'+(o.t==='买入'?'up':'dn')+'">'+(o.t==='买入'?'↑ ':'↓ ')+o.t+'</td><td>'+f(o.p)+'</td><td>'+o.q+'</td><td class="amt">'+f(o.a)+'</td><td class="mut">'+o.d+'</td><td><span class="chip ok">已记录</span></td></tr>'}).join(''):'<tr><td colspan="8" class="mut" style="padding:20px 0">无符合条件的记录</td></tr>'}
+function rHolds(){$('tb-hold').innerHTML=DATA.holds.length?DATA.holds.map(function(h){return '<tr class="click" tabindex="0" data-s="'+h.s+'" title="点击卖出"><td>'+esc(h.s)+' <span class="mut">'+esc((DATA.names[h.s]||h.s).split(' ')[0])+'</span></td><td>'+h.q+'</td><td class="amt">'+(h.c==null?'—':f(h.c))+'</td></tr>'}).join(''):'<tr><td colspan="3" class="mut" style="padding:16px 0">暂无持仓</td></tr>'}
 function rWatch(){
  var tbody=$('tb-watch');
  tbody.innerHTML=DATA.watch.length?DATA.watch.map(function(key){
@@ -617,24 +617,29 @@ function draw(){}
 /* Update the visual design from the actual authenticated account API, without trusting local mock balances. */
 window.CN_SYNC_ACCOUNT=function(snapshot){
   var a=snapshot.account || {};
-  if(!Number.isSafeInteger(a.cashCents))throw new Error('账户现金字段格式不匹配');
+  if(!Number.isSafeInteger(a.cashCents)||a.cashCents<0)throw new Error('账户现金字段格式不匹配');
   DATA.acct=String(a.id||'').replace(/[^a-zA-Z0-9-]/g,'').slice(-8);
   DATA.cashOverride=a.cashCents/100;
-  DATA.names={};DATA.watch=[];DATA.disc={};DATA.fav=[];DATA.catalog=[];DATA.watchLoaded=false;DATA.watchStatus='正在同步自选…';
-  function sym(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9.-]/g,'').slice(0,16)}
+  DATA.names={};DATA.watch=[];DATA.disc={};DATA.fav=[];DATA.catalog=[];
+  DATA.watchLoaded=false;DATA.watchStatus='正在同步自选…';
+  function instrument(record){
+    var market=record && record.market,code=String(record && record.symbol ||'').toUpperCase();
+    return (market==='US'||market==='CN')&&/^[A-Z0-9][A-Z0-9.-]{0,23}$/.test(code)?market+':'+code:null;
+  }
   DATA.holds=(snapshot.positions||[]).filter(function(p){return Number(p.quantity)>0}).map(function(p){
-    var code=sym(p.symbol);DATA.names[code]=code;return {s:code,q:Number(p.quantity),c:null};
-  }).filter(function(p){return !!p.s});
+    var key=instrument(p);if(!key)return null;DATA.names[key]=key;
+    return {s:key,q:Number(p.quantity),c:null};
+  }).filter(Boolean);
   DATA.orders=(snapshot.orders||[]).map(function(o){
-    var code=sym(o.symbol);DATA.names[code]=code;return {s:code,t:o.side==='SELL'?'卖出':'买入',
+    var key=instrument(o);if(!key)return null;DATA.names[key]=key;
+    return {s:key,t:o.side==='SELL'?'卖出':'买入',
       p:Number(o.price_cents||0)/100,q:Number(o.quantity||0),a:Number(o.amount_usd_cents||0)/100,
       d:o.created_at?new Date(o.created_at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'};
-  }).filter(function(o){return !!o.s});
+  }).filter(Boolean);
   DATA.reqs=[];DATA.chat=[];
   DATA.sync=new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+'（本地时间）';
   renderAll();
 };
-
 window.CN_SYNC_WATCHLIST=function(items){
   DATA.watchLoaded=true;
   DATA.watch=(Array.isArray(items)?items:[]).map(function(item){return item.market+':'+item.symbol});
