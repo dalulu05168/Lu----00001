@@ -131,12 +131,12 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
     return data;
   }
 
-  async function getQuote(request, options = {}) {
-    if (!request || typeof request !== 'object' || Array.isArray(request)) {
+  async function getQuote(input, options = {}) {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
       throw error('UNSUPPORTED_INSTRUMENT');
     }
-    const {market, symbol} = request;
-    const firstPurpose = request.purpose;
+    const {market, symbol} = input;
+    const firstPurpose = input.purpose;
     const secondPurpose = options?.purpose;
     if (firstPurpose != null && secondPurpose != null && firstPurpose !== secondPurpose) {
       throw error('AMBIGUOUS_DATA_PURPOSE');
