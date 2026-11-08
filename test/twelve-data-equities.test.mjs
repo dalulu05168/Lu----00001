@@ -9,7 +9,7 @@ const rights = Object.freeze({
 });
 const base = {symbol:'AAPL', name:'Apple Inc.', currency:'USD', mic_code:'XNAS', exchange:'NASDAQ',
   close:'148.85000', previous_close:'149.09000', last_quote_at:Math.floor((NOW-13_000)/1000), timestamp:0};
-const history = {meta:{symbol:'600519',mic_code:'XSHG',exchange:'SSE',currency:'CNY'},
+const history = {meta:{symbol:'600519',mic_code:'XSHG',exchange:'SSE',currency:'CNY',interval:'1day',exchange_timezone:'Asia/Shanghai'},
   values:[{datetime:'2026-11-06',open:'1450.00',high:'1460.00',low:'1449.00',close:'1455.00',volume:'10000'},
           {datetime:'2026-11-05',open:'1445.00',high:'1457.00',low:'1443.00',close:'1451.00',volume:'9000'}]};
 const ok = data => new Response(JSON.stringify(data),{status:200,headers:{'content-type':'application/json'}});
@@ -126,4 +126,19 @@ test('provider five-decimal display prices stay exact; subcent prices cannot bec
 
 test('Shanghai B-share symbols are not mistaken for CNY-denominated A shares',async()=>{
   await assert.rejects(make().adapter.getQuote({market:'CN',symbol:'900901'}),{code:'UNSUPPORTED_INSTRUMENT'});
+});
+
+test('history refuses incorrect interval or timezone metadata rather than relabeling candles', async()=>{
+  for (const meta of [{...history.meta,interval:'1min'},{...history.meta,exchange_timezone:'UTC'}]) {
+    await assert.rejects(make({...history,meta}).adapter.getHistory({market:'CN',symbol:'600519'}),
+      {code:'PROVIDER_HISTORY_METADATA_MISMATCH'});
+  }
+});
+
+test('history rejects impossible calendar dates, invalid times and false chart bars',async()=>{
+  for (const datetime of ['2026-02-31','2026-11-06 25:61:00']) {
+    const intraday=datetime.includes(' ');
+    const meta={...history.meta,interval:intraday?'1min':'1day'};
+    await assert.rejects(make({...history,meta,values:[{...history.values[0],datetime}]}).adapter.getHistory({market:'CN',symbol:'600519',interval:meta.interval}));
+  }
 });
