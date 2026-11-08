@@ -1,0 +1,75 @@
+name: Admin stage 3 migration and rollback verification
+on:
+  push:
+    branches: ['dev/admin-stage3-compatibility-20261108']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-postgres-backup-rollback:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: admin_stage3_isolated
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: stage3-temporary-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d admin_stage3_isolated"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:stage3-temporary-ci-only@127.0.0.1:5432/admin_stage3_isolated
+      TEST_DATABASE_URL: postgres://postgres:stage3-temporary-ci-only@127.0.0.1:5432/admin_stage3_isolated
+      RESTORED_DATABASE_URL: postgres://postgres:stage3-temporary-ci-only@127.0.0.1:5432/admin_stage3_restore
+      PGPASSWORD: stage3-temporary-ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: PostgreSQL 16 client for genuine pg_dump / pg_restore
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-16
+          pg_dump --version
+          pg_restore --version
+      - name: Baseline schema, 001-022
+        run: npm run migrate
+      - name: Seed two disposable customers and cash ledgers
+        run: node scripts/admin-stage3-backup-check.mjs seed
+      - name: Capture actual pre-migration custom-format PostgreSQL backup
+        run: |
+          pg_dump --format=custom --no-owner --no-acl --dbname="$TEST_DATABASE_URL" --file=/tmp/admin-stage3-pre.dump
+          test -s /tmp/admin-stage3-pre.dump
+          pg_restore --list /tmp/admin-stage3-pre.dump >/tmp/admin-stage3-backup-objects.txt
+          test -s /tmp/admin-stage3-backup-objects.txt
+      - name: Apply 023 and 024 on disposable DB; test FKs, rollback and finance data
+        run: node --test test/admin-stage3-migration-postgres.test.mjs
+      - name: Restore original backup into DIFFERENT fresh disposable database
+        run: |
+          createdb -h 127.0.0.1 -U postgres admin_stage3_restore
+          pg_restore --exit-on-error --no-owner --no-acl --dbname="$RESTORED_DATABASE_URL" /tmp/admin-stage3-pre.dump
+          node scripts/admin-stage3-backup-check.mjs verify
+      - name: Regress two-factor and scoped customer finance on disposable DB
+        run: node --test test/admin-stage2-postgres.test.mjs
+  admin-security-unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Syntax
+        run: |
+          node --check scripts/admin-stage3-backup-check.mjs
+          node --check test/admin-stage3-migration-postgres.test.mjs
+          node --check src/admin-service.mjs
+          node --check src/admin-http.mjs
+      - name: Admin rights and 2FA unit contracts
+        run: node --test test/admin-client-analytics.test.mjs test/admin-client-analytics-route.test.mjs test/admin-totp-replay.test.mjs test/admin-login-minimal.test.mjs
