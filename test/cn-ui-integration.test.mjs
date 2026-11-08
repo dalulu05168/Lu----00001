@@ -16,55 +16,49 @@ test('existing customer and administrator login forms remain available',async()=
   assert.match(admin,/cn-admin-entry-redirect\.mjs/);
 });
 
-test('new desktop terminal preserves customer dialogs and validates account session',async()=>{
-  const html=await source('web/cn-terminal.html'),js=await source('web/cn-terminal-bridge.mjs');
-  for(const id of ['m-dep','m-id','m-bank','m-req','m-trade','m-ord']){
-    assert.ok(html.includes('id="'+id+'"'),id);
-  }
-  assert.match(js,/sessionStorage\.getItem\('gsp_token'\)/);
-  assert.match(js,/fetch\('\/api\/account'/);
-  assert.match(html,/window\.CN_SYNC_ACCOUNT/);
-});
-
-test('authenticated terminal replaces fixture records and keeps account dialogs working',async()=>{
-  const html=await source('web/cn-terminal.html');
-  const dom=new JSDOM(html,{url:'https://example.test/cn-terminal.html',runScripts:'dangerously'});
-  const win=dom.window;
-  try{
-    assert.equal(typeof win.CN_SYNC_ACCOUNT,'function');
-    win.CN_SYNC_ACCOUNT({
-      account:{id:'real-id-abc12345',cashCents:235600,currency:'USD'},
-      positions:[{market:'US',symbol:'AA',quantity:12}],
-      orders:[{market:'US',symbol:'AA',side:'BUY',quantity:3,price_cents:2100,amount_usd_cents:6300,created_at:'2026-11-01T14:00:00Z'}]
-    });
-    assert.equal(win.document.querySelector('[data-b="cash"]').textContent,'2,356.00');
-    assert.equal(win.document.querySelector('[data-b="cost"]').textContent,'—');
-    assert.equal(win.document.querySelector('[data-b="total"]').textContent,'—');
-    assert.equal(win.document.querySelectorAll('#tb-hold tr').length,1);
-    assert.match(win.document.getElementById('tb-hold').textContent,/12/);
-    assert.match(win.document.getElementById('tb-hold').textContent,/—/);
-    assert.equal(win.document.querySelectorAll('#tb-ord tr').length,1);
-    assert.equal(win.document.querySelectorAll('#tb-req tr').length,0);
-    win.CN_SYNC_CATALOG([{itemType:'STOCK',market:'US',symbol:'AA',name:'Alcoa Corporation'}]);
-    assert.match(win.document.getElementById('pbody').textContent,/US:AA/);
-    win.CN_SYNC_WATCHLIST([{market:'US',symbol:'AAPL'}]);
-    assert.match(win.document.getElementById('tb-watch').textContent,/AAPL/);
-    for(const id of ['m-dep','m-id','m-bank']){
-      const trigger=win.document.querySelector('[data-open="'+id+'"]');
-      assert.ok(trigger,id+' opener');
-      trigger.click();
-      const modal=win.document.getElementById(id);
-      assert.ok(modal.classList.contains('open'),id+' open');
-      modal.querySelector('[data-close]').click();
-      assert.ok(!modal.classList.contains('open'),id+' close');
+for(const page of ['cn-terminal','cn-mobile']){
+  test(page+' renders the authenticated account and persists a watchlist change',async()=>{
+    const html=await source('web/'+page+'.html');
+    const dom=new JSDOM(html,{url:'https://example.test/'+page+'.html',runScripts:'dangerously',beforeParse(win){win.HTMLCanvasElement.prototype.getContext=()=>null;}});
+    const keys=['window','document','location','sessionStorage','fetch'];
+    const original=Object.fromEntries(keys.map(key=>[key,globalThis[key]]));
+    const win=dom.window;
+    let watch=[{market:'US',symbol:'AAPL'}];
+    const requests=[];
+    try{
+      Object.assign(globalThis,{window:win,document:win.document,location:win.location,sessionStorage:win.sessionStorage});
+      sessionStorage.setItem('gsp_token','test-session');
+      globalThis.fetch=async(url,opts)=>{
+        requests.push([url,opts.method]);
+        assert.equal(opts.headers.Authorization,'Bearer test-session');
+        if(url==='/api/watchlist'&&opts.method==='DELETE'){
+          assert.deepEqual(JSON.parse(opts.body),{market:'US',symbol:'AAPL'});
+          watch=[];
+        }
+        const data={
+          '/api/account':{account:{id:'account-id',cashCents:235600},positions:[{market:'US',symbol:'AA',quantity:12}],orders:[{market:'US',symbol:'AA',side:'BUY',quantity:3,price_cents:2100,amount_usd_cents:6300,created_at:'2026-11-01T14:00:00Z'}]},
+          '/api/catalog':{items:[{itemType:'STOCK',market:'US',symbol:'AA',name:'Alcoa'}]},
+          '/api/watchlist':{items:watch}
+        };
+        assert.ok(data[url],url);
+        return Response.json(data[url]);
+      };
+      await import('../web/cn-design-client.mjs?test='+page);
+      await win.CN_REFRESH();
+      const root=page==='cn-mobile'?win.document.getElementById('host').shadowRoot:win.document;
+      const content=()=>root.querySelector(page==='cn-mobile'?'#app':'body').textContent;
+      assert.match(content(),/2,356\.00/);
+      assert.match(content(),/US:AAPL/);
+      await win.CN_FAVORITE('US:AAPL');
+      assert.ok(requests.some(([path,method])=>path==='/api/watchlist'&&method==='DELETE'));
+      assert.doesNotMatch(content(),/US:AAPL/);
+    }finally{
+      for(const key of keys){if(original[key]===undefined)delete globalThis[key];else globalThis[key]=original[key];}
+      await new Promise(resolve=>setImmediate(resolve));
+      win.close();
     }
-  }finally{
-    // The terminal's initial loadData().then(draw) microtask must finish before
-    // jsdom closes and destroys document; otherwise it rejects after the test ends.
-    await new Promise(resolve => setImmediate(resolve));
-    win.close();
-  }
-});
+  });
+}
 
 test('admin redesign removes static client/order fixtures while retaining current API access',async()=>{
   const html=await source('web/cn-admin.html'),js=await source('web/cn-admin-bridge.mjs');
@@ -150,7 +144,7 @@ test('unified N login gate preserves both real authentication forms', async () =
   assert.match(css,/cn-n-slow-orbit/);
   assert.match(css,/20s linear infinite/);
   assert.match(css,/radial-gradient\(circle/);
-  assert.match(clientRoute,/location\.replace\('\/cn-terminal\.html'\)/);
+  assert.match(clientRoute,/'\/cn-mobile\.html' : '\/cn-terminal\.html'/);
   assert.match(adminRoute,/location\.replace\('\/cn-admin\.html'\)/);
   assert.match(clientRoute,/slot\.appendChild\(accountFormHost\)/);
 });

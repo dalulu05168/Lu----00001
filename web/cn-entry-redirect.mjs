@@ -18,7 +18,7 @@ function mountLoginGate() {
 function goToCurrentUI() {
   const token = sessionStorage.getItem('gsp_token');
   if (!params.has('legacy') && token && !location.hash.includes('stay-legacy')) {
-    location.replace('/cn-terminal.html');
+    location.replace(matchMedia('(max-width: 640px)').matches ? '/cn-mobile.html' : '/cn-terminal.html');
     return true;
   }
   return false;

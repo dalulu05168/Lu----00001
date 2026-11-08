@@ -1,4 +1,5 @@
 import test from "node:test";
+import { JSDOM } from "jsdom";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { currentOtp } from "../src/totp.mjs";
@@ -294,6 +295,33 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.equal(JSON.stringify(catalog.data).includes("simulationOnly"),false);
     assert.equal(JSON.stringify(catalog.data).includes("discountPercent"),false);
     assert.equal(JSON.stringify(catalog.data).includes("purchase_password"),false);
+    const customerPassword = "testing-client-pass-2026";
+    await withPage(base, "cn-terminal", async window => {
+      window.sessionStorage.setItem("gsp_token", clientLogin.data.token);
+      await import("../web/cn-design-client.mjs?postgres-desktop");
+      await window.CN_REFRESH();
+      assert.equal(window.document.querySelector('[data-b="cash"]').textContent, "0.00");
+      await window.CN_FAVORITE("US:AA");
+      assert.match(window.document.querySelector("#tb-watch").textContent, /US:AA/);
+    });
+    await withPage(base, "cn-mobile", async window => {
+      await import("../web/cn-design-client.mjs?postgres-mobile");
+      await window.CN_LOGIN(attachedEmail, customerPassword);
+      const screen = window.document.querySelector("#host").shadowRoot.querySelector("#app");
+      assert.match(screen.textContent, /US:AA/);
+      await window.CN_FAVORITE("US:AA");
+      assert.doesNotMatch(screen.textContent, /US:AA/);
+    });
+    assert.deepEqual((await req("/api/watchlist",{token:clientLogin.data.token})).data.items, []);
+    await withPage(base, "cn-admin", async window => {
+      window.sessionStorage.setItem("gsp_admin_token", masterToken);
+      await import("../web/cn-admin-bridge.mjs");
+      const rows = window.document.querySelector("#cn-listing-rows");
+      await waitUntil(() => rows.textContent.includes("IPO123"));
+      rows.querySelector("button").click();
+      await waitUntil(() => rows.textContent.includes("草稿") && !rows.querySelector("button").disabled);
+    });
+    assert.ok(!(await req("/api/catalog",{token:clientLogin.data.token})).data.items.some(item=>item.symbol==="IPO123"));
     const subclients=await req("/api/admin/clients",{token:subAdmin.data.token});
     assert.ok(subclients.data.items.some(item=>item.email===attachedEmail));
   }finally{
@@ -307,3 +335,40 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     else process.env.ADMIN_MASTER_EMAIL=previousMasterEmail;
   }
 });
+
+
+async function withPage(base, page, exercise) {
+  const url = base + "/" + page + ".html";
+  const response = await fetch(url);
+  assert.equal(response.status, 200);
+  const dom = new JSDOM(await response.text(), {
+    url, runScripts: "dangerously",
+    beforeParse(window) { window.HTMLCanvasElement.prototype.getContext = () => null; }
+  });
+  const {window} = dom;
+  const keys = ["window","document","location","history","sessionStorage","fetch"];
+  const previous = Object.fromEntries(keys.map(key => [key, globalThis[key]]));
+  Object.assign(globalThis, {
+    window, document: window.document, location: window.location,
+    history: window.history, sessionStorage: window.sessionStorage,
+    fetch: (path, options) => previous.fetch(new URL(path, base), options)
+  });
+  try {
+    await exercise(window);
+  } finally {
+    await new Promise(resolve => setImmediate(resolve));
+    for (const key of keys) {
+      if (previous[key] === undefined) delete globalThis[key];
+      else globalThis[key] = previous[key];
+    }
+    window.close();
+  }
+}
+
+async function waitUntil(condition) {
+  for (let i = 0; i < 100; i++) {
+    if (condition()) return;
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  assert.fail("Page did not render the expected PostgreSQL data");
+}
