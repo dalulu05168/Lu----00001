@@ -755,3 +755,47 @@ run("PostgreSQL: password-only master, scoped subadmin invitations and securitie
 run('PostgreSQL: concurrent funding approvals post once and insufficient withdrawals roll back',verifyInternalFunding);
 run('PostgreSQL: discounted product participation, six-digit secret, concurrency, lockout and ownership',verifyInternalProducts);
 run('PostgreSQL: encrypted identity and bank submissions, scoped reading, audit and concurrent limits',verifyPrivateCustomerData);
+
+
+run("PostgreSQL: internal-order concurrency, replay identity and committed ledger readback",async()=>{
+  // A disposable, isolated CI PostgreSQL database only; no QA/production writes.
+  const db=new Pool({connectionString,max:4});
+  const accountId=randomUUID(),userId=randomUUID(),email="trade-guard-"+userId+"@example.test";
+  try{
+    await db.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,'isolated-test-hash')",[userId,email]);
+    await db.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,15000)",[accountId,userId]);
+    await db.query("INSERT INTO cash_ledger(account_id,delta_cents,balance_after_cents) VALUES($1,15000,15000)",[accountId]);
+    const buy={side:"BUY",market:"US",symbol:"AAPL",quantity:1,priceCents:10000,fxUsdMicros:1000000};
+    const attempts=await Promise.allSettled([
+      placeInternalOrder(db,accountId,"parallel-key-one",buy,randomUUID()),
+      placeInternalOrder(db,accountId,"parallel-key-two",buy,randomUUID())
+    ]);
+    assert.equal(attempts.filter(x=>x.status==="fulfilled").length,1);
+    assert.equal(attempts.filter(x=>x.status==="rejected").length,1);
+    assert.match(attempts.find(x=>x.status==="rejected").reason.message,/Insufficient funds/);
+    const winningKey=attempts[0].status==="fulfilled"?"parallel-key-one":"parallel-key-two";
+    const exact=await placeInternalOrder(db,accountId,winningKey,{...buy,priceCents:13000},randomUUID());
+    assert.equal(exact.replayed,true);
+    await assert.rejects(
+      placeInternalOrder(db,accountId,winningKey,{...buy,side:"SELL"},randomUUID()),
+      e=>e.statusCode===409&&/Idempotency key/.test(e.message)
+    );
+    await assert.rejects(
+      placeInternalOrder(db,accountId,"sell-too-many-key",{...buy,side:"SELL",quantity:2},randomUUID()),
+      /Insufficient position/
+    );
+    const [account,orders,positions,ledger]=await Promise.all([
+      db.query("SELECT cash_cents FROM accounts WHERE id=$1",[accountId]),
+      db.query("SELECT side,price_cents,quantity,amount_usd_cents FROM orders WHERE account_id=$1",[accountId]),
+      db.query("SELECT quantity FROM positions WHERE account_id=$1 AND market='US' AND symbol='AAPL'",[accountId]),
+      db.query("SELECT delta_cents,balance_after_cents FROM cash_ledger WHERE account_id=$1 AND order_id IS NOT NULL",[accountId])
+    ]);
+    assert.equal(Number(account.rows[0].cash_cents),5000);
+    assert.deepEqual(orders.rows.map(o=>[o.side,Number(o.price_cents),Number(o.quantity),Number(o.amount_usd_cents)]),
+      [["BUY",10000,1,10000]]);
+    assert.equal(Number(positions.rows[0].quantity),1);
+    assert.equal(ledger.rows.length,1);
+    assert.equal(Number(ledger.rows[0].delta_cents),-10000);
+    assert.equal(Number(ledger.rows[0].balance_after_cents),5000);
+  }finally{await db.end();}
+});
