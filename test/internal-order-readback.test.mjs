@@ -61,3 +61,27 @@ test("mismatched ledger, amount, source or missing records never become success"
   assert.equal(queries.at(-1).sql,"ROLLBACK");
  }
 });
+
+test("CNY FX evidence is required, timely and licensed; USD cannot carry unreviewed FX",async()=>{
+ const cn={
+  ...original,market:"CN",symbol:"600519",side:"SELL",
+  quantity:"2",price_cents:"20000",quote_price_cents:"20000",
+  quote_currency:"CNY",fx_usd_micros:"140000",evidenced_fx_usd_micros:"140000",
+  amount_usd_cents:"5600",delta_cents:"5600",fx_at:quoteAt,
+  fx_source:"FX_TEST",fx_license_ref:"reviewed-fx"
+ };
+ for(const [row,reason] of [
+  [{...cn,fx_at:new Date("2026-11-07T01:00:00Z")},"FX_TIMESTAMP_MISMATCH"],
+  [{...cn,fx_at:new Date("2026-11-08T01:00:08Z")},"FX_TIMESTAMP_MISMATCH"],
+  [{...cn,fx_at:new Date("invalid")},"FX_TIMESTAMP_MISMATCH"],
+  [{...cn,fx_source:""},"FX_EVIDENCE_UNAVAILABLE"],
+  [{...cn,fx_license_ref:""},"FX_EVIDENCE_UNAVAILABLE"],
+  [{...original,fx_at:quoteAt},"EVIDENCE_MISMATCH"],
+  [{...original,fx_source:"UNEXPECTED"},"EVIDENCE_MISMATCH"],
+  [{...original,fx_license_ref:"UNEXPECTED"},"EVIDENCE_MISMATCH"]
+ ]){
+  const f=fixture(row);
+  await assert.rejects(read(f.db,accountId,orderId),e=>e.statusCode===503&&e.reason===reason);
+  assert.equal(f.queries.at(-1).sql,"ROLLBACK");
+ }
+});
