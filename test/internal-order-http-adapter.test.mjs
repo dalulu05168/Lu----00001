@@ -22,6 +22,7 @@ const confirmed={
 function call(overrides={}){
  return postVerifiedInternalOrder({
   db:{},session:{accountId},idempotencyKey:"test-unique-key",body,
+  tradingEnabled:true,
   execute:async options=>{assert.equal(options.accountId,accountId);return confirmed;},
   ...overrides
  });
@@ -84,5 +85,14 @@ test("server-side execution failures propagate with their status; no success sha
  for(const statusCode of [400,403,409,503]){
   const error=Object.assign(new Error("trade denied"),{statusCode});
   await assert.rejects(call({execute:async()=>{throw error;}}),e=>e===error);
+ }
+});
+
+test("explicit server kill switch blocks an injected executor before any write",async()=>{
+ for(const tradingEnabled of [undefined,null,false,"true",1,0]){
+  let invoked=0;
+  await assert.rejects(call({tradingEnabled,execute:async()=>{invoked++;return confirmed;}}),
+    e=>e.statusCode===503);
+  assert.equal(invoked,0);
  }
 });
