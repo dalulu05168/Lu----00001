@@ -8,6 +8,7 @@ import {getAccountAnalytics} from "../src/account-analytics.mjs";
 import {getAccountSnapshot} from "../src/account-service.mjs";
 import {getVerifiedInternalOrderReceipt} from "../src/internal-order-readback.mjs";
 import {valueInternalStockPortfolio} from "../src/internal-stock-portfolio-valuation.mjs";
+import {getConsistentInternalStockPortfolio} from "../src/internal-account-portfolio.mjs";
 
 // Real ephemeral PostgreSQL; only external quote calls use deterministic
 // licensed-format fixtures. This is NOT proof of live provider access.
@@ -150,6 +151,22 @@ export async function verifyLicensedEquityPostgres(connectionString) {
    ...args,tradingEnabled:false,key:"qa-disabled-trade",
    request:{side:"BUY",market:"US",symbol:us,quantity:1}
   }),e=>e.statusCode===503);
+  const subcentMarketData={getQuote:async(params,options)=>({
+   ...await marketData.getQuote(params,options),
+   price:100.001,priceCents:10000
+  })};
+  await assert.rejects(executeLicensedInternalOrder({
+   ...args,marketData:subcentMarketData,key:"qa-subcent-price-rejected",
+   request:{side:"BUY",market:"US",symbol:us,quantity:1}
+  }),e=>e.statusCode===503);
+  const mismatchMicros={getQuote:async(params,options)=>({
+   ...await marketData.getQuote(params,options),
+   priceMicros:100000001
+  })};
+  await assert.rejects(executeLicensedInternalOrder({
+   ...args,marketData:mismatchMicros,key:"qa-mismatched-micro-price",
+   request:{side:"BUY",market:"US",symbol:us,quantity:1}
+  }),e=>e.statusCode===503);
   await assert.rejects(executeLicensedInternalOrder({
    ...args,key:"qa-client-price-rejected",
    request:{side:"BUY",market:"US",symbol:us,quantity:1,priceCents:1}
@@ -188,6 +205,18 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(valuation.marketValueCents,33500);
   assert.equal(valuation.unrealizedPnlCents,10700);
   assert.equal(valuation.portfolioValueCents,116400);
+  const consistent=await getConsistentInternalStockPortfolio({
+   db,accountId,
+   resolveQuote:instrument=>marketData.getQuote(instrument,{purpose:"internalSimulationPricing"}),
+   resolveFxQuote:pair=>fxData.getQuote({...pair,purpose:"internalPricing"}),
+   authorizeUsage,authorizeFxUsage,now:()=>clock
+  });
+  assert.equal(consistent.accountSnapshot.account.cashCents,82900);
+  assert.equal(consistent.analytics.historyAvailable,true);
+  assert.equal(consistent.analytics.realizedPnlCents,5700);
+  assert.equal(consistent.valuation.unrealizedPnlCents,10700);
+  assert.equal(consistent.valuation.portfolioValueCents,116400);
+  assert.match(consistent.snapshotAt,/^\d{4}-\d{2}-\d{2}T/);
   const noQuoteValuation=await valueInternalStockPortfolio({
     accountSnapshot:account,analytics,
     resolveQuote:async()=>{throw Error("No market price");},
@@ -221,6 +250,9 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(race.filter(r=>r.replayed).length,1);
   assert.equal(race[0].order.id,race[1].order.id);
   assert.equal(race[0].quote.priceCents,race[1].quote.priceCents);
+  assert.deepEqual(race[0].order,race[1].order);
+  assert.equal(race[0].receipt.amountUsdCents,race[1].receipt.amountUsdCents);
+  assert.equal(race[0].order.amountCents,race[0].receipt.amountUsdCents);
   const raceFillPrice=race[0].quote.priceCents;
   assert.ok([12000,13000].includes(raceFillPrice));
 
