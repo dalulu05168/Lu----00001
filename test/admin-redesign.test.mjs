@@ -85,6 +85,38 @@ test('verified master sees database items, never raw HTML or unsupported markets
  };
  await runScenario({});
 });
+
+test('verified master creates subadmin and US/CN catalog records through real API handlers',async()=>{
+ onResult=async({dom,requests})=>{
+  const doc=dom.window.document,sub=doc.getElementById('subadminCreateForm');
+  sub.elements.email.value='new-sub@example.test';
+  sub.elements.password.value='long-password-secret-2026';
+  sub.dispatchEvent(new dom.window.Event('submit',{cancelable:true,bubbles:true}));
+  await wait(50);
+  const created=requests.find(x=>x.url==='/api/admin/subaccounts'&&x.method==='POST');
+  assert.deepEqual(created.body,{email:'new-sub@example.test',password:'long-password-secret-2026'});
+  assert.equal(sub.elements.password.value,'');
+  assert.equal(doc.getElementById('subadminOnce').hidden,false);
+  assert.match(doc.getElementById('subadminOnce').textContent,/123456|otpauth/);
+  const listing=doc.getElementById('listingCreateForm');
+  listing.elements.market.value='CN';
+  listing.elements.symbol.value='600519';
+  listing.elements.name.value='贵州茅台';
+  listing.elements.itemType.value='STOCK';
+  listing.elements.status.value='DRAFT';
+  listing.dispatchEvent(new dom.window.Event('submit',{cancelable:true,bubbles:true}));
+  await wait(50);
+  const saved=requests.find(x=>x.url==='/api/admin/listings'&&x.method==='POST');
+  assert.deepEqual(saved.body,{itemType:'STOCK',market:'CN',symbol:'600519',name:'贵州茅台',status:'DRAFT'});
+  assert.match(doc.getElementById('listingCreateStatus').textContent,/已保存/);
+ };
+ await runScenario({
+  responses:{'/api/admin/subaccounts':entry=>entry.method==='POST'
+   ?json(201,{email:'new-sub@example.test',inviteCode:'123456',totpSecret:'ABCDEF0123456789',setupUri:'otpauth://totp/example'})
+   :json(200,{items:[]})}
+ });
+});
+
 test('subadmin cannot create users or publish listings',async()=>{
  onResult=async({dom})=>{
   const doc=dom.window.document;
