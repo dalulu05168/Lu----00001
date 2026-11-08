@@ -22,7 +22,7 @@ jobs:
       - name: Integrated market and business client contracts
         run: node --test test/twelve-data-equities.test.mjs test/market-data-quote-gateway.test.mjs test/client-business-api.test.mjs test/three-end-feature-preservation.test.mjs
       - name: Internal order, ledger, readback and valuation regressions
-        run: node --test test/internal-execution-quote.test.mjs test/internal-order-http-adapter.test.mjs test/internal-order-readback.test.mjs test/internal-account-portfolio.test.mjs test/internal-stock-portfolio-valuation.test.mjs test/order-service.test.mjs test/ledger.test.mjs
+        run: node --test test/internal-execution-quote.test.mjs test/internal-order-http-adapter.test.mjs test/http-verified-order-routing.test.mjs test/internal-order-readback.test.mjs test/internal-account-portfolio.test.mjs test/internal-stock-portfolio-valuation.test.mjs test/order-service.test.mjs test/ledger.test.mjs
       - name: Admin access and TOTP regressions
         run: node --test test/admin-client-analytics.test.mjs test/admin-client-analytics-route.test.mjs test/admin-totp-replay.test.mjs
       - name: Existing QA functionality regression
