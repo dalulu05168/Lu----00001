@@ -85,9 +85,10 @@ async function withServer(resolveSession,fn){
 test("administrator API rejects missing and ordinary customer tokens",async()=>{
   await withServer(async token=>token==="customer"?{accountId:"acct",userId:"user",adminVerified:false}:null,async base=>{
     for(const path of ["/api/admin/me","/api/admin/subaccounts","/api/admin/clients","/api/admin/listings","/api/admin/audit","/api/admin/invitations"]){
-      const missing=await fetch(base+path);
+      const method=path==="/api/admin/invitations"?"PATCH":"GET";
+      const missing=await fetch(base+path,{method});
       assert.equal(missing.status,401);
-      const customer=await fetch(base+path,{headers:{authorization:"Bearer customer"}});
+      const customer=await fetch(base+path,{method,headers:{authorization:"Bearer customer"}});
       assert.equal(customer.status,403);
     }
   });

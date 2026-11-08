@@ -196,7 +196,7 @@ export async function revokeInvitation(db,actor,data){
       const error=new Error("Invitation unavailable");error.statusCode=404;throw error;
     }
     await client.query(`INSERT INTO admin_audit_events(action,actor_user_id,target_id,details)
-      VALUES('INVITE_REVOKED',$1,$2,jsonb_build_object('subadminUserId',$3))`,
+      VALUES('INVITE_REVOKED',$1,$2,jsonb_build_object('subadminUserId',$3::uuid))`,
       [actor.userId,changed.rows[0].id,changed.rows[0].subadmin_user_id]);
     await client.query("COMMIT");begun=false;
     return {id:changed.rows[0].id,revoked:true};
