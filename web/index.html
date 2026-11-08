@@ -1,271 +1,1190 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0c100e">
-  <meta name="description" content="Global Stock Platform — 四地市场、投资组合与账户记录工作台。">
-  <title>Global Stock Platform | Investment</title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/cn-login.css">
+<meta charset="utf-8"><script>window.CN=window.CN||(function(){
+  // No browser-persisted account/catalog fixtures. A verified API may populate this bridge later.
+  var snapshot=null, listeners=[];
+  function notify(){listeners.forEach(function(fn){try{fn(snapshot)}catch(e){}})}
+  function set(v){if(!v||typeof v!=='object'||!v.sec)return;snapshot=v;notify()}
+  return {
+    get:function(){return snapshot}, set:set,
+    on:function(fn){if(typeof fn==='function')listeners.push(fn)},
+    pubSecs:function(){/* Disabled until a real authenticated write endpoint is connected. */},
+    pull:function(){var base=window.CN_API_BASE;if(!base)return Promise.resolve(null);
+      return fetch(base+'/securities',{credentials:'include',cache:'no-store'})
+      .then(function(r){if(!r.ok)throw new Error('目录读取失败');return r.json()})
+      .then(function(v){set(v);return v}).catch(function(){return null});}
+  };
+})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>CN Capital · 客户前台</title>
+
+<style>
+/* 设计变量：与手机 App 共用同一套颜色（荧光绿主色 / 红色下跌 / 琥珀提示 / 蓝色信息） */
+:root{--bg:#060705;--pn:rgba(255,255,255,.035);--pn2:rgba(255,255,255,.07);--ln:rgba(255,255,255,.075);--ln2:rgba(255,255,255,.15);--tx:#eceee6;--mut:#c3cab7;--ac:#d7ff00;--acb:rgba(215,255,0,.10);--up:#4fdd8f;--upb:rgba(79,221,143,.14);--dn:#ff5b50;--am:#ffb938;--bl:#5b9cff;--gold:#e8c27a;--ink:#101400;--field:rgba(0,0,0,.55)}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent}
+*::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:3px}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:radial-gradient(1100px 520px at 0 -6%,#1c2608 0%,transparent 60%),radial-gradient(800px 420px at 100% 0,#0f1508 0%,transparent 58%),var(--bg);color:var(--tx);font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.hide .amt{color:transparent!important;text-shadow:0 0 9px rgba(247,249,242,.75);user-select:none}
+/* 顶栏 */
+.top{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:48px;padding:0 18px;background:rgba(6,7,5,.9);border-bottom:1px solid var(--ln);position:relative;z-index:10;backdrop-filter:blur(8px)}
+.brand{display:flex;align-items:center;gap:10px;white-space:nowrap;font-size:13px;letter-spacing:.08em}
+.brand svg{width:30px;height:30px;display:block;filter:drop-shadow(0 2px 8px rgba(232,194,122,.28))}
+.brand small{display:block;font-size:9px;letter-spacing:.32em;color:var(--gold);margin-top:1px}
+.nav{display:flex;gap:6px;justify-content:center}
+.tn{border:1px solid transparent;background:none;color:var(--mut);height:28px;padding:0 22px;border-radius:999px;cursor:pointer;transition:all .2s}
+.tn:hover{color:var(--tx)}.tn.on{color:var(--ac);background:var(--acb)}
+.right{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.bal{display:flex;align-items:center;gap:8px;height:28px;padding:0 14px;border-radius:999px;border:1px solid rgba(215,255,0,.35);background:var(--acb);cursor:pointer;white-space:nowrap}
+.bal span{color:var(--mut);font-size:10.5px}.bal em{font-style:normal;color:var(--ac);font-size:12.5px}
+.sr{height:28px;width:140px;border-radius:999px;border:1px solid var(--ln);background:var(--field);color:var(--tx);padding:0 14px;font-size:11px;text-align:center}
+.av{width:28px;height:28px;border-radius:50%;background:#273211;text-align:center;line-height:28px;border:1px solid rgba(215,255,0,.25)}
+.badge{position:absolute;top:-6px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:#ff3b30;color:#fff;font-size:10px;line-height:16px;padding:0 4px;text-align:center}
+.rel{position:relative}
+/* 页面与面板 */
+main{flex:1;min-height:0;position:relative}
+.pg{position:absolute;inset:0;display:grid;gap:10px;padding:10px 14px 12px;grid-template-columns:minmax(0,2fr) minmax(0,1fr);opacity:0;transition:opacity .22s ease}
+.pg.show{opacity:1}.pg[hidden]{display:none}
+#p-acct{grid-template-rows:auto minmax(0,1fr)}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0}
+.pn{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.022));border:1px solid var(--ln);border-radius:14px;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.pn.fill{flex:1}
+.ph{flex:none;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;height:44px;border-bottom:1px solid var(--ln);font-size:12.5px;text-align:center}
+.ph small{color:var(--mut);font-size:10.5px;margin-top:1px}
+.ph .al,.ph .ar{position:absolute;top:50%;transform:translateY(-50%);display:flex;gap:6px;align-items:center}
+.ph .al{left:12px}.ph .ar{right:12px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{font-size:10.5px;color:var(--mut);text-align:center;padding:6px;border-bottom:1px solid var(--ln);white-space:nowrap}
+td{padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.06);white-space:nowrap;text-align:center;font-size:11.5px;overflow:hidden;text-overflow:ellipsis}
+tr:last-child td{border-bottom:0}tbody tr:hover{background:rgba(255,255,255,.04)}
+tr.click{cursor:pointer}
+.mut{color:var(--mut)}.up{color:var(--up)}.dn{color:var(--dn)}.tw{color:var(--am)}.lime{color:var(--ac)}
+.chip{display:inline-block;padding:1px 9px;border-radius:999px;font-size:10.5px}
+.ok{background:var(--upb);color:var(--up)}.wa{background:rgba(255,185,56,.15);color:var(--am)}.in{background:rgba(91,156,255,.16);color:#8bb8ff}.rd{background:rgba(255,107,90,.15);color:var(--dn)}
+.btn{height:26px;padding:0 13px;border-radius:999px;border:1px solid var(--ln2);background:var(--pn2);color:var(--tx);cursor:pointer;font-size:11px;white-space:nowrap;transition:all .18s}
+.btn:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.14)}
+.btn.p{background:var(--ac);border-color:var(--ac);color:var(--ink)}.btn.p:hover{background:#e6ff4d}
+.btn.red{background:#f0481a;border-color:#f0481a;color:#fff}.btn.red:hover{background:#ff5a2e}
+.btn.w{width:100%;height:34px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.seg{display:inline-flex;background:rgba(0,0,0,.35);border:1px solid var(--ln);border-radius:999px;padding:2px}
+.seg button{border:0;background:none;color:var(--mut);height:22px;padding:0 11px;border-radius:999px;cursor:pointer;font-size:11px;transition:all .18s}
+.seg button.on{background:var(--ac);color:var(--ink)}
+.tabs{flex:none;display:flex;justify-content:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--ln)}
+.tabs button{border:0;background:none;color:var(--mut);height:24px;padding:0 14px;border-radius:999px;cursor:pointer;font-size:11px;transition:all .18s}
+.tabs button.on{background:var(--acb);color:var(--ac)}
+.fd{transition:opacity .18s ease}.fd.out{opacity:0}
+.pb{padding:8px 12px}
+.kv{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:11.5px}
+.kv:last-child{border-bottom:0}
+.kv>span:first-child{color:var(--mut)}
+.kg{display:grid;grid-template-columns:1fr 1fr;column-gap:18px}
+.note{flex:none;text-align:center;color:var(--mut);font-size:10.5px;padding:7px 10px;border-top:1px solid var(--ln)}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ac);margin-right:6px;box-shadow:0 0 0 3px rgba(215,255,0,.16)}
+.alloc{display:flex;height:6px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.1);margin:6px 0}.alloc i{background:linear-gradient(90deg,#d7ff00,#5b9cff);width:100%}
+.ctr{text-align:center}
+.ep{text-align:center;color:var(--mut);padding:16px 0;font-size:11.5px}
+.star{border:0;background:none;cursor:pointer;color:var(--mut);font-size:15px;line-height:1;padding:2px 6px;border-radius:999px;transition:color .18s}
+.star.on,.star:hover{color:var(--ac)}
+.bn{background:rgba(255,185,56,.1);color:var(--am);border-radius:12px;padding:8px 12px;font-size:11px;text-align:center;line-height:1.5}
+.bn.in{background:rgba(91,156,255,.1);color:#8bb8ff}
+.hint{color:var(--mut);font-size:10.5px;text-align:center;line-height:1.5}
+.er{color:var(--dn);font-size:10.5px;min-height:14px;text-align:center}
+/* 图表 */
+.ohlc{flex:none;display:flex;justify-content:center;flex-wrap:wrap;gap:6px 16px;color:#d4dacb;font-size:11px;padding:8px 12px 2px;min-height:30px;align-content:flex-start}
+.ohlc i{font-style:normal;color:#98a08e;margin-right:4px}
+.tools{flex:none;display:flex;align-items:center;justify-content:center;gap:14px;padding:4px 12px 0}
+.cw{flex:1;min-height:0;position:relative;margin:6px 12px 0;background:rgba(0,0,0,.5);border:1px solid var(--ln);border-radius:12px}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+.foot{flex:none;display:flex;justify-content:center;padding:6px 12px 8px}
+.foot span{color:var(--mut);font-size:10px;text-align:center}
+/* 账户页 */
+.stats{grid-column:1/-1;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;gap:10px}
+.sc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:70px;padding:0 10px}
+.sc span{color:var(--mut);font-size:10.5px}.sc em{font-style:normal;font-size:19px;letter-spacing:-.01em}
+.sc.gold{border-color:rgba(215,255,0,.4);background:linear-gradient(180deg,rgba(215,255,0,.08),rgba(215,255,0,.02))}
+.sc.gold em{color:var(--ac);font-size:23px}.sc .sh{font-size:9.5px;color:var(--mut);margin-top:1px;font-weight:400}
+.banner{flex:none;background:rgba(255,185,56,.1);color:var(--am);padding:6px 12px;font-size:11px;text-align:center;border-bottom:1px solid var(--ln)}
+/* 弹窗 */
+.mask{position:fixed;inset:0;background:rgba(3,4,2,.8);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s;z-index:45}
+.mask.open{opacity:1;visibility:visible}
+.dlg{width:min(420px,92vw);max-height:94vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#12150e,#0a0c07);border:1px solid var(--ln2);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.55);transform:translateY(10px) scale(.98);transition:transform .2s ease;overflow:hidden}
+.mask.open .dlg{transform:none}
+.dlg.wide{width:min(580px,94vw)}
+.fb{flex:none;display:flex;flex-direction:column;gap:10px;padding:14px 16px 16px}
+.fld label{display:flex;align-items:center;font-size:10.5px;color:var(--mut);margin-bottom:4px}
+.fld input,.fld select{width:100%;height:32px;border-radius:999px;border:1px solid var(--ln2);background:var(--field);color:var(--tx);padding:0 14px;min-width:0}
+.fld select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#aab2a0 50%),linear-gradient(135deg,#aab2a0 50%,transparent 50%);background-position:calc(100% - 18px) 14px,calc(100% - 13px) 14px;background-size:5px 5px;background-repeat:no-repeat}
+.fld select option{background:#0a0c07}
+.lk{border:0;background:none;color:var(--ac);cursor:pointer;font-size:10.5px;margin-left:8px;padding:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;height:170px}
+.upr{display:flex;flex-direction:column;min-height:0}
+.upr .t{font-size:10.5px;color:var(--mut);margin-bottom:4px}
+.up{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;border:1px dashed rgba(215,255,0,.35);border-radius:12px;background:var(--field);cursor:pointer;overflow:hidden;transition:border-color .2s}
+.up:hover{border-color:var(--ac)}
+.up .ph0{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--mut);font-size:11px;text-align:center}
+.up .ph0 i{font-style:normal;font-size:20px;color:var(--ac);line-height:1}
+.up img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;background:#060705}
+.up.has img{display:block}.up.has .ph0{display:none}
+.up input{display:none}
+.fname{margin-top:3px;font-size:10px;color:var(--mut);text-align:center;height:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stp{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--field);border:1px solid var(--ln2);border-radius:999px;padding:3px}
+.stp button{width:28px;height:28px;border-radius:50%;border:0;background:var(--pn2);cursor:pointer;font-size:15px;transition:background .18s}
+.stp button:hover{background:rgba(255,255,255,.16)}
+.stp input{width:90px;height:28px;text-align:center;border:0;background:none;font-size:14px;padding:0}
+.chk{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:var(--mut);cursor:pointer;line-height:1.5}
+.chk input{margin-top:2px;accent-color:var(--ac)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn.gh{background:var(--pn2)}
+.tl{margin:10px 0 2px 6px}.tl div{position:relative;padding:0 0 16px 22px;border-left:2px solid rgba(255,255,255,.12)}.tl div:last-child{border-color:transparent;padding-bottom:4px}
+.tl div:before{content:'';position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:#3b4337}
+.tl .d:before{background:var(--ac)}.tl .a:before{background:var(--am);box-shadow:0 0 0 4px rgba(255,185,56,.2)}
+.tl small{display:block;color:var(--mut);font-size:10.5px}
+.lockbox{align-items:center;text-align:center;padding:22px 20px}
+input:focus,select:focus{outline:0;border-color:var(--ac)!important;box-shadow:0 0 0 3px rgba(215,255,0,.16)}
+.stp input:focus{box-shadow:none!important}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+/* 客服弹窗 */
+.cp{position:fixed;right:14px;top:56px;width:340px;height:min(480px,calc(100vh - 70px));display:flex;flex-direction:column;background:linear-gradient(180deg,#14170f,#0a0c07);border:1px solid var(--ln2);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.55);opacity:0;visibility:hidden;transform:translateY(-8px) scale(.98);transform-origin:top right;transition:opacity .2s ease,transform .2s ease,visibility .2s;z-index:40;overflow:hidden}
+.cp.open{opacity:1;visibility:visible;transform:none}
+.msgs{flex:1;min-height:0;overflow-y:auto;padding:6px 0;display:flex;flex-direction:column}
+.bub{max-width:78%;padding:7px 12px;border-radius:14px;background:rgba(255,255,255,.08);margin:6px 12px;align-self:flex-start;word-break:break-word}.bub.me{align-self:flex-end;background:#1d280c}
+.bub small{display:block;color:var(--mut);font-size:10px;margin-top:2px}
+.qk{flex:none;display:flex;gap:6px;overflow-x:auto;padding:6px 10px 0}
+.qk button{flex:none;border:0;border-radius:999px;padding:5px 11px;background:var(--acb);color:var(--ac);font-size:11px;cursor:pointer;white-space:nowrap}
+.qk button:hover{background:rgba(215,255,0,.24)}
+.cin{flex:none;display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--ln);margin-top:6px}
+.cin input{flex:1;height:28px;border-radius:999px;border:1px solid var(--ln2);background:var(--field);padding:0 14px;min-width:0}
+.cs{display:flex;align-items:center;gap:6px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,10px);background:#171a12;border:1px solid #2a2f22;padding:8px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:60}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:1280px){.sr{display:none}}
+/* ===== v2: 字号 / 层级 / 对齐 / 布局 ===== */
+body{font-size:13px}
+.brand{font-size:14px;font-weight:600}.brand small{font-size:10px}
+.tn{font-size:13px;font-weight:500}.bal span{font-size:11.5px}.bal em{font-size:13.5px;font-weight:600}
+.sr{font-size:12px}.ph{font-size:14px;height:46px}.ph>div:first-child{font-weight:600}.ph small{font-size:11.5px}
+th{font-size:11.5px;font-weight:500;padding:8px 12px}td{font-size:12.5px;padding:8px 12px}
+.btn{height:28px;font-size:12px;font-weight:500}.btn.p{font-weight:600}.btn.w{height:36px;font-size:13px}
+.seg button,.tabs button{font-size:12px;font-weight:500}.seg button{height:24px}
+.chip{font-size:11.5px;font-weight:500}.kv{font-size:12.5px}.note,.hint,.er,.ohlc,.ep{font-size:11.5px}.fld label{font-size:11.5px}.bn{font-size:12px}
+.sc span{font-size:11.5px}.sc em{font-size:20px;font-weight:600}.sc.gold em{font-size:24px}.ohlc{font-size:12px}
+.kv .lime,.bal em,.sc.gold em{font-weight:600}
+.pn.fill{overflow-y:auto}
+th,td{border-bottom-color:rgba(255,255,255,.08)}
+.sy{overflow-y:auto;min-height:0;flex:1}.sy thead th{position:sticky;top:0;z-index:1;background:#0e110a}
+.ordpn{flex:0 0 34%;min-height:170px}
+.pn:has(#tb-ord) :is(th,td):nth-child(-n+2),.pn:has(#tb-hold) :is(th,td):first-child,#tb-watch td:nth-child(-n+2),.pn:has(#tb-req) :is(th,td):first-child{text-align:left}
+.pn:has(#tb-ord) :is(th,td):nth-child(n+4):nth-child(-n+6),.pn:has(#tb-hold) :is(th,td):nth-child(n+2),.pn:has(#tb-req) :is(th,td):nth-child(2),#tb-watch td:last-child{text-align:right}
+.pn:has(#tb-ord) th:nth-child(1){width:9%}.pn:has(#tb-ord) th:nth-child(2){width:21%}.pn:has(#tb-ord) th:nth-child(3){width:9%}.pn:has(#tb-ord) th:nth-child(4),.pn:has(#tb-ord) th:nth-child(5){width:10%}.pn:has(#tb-ord) th:nth-child(6){width:15%}.pn:has(#tb-ord) th:nth-child(7){width:14%}.pn:has(#tb-ord) th:nth-child(8){width:12%}
+#m-lock{background:rgba(8,10,6,.94);backdrop-filter:blur(18px)}
+/* ===== v2.1: 小字可读性 ===== */
+.foot span,.badge,.fname,.bub small,.sc .sh{font-size:10.5px}
+.note,.hint,.er,.ohlc,.ep,.tl small,.ph small{font-size:11.5px}
+.ph small,.sc span,.kv>span:first-child{color:#d2d8c7}
+/* ===== v2.1: 加载骨架屏 ===== */
+@keyframes shimmer{0%{transform:translateX(-100%)}55%{transform:translateX(100%)}100%{transform:translateX(100%)}}
+.sk{position:relative;display:inline-block;width:100%;height:12px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;vertical-align:middle}
+.sk:after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);animation:shimmer var(--skdur,1.6s) cubic-bezier(.4,0,.2,1) infinite}
+/* 深色模式下增强微光对比度 */
+@media(prefers-color-scheme:dark){
+ .sk{background:rgba(255,255,255,.075)}
+ .sk:after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.20),transparent)}
+ .cvload .sk{background:rgba(255,255,255,.05)}
+ .cvload .sk:after{background:linear-gradient(90deg,transparent,rgba(215,255,0,.09),rgba(255,255,255,.20),transparent)}
+}
+.sk.n{width:74px;height:14px}
+td .sk{height:11px}
+.sk.xs{width:26%}.sk.s{width:40%}.sk.m{width:62%}.sk.l{width:85%}
+.sk.chip{width:46px;height:16px;border-radius:999px}
+.sk.circle{width:18px;height:18px;border-radius:50%}
+.sk.tall{height:16px}
+.sc em .sk.n{width:88px;height:18px}
+.sc.gold em .sk.n{width:118px;height:22px}
+@keyframes fadeReveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.reveal{animation:fadeReveal var(--rvl,.34s) cubic-bezier(.4,0,.2,1) both}
+.cvload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
+.cvload[hidden]{display:none}
+.cvload .sk{position:absolute;inset:10px;width:auto;height:auto;border-radius:10px}
+.cvload em{position:relative;z-index:1;font-style:normal;color:#d2d8c7;font-size:12px;letter-spacing:.04em}
+@media(prefers-reduced-motion:reduce){.sk:after,.reveal{animation:none}}
+@media(max-width:1280px){.sr{display:none}}
+@media(max-width:1180px){
+ html,body{height:auto;overflow:auto}main{flex:none}
+ .top{height:auto;grid-template-columns:1fr auto;gap:6px 8px;padding:8px 12px}.nav{grid-column:1/-1;order:3}.tn{flex:1}.bal span,#hidebtn{display:none}
+ .pg{position:relative;inset:auto;grid-template-columns:1fr}.pg[hidden]{display:none}.col{display:contents}
+ .stats{grid-template-columns:1fr 1fr}#p-acct{grid-template-rows:none}
+ .pn.fill{flex:none;overflow:visible}.cw{flex:none;height:300px}.ordpn{flex:none}.sy{max-height:260px}
+ .ph{height:auto;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px 10px;padding:10px}.ph small{margin:0}.ph .al,.ph .ar{position:static;transform:none;flex-wrap:wrap}
+ .pn:has(#tb-ord) :is(th,td):nth-child(2),.pn:has(#tb-ord) :is(th,td):nth-child(8){display:none}
+ th,td{padding:8px 6px}.cp{left:10px;right:10px;width:auto}
+}
+@media(max-height:760px){td{padding:5px 6px}.kv{padding:4px 0}.ph{height:38px}.tabs{padding:5px 10px}.ohlc{padding:4px 0 0}.sc{height:58px}.sc em{font-size:16px}.sc.gold em{font-size:19px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<style id="v3-coinix">
+/* ===== v3：深色金融面板风格（参考 Coinix 视频）· 品牌色取自 CN 标志的青色 ===== */
+@font-face{font-family:"NumMono";src:local("SF Mono"),local("JetBrains Mono"),local("Roboto Mono"),local("Menlo"),local("Consolas");unicode-range:U+0024-0025,U+002B-002E,U+0030-003A,U+2212}
+:root{--bg:#0a0b0d;--pn:rgba(255,255,255,.03);--pn2:rgba(255,255,255,.06);--ln:rgba(255,255,255,.07);--ln2:rgba(255,255,255,.13);--tx:#e9ecef;--mut:#a4abb3;--ac:#19bfbd;--acb:rgba(25,191,189,.12);--ink:#031516;--up:#4fdd8f;--dn:#ff5b50;--field:#0c0e10;--gold:#19bfbd;--sf:#0f1113}
+body{font-family:"NumMono",-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;background:radial-gradient(900px 420px at 6% -10%,rgba(25,191,189,.11),transparent 62%),radial-gradient(700px 360px at 100% 0,rgba(255,255,255,.025),transparent 60%),var(--bg)}
+/* 顶栏：左侧 logo + 导航，右侧工具 */
+.top{display:flex;gap:28px;height:56px;padding:0 20px;background:rgba(10,11,13,.82)}
+.brand{gap:10px;font-size:16px;font-weight:600;letter-spacing:.01em}
+.brand img{display:block;height:28px;width:auto}
+.brand small{display:none}
+.nav{justify-content:flex-start;gap:4px}
+.tn{position:relative;height:32px;padding:0 12px;border-radius:8px}
+.tn:hover{background:rgba(255,255,255,.04)}
+.tn.on{color:#fff;background:none}
+.tn.on:after{content:"";position:absolute;left:12px;right:12px;bottom:-12px;height:2px;border-radius:2px;background:var(--ac)}
+.right{margin-left:auto;gap:10px}
+.bal{height:32px;border-radius:8px;border-color:var(--ln2);background:#14171a}
+.bal em{color:var(--tx)}
+.sr{width:240px;height:32px;border-radius:8px;background:#0c0e10 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a4abb3' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 12px 50%;text-align:left;padding:0 12px 0 34px}
+.av{width:32px;height:32px;line-height:30px;background:#16282a;border-color:rgba(25,191,189,.35)}
+/* 面板 */
+.pg{gap:12px;padding:14px 16px 16px}
+.col{gap:12px}
+.pn{border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015))}
+.ph{display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:auto auto;column-gap:10px;align-items:center;align-content:center;height:auto;min-height:56px;padding:10px 16px;text-align:left}
+.ph>div:first-child{grid-column:1;grid-row:1;font-size:14px;font-weight:600;color:#fff}
+.ph>small{grid-column:1;grid-row:2;margin:2px 0 0;color:var(--mut)}
+.ph .al,.ph .ar{position:static;transform:none;grid-row:1/3}
+.ph .al{grid-column:2}.ph .ar{grid-column:3}
+.ph .btn{height:28px}
+/* 按钮与分段控件 */
+.btn{height:32px;border-radius:8px;padding:0 14px;background:#14171a;border-color:var(--ln2)}
+.btn:hover{background:#1b1f23;border-color:rgba(255,255,255,.26)}
+.btn.p{background:linear-gradient(180deg,#25cfc8,#12a9a7);border-color:#1cc0bc;color:var(--ink);box-shadow:0 0 0 1px rgba(25,191,189,.15),0 6px 18px rgba(25,191,189,.18)}
+.btn.p:hover{background:linear-gradient(180deg,#38ddd6,#17b7b4)}
+.btn.w{height:40px;font-size:14px}
+.seg{border-radius:8px;background:#0e1012}
+.seg button{height:26px;border-radius:6px}
+.seg button:hover{color:var(--tx)}
+.seg button.on{background:rgba(255,255,255,.1);color:#fff}
+.tabs{justify-content:flex-start;gap:4px;padding:10px 16px}
+.tabs button{height:28px;border-radius:8px}
+.tabs button:hover{color:var(--tx)}
+.tabs button.on{background:rgba(255,255,255,.08);color:#fff}
+/* 表格 */
+th{font-size:12px;padding:10px 14px;color:var(--mut)}
+td{padding:10px 14px;border-bottom-color:rgba(255,255,255,.05)}
+.sy thead th{background:var(--sf)}
+tbody tr:hover{background:rgba(255,255,255,.035)}
+.chip{border-radius:6px}
+/* 图表区 */
+.ohlc{justify-content:flex-start;padding:10px 16px 2px}
+.tools{justify-content:flex-start;gap:10px;padding:6px 16px 0}
+.cw{margin:8px 16px 0;border-radius:10px;background:radial-gradient(560px 280px at 88% 38%,rgba(25,191,189,.12),transparent 70%),rgba(0,0,0,.35)}
+.foot{justify-content:flex-start;padding:8px 16px 10px}.foot span{text-align:left}
+.pb{padding:10px 16px}
+.note{text-align:left;padding:8px 16px}
+/* 账户页指标卡 */
+.stats{gap:12px}
+.sc{align-items:flex-start;height:100px;padding:0 18px;gap:6px}
+.sc span{font-size:12px}
+.sc em{font-size:22px;color:#fff}
+.sc.gold{border-color:rgba(25,191,189,.38);background:radial-gradient(280px 130px at 0 0,rgba(25,191,189,.20),transparent 70%),linear-gradient(180deg,rgba(25,191,189,.07),rgba(25,191,189,.02))}
+.sc.gold em{font-size:28px;color:#fff}
+/* 修正：涨色类 .up 与上传框 .up 重名，非上传框元素不套用虚线框 */
+:not(label).up{flex:none;position:static;display:revert;align-items:initial;justify-content:initial;border:0;border-radius:0;background:none;cursor:inherit;overflow:visible}
+/* 表单、弹窗、客服 */
+.fld input,.fld select{height:36px;border-radius:8px;background-color:var(--field)}
+.stp{border-radius:8px}.stp button{border-radius:6px}
+.up{border-radius:10px;border-color:rgba(25,191,189,.4)}
+.up .ph0 i{color:var(--ac)}
+.mask{background:rgba(5,6,7,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.dlg,.cp{border-radius:14px;background:var(--sf)}
+.bn{border-radius:8px}
+.bub.me{background:rgba(25,191,189,.18)}
+.qk button{background:var(--acb);color:var(--ac);border-radius:8px}.qk button:hover{background:rgba(25,191,189,.24)}
+.cin input{border-radius:8px}
+.toast{border-radius:8px;background:#14171a;border-color:var(--ln2)}
+.dot{box-shadow:0 0 0 3px rgba(25,191,189,.18)}
+.alloc i{background:linear-gradient(90deg,#19bfbd,#5b9cff)}
+input:focus,select:focus{box-shadow:0 0 0 3px rgba(25,191,189,.2)}
+.tl .d:before{background:var(--ac)}
+/* 唯一的入场动效：切换页面时由模糊聚焦到清晰 */
+@keyframes focusIn{from{opacity:0;filter:blur(10px)}to{opacity:1;filter:blur(0)}}
+.pg.show{animation:focusIn .5s cubic-bezier(.2,.7,.2,1) backwards}
+@media(prefers-reduced-motion:reduce){.pg.show{animation:none}}
+@media(max-height:760px){.ph{min-height:46px;padding:6px 16px}.sc{height:76px}td{padding:7px 14px}}
+@media(max-width:1180px){.top{gap:8px 10px}.sr{display:none}.ph{grid-template-columns:1fr}.ph>div:first-child,.ph>small,.ph .al,.ph .ar{grid-column:1;grid-row:auto}.ph .al,.ph .ar{margin-top:6px}.sc{height:76px}}
+
+/* ===== v4：KPI 条 / 资产卡 / 三列布局 / 下拉菜单 / 走势小图 ===== */
+@media(min-width:1181px){#p-trade{grid-template-columns:380px minmax(0,1fr) 320px;grid-template-rows:auto minmax(0,1fr)}}
+.kpis{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.pn.kpi{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto auto;column-gap:10px;align-content:center;align-items:center;min-height:88px;padding:12px 16px}
+.kpi .kl{grid-column:1;color:var(--mut);font-size:12px}
+.kpi em{grid-column:1;font-style:normal;font-size:22px;font-weight:600;color:#fff;letter-spacing:-.01em;line-height:1.25}
+.kpi small{grid-column:1;color:var(--mut);font-size:11.5px}
+.kpi .spw{grid-column:2;grid-row:1/4;align-self:center;line-height:0}
+.kpi .sk.n{width:110px}
+.bal-card{flex:none;padding:16px;border-color:rgba(25,191,189,.32);background:radial-gradient(320px 170px at 0 0,rgba(25,191,189,.22),transparent 70%),linear-gradient(180deg,rgba(25,191,189,.08),rgba(25,191,189,.02))}
+.bc-h{display:flex;justify-content:space-between;align-items:center;color:var(--mut);font-size:13px}
+.ibtn{border:0;background:none;color:var(--mut);cursor:pointer;font-size:12px;padding:2px 6px;border-radius:6px}.ibtn:hover{color:var(--tx);background:rgba(255,255,255,.06)}
+.bc-v{font-size:32px;font-weight:600;color:#fff;margin:8px 0 2px;letter-spacing:-.01em;line-height:1.2}
+.bc-s{color:var(--mut);font-size:12px}
+.bc-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.bc-btns .btn{height:38px;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.05)}
+.bc-btns .btn:hover{background:rgba(255,255,255,.1)}
+.bc-btns svg{width:15px;height:15px;flex:none}
+.bc-f{margin-top:12px;border-top:1px solid var(--ln);padding-top:4px}
+.cl,.cc,.cr{min-width:0;min-height:0}
+/* 走势小图列 */
+.sp{display:block;margin-left:auto;overflow:visible}
+td.spc{padding-top:4px;padding-bottom:4px;line-height:0}
+.pn:has(#tb-hold) th:nth-child(1){width:26%}.pn:has(#tb-hold) th:nth-child(2){width:13%}.pn:has(#tb-hold) th:nth-child(3){width:15%}.pn:has(#tb-hold) th:nth-child(4){width:23%}.pn:has(#tb-hold) th:nth-child(5){width:23%}
+.pn:has(#tb-hold) :is(th,td){padding-left:6px;padding-right:6px;font-size:12px}.pn:has(#tb-hold) :is(th,td):first-child{padding-left:14px}.pn:has(#tb-hold) :is(th,td):last-child{padding-right:14px}
+.pn:has(#tb-ord) th:nth-child(1){width:7%}.pn:has(#tb-ord) th:nth-child(2){width:16%}.pn:has(#tb-ord) th:nth-child(3){width:9%}.pn:has(#tb-ord) th:nth-child(4){width:10%}.pn:has(#tb-ord) th:nth-child(5){width:8%}.pn:has(#tb-ord) th:nth-child(6){width:12%}.pn:has(#tb-ord) th:nth-child(7){width:11%}.pn:has(#tb-ord) th:nth-child(8){width:17%}.pn:has(#tb-ord) th:nth-child(9){width:10%}
+.pn:has(#tb-ord) :is(th,td){padding-left:6px;padding-right:6px;font-size:12px}.pn:has(#tb-ord) :is(th,td):first-child{padding-left:14px}.pn:has(#tb-ord) :is(th,td):last-child{padding-right:14px;text-align:right}
+.ordpn{flex:0 0 40%}
+.pn:has(#tb-ord) :is(th,td):nth-child(7){text-align:right}
+#tb-watch td{padding:8px 6px}#tb-watch td:first-child{padding-left:14px}#tb-watch td:last-child{padding-right:10px}
+#tb-watch td:nth-child(1){width:23%}#tb-watch td:nth-child(3){width:72px;text-align:right}#tb-watch td:nth-child(4){width:40px;overflow:visible;text-overflow:clip}
+/* 导航下拉 */
+.ni{position:relative}
+.tn .cv{margin-left:6px;opacity:.55;transition:transform .2s,opacity .2s}
+.ni:hover .cv,.ni:focus-within .cv{transform:rotate(180deg);opacity:1}
+.dd{position:absolute;left:-10px;top:100%;padding-top:14px;opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .18s,transform .18s,visibility .18s;z-index:30}
+.ni:hover .dd,.ni:focus-within .dd{opacity:1;visibility:visible;transform:none}
+.ni.shut .dd{opacity:0;visibility:hidden}
+.ddb{width:300px;padding:8px;border-radius:12px;border:1px solid var(--ln2);background:linear-gradient(180deg,rgba(25,191,189,.12),rgba(15,17,19,.97) 55%),rgba(15,17,19,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 44px rgba(0,0,0,.55)}
+.ddi{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:0;background:none;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--tx)}
+.ddi b{font-weight:600;font-size:13px}.ddi span{font-size:11.5px;color:var(--mut)}
+.ddi:hover,.ddi:focus-visible{background:rgba(255,255,255,.07)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(25,191,189,.55)}100%{box-shadow:0 0 0 14px rgba(25,191,189,0)}}
+.pn.pulse{animation:pulse 1s ease-out 1;border-color:rgba(25,191,189,.6)}
+@media(prefers-reduced-motion:reduce){.pn.pulse{animation:none}.dd{transition:none}}
+.seg button{white-space:nowrap}
+@media(min-width:1181px) and (max-width:1380px){#p-trade{grid-template-columns:330px minmax(0,1fr) 300px}.pn:has(#tb-ord) :is(th,td):nth-child(2){display:none}.pn:has(#tb-ord) th:nth-child(1){width:10%}.pn:has(#tb-ord) th:nth-child(3){width:10%}.pn:has(#tb-ord) th:nth-child(4){width:12%}.pn:has(#tb-ord) th:nth-child(5){width:9%}.pn:has(#tb-ord) th:nth-child(6){width:14%}.pn:has(#tb-ord) th:nth-child(7){width:13%}.pn:has(#tb-ord) th:nth-child(8){width:20%}.pn:has(#tb-ord) th:nth-child(9){width:12%}.bc-v{font-size:28px}}
+@media(min-width:1381px){.pn:has(#tb-ord) th:nth-child(2){width:14%}.pn:has(#tb-ord) th:nth-child(8){width:19%}}
+@media(max-height:760px){.pn.kpi{min-height:70px;padding:8px 14px}.kpi em{font-size:19px}.bal-card{padding:12px 14px}.bc-v{font-size:26px;margin:4px 0}.bc-btns{margin-top:10px}.bc-btns .btn{height:32px}.bc-f{margin-top:8px}}
+@media(max-width:900px){.top{flex-wrap:wrap;height:auto;padding:8px 12px;gap:8px 10px}.brand{margin-right:auto}.nav{order:3;width:100%}.ni{flex:1}.ni .tn{width:100%}.dd{display:none}.right{margin-left:0}.kpis{grid-template-columns:1fr 1fr}.pn.kpi{grid-template-columns:1fr}.kpi .spw{display:none}.pn:has(#tb-ord) :is(th,td):nth-child(8){display:table-cell}.pn:has(#tb-ord) :is(th,td):nth-child(9){display:none}}
+@media(min-width:901px) and (max-width:1180px){.top{flex-wrap:wrap;height:auto;padding:8px 16px;gap:8px 20px}.dd{display:none}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.pn:has(#tb-ord) :is(th,td):nth-child(2){display:table-cell}.pn:has(#tb-ord) :is(th,td):nth-child(8){display:table-cell}}
+</style>
+
+<style id="v5-platform">
+/* ===== v5：主流交易平台视觉语言（扁平面板 / 硬边框 / 专业表格）· 仅视觉，功能不变 ===== */
+:root{--bg:#0a0c0e;--sf:#101317;--sf2:#0b0e11}
+body{background:linear-gradient(180deg,rgba(25,191,189,.045),transparent 160px),var(--bg)}
+/* 顶栏：扁平、硬底边、去光晕 */
+.top{height:52px;background:#0b0d10;border-bottom:1px solid var(--ln);backdrop-filter:none}
+.tn.on:after{bottom:-10px}
+.bal{background:#14181c}
+.sr{background-color:#0c0f12}
+/* 通用面板：扁平硬边、无渐变（资产卡 / KPI / 指标卡保留各自强调背景） */
+.pn:not(.bal-card):not(.kpi):not(.sc){background:var(--sf);border:1px solid var(--ln);border-radius:8px}
+.pn:not(.bal-card):not(.kpi):not(.sc) .ph{background:rgba(255,255,255,.015);border-bottom:1px solid var(--ln)}
+.sc{background:var(--sf);border:1px solid var(--ln);border-radius:8px}
+.pn.kpi{background:var(--sf);border:1px solid var(--ln);border-radius:8px}
+/* 专业表格：更冷的表头、克制 hover、点击行左侧强调条 */
+.sy thead th{background:var(--sf2)}
+th{color:#8b93a0}
+td{border-bottom-color:rgba(255,255,255,.045)}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+tr.click:hover{box-shadow:inset 2px 0 0 var(--ac)}
+/* 分段控件 / 按钮：扁平化 */
+.seg{background:#0c0f12}
+.btn{background:#161a1f}
+.btn:hover{background:#1d2228;border-color:rgba(255,255,255,.26)}
+/* 图表区：收敛彩色高光，偏向专业冷色面板 */
+.cw{background:radial-gradient(520px 260px at 90% 35%,rgba(25,191,189,.07),transparent 72%),#0a0c0e}
+/* 弹窗 / 客服面板随之扁平 */
+.dlg,.cp{background:var(--sf)}
+/* 滚动条更细 */
+*::-webkit-scrollbar{width:5px;height:5px}
+</style>
+
+<style id="v6-detail">
+/* ===== v6：标的信息头 / 买卖下单区配色 / 顶栏工具区 · 仅视觉，功能不变 ===== */
+/* 标的信息头：代码 / 交易所 / 名称 / 周期 / 连接状态（不伪造价格） */
+.ihm{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ih-sym{font-size:17px;font-weight:700;color:#fff;letter-spacing:.01em}
+.ih-xch{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--mut);border:1px solid var(--ln2);border-radius:4px;padding:1px 6px}
+.ih-nm{font-size:12.5px;color:var(--mut);font-weight:400}
+.ihs .ih-tf{color:var(--tx);font-weight:600}
+/* 买卖下单区：绿买 / 红卖（仅交易方向按钮，不影响充值等品牌 CTA） */
+#pbody .btn.p,#m-trade .btn.p,#m-ord .btn.p{background:linear-gradient(180deg,#34d07f,#16a65c);border-color:#1fb86c;color:#042313;box-shadow:0 0 0 1px rgba(46,189,133,.2),0 6px 18px rgba(46,189,133,.18)}
+#pbody .btn.p:hover,#m-trade .btn.p:hover,#m-ord .btn.p:hover{background:linear-gradient(180deg,#45db8d,#1bb869)}
+.btn.red{background:linear-gradient(180deg,#ff5d6a,#e23744);border-color:#f14b57;color:#fff;box-shadow:0 0 0 1px rgba(246,70,93,.2),0 6px 18px rgba(246,70,93,.2)}
+.btn.red:hover{background:linear-gradient(180deg,#ff6f7b,#ea4451)}
+#pbody .btn.w{letter-spacing:.02em}
+/* 顶栏工具区排布：搜索在前、分隔线、账户信息在后 */
+.right{gap:8px;align-items:center}
+.sr{width:260px}
+.vdiv{flex:none;width:1px;height:20px;background:var(--ln2);margin:0 2px}
+.av{cursor:pointer}
+@media(max-width:1280px){.vdiv{display:none}}
+</style>
+
+<style id="v7-premium">
+/* ===== v7：高端化 · 去品牌文字 / 弹窗升级扩展 / UHD 清晰度 / 非标题不加粗 / 悬浮框线 / 趋势图阴影 / 买卖方向选中态 / 周期 Tab / 账户菜单 · 仅视觉与增量功能 ===== */
+/* 1·去掉左上角 CN Capital 文字信息（保留标识） */
+.brand>div{display:none}
+.brand{gap:0}
+/* 2·UHD / 8K 清晰度 */
+body{text-rendering:optimizeLegibility;-moz-osx-font-smoothing:grayscale}
+/* 3·除标题外字体不加粗 */
+.brand,.tn,.btn,.btn.p,.seg button,.tabs button,.chip,.kv,.kv .lime,.bal span,.bal em,.sc span,.sc em,.sc.gold em,.kpi .kl,.kpi em,.kpi small,.bc-v,.bc-s,.bc-h,td,th,.ddi b,.ddi span,.hint,.note,.ohlc,.ep,.fld label,.bn,.ih-xch,.ih-nm,.ihs,.ih-tf,.bub,.qk button,.foot span,.banner,input,select,.stp input{font-weight:400!important}
+.ph>div:first-child,.ph #tr-title,.ph #rq-title,.ih-sym,.lockbox>div:first-child{font-weight:700!important}
+/* 4·高端层次感：鼠标经过浮动框线 */
+.pn,.sc{transition:border-color .22s,box-shadow .22s,transform .22s}
+.pg .pn:hover,.pg .sc:hover{border-color:rgba(25,191,189,.5);box-shadow:0 12px 34px -8px rgba(0,0,0,.6),0 0 0 1px rgba(25,191,189,.2);transform:translateY(-2px)}
+/* 5·趋势图阴影 */
+.cw{position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 16px 40px -10px rgba(0,0,0,.6)}
+/* 6·弹窗升级高端并扩大 */
+.mask{background:rgba(2,4,7,.82);backdrop-filter:blur(3px)}
+.dlg{width:min(480px,94vw);border-radius:22px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(180deg,#141821,#0b0e13);box-shadow:0 38px 92px -14px rgba(0,0,0,.78),0 0 0 1px rgba(25,191,189,.12),inset 0 1px 0 rgba(255,255,255,.06)}
+.dlg.wide{width:min(700px,95vw)}
+.dlg .ph{height:58px;font-size:15px}
+.fb{padding:18px 22px 22px;gap:12px}
+.cp{width:380px;border-radius:20px;background:linear-gradient(180deg,#141821,#0b0e13);box-shadow:0 30px 74px rgba(0,0,0,.72),0 0 0 1px rgba(25,191,189,.12)}
+/* 7·买卖方向选中态（弹窗顶部切换） */
+.dirtog{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.dirbtn{height:42px;border-radius:12px;border:1px solid var(--ln2);background:transparent;color:var(--mut);cursor:pointer;font-size:14px;font-weight:400;transition:all .18s}
+.dirbtn:hover{border-color:rgba(255,255,255,.32);color:var(--tx)}
+.dirbtn.buy{color:#4fdd8f;border-color:rgba(79,221,143,.4)}
+.dirbtn.sell{color:#ff5b50;border-color:rgba(255,91,80,.4)}
+.dirbtn.buy.on{background:linear-gradient(180deg,#34d07f,#16a65c);border-color:#1fb86c;color:#042313;box-shadow:0 6px 18px rgba(46,189,133,.28)}
+.dirbtn.sell.on{background:linear-gradient(180deg,#ff5d6a,#e23744);border-color:#f14b57;color:#fff;box-shadow:0 6px 18px rgba(246,70,93,.28)}
+/* 8·标的信息头周期 Tab */
+.iftabs{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap;justify-content:center}
+.iftabs button{border:1px solid var(--ln2);background:transparent;color:var(--mut);height:24px;padding:0 12px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:400;transition:all .15s}
+.iftabs button:hover{color:var(--tx);border-color:rgba(255,255,255,.3)}
+.iftabs button.on{background:var(--acb);color:var(--ac);border-color:rgba(215,255,0,.42)}
+/* 9·顶栏账户头像悬浮快捷菜单 */
+.accw{position:relative}
+.accw .av{padding:0;font:inherit;color:var(--tx);cursor:pointer}
+.dd.ddr{left:auto;right:-6px}
+.dd.ddr .ddb{width:224px}
+/* 10·TradingView 实时行情容器 */
+#tvbtn{height:24px;font-size:12px;padding:0 12px}
+#tvbtn.on{background:#19bfbd;border-color:#19bfbd;color:#042;font-weight:400}
+.tvwrap{position:absolute;inset:0;border-radius:inherit;overflow:hidden;z-index:3;background:#0a0c0e}
+.tvwrap[hidden]{display:none}
+.tvwrap .tradingview-widget-container,.tvwrap iframe{width:100%!important;height:100%!important}
+</style>
+<style id="v8-narrow-fx">
+/* ===== v8：标题栏收窄 · 信息头单行右置 · 成交确认动效 · 仅视觉与增量反馈 ===== */
+/* 1·所有标题栏收窄 */
+.ph{min-height:46px!important}
+.dlg .ph{height:48px!important;min-height:48px!important}
+/* 2·标的信息头单行紧凑：状态小字 + 周期 Tab 移至方框右侧 */
+.ph.ihead{display:flex!important;flex-direction:row!important;flex-wrap:nowrap;align-items:center;gap:12px;height:46px!important;min-height:46px!important;padding:0 16px!important;text-align:left}
+.ph.ihead .ihm{order:0;flex:0 1 auto;min-width:0;margin:0;transition:opacity .15s ease}
+.ph.ihead .ihm.ih-swap{opacity:.1}
+@media(prefers-reduced-motion:reduce){.ph.ihead .ihm{transition:none}.ph.ihead .ihm.ih-swap{opacity:1}}
+.ph.ihead .ihm .ih-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.ph.ihead .iftabs{order:1;margin:0 0 0 auto!important;flex:none}
+.ph.ihead .ihs{order:2;margin:0!important;flex:none;display:flex;align-items:center;gap:6px}
+.ph.ihead .al{order:3;position:static!important;transform:none!important;flex:none}
+.ph.ihead .ar{order:4;position:static!important;transform:none!important;flex:none}
+.ph.ihead .iftabs{margin-top:0}
+.ph.ihead .iftabs button{height:22px;padding:0 10px}
+/* 市场按钮选中态高亮指示条 */
+.ph.ihead .ar .seg button{position:relative}
+.ph.ihead .ar .seg button::after{content:"";position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:2px;border-radius:2px;background:var(--ac);box-shadow:0 0 6px rgba(215,255,0,.55);opacity:0;transition:width .18s ease,opacity .18s ease}
+.ph.ihead .ar .seg button.on::after{width:16px;opacity:1}
+@media(prefers-reduced-motion:reduce){.ph.ihead .ar .seg button::after{transition:none}}
+/* 信息头响应式间距：随屏宽/屏高逐档收紧 */
+@media(max-width:1480px){.ph.ihead{gap:9px}.ph.ihead .ihm .ih-nm{max-width:170px}.ph.ihead .iftabs button{padding:0 8px}}
+@media(max-width:1340px){.ph.ihead{gap:7px}.ph.ihead .ihm .ih-nm{max-width:130px}.ph.ihead .iftabs{gap:3px}.ph.ihead .iftabs button{padding:0 7px;font-size:11px}}
+@media(max-width:1280px){.ph.ihead{flex-wrap:wrap;height:auto!important;min-height:46px!important;padding:8px 16px!important;row-gap:8px;column-gap:10px}.ph.ihead .ihm{order:0;flex:1 1 100%}.ph.ihead .ihm .ih-nm{max-width:none}.ph.ihead .iftabs{order:1;margin:0!important}.ph.ihead .ihs{order:2;margin-left:auto!important}.ph.ihead .al{order:3}.ph.ihead .ar{order:4}}
+@media(max-width:1180px){.ph.ihead{display:flex!important;grid-template-columns:none}.ph.ihead .al,.ph.ihead .ar{margin-top:0!important}}
+@media(max-height:760px){.ph.ihead{height:42px!important;min-height:42px!important;gap:8px}}
+/* 3·买卖下单成交确认动效（勾选圈 · 绿买红卖 · 委托已受理措辞 · 降级友好） */
+.dlg{position:relative}
+.tr-ok{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(8,11,16,.92);backdrop-filter:blur(4px);border-radius:inherit;animation:trfade .25s ease}
+.tr-ok .ring{position:relative;width:92px;height:92px}
+.tr-ok .ring svg{position:absolute;inset:0;width:92px;height:92px;transform:rotate(-90deg)}
+.tr-ok .rc{fill:none;stroke:rgba(79,221,143,.16);stroke-width:5}
+.tr-ok .rp{fill:none;stroke:#4fdd8f;stroke-width:5;stroke-linecap:round;stroke-dasharray:264;stroke-dashoffset:264;animation:trring .7s cubic-bezier(.65,0,.35,1) forwards}
+.tr-ok .pulse{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 0 rgba(79,221,143,.5);animation:trpulse 1.1s ease-out .55s}
+.tr-ok .ck{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.tr-ok .ck svg{width:46px;height:46px}
+.tr-ok .ck path{fill:none;stroke:#4fdd8f;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:48;stroke-dashoffset:48;animation:trck .4s ease .5s forwards}
+.tr-ok b{font-size:16px;color:#fff;font-weight:700!important}
+.tr-ok>span{font-size:12.5px;color:var(--mut)}
+.tr-ok .tag{font-size:11.5px;color:#4fdd8f;border:1px solid rgba(79,221,143,.4);border-radius:999px;padding:3px 12px}
+.tr-ok.sell .rp,.tr-ok.sell .ck path{stroke:#ff5b50}
+.tr-ok.sell .rc{stroke:rgba(255,91,80,.16)}
+.tr-ok.sell .pulse{box-shadow:0 0 0 0 rgba(255,91,80,.5);animation:trpulseS 1.1s ease-out .55s}
+.tr-ok.sell .tag{color:#ff5b50;border-color:rgba(255,91,80,.4)}
+@keyframes trring{to{stroke-dashoffset:0}}
+@keyframes trck{to{stroke-dashoffset:0}}
+@keyframes trfade{from{opacity:0}to{opacity:1}}
+@keyframes trpulse{0%{box-shadow:0 0 0 0 rgba(79,221,143,.5)}100%{box-shadow:0 0 0 22px rgba(79,221,143,0)}}
+@keyframes trpulseS{0%{box-shadow:0 0 0 0 rgba(255,91,80,.5)}100%{box-shadow:0 0 0 22px rgba(255,91,80,0)}}
+@media(prefers-reduced-motion:reduce){.tr-ok,.tr-ok .rp,.tr-ok .ck path,.tr-ok .pulse{animation:none!important}.tr-ok .rp{stroke-dashoffset:0}.tr-ok .ck path{stroke-dashoffset:0}}
+</style>
+<style id="v9-type-lock">
+/* ===== v9：字号统一 + 防挤压（置于所有样式之后，作为最终字号层）=====
+   字号阶梯：说明 11 / 正文 12 / 标题 13 / 数字 18·22·26，全站最小 11px */
+:root{--fs-cap:11px;--fs-body:12px;--fs-title:13px;--fs-kpi:18px;--fs-kpi-lg:22px;--fs-hero:26px}
+body{font-size:var(--fs-body)!important}
+
+/* 说明级 11px */
+.brand small,.bal span,.ph small,.ihs,.chip,th,.note,.hint,.er,.ep,.ohlc,.fld label,.lk,.upr .t,.up .ph0,.fname,
+.tl small,.bub small,.foot span,.badge,.sc span,.sc .sh,.kpi .kl,.kpi small,.bc-s,.ddi span,.tr-ok>span,.tr-ok .tag,
+.cvload em,.pn:has(#tb-hold) th,.pn:has(#tb-ord) th,.ih-xch,.alloc+div,
+[style*="font-size:10.5px"],[style*="font-size:10px"]{font-size:var(--fs-cap)!important}
+.ih-xch{letter-spacing:.04em!important}
+
+/* 正文级 12px */
+td,.kv,.btn,.seg button,.tabs button,.iftabs button,#tvbtn,.sr,.tn,.ih-nm,.bn,.banner,.chk,.ibtn,
+.pn:has(#tb-hold) td,.pn:has(#tb-ord) td,.pn:has(#tb-hold) :is(th,td),.pn:has(#tb-ord) :is(th,td){font-size:var(--fs-body)!important}
+.pn:has(#tb-hold) th,.pn:has(#tb-ord) th{font-size:var(--fs-cap)!important}
+.ph.ihead .iftabs button{font-size:var(--fs-body)!important}
+
+/* 标题级 13px */
+.brand,.bal em,.ph,.ph>div:first-child,.bc-h,.ddi b,.btn.w,.dirbtn{font-size:var(--fs-title)!important}
+.dlg .ph{font-size:14px!important}.ih-sym{font-size:15px!important}
+
+/* 数字级 */
+.sc em,.kpi em{font-size:var(--fs-kpi)!important}
+.sc.gold em{font-size:var(--fs-kpi-lg)!important}
+.bc-v{font-size:var(--fs-hero)!important}
+
+/* ---- 防挤压 ---- */
+/* 1 标的信息头：不再被固定高度裁切，自动换行；名称单行省略 */
+.ph.ihead{height:auto!important;min-height:46px!important;flex-wrap:wrap!important;row-gap:6px;padding:7px 14px!important}
+.ph.ihead .ihm{flex:1 1 150px!important;flex-wrap:nowrap!important;align-items:center!important;min-width:0}
+.ph.ihead .ihm .ih-sym,.ph.ihead .ihm .ih-xch{flex:none}
+.ph.ihead .ihm .ih-nm{flex:1 1 0;min-width:0;max-width:none!important}
+.ph.ihead .iftabs{margin:0!important}
+.ph.ihead .ihs{margin-left:auto!important}
+/* 2 工具条：放不下时换行，不再把「接入 TradingView」切掉 */
+.tools{flex-wrap:wrap!important;row-gap:6px!important;column-gap:8px!important;overflow:visible!important;justify-content:flex-start}
+/* 3 表格：状态标签不裁切、时间不换行、列内边距收紧 */
+.pn:has(#tb-ord) :is(th,td),.pn:has(#tb-hold) :is(th,td){padding-left:5px!important;padding-right:5px!important}
+.pn:has(#tb-ord) :is(th,td):first-child,.pn:has(#tb-hold) :is(th,td):first-child{padding-left:14px!important}
+.pn:has(#tb-ord) :is(th,td):last-child,.pn:has(#tb-hold) :is(th,td):last-child{padding-right:14px!important}
+.pn:has(#tb-ord) td:last-child,.pn:has(#tb-ord) td:nth-last-child(2){overflow:visible;text-overflow:clip}
+.pn:has(#tb-ord) th:nth-child(8){width:19%!important}.pn:has(#tb-ord) th:last-child{width:13%!important}
+.pn:has(#tb-hold) th:first-child{width:28%!important}
+.tools{padding:8px 14px 0!important}
+/* 4 账户页 KPI 卡：高度随内容，不再裁切标题与说明 */
+.sc{height:auto!important;min-height:68px;padding-top:8px!important;padding-bottom:8px!important}
+@media(max-height:760px){.sc{min-height:64px}}
+</style>
+
+<style id="v10-suggestions">
+/* ===== v10：采纳建议 ===== */
+/* 8 对比度：说明文字提亮 + 键盘焦点 */
+:root{--mut:#b6bdc5}
+tr.click:focus-visible{outline:2px solid var(--ac);outline-offset:-2px;background:var(--acb)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+/* 1 周期选择合并：隐藏标题栏里重复的一组，保留下方 1D…All（含 YTD / 5Y） */
+.iftabs{display:none!important}
+.ph.ihead .ar{margin-left:auto}
+/* 3 暂无行情引导卡 */
+.offc{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;max-width:300px;padding:16px}
+.offc i{font-style:normal;font-size:22px;color:var(--ac);line-height:1}
+.offc b{font-size:14px;color:#fff;font-weight:600}
+.offc span{font-size:var(--fs-cap);color:var(--mut);line-height:1.6}
+.offc .btn{margin-top:4px;height:30px}
+/* 2 现金为负提示 */
+.negcash{margin-top:6px;padding:6px 10px;border-radius:8px;background:rgba(255,185,56,.1);color:var(--am);font-size:var(--fs-cap);line-height:1.5}
+.hide .negcash{display:none}
+/* 6 订单表：代码 + 名称两行，省出一整列 */
+.pn:has(#tb-ord) :is(th,td):nth-child(2){display:none!important}
+.nm2{font-size:var(--fs-cap);line-height:1.3;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pn:has(#tb-ord) th:nth-child(1){width:17%!important}.pn:has(#tb-ord) th:nth-child(3){width:9%!important}
+.pn:has(#tb-ord) th:nth-child(4){width:10%!important}.pn:has(#tb-ord) th:nth-child(5){width:8%!important}
+.pn:has(#tb-ord) th:nth-child(6){width:13%!important}.pn:has(#tb-ord) th:nth-child(7){width:11%!important}
+.pn:has(#tb-ord) th:nth-child(8){width:19%!important}.pn:has(#tb-ord) th:nth-child(9){width:13%!important}
+/* 暂无行情时 OHLC 行只是占位，直接收起；工具条更紧凑 */
+#oh[style*="hidden"]{display:none!important}
+.tools{column-gap:6px!important}.tools .seg button{padding:0 8px!important}
+/* 7 1024 级别窗口：统计卡 2×2、图表固定高度、表格可横向滚动 */
+@media(max-width:1100px){
+ .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .cw{height:320px!important}
+ .sy{max-height:300px;overflow:auto}
+ .top{gap:8px 12px}
+ .ph.ihead .ihm{flex:1 1 100%!important}
+}
+</style>
 </head>
 <body>
-<script>try{document.body.classList.add(sessionStorage.getItem("gsp_token")?"cn-routing":"cn-guest")}catch{document.body.classList.add("cn-guest")}</script>
-<div id="cn-entry-gate" class="cn-login-screen" hidden><main class="cn-login-card"><div class="cn-login-mark" role="img" aria-label="N"><span>N</span></div><div id="cn-entry-form-slot"></div></main></div>
-<div class="app-shell" id="overview">
-  <aside class="sidebar" aria-label="主导航">
-  <a class="sidebar-logo" href="#overview" aria-label="Global Stock Platform">
-    <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.45"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M6 16.8 16.8 6M6.8 11.4l5.8-5.8M11.4 18.2l6.8-6.8"/></svg></span>
-    <span class="brand-copy"><strong>GLOBAL STOCK</strong><small>PLATFORM</small></span>
-  </a>
 
-  <div class="sidebar-section">
-    <span class="sidebar-section-title">WORKSPACE</span>
-    <nav class="sidebar-nav" aria-label="工作区导航">
-      <a class="sidebar-link" href="#overview-metrics">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.4"/><rect x="13" y="3" width="8" height="8" rx="1.4"/><rect x="3" y="13" width="8" height="8" rx="1.4"/><rect x="13" y="13" width="8" height="8" rx="1.4"/></svg><span>Overview</span>
-      </a>
-      <a class="sidebar-link active" href="#transactions-section" aria-current="page">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4"/></svg><span>Transactions</span>
-      </a>
-    </nav>
-  </div>
+<header class="top">
+<div class="brand">
+<img src="data:image/png;base64,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" alt="CN Capital" width="32" height="29">
+<div>CN Capital<small>PRIVATE · TRADING</small></div></div>
+<nav class="nav"><div class="ni"><button class="tn on" data-p="trade" aria-haspopup="true">交易<svg class="cv" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button><div class="dd" role="menu"><div class="ddb"><button type="button" class="ddi" role="menuitem" data-go="trade:pn-order"><b>下单</b><span>大宗交易 · 股票 / 基金 / IPO / 大宗商品</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-hold"><b>持仓</b><span>持仓数量、可卖出与持仓成本</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-watch"><b>自选</b><span>已关注的标的</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-ord"><b>交易明细</b><span>全部成交记录，可导出</span></button></div></div></div><div class="ni"><button class="tn" data-p="acct" aria-haspopup="true">账户<svg class="cv" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button><div class="dd" role="menu"><div class="ddb"><button type="button" class="ddi" role="menuitem" data-go="acct:pn-req"><b>申请记录</b><span>充值、提现、资料申请的进度</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-dep"><b>充值</b><span>提交充值申请</span></button><button type="button" class="ddi" role="menuitem" data-go="wd"><b>提现</b><span>提交提现申请</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-id"><b>身份资料</b><span>选择证件图片并预览</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-bank"><b>银行卡资料</b><span>查看与填写银行卡资料</span></button></div></div></div></nav>
+<div class="right">
+<input class="sr" type="search" placeholder="搜索代码或公司  按 / 聚焦" aria-label="搜索代码或公司">
+<span class="vdiv" aria-hidden="true"></span>
+<button class="btn" id="hidebtn" aria-pressed="false">隐藏金额</button>
+<div class="bal" id="balchip" title="查看账户"><span>现金余额 USD</span><em class="amt" data-b="cash"></em></div>
+<div class="rel"><button class="btn" id="csbtn" aria-expanded="false" aria-controls="cp"><span class="dot" style="margin-right:6px"></span>客服</button><span class="badge" id="badge" hidden></span></div>
+<div class="ni accw"><button class="av" aria-haspopup="true" aria-label="账户菜单">L</button><div class="dd ddr" role="menu"><div class="ddb"><button type="button" class="ddi" role="menuitem" data-go="acct:__acct"><b>账户</b><span>查看资产与账户状态</span></button><button type="button" class="ddi" role="menuitem" data-go="wd"><b>提现</b><span>提交提现申请</span></button><button type="button" class="ddi" role="menuitem" data-go="logout"><b>退出登录</b><span>结束当前会话</span></button></div></div></div></div>
+</header>
 
-  <div class="sidebar-section">
-    <span class="sidebar-section-title">MY PORTFOLIO</span>
-    <nav class="sidebar-nav" aria-label="投资组合导航">
-      <a class="sidebar-link" href="#holdings-section">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7.5h16v12H4z"/><path d="M8 7.5V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2.5M8 12h8"/></svg><span>Holdings</span>
-      </a>
-      <a class="sidebar-link" href="#terminal-section">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19h18M5 16l4-5 3 2 6-8 2 2"/></svg><span>Performance</span>
-      </a>
-      <a class="sidebar-link" href="#markets-section">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4L12 17.6l-5.7 3 1.1-6.4L2.8 9.7l6.4-.9z"/></svg><span>Market Watch</span>
-      </a>
-    </nav>
-  </div>
-
-  <div class="sidebar-section">
-    <span class="sidebar-section-title">RESEARCH & DATA</span>
-    <nav class="sidebar-nav" aria-label="研究与数据导航">
-      <a class="sidebar-link" href="#intelligence-section">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/></svg><span>News & Insights</span>
-      </a>
-      <a class="sidebar-link" href="#catalog-section">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h5"/></svg><span>Instrument Directory</span>
-      </a>
-      <a class="sidebar-link" href="#account-section">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c.8-3.2 3.1-5 7-5s6.2 1.8 7 5"/></svg><span>Account</span>
-      </a>
-    </nav>
-  </div>
-
-  <div class="sidebar-foot">
-    <div class="sidebar-account">
-      <span class="profile-avatar">G</span>
-      <span class="sidebar-account-label"><strong>Account</strong><small id="accountStatus">未登录</small></span>
-      <button class="sidebar-logout" type="button" id="railLogout" aria-label="退出登录" title="退出登录">↗</button>
-    </div>
-  </div>
-</aside>
-
-  <main class="main-content">
-    <header class="topbar">
-      <div class="page-heading"><span class="app-wordmark">GLOBAL STOCK PLATFORM</span><h1>Transactions</h1></div>
-      <div class="top-actions">
-        <span class="status-chip" id="connectionStatus"><span class="status-dot"></span><span id="connectionText">连接检测中</span></span>
-        <span class="clock" id="clock" aria-label="当前时间">—</span>
-        <a href="#intelligence-section" class="header-action">Market Insights <span aria-hidden="true">↗</span></a>
-        <button class="primary-button export-button" id="exportHistoryButton" type="button" disabled>↓ Export History</button>
-        <a href="#account-section" class="profile" aria-label="账户信息"><span class="profile-avatar">G</span><span class="profile-label"><span>Account</span></span><span class="chevron">⌄</span></a>
-      </div>
-    </header>
-
-    <div class="workspace">
-      <section class="transactions-section" id="transactions-section" aria-labelledby="transactionsTitle">
-        <div class="transactions-header">
-          <div>
-            <h2 id="transactionsTitle">Transaction Activity</h2>
-            <p>Track, review, and export your account's internal transaction records.</p>
-          </div>
-          <div class="transaction-filters">
-            <label class="transaction-search" for="transactionSearch"><span aria-hidden="true">⌕</span><input id="transactionSearch" type="search" placeholder="Search symbol or company" autocomplete="off"></label>
-            <label class="sr-only" for="transactionRange">Date range</label>
-            <select id="transactionRange" class="transaction-range" aria-label="交易时间范围">
-              <option value="all">All time</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="transaction-metrics" aria-label="交易摘要">
-          <article class="transaction-metric-card">
-            <div class="transaction-metric-top"><span>Total Volume</span><span class="metric-menu" aria-hidden="true">•••</span></div>
-            <div class="transaction-metric-value" id="transactionVolume">—</div>
-            <p id="transactionVolumeNote">登录后查看真实账户记录</p>
-            <span class="metric-sparkline sparkline-amber" aria-hidden="true"></span>
-          </article>
-          <article class="transaction-metric-card">
-            <div class="transaction-metric-top"><span>Realized P/L</span><span class="metric-menu" aria-hidden="true">•••</span></div>
-            <div class="transaction-metric-value" id="realizedPnl">—</div>
-            <p id="realizedPnlNote">缺少逐笔成本匹配数据，暂不计算</p>
-            <span class="metric-sparkline sparkline-blue" aria-hidden="true"></span>
-          </article>
-          <article class="transaction-metric-card execution-metric-card">
-            <div class="transaction-metric-top"><span>Internal Records vs Broker</span><span class="metric-menu" aria-hidden="true">•••</span></div>
-            <div class="execution-summary">
-              <div><strong id="internalRecordCount">—</strong><span>Internal records</span></div>
-              <div class="execution-divider"></div>
-              <div><strong id="brokerExecutionStatus">未连接</strong><span>Broker execution</span></div>
-            </div>
-            <p>平台记录不代表券商成交或结算</p>
-          </article>
-        </div>
-
-        <div class="panel transaction-list-panel">
-          <div class="panel-heading transaction-list-heading">
-            <div><h2>Transaction List</h2><p class="panel-caption">Account activity · 内部账户记录</p></div>
-            <span class="transaction-range-label" id="transactionRangeLabel">All time</span>
-          </div>
-          <div class="transaction-table-wrap">
-            <table class="transactions-table">
-              <thead><tr><th>Symbol</th><th>Name</th><th>Type</th><th>Price</th><th>Quantity</th><th>Total (USD)</th><th>Record</th><th>Time</th></tr></thead>
-              <tbody id="transactionRows"><tr><td colspan="8" class="transaction-empty">登录后查看账户交易记录</td></tr></tbody>
-            </table>
-          </div>
-          <div class="transaction-pagination">
-            <div class="page-size-control"><label for="transactionPageSize">Rows</label><select id="transactionPageSize"><option value="10" selected>10</option><option value="25">25</option><option value="50">50</option></select><span id="transactionPageSummary">0 records</span></div>
-            <div class="page-buttons"><button type="button" id="transactionPrev" disabled>← Previous</button><span id="transactionPageNumber">1</span><button type="button" id="transactionNext" disabled>Next →</button></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="metrics" id="overview-metrics" aria-label="组合指标">
-        <article class="metric-card"><div class="metric-header"><span>Total Portfolio Value</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5 12 5l8 4.5-8 4.5L4 9.5zM4 14l8 4.5 8-4.5M4 18l8 4.5 8-4.5"/></svg></span></div><div class="metric-value" id="portfolioValue">—</div><p>持仓估值待行情接入</p></article>
-        <article class="metric-card"><div class="metric-header"><span>Daily P/L</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" aria-hidden="true"><path d="M4 20v-8M9 20V8M14 20V4M19 20v-11"/></svg></span></div><div class="metric-value">—</div><p>当日盈亏待行情接入</p></article>
-        <article class="metric-card"><div class="metric-header"><span>Monthly Return</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17 9 11l4 3 8-9M16 5h5v5"/></svg></span></div><div class="metric-value">—</div><p>月度回报暂无数据</p></article>
-        <article class="metric-card"><div class="metric-header"><span>Dividend Income</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 6v12M15 9c-2-2-6-1-6 1s6 2 6 4-4 3-6 1"/></svg></span></div><div class="metric-value">—</div><p>暂无股息收入记录</p></article>
-        <article class="metric-card"><div class="metric-header"><span>Risk Score</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 8 3v5c0 5-3 8-8 10-5-2-8-5-8-10V6z"/><path d="M9 12h6"/></svg></span></div><div class="metric-value">—</div><p>风险评分尚未启用</p></article>
-      </section>
-
-      <div class="primary-grid" aria-label="行情图表与持仓工作区">
-        <section class="panel performance-panel" id="terminal-section" aria-labelledby="performanceTitle">
-          <div class="panel-heading"><h2 id="performanceTitle">Stock Chart / 股票走势</h2><span class="view-label">Third-party chart</span></div>
-          <div class="market-switcher"><span class="filters-label">MARKETS</span><div id="markets" class="market-nav" aria-label="选择市场"></div></div>
-          <div class="instrument-selector">
-            <span id="marketLabel">US MARKET</span><span class="instrument-separator">·</span><span id="symbolTitle">AAPL</span><span class="instrument-name" id="symbolName">Apple Inc.</span>
-            <span class="instrument-price" id="quotePrice">—</span>
-            <button class="secondary-button watchlist-toggle" id="watchlistToggle" type="button" disabled aria-pressed="false">☆ 加入自选</button>
-          </div>
-          <div class="chart chart--unavailable" id="stockChart" role="region" aria-label="股票历史走势图">
-            <div class="stock-chart-empty">历史走势图暂不可用</div>
-          </div>
-          <p id="watchlistFeedback" class="watchlist-feedback" role="status" aria-live="polite"></p>
-          <div class="panel-footer"><span>LAST PRICE / 最新报价</span><span id="orderQuoteStatus">未连接</span></div>
-        </section>
-        <section class="panel holdings-panel" id="holdings-section" aria-labelledby="holdingsTitle">
-          <div class="panel-heading"><h2 id="holdingsTitle">Holdings <small>(<span id="positionCount">—</span>)</small></h2><a href="#transactions-section" class="subtle-link">View All <span>→</span></a></div>
-          <div class="holdings-table-head"><span>Stock / Company</span><span>Quantity</span></div>
-          <div id="positions" class="record-list holdings-list">登录后查看持仓</div>
-          <div class="holdings-note">只显示账户实际记录，不展示未经验证的报价。</div>
-        </section>
-      </div>
-
-      <div class="secondary-grid" id="markets-section">
-        <section class="panel allocation-panel" aria-labelledby="allocationTitle">
-          <div class="panel-heading"><h2 id="allocationTitle">Allocation</h2><span class="view-label">By Holdings</span></div>
-          <p class="panel-caption">按真实持仓标的数量统计 · 非市值权重</p>
-          <div id="marketCards" class="market-cards"></div>
-          <div class="allocation-footer">
-            <div><span>Cash Balance</span><strong id="cash">—</strong><small>USD</small></div>
-            <div><span>Orders</span><strong id="orderCount">—</strong><small>records</small></div>
-          </div>
-        </section>
-        <section class="panel movers-panel" aria-labelledby="moversTitle">
-          <div class="panel-heading"><h2 id="moversTitle">Watchlist</h2><span class="view-label">Market watch</span></div>
-          <p class="panel-caption">参考股票列表 · 涨跌幅待授权行情接入</p>
-          <label class="search-box" for="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search symbol / company" autocomplete="off"></label>
-          <div id="symbols" class="symbol-list" aria-live="polite"></div>
-          <div class="saved-watchlist-section" id="saved-watchlist-section">
-            <div class="saved-watchlist-heading">
-              <h3>我的自选 <span id="savedWatchlistCount">—</span></h3>
-              <button type="button" class="saved-watchlist-refresh" id="refreshWatchlistButton" hidden>刷新</button>
-            </div>
-            <div id="savedWatchlist" class="saved-watchlist-list" aria-live="polite">登录后查看已收藏股票</div>
-            <p class="saved-watchlist-feedback" id="savedWatchlistFeedback" role="status" aria-live="polite"></p>
-          </div>
-          <div class="movers-footer">涨跌幅需连接授权行情后显示</div>
-        </section>
-        <section class="panel intelligence-panel" id="intelligence-section" aria-labelledby="intelligenceTitle">
-          <div class="panel-heading"><h2 id="intelligenceTitle">Market Intelligence</h2><span class="view-label">Insights</span></div>
-          <p class="panel-caption">Market insights · 市场洞察</p>
-          <div class="intelligence-items">
-            <div class="intelligence-item"><span class="intelligence-category">AMERICAS · US</span><p>美国市场资讯源尚未连接</p></div>
-            <div class="intelligence-item"><span class="intelligence-category">ASIA · HK / CN</span><p>香港与内地市场资讯源尚未连接</p></div>
-            <div class="intelligence-item"><span class="intelligence-category">ASIA · MY</span><p>马来西亚市场资讯源尚未连接</p></div>
-          </div>
-        </section>
-      </div>
-
-      <section class="account-grid" id="account-section" aria-label="账户与订单记录">
-        <div class="panel account-panel">
-          <div class="panel-heading"><h2>Account Overview</h2><span class="view-label">ACCOUNT</span></div>
-          <div class="auth-panel" id="authPanel"><form id="authForm" autocomplete="on">
-            <label class="form-field"><span>Email</span><input id="email" type="email" placeholder="you@example.com" autocomplete="email" required></label>
-            <label class="form-field"><span>Password</span><input id="password" type="password" placeholder="至少 12 个字符" minlength="12" autocomplete="current-password" required></label>
-            <label class="form-field"><span>邀请码（注册时填写）</span><input id="inviteCode" type="text" placeholder="6 位数字" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off"></label>
-            <div class="auth-buttons"><button class="primary-button" type="submit" value="login">登录</button><button class="secondary-button" type="submit" value="register">注册</button></div>
-          </form></div>
-          <section class="account-summary" id="accountSummary" hidden aria-label="当前账户记录">
-            <div class="account-summary-heading">
-              <div><span class="account-overline">YOUR ACCOUNT</span><strong>账户已登录</strong></div>
-              <button type="button" class="secondary-button" id="refreshAccountButton" hidden>刷新数据</button>
-            </div>
-            <dl class="account-facts">
-              <div><dt>账户编号</dt><dd id="accountIdLabel">—</dd></div>
-              <div><dt>账面币种</dt><dd id="accountCurrency">—</dd></div>
-              <div><dt>现金余额</dt><dd><span id="accountCashValue">—</span> <small>USD</small></dd></div>
-            </dl>
-            <p class="account-sync" id="accountSyncedAt">尚未同步</p>
-          </section>
-          <button class="secondary-button logout-button" type="button" id="logout" hidden>退出账户</button>
-          <p class="form-feedback" id="authFeedback" role="status" aria-live="polite"></p>
-        </div>
-        <div class="panel order-panel">
-          <div class="panel-heading"><h2>Order Entry</h2><span class="view-label">INTERNAL ONLY</span></div>
-          <p class="panel-caption">本平台仅记录账户活动，不向券商或交易所发送买卖指令；授权行情未接入前，下单功能保持关闭。</p>
-          <form id="orderForm">
-            <div class="order-fields"><label class="form-field"><span>Side</span><select id="side"><option value="BUY">买入 BUY</option><option value="SELL">卖出 SELL</option></select></label>
-              <label class="form-field"><span>Quantity</span><input id="quantity" type="number" min="1" step="1" value="1" required></label></div>
-            <div class="order-details"><span>Selected instrument</span><span id="orderSymbol">US · AAPL</span></div>
-            <button class="primary-button order-submit" type="submit" disabled>下单功能未开放</button>
-          </form>
-          <p class="form-feedback" id="feedback" role="status" aria-live="polite"></p>
-        </div>
-      </section>
-
-      <section class="panel catalog-panel" id="catalog-section" aria-labelledby="catalogTitle">
-        <div class="panel-heading">
-          <h2 id="catalogTitle">Instrument Directory · 证券资料</h2>
-          <button class="secondary-button" id="refreshCatalogButton" type="button" hidden>刷新目录</button>
-        </div>
-        <p class="panel-caption">证券资料目录 · 股票、基金及 IPO 相关信息；本平台不提供证券买入或资金支付服务。</p>
-        <div id="catalogItems" class="catalog-list" aria-live="polite">登录后查看证券资料</div>
-        <p id="catalogFeedback" class="form-feedback" role="status" aria-live="polite"></p>
-      </section>
-      <section class="panel activity-panel" id="records-section" hidden>
-        <div class="panel-heading"><h2>Order History</h2><span class="view-label">ACCOUNT ACTIVITY</span></div>
-        <div id="orders" class="record-list">登录后查看订单记录</div>
-      </section>
-
-      
-    </div>
-  </main>
+<main>
+<!-- 交易 -->
+<section class="pg show" id="p-trade"><div class="kpis"><div class="pn kpi" id="k-total"><span class="kl">总资产 USD</span><em class="amt" data-b="total"></em><small>现金 + 持仓估值</small><div class="spw" data-k="total"></div></div><div class="pn kpi" id="k-cash"><span class="kl">现金余额 USD</span><em class="amt" data-b="cash"></em><small>账面现金</small><div class="spw" data-k="cash"></div></div><div class="pn kpi" id="k-cost"><span class="kl">持仓成本 USD</span><em class="amt" data-b="cost"></em><small><span data-b="nhold"></span> 个标的</small><div class="spw" data-k="cost"></div></div><div class="pn kpi" id="k-realized"><span class="kl">已实现盈亏 USD</span><em class="amt" data-b="realized"></em><small>按卖出记录统计</small><div class="spw" data-k="realized"></div></div></div><div class="col cl"><div class="pn bal-card" id="pn-bal"><div class="bc-h"><span>我的资产</span><button type="button" class="ibtn" id="balref" aria-label="刷新数据">↻ 刷新</button></div><div class="bc-v amt" data-b="cash"></div><div class="bc-s">现金余额 USD · 同步 <span data-b="sync"></span></div><div class="bc-btns"><button class="btn" type="button" data-open="m-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14"/></svg>充值</button><button class="btn" type="button" data-open="m-dep" data-wd="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V9m0 0l-4 4m4-4l4 4M5 5h14"/></svg>提现</button><button class="btn" type="button" data-open="m-id"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4M14 14h4M6 16c.6-1.4 1.6-2 3-2s2.4.6 3 2"/></svg>身份资料</button><button class="btn" type="button" data-open="m-bank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/></svg>银行卡</button></div><div class="bc-f"><div class="kv"><span>订单 · 交易通道</span><span><span data-b="nord"></span> · <span class="tw">未连接</span></span></div><div class="kv"><span>账户 <span data-b="acct"></span></span><span><span class="dot"></span>未同步</span></div></div></div><div class="pn fill" id="pn-hold">
+<div class="ph"><div>持仓</div><small><span data-b="nhold"></span> 个标的 · 点击行可卖出</small></div>
+<div class="sy"><table><thead><tr><th>标的</th><th>数量</th><th>可卖出</th><th>持仓成本</th><th>成本走势</th></tr></thead><tbody id="tb-hold"></tbody></table></div>
+<div class="pb ctr" style="border-top:1px solid var(--ln)"><div class="mut" style="font-size:10.5px">配置 · 按持仓数量 ｜ 账户同步 <span data-b="sync"></span></div><div class="alloc"><i style="width:0%"></i></div><div class="mut" style="font-size:10.5px;display:flex;justify-content:space-around"><span>US —</span><span>CN —</span></div></div>
+</div></div><div class="col cc"><div class="pn fill" id="pn-chart">
+<div class="ph ihead"><div class="ihm"><b class="ih-sym">—</b><span class="ih-xch">US</span><span class="ih-nm">证券目录待接入</span></div><small class="ihs"><span class="tw">暂无行情</span></small><div class="iftabs" id="iftabs"><button type="button" data-rg="1D">分时</button><button type="button" data-rg="5D">5日</button><button type="button" data-rg="1M">1月</button><button type="button" data-rg="6M">6月</button><button type="button" data-rg="1Y">1年</button><button type="button" data-rg="All">全部</button></div>
+<div class="al"><button class="btn" id="favaa">+ 自选</button></div>
+<div class="ar"><div class="seg"><button class="on">US</button><button>CN</button></div></div></div>
+<div class="ohlc" id="oh"></div>
+<div class="tools"><div class="seg" id="md"><button class="on">走势</button><button>K线</button></div><div class="seg" id="ma"><button>MA 均线</button></div><div class="seg" id="rg"><button>1D</button><button>5D</button><button>1M</button><button>6M</button><button>YTD</button><button>1Y</button><button>5Y</button><button class="on">All</button></div><button class="btn" id="tvbtn" type="button">查看行情图表</button></div>
+<div class="cw" id="cw"><canvas id="cv" aria-label="证券行情图"></canvas><div class="tvwrap" id="tvwrap" hidden></div><div class="cvload" id="cvload" hidden><span class="sk"></span><em>加载行情数据…</em></div></div>
+<div class="foot"><span><b id="ih-tv">待选证券</b> · TradingView · 图表可能延迟 ｜ 十字光标：移动鼠标查看 ｜ 暂无汇率数据</span></div>
 </div>
-<script type="module" src="/app.mjs"></script>
-<script type="module" src="/cn-entry-redirect.mjs"></script>
+<div class="pn ordpn" id="pn-ord">
+<div class="ph"><div>交易明细</div><small><span data-b="nord"></span> 笔 · 全部时间</small>
+<div class="al"><div class="seg" id="flt"><button class="on">全部</button><button>买入</button><button>卖出</button></div></div>
+<div class="ar"><button class="btn" id="exp">导出已加载记录</button></div></div>
+<div class="sy"><table><thead><tr><th>代码</th><th>名称</th><th>类型</th><th>价格</th><th>数量</th><th>总额 USD</th><th>持仓变化</th><th>时间 · MYT</th><th>记录</th></tr></thead><tbody class="fd" id="tb-ord"></tbody></table></div>
+<div class="note">统计基于完整历史 <span data-b="nord"></span> 笔；筛选、分页和导出仅作用于已加载记录。点击任意一行查看订单记录详情。时间均为 MYT（UTC+8）。</div>
+</div></div><div class="col cr"><div class="pn" id="pn-order">
+<div class="ph"><div>下单</div><small>大宗交易</small><div class="ar"><button class="btn" id="refprod">刷新产品</button></div></div>
+<div class="tabs" id="ptabs"><button class="on">股票</button><button>基金</button><button>IPO</button><button>大宗商品</button></div>
+<div class="pb fd" id="pbody"></div>
+</div>
+<div class="pn fill" id="pn-watch">
+<div class="ph"><div>自选</div><small id="watchsub"></small></div>
+<table><tbody id="tb-watch"></tbody></table>
+</div></div></section>
+
+<!-- 账户 -->
+<section class="pg" id="p-acct" hidden>
+<div class="stats">
+<div class="pn sc gold"><span>总资产 USD</span><em class="amt" data-b="total"></em><small class="sh">现金 + 持仓估值</small></div>
+<div class="pn sc"><span>现金余额 USD</span><em class="amt" data-b="cash"></em></div>
+<div class="pn sc"><span>持仓成本 USD</span><em class="amt" data-b="cost"></em></div>
+<div class="pn sc"><span>总成交额 USD</span><em class="amt" data-b="traded"></em></div>
+<div class="pn sc"><span>已实现盈亏 USD</span><em class="amt" data-b="realized"></em></div>
+</div>
+<div class="pn" id="pn-req">
+<div class="ph"><div>我的申请记录</div><small>共 <span data-b="nreq"></span> 条 · 点击行查看进度</small>
+<div class="ar"><button class="btn p" data-open="m-dep">充值 / 提现</button><button class="btn" data-open="m-id">身份资料</button><button class="btn" data-open="m-bank">银行卡资料</button></div></div>
+<div class="banner">申请记录：ec2852c6 · 状态展示</div>
+<table><thead><tr><th>类型</th><th>金额 USD</th><th>状态</th><th>时间 · MYT</th></tr></thead><tbody id="tb-req"></tbody></table>
+<div class="ep" id="req-empty" hidden>暂无申请记录</div>
+</div>
+<div class="col">
+<div class="pn">
+<div class="ph"><div>账户信息</div><small>账户 <span data-b="acct"></span></small></div>
+<div class="pb"><div class="kv"><span>账面币种</span><span>USD</span></div><div class="kv"><span>账户状态</span><span><span class="dot"></span>未同步</span></div><div class="kv"><span>记录时间</span><span data-b="sync"></span></div></div>
+</div>
+<div class="pn fill">
+<div class="ph"><div>申请状态</div><small>按记录统计</small></div>
+<div class="pb" id="req-stat"></div>
+</div>
+</div>
+</section>
+</main>
+
+<!-- 弹窗：充值 / 提现 -->
+<div class="mask" id="m-dep"><div class="dlg" role="dialog" aria-modal="true" aria-label="充值 / 提现预览">
+<div class="ph"><div>充值 / 提现预览</div><small>账户 <span data-b="acct"></span> · USD</small><div class="ar"><button class="btn" type="button" data-close>关闭</button></div></div>
+<form class="fb" id="f-dep" novalidate autocomplete="off">
+<div class="fld"><label for="dtype">申请类型</label><select id="dtype"><option>充值申请</option><option>提现申请</option></select></div>
+<div class="fld"><label for="damt">申请金额（USD）</label><input id="damt" inputmode="decimal" autocomplete="off" placeholder="例如：100.00"></div>
+<div class="fld" id="dpw-w" hidden><label for="dpw">提款密码</label><input id="dpw" type="password" autocomplete="new-password" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="请输入您本人的提款密码"></div><div class="hint" id="dpw-h" hidden>提款密码仅用于您本人提现验证，与参与交易密码完全独立；是否正确由服务器判断。</div>
+<div class="hint">当前可用现金 <span class="amt lime" data-b="cash"></span> USD</div>
+<div class="er" id="dep-er"></div>
+<div class="bn" id="sec-dep" hidden>当前连接不安全（HTTP），已禁止提交，请使用 HTTPS 访问</div>
+<button class="btn p w" type="submit">预览申请</button>
+
+</form></div></div>
+
+<!-- 弹窗：身份资料 -->
+<div class="mask" id="m-id"><div class="dlg wide" role="dialog" aria-modal="true" aria-label="身份资料展示">
+<div class="ph"><div>身份资料展示</div><small>选择图片进行本页预览</small><div class="ar"><button class="btn" type="button" data-close>关闭</button></div></div>
+<form class="fb" id="f-id" novalidate>
+<div class="two">
+<div class="upr"><div class="t">资料图片（正面）</div><label class="up" id="up-f"><input type="file" accept="image/png,image/jpeg"><div class="ph0"><i>＋</i><span>点击选择图片</span></div><img alt="身份证正面预览"></label><div class="fname" id="fn-f"></div></div>
+<div class="upr"><div class="t">资料图片（反面）</div><label class="up" id="up-b"><input type="file" accept="image/png,image/jpeg"><div class="ph0"><i>＋</i><span>点击选择图片</span></div><img alt="身份证反面预览"></label><div class="fname" id="fn-b"></div></div>
+</div>
+<div class="bn" id="sec-id" hidden>当前连接不安全（HTTP），已禁止上传证件，请使用 HTTPS 访问</div>
+<button class="btn p w" type="submit">选择资料并预览</button>
+<div class="hint">支持 PNG / JPEG，每张最多 2MB。</div>
+</form></div></div>
+
+<!-- 弹窗：银行账户 -->
+<div class="mask" id="m-bank"><div class="dlg" role="dialog" aria-modal="true" aria-label="银行卡资料展示">
+<div class="ph"><div>银行卡资料展示</div><small>账户资料展示</small><div class="ar"><button class="btn" type="button" data-close>关闭</button></div></div>
+<form class="fb" id="f-bank" novalidate autocomplete="off">
+<div class="fld"><label for="bname">银行名称</label><input id="bname" autocomplete="off" spellcheck="false" placeholder="银行名称"></div>
+<div class="fld"><label for="bno">账户编号<button type="button" class="lk" id="bno-t">显示</button></label><input id="bno" type="password" inputmode="numeric" autocomplete="off" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="输入银行账号"></div>
+<div class="er" id="bank-er"></div>
+<div class="bn" id="sec-bank" hidden>当前连接不安全（HTTP），已禁止提交，请使用 HTTPS 访问</div>
+<button class="btn p w" type="submit">预览账户资料</button>
+
+</form></div></div>
+
+<!-- 弹窗：下单（两步：填写 → 确认） -->
+<div class="mask" id="m-trade"><div class="dlg" role="dialog" aria-modal="true" aria-label="下单">
+<div class="ph"><div id="tr-title">买入下单</div><small id="tr-sub">大宗交易 · 股票</small><div class="ar"><button class="btn" type="button" data-close>关闭</button></div></div>
+<div class="fb fd" id="tr-body"></div></div></div>
+
+<!-- 弹窗：成交详情 -->
+<div class="mask" id="m-ord"><div class="dlg" role="dialog" aria-modal="true" aria-label="订单记录详情">
+<div class="ph"><div>订单记录详情</div><small id="od-sub"></small><div class="ar"><button class="btn" type="button" data-close>关闭</button></div></div>
+<div class="fb"><div id="od-body"></div><button class="btn p w" type="button" id="od-again">再次买入</button>
+</div></div></div>
+
+<!-- 弹窗：申请进度 -->
+<div class="mask" id="m-req"><div class="dlg" role="dialog" aria-modal="true" aria-label="申请进度">
+<div class="ph"><div id="rq-title"></div><small id="rq-sub"></small><div class="ar"><button class="btn" type="button" data-close>关闭</button></div></div>
+<div class="fb"><div id="rq-body"></div></div></div></div>
+
+<!-- 弹窗：自动锁定 -->
+<div class="mask" id="m-lock"><div class="dlg" role="alertdialog" aria-modal="true" aria-label="已自动锁定">
+<div class="fb lockbox"><div style="font-size:15px">已自动锁定</div><div class="hint">长时间未操作，为保护账户资料，页面已锁定。点击继续使用。</div><button class="btn p w" type="button" data-close>继续使用</button></div></div></div>
+
+<!-- 客服弹窗 -->
+<div class="cp" id="cp" role="dialog" aria-label="客户客服">
+<div class="ph"><div>客户客服</div><small class="cs"><span class="dot" style="margin:0"></span>消息仅在当前页面显示</small><div class="al"><button class="btn" id="csref">刷新</button></div><div class="ar"><button class="btn" id="csx" aria-label="关闭">关闭</button></div></div>
+<div class="msgs" id="msgs"></div>
+<div class="qk" id="qk"></div>
+<form class="cin" id="f-chat"><input id="cmsg" autocomplete="off" placeholder="输入消息（仅当前页面显示）"><button class="btn p" type="submit">发送</button></form>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+/* ========== 配置 ========== */
+var LB={days:'持有天数',min:'最低持有数量'};   /* 术语以后台「证券资料」为准：优惠比例 / 持有天数 / 最低持有数量 / 参与交易密码 / 提款密码 */
+var TRADING_ENABLED=false;   // 行情授权后改为 true，下单弹窗的「提交订单」即可使用
+var API=window.CN_FRONT_API_BASE||null; // 接口待另一组接入；缺失时显示空状态，绝不使用预置资金/订单
+var IDLE_MS=15*60*1000;      // 无操作自动锁定时间
+var SECURE=!(location.protocol==='http:'&&!/^(localhost|127\.0\.0\.1)$/.test(location.hostname));
+
+/* ========== 唯一数据源：页面所有数字都由这里计算，不会互相矛盾 ========== */
+var DATA={perm:{withdraw:'待接口'},acct:'',sync:'未连接',cashOverride:null,realizedPnl:null,totalAssets:null,names:{},sec:{},watch:[],fav:[],orders:[],holds:[],reqs:[],chat:[]};
+var DATA_READY=false,HAVE={};
+function sum(a,fn){return a.reduce(function(x,y){return x+fn(y)},0)}
+function safeTotal(a,key){if(!Array.isArray(a))return null;var n=0;for(var i=0;i<a.length;i++){var v=a[i]&&a[i][key];if(typeof v!=='number'||!isFinite(v))return null;n+=v}return n}
+function cost(){return HAVE.holds?safeTotal(DATA.holds,'c'):null}
+function traded(){return HAVE.orders?safeTotal(DATA.orders,'a'):null}
+function realized(){return HAVE.realizedPnl&&typeof DATA.realizedPnl==='number'&&isFinite(DATA.realizedPnl)?DATA.realizedPnl:null}
+/* 余额和估值只接受已确认的服务端字段，不从申请或订单列表推测。 */
+function cash(){return HAVE.cashOverride&&typeof DATA.cashOverride==='number'&&isFinite(DATA.cashOverride)?DATA.cashOverride:null}
+function totalAssets(){return HAVE.totalAssets&&typeof DATA.totalAssets==='number'&&isFinite(DATA.totalAssets)?DATA.totalAssets:null}
+function held(s){var h=DATA.holds.filter(function(x){return x.s===s})[0];return h||null}
+/* ---- 证券配置 / 持有期 / 名称（后台设置驱动） ---- */
+function cfg(c){var s=DATA.sec&&DATA.sec[c];return s&&!s.withdrawn?s:null}   /* 每个证券各自一份配置；没有配置 = 未开放 */
+function nm(c){var n=DATA.names&&DATA.names[c];if(!n&&DATA.sec&&DATA.sec[c])n=DATA.sec[c].name;return n?String(n):String(c)}   /* 证券被撤回、名称缺失时回退为代码 */
+function minQ(c){var s=cfg(c);return s&&s.min>0?s.min:1}
+function sellable(code){var h=held(code);if(!h)return 0;if(!Array.isArray(h.lots))return h.q;var t=Date.now();return h.lots.reduce(function(a,l){var u=Date.parse(l.until);return a+(isNaN(u)||u<=t?l.q:0)},0)}
+function nextUnlock(code){var h=held(code);if(!h||!Array.isArray(h.lots))return null;var t=Date.now(),m=null;h.lots.forEach(function(l){var u=Date.parse(l.until);if(!isNaN(u)&&u>t&&(m===null||u<m))m=u});return m}
+function fmtT(ms){var d=new Date(ms+288e5),p=function(n){return n<10?'0'+n:n};return d.getUTCFullYear()+'-'+p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate())+' '+p(d.getUTCHours())+':'+p(d.getUTCMinutes())}
+function f(n){return typeof n==='number'&&isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function stc(s){return s.indexOf('成功')>-1?'ok':s.indexOf('等待')>-1||s.indexOf('通过')>-1?'in':'wa'}
+function now(){return fmtT(Date.now())}
+function bind(){var m={cash:f(cash()),cost:f(cost()),traded:f(traded()),realized:f(realized()),total:f(totalAssets()),nord:HAVE.orders?DATA.orders.length:'—',nhold:HAVE.holds?DATA.holds.length:'—',nreq:HAVE.reqs?DATA.reqs.length:'—',acct:DATA_READY&&DATA.acct?'····'+DATA.acct:'—',sync:DATA_READY?DATA.sync:'未同步',src:DATA.src};
+ document.querySelectorAll('[data-b]').forEach(function(e){var v=m[e.dataset.b];if(v!=null)e.textContent=v})}
+
+/* ========== 渲染 ========== */
+var FLT='全部';
+function rOrders(){var L=DATA.orders.map(function(o,i){return [o,i]}).filter(function(x){return FLT==='全部'||x[0].t===FLT});
+ $('tb-ord').innerHTML=L.length?L.map(function(x){var o=x[0];return '<tr class="click" tabindex="0" data-i="'+x[1]+'" title="点击查看成交详情"><td>'+esc(o.s)+'<div class="mut nm2">'+esc(nm(o.s))+'</div></td><td class="mut">'+esc(nm(o.s))+'</td><td class="'+(o.t==='买入'?'up':'dn')+'">'+(o.t==='买入'?'↑ ':'↓ ')+esc(o.t)+'</td><td>'+f(o.p)+'</td><td>'+esc(num(o.q,0))+'</td><td class="amt">'+f(o.a)+'</td><td class="spc">'+(function(){var z=os(o);return spk(z.v,64,22,{hi:z.hi,t:o.s+' 累计持仓走势'})})()+'</td><td class="mut">'+esc(o.d)+'</td><td><span class="chip ok">已记录</span></td></tr>'}).join(''):'<tr><td colspan="8" class="mut" style="padding:20px 0">'+(HAVE.orders?'无符合条件的记录':'数据未同步')+'</td></tr>'}
+function rHolds(){$('tb-hold').innerHTML=DATA.holds.length?DATA.holds.map(function(h){var sl=sellable(h.s),lk=h.q-sl,u=nextUnlock(h.s);
+ return '<tr class="click" tabindex="0" data-s="'+esc(h.s)+'" title="点击卖出"><td>'+esc(h.s)+' <span class="mut">'+esc(nm(h.s).split(' ')[0])+'</span></td><td>'+esc(num(h.q,0))+'</td><td>'+esc(sl)+(lk>0&&u?'<div class="mut" style="font-size:10.5px;line-height:1.2">'+esc(fmtT(u))+' 起可卖 '+(lk>0?esc(lk):'')+'</div>':'')+'</td><td class="amt">'+f(h.c)+'</td><td class="spc">'+spk(hs(h),52,22,{t:h.s+' 持仓成本走势'})+'</td></tr>'}).join(''):'<tr><td colspan="5" class="mut" style="padding:16px 0">'+(HAVE.holds?'暂无持仓':'数据未同步')+'</td></tr>'}
+function rWatch(){$('tb-watch').innerHTML=DATA.watch.length?DATA.watch.map(function(s){var on=DATA.fav.indexOf(s)>-1;return '<tr><td>'+esc(s)+'</td><td class="mut">'+esc(nm(s))+'</td><td class="spc">'+(function(){var v=ws(s);return spk(v,56,22,{t:s+(DATA.px&&DATA.px[s]?' 行情走势':' 持仓成本走势')})})()+'</td><td><button class="star'+(on?' on':'')+'" data-s="'+esc(s)+'" aria-label="自选" aria-pressed="'+on+'">'+(on?'★':'☆')+'</button></td></tr>'}).join(''):'<tr><td colspan="4" class="mut">'+(HAVE.watch?'暂无自选数据':'数据未同步')+'</td></tr>';
+ $('watchsub').textContent='行情暂不可用 · 已自选 '+DATA.fav.length;
+ var b=$('favaa');b.textContent=DATA.fav.indexOf('AA')>-1?'已自选':'+ 自选'}
+function rReqs(){$('tb-req').innerHTML=DATA.reqs.map(function(r,i){return '<tr class="click" tabindex="0" data-i="'+i+'"><td>'+esc(r.k)+'</td><td class="amt'+(r.a?'':' mut')+'">'+(r.a?f(r.a):'—')+'</td><td><span class="chip '+stc(String(r.st))+'">'+esc(r.st)+'</span></td><td class="mut">'+esc(r.d)+'</td></tr>'}).join('');
+ $('req-empty').textContent=HAVE.reqs?'暂无申请记录':'数据未同步';$('req-empty').hidden=DATA.reqs.length>0}
+function rStat(){var g={};DATA.reqs.forEach(function(r){g[r.st]=(g[r.st]||0)+1});
+ $('req-stat').innerHTML=Object.keys(g).map(function(k){return '<div class="kv"><span>'+esc(k)+'</span><span class="chip '+stc(k)+'">'+esc(g[k])+'</span></div>'}).join('')}
+var SEC='股票';
+function rProd(){var b=$('pbody');
+ var items=Object.keys(DATA.sec||{}).filter(function(c){var s=DATA.sec[c];return s&&s.visible!==false&&(s.type||'股票')===SEC});
+ if(!items.length){b.innerHTML='<div class="bn in">'+esc(SEC)+' 暂无已发布产品 · 请点击「刷新产品」</div>';return}
+ b.innerHTML=items.map(function(c){var s=DATA.sec[c];
+  return '<div class="kv"><span style="color:var(--tx)">'+esc(c)+' '+esc(nm(c))+'</span><span class="chip in">优惠比例 '+esc(s.discount)+'%</span></div>'
+  +'<div class="kv"><span>'+LB.days+'</span><span>'+esc(s.days)+' 天</span></div>'
+  +'<div class="kv"><span>'+LB.min+'</span><span>'+esc(s.min)+' 股</span></div>'
+  +'<div class="kv"><span>参与交易密码</span><span>'+(s.needPass?'需要':'不需要')+'</span></div>'
+  +'<div class="kv"><span>计价 · 可用现金</span><span>USD · <span class="amt lime">'+f(cash())+'</span></span></div>'
+  +'<div class="kv"><span>预估金额</span><span class="mut">暂无行情，暂无法估算</span></div>'
+  +(TRADING_ENABLED&&API?'<div style="margin-top:10px"><button class="btn p w" data-buy="'+esc(c)+'">买入 '+esc(c)+'</button></div>':'<div style="margin-top:10px"><button class="btn w" disabled>买入 '+esc(c)+' · 实时交易暂停</button></div>')
+ }).join('<div style="border-top:1px solid rgba(255,255,255,.08);margin:14px 0"></div>')}
+
+/* ===== v4：走势小图（仅用账户自己的真实记录；无行情数据时显示虚线占位） ===== */
+var gid=0,TEAL='#19bfbd';
+function spk(v,w,h,o){o=o||{};var P=3,t=o.t||'',c=o.c||TEAL,pre='<svg class="sp" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(t||'走势')+'"><title>'+esc(t||'走势')+'</title>';
+ if(!v||!v.length)return '<span class="mut">—</span>';
+ var n=v.length,lo=Math.min.apply(null,v),hi=Math.max.apply(null,v),rg=hi-lo;
+ function X(i){return n<2?w-P:P+(w-2*P)*i/(n-1)}function Y(x){return rg?h-P-(h-2*P)*(x-lo)/rg:h/2}
+ var pts=v.map(function(x,i){return X(i).toFixed(1)+','+Y(x).toFixed(1)});if(n<2)pts=[P+','+Y(v[0]).toFixed(1),(w-P)+','+Y(v[0]).toFixed(1)];
+ var id='sg'+(++gid),hi2=o.hi==null?n-1:o.hi,dx=n<2?w-P:X(hi2),dy=Y(v[hi2]);
+ return pre+'<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c+'" stop-opacity=".30"/><stop offset="1" stop-color="'+c+'" stop-opacity="0"/></linearGradient></defs>'
+  +'<path d="M'+pts[0]+' L'+pts.join(' L')+' L'+(n<2?w-P:X(n-1)).toFixed(1)+','+h+' L'+(n<2?P:P)+','+h+' Z" fill="url(#'+id+')"/>'
+  +'<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+c+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
+  +'<circle cx="'+dx.toFixed(1)+'" cy="'+dy.toFixed(1)+'" r="2.6" fill="'+c+'"/></svg>'}
+function evs(){var E=[];DATA.orders.forEach(function(o){E.push({d:o.d,s:o.s,t:o.t,a:+o.a,q:+o.q,o:o})});
+ DATA.reqs.forEach(function(r){if(r.k==='充值申请'&&r.st.indexOf('成功')>-1)E.push({d:r.d,dep:+r.a})});
+ E.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:0});return E}
+function okEnd(a,x){return a.length&&Math.abs(a[a.length-1]-x)<.01?a:[]}
+function kser(){var E=evs(),c=0,k=0,C=[],K=[],T=[];
+ E.forEach(function(e){if(e.dep)c+=e.dep;else if(e.t==='买入'){c-=e.a;k+=e.a}else{c+=e.a;k-=e.a}C.push(c);K.push(k);T.push(c+k)});
+ return{cash:[],cost:[],total:[],realized:[]}}
+function symSer(sym,kind){var q=0,c=0,Q=[],C=[],E=evs().filter(function(e){return e.s===sym});
+ E.forEach(function(e){var b=e.t==='买入';q+=b?e.q:-e.q;c+=b?e.a:-e.a;Q.push(q);C.push(c)});return{E:E,Q:Q,C:C}}
+function hs(h){var r=symSer(h.s);return okEnd(r.C,h.c)}
+function ws(s){if(DATA.px&&DATA.px[s]&&DATA.px[s].length>1)return DATA.px[s];var h=held(s);return h?hs(h):[]}
+function os(o){var r=symSer(o.s),i=-1;r.E.forEach(function(e,k){if(e.o===o)i=k});return{v:r.Q,hi:i<0?null:i}}
+function rKpi(){var S=kser();document.querySelectorAll('.kpi .spw').forEach(function(e){e.innerHTML=spk(S[e.dataset.k],112,38,{t:'按已记录成交与充值累计'})})}
+function renderAll(){bind();rKpi();rOrders();rHolds();rWatch();rReqs();rStat();rProd();renderBadge();var cl=$('cvload');if(cl)cl.hidden=true;clearInterval(skTimer);if(skActive){skActive=false;reveal()}}
+
+/* ========== 提示 / 弹窗管理 ========== */
+var tt;function toast(t){var e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},2400)}
+function fade(el,fn){el.classList.add('out');setTimeout(function(){fn();el.classList.remove('out')},180)}
+var lastF=null,openM=null,urls=[],files={f:null,b:null};
+function resetForms(id){
+ if(id==='m-trade'){var tp=$('tr-pw');if(tp)tp.value=''}
+ if(id==='m-dep'){$('damt').value='';$('dep-er').textContent='';$('dtype').selectedIndex=0;$('dpw').value='';$('dpw-w').hidden=true;$('dpw-h').hidden=true}
+ if(id==='m-bank'){$('bname').value='';$('bno').value='';$('bno').type='password';$('bno-t').textContent='显示';$('bank-er').textContent=''}
+ if(id==='m-id'){['f','b'].forEach(function(k){var b=$('up-'+k);b.querySelector('input').value='';var im=b.querySelector('img');im.removeAttribute('src');b.classList.remove('has');$('fn-'+k).textContent='';files[k]=null});urls.forEach(function(u){URL.revokeObjectURL(u)});urls=[]}}
+function closeM(){if(!openM)return;var id=openM.id;openM.classList.remove('open');openM=null;resetForms(id);if(lastF&&lastF.focus)lastF.focus()}
+function openModal(id){var af=document.activeElement;closeM();lastF=af;var m=$(id);m.classList.add('open');openM=m;
+ var sec={'m-dep':'sec-dep','m-id':'sec-id','m-bank':'sec-bank'}[id];
+ if(sec){$(sec).hidden=SECURE;m.querySelectorAll('button[type=submit]').forEach(function(b){b.disabled=!SECURE})}
+ setTimeout(function(){var i=m.querySelector('input:not([type=file]):not([type=checkbox]),select');if(i&&id!=='m-lock')i.focus()},220)}
+document.querySelectorAll('[data-open]').forEach(function(b){b.onclick=function(e){e.stopPropagation();openModal(b.dataset.open)}});
+document.querySelectorAll('[data-close]').forEach(function(b){b.onclick=closeM});
+document.querySelectorAll('.mask').forEach(function(m){m.onclick=function(e){if(e.target===m&&m.id!=='m-lock')closeM()}});
+
+/* ========== 页面切换 ========== */
+var cur='trade',busy=false;
+function show(p){if(p===cur||busy||!$('p-'+p))return;busy=true;var a=$('p-'+cur),b=$('p-'+p);a.classList.remove('show');
+ document.querySelectorAll('.tn').forEach(function(x){x.classList.toggle('on',x.dataset.p===p)});
+ setTimeout(function(){a.hidden=true;b.hidden=false;requestAnimationFrame(function(){requestAnimationFrame(function(){b.classList.add('show');cur=p;busy=false})})},230)}
+document.querySelectorAll('.tn').forEach(function(b){b.onclick=function(){show(b.dataset.p)}});
+$('balchip').onclick=function(){show('acct')};
+
+/* ========== 隐藏金额 ========== */
+function setHide(v){document.body.classList.toggle('hide',v);$('hidebtn').textContent=v?'显示金额':'隐藏金额';$('hidebtn').setAttribute('aria-pressed',v);try{sessionStorage.setItem('hideAmt',v?'1':'')}catch(e){}}
+$('hidebtn').onclick=function(){setHide(!document.body.classList.contains('hide'))};
+try{if(sessionStorage.getItem('hideAmt'))setHide(true)}catch(e){}
+
+/* ========== 交易明细 / 持仓 / 自选 / 下单面板 ========== */
+$('flt').querySelectorAll('button').forEach(function(b){b.onclick=function(){$('flt').querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});FLT=b.textContent;fade($('tb-ord'),rOrders)}});
+$('tb-ord').addEventListener('click',function(e){var r=e.target.closest('tr[data-i]');if(!r)return;var o=DATA.orders[+r.dataset.i];ODCUR=o.s;
+ $('od-sub').textContent=o.s+' · '+nm(o.s);
+ var L=[['类型','<span class="'+(o.t==='买入'?'up':'dn')+'">'+esc(o.t)+'</span>'],['记录价格','$'+f(o.p)],['数量',esc(num(o.q,0))+' 股'],['记录金额 USD','<span class="amt">$'+f(o.a)+'</span>'],['记录时间',esc(o.d)],['记录状态','<span class="chip ok">已记录</span>']];
+ $('od-body').innerHTML=L.map(function(x){return '<div class="kv"><span>'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join('');
+ $('od-again').textContent=TRADING_ENABLED?'再次买入 '+o.s:'再次预览买入 '+o.s;$('od-again').disabled=!TRADING_ENABLED;openModal('m-ord')});
+var ODCUR='AA';
+$('od-again').onclick=function(){openTrade('买入',ODCUR)};
+$('tb-hold').addEventListener('click',function(e){var r=e.target.closest('tr[data-s]');if(r)openTrade('卖出',r.dataset.s)});
+function toggleFav(s){if(!API){toast('自选暂不可用，未修改');return}var i=DATA.fav.indexOf(s);if(i>-1)DATA.fav.splice(i,1);else DATA.fav.push(s);rWatch();toast(i>-1?'已移出自选':'已加入自选')}
+$('tb-watch').addEventListener('click',function(e){var b=e.target.closest('.star');if(b)toggleFav(b.dataset.s)});
+$('favaa').onclick=function(){toggleFav('AA')};
+$('pbody').addEventListener('click',function(e){var b=e.target.closest('[data-buy]');if(b)openTrade('买入',b.dataset.buy)});
+$('ptabs').querySelectorAll('button').forEach(function(b){b.onclick=function(){$('ptabs').querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});SEC=b.textContent;fade($('pbody'),rProd)}});
+$('refprod').onclick=function(){if(API)loadData();else toast('产品暂不可用，未刷新')};
+$('exp').onclick=function(){var c='代码,类型,价格,数量,总额USD,时间\n'+DATA.orders.map(function(o){return [o.s,o.t,o.p,o.q,o.a,o.d].map(function(v){v=String(v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'}).join(',')}).join('\n');
+ try{var u=URL.createObjectURL(new Blob(['﻿'+c],{type:'text/csv'})),a=document.createElement('a');a.href=u;a.download='cn-capital-orders.csv';a.click();setTimeout(function(){URL.revokeObjectURL(u)},1000)}catch(x){}
+ toast('已导出已加载记录 · '+DATA.orders.length+' 笔')};
+
+/* ========== 下单：填写 → 确认 → 提交 ========== */
+var TR=null;
+function openTrade(side,code){TR={side:side,code:code,step:1,qty:side==='买入'?minQ(code):1,agree:false,busy:false,key:null};$('tr-title').textContent=side+'订单预览';$('tr-sub').textContent='大宗交易 · '+code+' '+nm(code);renderTrade(false);openModal('m-trade')}
+function trErr(){var h=held(TR.code),c=cfg(TR.code);if(!(TR.qty>0))return '请输入大于 0 的整数数量';
+ if(TR.side==='买入'){if(!c||c.visible===false)return '该标的当前未开放买入';if(TR.qty<minQ(TR.code))return ''+LB.min+'为 '+minQ(TR.code)+' 股'}
+ if(TR.side==='卖出'){if(!h)return '当前未持有该标的，无法卖出';if(TR.qty>h.q)return '卖出数量不能超过持仓 '+h.q+' 股';
+  var sl=sellable(TR.code);if(TR.qty>sl){var u=nextUnlock(TR.code);return sl>0?'当前可卖出 '+sl+' 股'+(u?'，其余将于 '+fmtT(u)+' 解锁':''):'持有期未满'+(u?'，最早 '+fmtT(u)+' 可卖出':'')}}
+ return ''}
+function termsHtml(code){var c=cfg(code);if(!c)return '';
+ return '<div class="kv"><span>优惠比例</span><span class="chip in">'+esc(c.discount)+'%</span></div><div class="kv"><span>'+LB.days+'</span><span>'+esc(c.days)+' 天</span></div><div class="kv"><span>'+LB.min+'</span><span>'+esc(c.min)+' 股</span></div><div class="kv"><span>参与交易密码</span><span>'+(c.needPass?'需要':'不需要')+'</span></div>'}
+function pwOk(){var c=cfg(TR.code);if(TR.side!=='买入')return true;var i=$('tr-pw');return !!i&&/^\d{6}$/.test(i.value)}
+function goOk(){return !!(TRADING_ENABLED&&TR&&TR.agree&&pwOk()&&!TR.busy)}
+function renderTrade(anim){var b=$('tr-body');function go(){var buy=TR.side==='买入',h=held(TR.code),c=cfg(TR.code),needPw=!!buy,html='';
+ if(TR.step===1){
+  html='<div class="dirtog"><button type="button" class="dirbtn buy'+(buy?' on':'')+'" data-side="买入">买入</button><button type="button" class="dirbtn sell'+(buy?'':' on')+'" data-side="卖出">卖出</button></div><div class="kv"><span style="color:var(--tx)">'+esc(TR.code)+' '+esc(nm(TR.code))+'</span>'+(buy&&c?'<span class="chip in">优惠比例 '+esc(c.discount)+'%</span>':'')+'</div><div class="kv"><span>计价</span><span>USD</span></div>'
+  +(buy?(c?'<div class="kv"><span>'+LB.days+'</span><span>'+esc(c.days)+' 天</span></div><div class="kv"><span>'+LB.min+'</span><span>'+esc(c.min)+' 股</span></div>':'')+'<div class="kv"><span>可用现金</span><span class="amt lime">'+f(cash())+' USD</span></div>'
+   :'<div class="kv"><span>持仓数量</span><span>'+(h?h.q+' 股':(HAVE.holds?'0 股':'—'))+'</span></div><div class="kv"><span>可卖出数量</span><span>'+(h?sellable(TR.code)+' 股':'0 股')+'</span></div>'+(h&&nextUnlock(TR.code)?'<div class="kv"><span>最早解锁时间</span><span class="tw">'+esc(fmtT(nextUnlock(TR.code)))+'</span></div>':'')+'<div class="kv"><span>成本均价</span><span class="amt">'+(h?'$'+f(h.c/h.q):'—')+'</span></div>')
+  +'<div class="fld"><label>'+TR.side+'数量</label><div class="stp"><button type="button" id="tq-m" aria-label="减少">−</button><input id="tq" inputmode="numeric" value="'+TR.qty+'" autocomplete="off" aria-label="数量"><button type="button" id="tq-p" aria-label="增加">+</button></div></div>'
+  +'<div class="er" id="tr-er">'+esc(trErr())+'</div>'
+  +'<div class="kv"><span>预估金额</span><span class="mut">暂无行情，暂无法估算</span></div>'
+  +'<button class="btn p w" id="tr-next"'+(trErr()?' disabled':'')+'>下一步：订单预览</button>'}
+ else{
+  html='<div class="kv"><span>方向</span><span class="'+(buy?'up':'dn')+'">'+TR.side+'</span></div><div class="kv"><span>标的</span><span>'+esc(TR.code)+' '+esc(nm(TR.code))+'</span></div><div class="kv"><span>数量</span><span>'+TR.qty+' 股</span></div><div class="kv"><span>计价</span><span>USD</span></div>'
+  +(buy?termsHtml(TR.code):(h&&nextUnlock(TR.code)?'<div class="kv"><span>可卖出数量</span><span>'+sellable(TR.code)+' 股</span></div><div class="kv"><span>其余解锁时间</span><span class="tw">'+esc(fmtT(nextUnlock(TR.code)))+'</span></div>':''))
+  +'<div class="kv"><span>预估金额</span><span class="mut">当前无法估算</span></div><div class="kv"><span>手续费</span><span class="mut">当前无法估算</span></div>'
+  +'<div class="hint" style="text-align:left">价格可能波动，预估金额仅供参考。</div>'
+  +(needPw?'<div class="fld"><label for="tr-pw">参与交易密码</label><input id="tr-pw" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="6 位数字" aria-label="参与交易密码"><div class="er" id="tr-pwer"></div></div>':'')
+  +'<label class="chk"><input type="checkbox" id="tr-ag"'+(TR.agree?' checked':'')+'>'+(buy?'我已阅读并理解以上优惠比例、'+LB.days+'、'+LB.min+'及价格提示，确认订单预览':'我已阅读并理解以上提示，确认订单预览')+'</label>'
+  +'<div class="row2"><button class="btn gh w" id="tr-back">返回修改</button><button class="btn '+(buy?'p':'red')+' w" id="tr-go"'+(goOk()?'':' disabled')+'>'+(TRADING_ENABLED&&API?'提交订单':'交易暂不可用')+'</button></div>'}
+ b.innerHTML=html;
+ if(TR.step===1){var q=$('tq');b.querySelectorAll('.dirbtn').forEach(function(db){db.onclick=function(){var ns=db.getAttribute('data-side');if(ns===TR.side)return;TR.side=ns;TR.qty=ns==='买入'?minQ(TR.code):1;$('tr-title').textContent=ns+'订单预览';$('tr-sub').textContent='大宗交易 · '+TR.code+' '+nm(TR.code);renderTrade(true)}});
+  var upd=function(){var e=trErr();$('tr-er').textContent=q.value===''?'':e;$('tr-next').disabled=!!e};
+  q.addEventListener('input',function(){q.value=q.value.replace(/\D/g,'');TR.qty=parseInt(q.value,10)||0;upd()});
+  q.addEventListener('blur',function(){if(!(parseInt(q.value,10)>0)){TR.qty=buy?minQ(TR.code):1;q.value=TR.qty;upd()}});
+  $('tq-m').onclick=function(){TR.qty=Math.max(buy?minQ(TR.code):1,(parseInt(q.value,10)||1)-1);q.value=TR.qty;upd()};
+  $('tq-p').onclick=function(){TR.qty=(parseInt(q.value,10)||0)+1;q.value=TR.qty;upd()};
+  $('tr-next').onclick=function(){var e=trErr();if(e){$('tr-er').textContent=e;return}TR.step=2;TR.agree=false;TR.key=null;renderTrade(true)}}
+ else{
+  $('tr-ag').onchange=function(){TR.agree=this.checked;$('tr-go').disabled=!goOk()};
+  var pw=$('tr-pw');if(pw)pw.addEventListener('input',function(){pw.value=pw.value.replace(/\D/g,'');$('tr-pwer').textContent='';$('tr-go').disabled=!goOk()});
+  $('tr-back').onclick=function(){TR.step=1;renderTrade(true)};
+  $('tr-go').onclick=placeOrder;var dmo=$('tr-demo');if(dmo)dmo.onclick=function(){playOrderConfirm({side:TR.side,code:TR.code,qty:TR.qty,demo:true})}}}
+ if(anim)fade(b,go);else go()}
+var ERRMSG={bad_password:'参与交易密码不正确',rate_limited:'密码错误次数过多，请稍后再试',locked:'参与交易密码已被锁定，请联系客服解锁',min_qty:'低于'+LB.min+'',lock_period:'持有期未满，暂不能卖出',unavailable:'该证券当前未开放买入',withdrawn:'该证券已撤回，无法交易',insufficient_funds:'可用现金不足',unauthorized:'登录已失效，请重新登录',csrf:'页面已过期，请刷新后重试'};
+var DEFINITIVE={bad_password:1,rate_limited:1,locked:1,min_qty:1,lock_period:1,unavailable:1,withdrawn:1,insufficient_funds:1,csrf:1};
+function csrf(){var m=document.querySelector('meta[name="csrf-token"]');return m?m.content:(window.CSRF_TOKEN||'')}
+function newKey(){try{return crypto.randomUUID()}catch(e){return String(Date.now())+Math.random().toString(16).slice(2)}}
+/* 前端校验仅用于体验；最低数量、持有期、密码、余额必须由服务器再次校验。密码只随这一次请求发送，不缓存。 */
+function playOrderConfirm(o){o=o||{};var dlg=document.querySelector('#m-trade .dlg');if(!dlg){if(o.done)o.done();return}
+ var sell=o.side==='卖出',old=dlg.querySelector('.tr-ok');if(old)old.remove();
+ var el=document.createElement('div');el.className='tr-ok'+(sell?' sell':'');
+ el.innerHTML='<div class="ring"><span class="pulse"></span><svg viewBox="0 0 92 92"><circle class="rc" cx="46" cy="46" r="42"/><circle class="rp" cx="46" cy="46" r="42"/></svg><span class="ck"><svg viewBox="0 0 46 46"><path d="M12 24 L20 32 L34 15"/></svg></span></div>'+'<b>'+(o.demo?'订单预览':((o.side||'订单')+'提交中'))+'</b>'+'<span>'+esc((o.side||'')+' '+(o.code||'')+(o.qty?' · '+o.qty+' 股':''))+'</span>'+'<span class="tag">'+(o.demo?'订单预览 · 未提交':'委托已受理 · 等待撑合确认')+'</span>';
+ dlg.appendChild(el);
+ var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+ setTimeout(function(){el.remove();if(o.done)o.done()},o.demo?1600:(rm?700:1750));
+}
+function placeOrder(){if(!goOk())return;
+ if(!API){toast('交易暂不可用');return}
+ var c=cfg(TR.code),pw=$('tr-pw'),body={side:TR.side,symbol:TR.code,qty:TR.qty},hd={'Content-Type':'application/json','Idempotency-Key':TR.key||(TR.key=newKey())};
+ if(csrf())hd['X-CSRF-Token']=csrf();
+ TR.busy=true;$('tr-go').disabled=true;
+ if(TR.side==='买入'&&pw){body.tradePassword=pw.value;pw.value=''}   /* 取出后立即清空输入框；密码不进 DATA、不缓存 */
+ var payload=JSON.stringify(body);body=null;
+ fetch(API+'/orders',{method:'POST',credentials:'include',headers:hd,body:payload})
+ .then(function(r){if(r.ok)return r.json();return r.json().catch(function(){return{}}).then(function(d){throw{code:d&&d.error,status:r.status,wait:d&&d.retryAfter}})})
+ .then(function(){TR.busy=false;playOrderConfirm({side:TR.side,code:TR.code,qty:TR.qty,done:function(){closeM();toast('订单已提交');loadData()}})})
+ .catch(function(x){TR.busy=false;var code=x&&x.code;if(!code&&x&&x.status===401)code='unauthorized';if(!code&&x&&x.status===429)code='rate_limited';
+  if(code&&DEFINITIVE[code])TR.key=null;   /* 服务器已明确拒绝：换新幂等键；网络错误/5xx 保留原键，重试不会重复下单 */
+  var msg=ERRMSG[code]||'提交失败，请稍后重试';if(x&&x.wait&&(code==='rate_limited'||code==='locked'))msg+='（约 '+Math.ceil(x.wait/60)+' 分钟后）';
+  var pe=$('tr-pwer');if((code==='bad_password'||code==='rate_limited'||code==='locked')&&pe)pe.textContent=msg;else toast(msg);var g=$('tr-go');if(g)g.disabled=!goOk()})}
+
+/* ========== 申请进度 ========== */
+$('tb-req').addEventListener('click',function(e){var r=e.target.closest('tr[data-i]');if(!r)return;var q=DATA.reqs[+r.dataset.i],s=q.st,idn=q.k.indexOf('身份')>-1,L=idn?['已提交','资料处理','状态通知']:['已提交','记录处理','结果通知'],S;
+ if(s.indexOf('成功')>-1)S=['d','d','d'];else if(s.indexOf('通过')>-1)S=['d','d','a'];else if(s.indexOf('等待')>-1){L=['已提交','待补充资料','资料处理'];S=['d','a','p']}else S=['d','a','p'];
+ var rt=$('rq-title');rt.textContent=q.k;if(q.a){var sp=document.createElement('span');sp.className='amt';sp.textContent=' · $'+f(q.a);rt.appendChild(sp)}$('rq-sub').textContent='提交时间 '+q.d;
+ $('rq-body').innerHTML='<div class="kv"><span>当前状态</span><span class="chip '+stc(s)+'">'+esc(s)+'</span></div><div class="tl">'+L.map(function(x,i){return '<div class="'+S[i]+'">'+esc(x)+'<small>'+(i?(S[i]==='d'?'已完成':S[i]==='a'?'进行中':'待处理'):esc(q.d))+'</small></div>'}).join('')+'</div>';
+ openModal('m-req')});
+
+/* ========== 表单：充值/提现、身份证、银行卡 ========== */
+$('dtype').onchange=function(){var w=$('dtype').value==='提现申请';$('dpw-w').hidden=!w;$('dpw-h').hidden=!w;if(!w)$('dpw').value='';$('dep-er').textContent=''};
+$('f-dep').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var v=parseFloat($('damt').value.replace(/,/g,'')),er=$('dep-er');
+ if(!(v>0)){er.textContent='请输入大于 0 的金额';return}
+ if($('dtype').value==='提现申请'&&cash()===null){er.textContent='现金余额未同步，暂不能提现';return}
+ if($('dtype').value==='提现申请'&&v>cash()){er.textContent='提现金额不能超过现金余额';return}
+ if($('dtype').value==='提现申请'){if(DATA.perm&&DATA.perm.withdraw==='禁止提现'){er.textContent='当前账户已被限制提现，请联系客服';return}
+  if(!$('dpw').value){er.textContent='请输入提款密码';return}
+  $('dpw').value=''}   /* 提款密码只随真实提交请求发送，取出后立即清空，不进 DATA；对错由服务器判断 */
+ toast('资金申请暂不可用，未提交')};
+function magic(file,cb){var r=new FileReader();r.onload=function(){var u=new Uint8Array(r.result);cb((u[0]===0x89&&u[1]===0x50&&u[2]===0x4E&&u[3]===0x47)||(u[0]===0xFF&&u[1]===0xD8&&u[2]===0xFF))};r.onerror=function(){cb(false)};r.readAsArrayBuffer(file.slice(0,4))}
+['f','b'].forEach(function(k){var box=$('up-'+k),inp=box.querySelector('input'),img=box.querySelector('img');
+ inp.onchange=function(){var fl=inp.files[0];if(!fl)return;
+  if(['image/png','image/jpeg'].indexOf(fl.type)<0){toast('仅支持 PNG / JPEG 图片');inp.value='';return}
+  if(fl.size>2*1024*1024){toast('每张图片最多 2MB');inp.value='';return}
+  magic(fl,function(ok){if(!ok){toast('文件内容不是有效的 PNG / JPEG 图片');inp.value='';return}
+   files[k]=fl;var u=URL.createObjectURL(fl);urls.push(u);img.src=u;box.classList.add('has');$('fn-'+k).textContent=fl.name})}});
+$('f-id').onsubmit=function(e){e.preventDefault();if(!SECURE)return;if(!files.f||!files.b){toast('请先选择正面和反面两张资料图片');return}
+ toast('身份资料暂不可用，未上传')};
+$('bno-t').onclick=function(){var i=$('bno'),s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'隐藏':'显示'};
+$('f-bank').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var n=$('bname').value.trim(),c=$('bno').value.replace(/\s/g,''),er=$('bank-er');
+ if(!n||!/^\d{8,30}$/.test(c)){er.textContent='请填写银行名称和 8–30 位数字账号';return}
+ toast('银行卡登记暂不可用，未提交')};
+
+/* ========== 客服：快捷问题 / 自动回复 / 未读角标 ========== */
+var QA={'充值多久到账':'此页面仅显示充值申请状态，不处理真实资金划转。','身份资料进度':'您的身份资料申请目前为「资料处理中」，如需补充材料我们会在此通知您。','提现问题':'此页面不处理真实提现或资金划转。','交易通道':'此页面不提供真实证券买入或卖出服务。'};
+var cp=$('cp'),cb=$('csbtn'),unread=0;
+function renderBadge(){var b=$('badge');b.hidden=!unread;b.textContent=unread}
+function addMsg(m){var d=document.createElement('div');d.className='bub'+(m.me?' me':'');d.textContent=m.t;var s=document.createElement('small');s.textContent=m.d;d.appendChild(s);$('msgs').appendChild(d);$('msgs').scrollTop=1e6}
+function renderChat(){$('msgs').innerHTML='';DATA.chat.forEach(addMsg)}
+$('qk').innerHTML=Object.keys(QA).map(function(k){return '<button type="button" data-q="'+esc(k)+'">'+esc(k)+'</button>'}).join('');
+function say(t){DATA.chat.push({me:1,t:t,d:now()});addMsg(DATA.chat[DATA.chat.length-1]);return t}
+function reply(t){toast('客服暂不可用，未收到回复')}
+function chat(o){cp.classList.toggle('open',o);cb.setAttribute('aria-expanded',o);if(o){unread=0;renderBadge();$('msgs').scrollTop=1e6;setTimeout(function(){$('cmsg').focus()},200)}}
+cb.onclick=function(e){e.stopPropagation();chat(!cp.classList.contains('open'))};
+$('csx').onclick=function(){chat(false)};cp.onclick=function(e){e.stopPropagation()};
+document.addEventListener('click',function(){chat(false)});
+$('csref').onclick=function(){renderChat();toast('客服消息已刷新')};
+$('qk').onclick=function(e){var b=e.target.closest('button[data-q]');if(!b)return;var k=b.dataset.q;toast('客服暂不可用，消息未发送')};
+$('f-chat').onsubmit=function(e){e.preventDefault();var i=$('cmsg'),t=i.value.trim();if(!t)return;toast('客服暂不可用，消息未发送')};
+
+/* ========== 自动锁定 / 快捷键 ========== */
+var idle;function arm(){clearTimeout(idle);idle=setTimeout(function(){if(!(openM&&openM.id==='m-lock')){openModal('m-lock');chat(false)}},IDLE_MS)}
+['pointerdown','keydown','wheel'].forEach(function(ev){document.addEventListener(ev,arm,{passive:true})});arm();
+document.addEventListener('keydown',function(e){var t=e.target.tagName;
+ if(e.key==='Enter'&&e.target.matches&&e.target.matches('tr.click'))e.target.click();
+ if(e.key==='Tab'&&openM){var q=[].slice.call(openM.querySelectorAll('button:not([disabled]),input:not([type=file]),select,textarea,[tabindex="0"]')).filter(function(x){return x.offsetParent});if(q.length){var a=q[0],z=q[q.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}}}
+ if(e.key==='Escape'){chat(false);if(openM&&openM.id!=='m-lock')closeM()}
+ if(e.key==='/'&&t!=='INPUT'&&t!=='TEXTAREA'&&t!=='SELECT'){e.preventDefault();document.querySelector('.sr').focus()}});
+
+/* ========== 数据加载（接入后端时设置 API） ========== */
+var KEYS=['acct','sync','cashOverride','realizedPnl','totalAssets','perm','names','sec','watch','fav','orders','holds','reqs','chat'];   /* 新增后台字段必须登记在这里，否则会被丢弃 */
+function clean(v){if(Array.isArray(v))return v.map(clean);if(v&&typeof v==='object'){var o={};Object.keys(v).forEach(function(k){if(k==='__proto__'||k==='constructor'||k==='prototype')return;o[k]=clean(v[k])});return o}return v}
+function num(v,d){v=Number(v);return isFinite(v)?v:d}
+function normSec(m){var o={};Object.keys(m||{}).forEach(function(c){var x=m[c];if(!x||typeof x!=='object')return;
+ var t=String(x.type||'股票');t=t==='STOCK'?'股票':t==='COMMODITY'?'大宗商品':t;var w=x.withdrawn===true;
+ o[c]={type:t,name:x.name?String(x.name):'',discount:num(x.discount,0),days:Math.max(0,Math.floor(num(x.days,0))),min:Math.max(1,Math.floor(num(x.min!=null?x.min:x.minQty,1))),needPass:x.needPass===true||x.hasPass===true,visible:x.visible!==false&&!w,withdrawn:w}});return o}
+function safe(d){var o={};KEYS.forEach(function(k){if(!d||d[k]===undefined||d[k]===null)return;var v=d[k];if(['cashOverride','realizedPnl','totalAssets'].indexOf(k)>=0&&!(typeof v==='number'&&isFinite(v)))return;if(['watch','fav','orders','holds','reqs','chat'].indexOf(k)>=0&&!Array.isArray(v))return;if(['sec','names','perm'].indexOf(k)>=0&&(!v||typeof v!=='object'||Array.isArray(v)))return;o[k]=clean(v)});if(o.sec)o.sec=normSec(o.sec);if(o.perm)o.perm={withdraw:String(o.perm.withdraw||'')};return o}
+var skActive=false,skStart=0,skTimer=0;
+function skSweep(){var el=Date.now()-skStart,d=el<800?'1.2s':el<2000?'1.6s':'2.1s';document.documentElement.style.setProperty('--skdur',d)}
+function reveal(){var el=Date.now()-skStart;if(el<150)return;var d=el<600?220:el<1500?340:520;
+ ['tb-ord','tb-hold','tb-watch','tb-req','pbody','req-stat','cw'].forEach(function(id){var e=$(id);if(!e)return;e.style.setProperty('--rvl',d+'ms');e.classList.remove('reveal');void e.offsetWidth;e.classList.add('reveal')})}
+function skRowC(cols){return '<tr>'+cols.map(function(c){return '<td><span class="sk '+c+'"></span></td>'}).join('')+'</tr>'}
+function skRowsC(n,cols){for(var t='',i=0;i<n;i++)t+=skRowC(cols);return t}
+function clampN(n,lo,hi){return Math.max(lo,Math.min(hi,n||0))}
+function showSkeleton(){
+ skActive=true;skStart=Date.now();skSweep();clearInterval(skTimer);skTimer=setInterval(skSweep,400);var cl=$('cvload');if(cl)cl.hidden=false;
+ document.querySelectorAll('[data-b]').forEach(function(e){e.innerHTML='<span class="sk n"></span>'});
+ var stN=Object.keys(DATA.reqs.reduce(function(a,r){a[r.st]=1;return a},{})).length;
+ $('tb-ord').innerHTML=skRowsC(clampN(DATA.orders.length,2,6),['s','l','chip','m','xs','m','m','m','chip']);
+ $('tb-hold').innerHTML=skRowsC(clampN(DATA.holds.length,1,5),['l','xs','xs','m','m']);
+ $('tb-watch').innerHTML=skRowsC(clampN(DATA.watch.length,2,6),['s','l','m','circle']);
+ $('tb-req').innerHTML=skRowsC(clampN(DATA.reqs.length,2,6),['m','m','chip','m']);
+ var kvs=[['150px','72px'],['122px','50px'],['138px','64px'],['100px','92px']];
+ $('pbody').innerHTML=kvs.map(function(w){return '<div class="kv"><span class="sk" style="width:'+w[0]+'"></span><span class="sk" style="width:'+w[1]+'"></span></div>'}).join('');
+ var sts=['112px','94px','130px','80px','104px'],sh='';
+ for(var i=0,m=clampN(stN,2,5);i<m;i++)sh+='<div class="kv"><span class="sk" style="width:'+sts[i%sts.length]+'"></span><span class="sk chip"></span></div>';
+ $('req-stat').innerHTML=sh}
+function clearSnapshot(){DATA_READY=false;HAVE={};DATA.cashOverride=null;DATA.realizedPnl=null;DATA.totalAssets=null;DATA.orders=[];DATA.holds=[];DATA.reqs=[];DATA.sec={};DATA.watch=[];DATA.fav=[];DATA.chat=[];DATA.acct='';DATA.sync='未同步'}
+function loadData(){if(!API){clearSnapshot();renderAll();return Promise.resolve()}
+ clearSnapshot();showSkeleton();
+ return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){var v=safe(d);HAVE={};Object.keys(v).forEach(function(k){HAVE[k]=true});Object.assign(DATA,v);DATA_READY=Object.keys(HAVE).length>0;renderAll()}).catch(function(){clearSnapshot();toast('数据加载失败');renderAll()})}
+
+/* ========== 图表（Canvas，高清渲染） ========== */
+var UP='#4fdd8f',DN='#ff5b50',FF='12px Inter,"Noto Sans SC",sans-serif';
+function ds(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+var DL=[],SC={},ST={rg:'All',mode:'走势',ma:0,x:null,y:null};
+/* K 线/分时只过滤实际收到的 OHLCV，不从日线随机造盘中价格或成交量。 */
+function barDay(b){return b&&typeof b.t==='string'&&/^\d{4}-\d{2}-\d{2}/.test(b.t)?b.t.slice(0,10):null}
+function validBar(b){return !!barDay(b)&&['o','h','l','c','v'].every(function(k){return typeof b[k]==='number'&&isFinite(b[k])})&&b.o>0&&b.c>0&&b.l>0&&b.v>=0&&b.h>=Math.max(b.o,b.c)&&b.l<=Math.min(b.o,b.c)}
+function ser(){var all=DL.filter(validBar);if(!all.length)return [];var k=ST.rg,end=barDay(all[all.length-1]),days=[],start;
+ if(k==='1D')return all.filter(function(b){return barDay(b)===end});
+ if(k==='5D'){for(var i=all.length-1;i>=0&&days.length<5;i--){var d=barDay(all[i]);if(days.indexOf(d)<0)days.push(d)}return all.filter(function(b){return days.indexOf(barDay(b))>=0})}
+ if(k==='1M'||k==='6M'||k==='1Y'){var t=new Date(end+'T00:00:00Z');if(k==='1Y')t.setUTCFullYear(t.getUTCFullYear()-1);else t.setUTCMonth(t.getUTCMonth()-(k==='1M'?1:6));start=t.toISOString().slice(0,10)}
+ else if(k==='YTD')start=end.slice(0,4)+'-01-01';
+ return start?all.filter(function(b){return barDay(b)>=start&&barDay(b)<=end}):all}
+function vol(v){return v>=1e6?(v/1e6).toFixed(2)+'M':(v/1e3).toFixed(0)+'K'}
+function xl(t){return t.length===10?(ST.rg==='1M'?t.slice(5):t.slice(0,7)):t.slice(0,5)}
+function mav(S,k){return S.map(function(b,i){if(i<k-1)return null;var s=0;for(var j=i-k+1;j<=i;j++)s+=S[j].c;return s/k})}
+function fm(v){return v==null?'—':f(v)}
+function updOH(i){var e=$('oh');if(!e)return;var S=ser(),b=S[i],p=i?S[i-1].c:(ST.rg==='1D'?DL[DL.length-2].c:b.o),ch=b.c-p,c=ch>=0?'up':'dn',sg=ch>=0?'+':'−';
+ e.innerHTML='<span class="mut">'+b.t+'</span><span><i>O</i>'+f(b.o)+'</span><span><i>H</i>'+f(b.h)+'</span><span><i>L</i>'+f(b.l)+'</span><span class="'+c+'"><i>C</i>'+f(b.c)+' '+sg+f(Math.abs(ch))+' ('+sg+Math.abs(ch/p*100).toFixed(2)+'%)</span><span class="mut"><i>量</i>'+vol(b.v)+'</span>'+(ST.ma?'<span style="color:#ffb938"><i>MA5</i>'+fm(mav(S,5)[i])+'</span><span style="color:#5b9cff"><i>MA20</i>'+fm(mav(S,20)[i])+'</span>':'')}
+function draw(){
+ var cw=$('cw'),c=$('cv');if(!cw||!c)return;var W=cw.clientWidth,H=cw.clientHeight;if(W<40||H<40)return;
+ var dp=Math.min(Math.max(window.devicePixelRatio||1,2)*1.5,3.5);c.width=Math.round(W*dp);c.height=Math.round(H*dp);
+ var g=c.getContext('2d');g.setTransform(dp,0,0,dp,0,0);
+ var S=ser(),n=S.length;if(!n){g.clearRect(0,0,W,H);g.fillStyle='#a3ab99';g.font=FF;g.textAlign='center';g.fillText('暂无行情',W/2,H/2);var hh=$('oh');if(hh)hh.textContent='暂无行情';return}AX=58,TP=16,BT=22,PH=(H-BT)*.76,VT=PH+12,VB=H-BT,pw=W-AX,step=pw/n,lo=1e9,hi=-1e9,vm=0,hiI=0,loI=0;
+ S.forEach(function(b,i){lo=Math.min(lo,b.l);hi=Math.max(hi,b.h);vm=Math.max(vm,b.v);if(b.h>S[hiI].h)hiI=i;if(b.l<S[loI].l)loI=i});
+ var pd=(hi-lo)*.08;lo-=pd;hi+=pd;
+ var X=function(i){return (i+.5)*step},Y=function(p){return TP+(PH-TP)*(1-(p-lo)/(hi-lo))};
+ g.font=FF;g.lineWidth=1;g.textBaseline='alphabetic';
+ g.font=FF;
+ for(var k=0;k<=4;k++){var pp=lo+(hi-lo)*k/4,yy=Y(pp);g.strokeStyle='rgba(255,255,255,.06)';g.beginPath();g.moveTo(0,yy);g.lineTo(pw,yy);g.stroke();g.fillStyle='#a3ab99';g.textAlign='left';g.fillText(pp.toFixed(2),pw+7,yy+4)}
+ var bw=Math.max(1,step*.66);
+ S.forEach(function(b,i){g.fillStyle=b.c>=b.o?'rgba(79,221,143,.30)':'rgba(255,91,80,.30)';var h=(VB-VT)*b.v/vm;g.fillRect(X(i)-bw/2,VB-h,bw,h)});
+ if(ST.mode==='K线'){S.forEach(function(b,i){var u=b.c>=b.o,cl=u?UP:DN;g.strokeStyle=g.fillStyle=cl;g.beginPath();g.moveTo(X(i),Y(b.h));g.lineTo(X(i),Y(b.l));g.stroke();var y1=Y(Math.max(b.o,b.c)),y2=Y(Math.min(b.o,b.c));g.fillRect(X(i)-bw/2,y1,bw,Math.max(1,y2-y1))})}
+ else{var gr=g.createLinearGradient(0,TP,0,PH);gr.addColorStop(0,'rgba(79,221,143,.28)');gr.addColorStop(1,'rgba(79,221,143,0)');g.beginPath();S.forEach(function(b,i){i?g.lineTo(X(i),Y(b.c)):g.moveTo(X(i),Y(b.c))});g.strokeStyle=UP;g.lineWidth=1.7;g.lineJoin='round';g.save();g.shadowColor='rgba(79,221,143,.5)';g.shadowBlur=14;g.shadowOffsetY=4;g.stroke();g.restore();g.lineTo(X(n-1),PH);g.lineTo(X(0),PH);g.closePath();g.fillStyle=gr;g.fill();g.lineWidth=1}
+ if(ST.ma){[[5,'#ffb938'],[20,'#5b9cff']].forEach(function(m){var a=mav(S,m[0]),st=0;g.strokeStyle=m[1];g.lineWidth=1.2;g.beginPath();a.forEach(function(v,i){if(v==null)return;st?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v));st=1});g.stroke();g.lineWidth=1})}
+ function note(i,val,label,col){var x=X(i),y=Y(val),s=label+' '+f(val)+' · '+S[i].t,w=g.measureText(s).width,rt=x+24+w<pw-4;
+  g.strokeStyle=g.fillStyle=col;g.beginPath();g.arc(x,y,3,0,7);g.fill();
+  g.beginPath();g.moveTo(x+(rt?4:-4),y);g.lineTo(x+(rt?22:-22),y);g.stroke();
+  g.textAlign=rt?'left':'right';g.fillStyle='#f7f9f2';g.fillText(s,x+(rt?27:-27),y+4)}
+ note(hiI,S[hiI].h,'最高','#ffb938');note(loI,S[loI].l,'最低','#5b9cff');
+ var l=S[n-1],ly=Y(l.c),lc=l.c>=(n>1?S[n-2].c:l.o)?UP:DN;
+ g.setLineDash([3,4]);g.strokeStyle=lc;g.beginPath();g.moveTo(0,ly);g.lineTo(pw,ly);g.stroke();g.setLineDash([]);
+ g.fillStyle=lc;g.fillRect(pw+1,ly-9,AX-1,18);g.fillStyle='#101400';g.textAlign='left';g.fillText(l.c.toFixed(2),pw+7,ly+4);
+ g.fillStyle='#a3ab99';g.textAlign='center';for(var q=0;q<5;q++){var xi=Math.round((q+.5)*(n-1)/5);g.fillText(xl(S[xi].t),Math.min(Math.max(X(xi),24),pw-24),H-6)}
+ if(ST.x!=null){var i=Math.max(0,Math.min(n-1,Math.floor(ST.x/step))),xx=X(i),yy=Math.max(TP,Math.min(PH,ST.y));
+  g.setLineDash([4,4]);g.strokeStyle='rgba(255,255,255,.6)';g.beginPath();g.moveTo(xx,TP);g.lineTo(xx,VB);g.moveTo(0,yy);g.lineTo(pw,yy);g.stroke();g.setLineDash([]);
+  var pv=lo+(hi-lo)*(1-(yy-TP)/(PH-TP));g.fillStyle='#fff';g.fillRect(pw+1,yy-9,AX-1,18);g.fillStyle='#0b0d0a';g.textAlign='left';g.fillText(pv.toFixed(2),pw+7,yy+4);
+  var tx=S[i].t,tw=g.measureText(tx).width+14,x0=Math.min(Math.max(xx-tw/2,0),pw-tw+AX);g.fillStyle='#fff';g.fillRect(x0,H-19,tw,17);g.fillStyle='#0b0d0a';g.textAlign='center';g.fillText(tx,x0+tw/2,H-6);
+  if(ST.mode!=='K线'){g.fillStyle='#0b0d0a';g.strokeStyle=UP;g.lineWidth=2;g.beginPath();g.arc(xx,Y(S[i].c),4,0,7);g.fill();g.stroke();g.lineWidth=1}
+  updOH(i)}else updOH(n-1)}
+var cv=$('cv'),cwEl=$('cw');
+function mv(e){var r=cv.getBoundingClientRect();ST.x=e.clientX-r.left;ST.y=e.clientY-r.top;draw()}
+cv.addEventListener('pointerdown',function(e){try{cv.setPointerCapture(e.pointerId)}catch(x){}mv(e)});
+cv.addEventListener('pointermove',mv);
+cv.addEventListener('pointerleave',function(e){if(e.pointerType==='mouse'){ST.x=null;draw()}});
+function seg(id,fn){var g=$(id);g.querySelectorAll('button').forEach(function(b){b.onclick=function(){fn(b,g)}})}
+seg('rg',function(b,g){g.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});ST.rg=b.textContent;ST.x=null;draw()});
+seg('md',function(b,g){g.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});ST.mode=b.textContent;draw()});
+seg('ma',function(b){ST.ma=ST.ma?0:1;b.classList.toggle('on',!!ST.ma);draw()});
+if(window.ResizeObserver)new ResizeObserver(draw).observe(cwEl);
+window.addEventListener('resize',draw);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(draw);
+
+/* ========== 启动 ========== */
+if(window.CN){var ap=function(v){if(!v||!v.sec)return;var s={};Object.keys(v.sec).forEach(function(k){var x=v.sec[k];if(x.n)DATA.names[k]=x.n;if(x.on)s[k]={type:'股票',discount:x.disc,days:x.hold,min:x.minq,needPass:true,visible:true}});DATA.sec=s;try{renderAll()}catch(e){}};ap(CN.get());CN.on(ap);CN.pull()}
+var MKT_OK=TRADING_ENABLED&&API&&DL.length>0;var tvPreview=$('tvbtn');if(tvPreview&&!MKT_OK){tvPreview.disabled=true;tvPreview.title='暂无行情'}
+if(!MKT_OK){var cvh=$('cv'),cwh=$('cw');if(cvh)cvh.style.visibility='hidden';var ohh=$('oh');if(ohh)ohh.style.visibility='hidden';if(cwh){cwh.style.position='relative';cwh.insertAdjacentHTML('beforeend','<div class="ep" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div class="offc"><i aria-hidden="true">◔</i><b>暂无行情</b><span>价格与走势暂不可用</span><button type="button" class="btn" id="offcs">联系客服</button></div></div>');var ofb=document.getElementById('offcs');if(ofb)ofb.addEventListener('click',function(){var b=document.getElementById('csbtn');if(b)b.click()})}}
+else{var ft=document.querySelector('.foot span');if(ft)ft.textContent='暂无行情 ｜ '+ft.textContent}
+renderChat();loadData().then(draw);
+
+/* ===== v4：导航菜单跳转 / 提现快捷 / 刷新 ===== */
+function pulse(id){var el=$(id);if(!el)return;try{el.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(x){}el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');setTimeout(function(){el.classList.remove('pulse')},1400)}
+function openWd(){openModal('m-dep');var s=$('dtype');s.value='提现申请';if(s.onchange)s.onchange()}
+document.querySelectorAll('[data-wd]').forEach(function(b){b.addEventListener('click',openWd)});
+document.querySelectorAll('.ddi').forEach(function(b){b.addEventListener('click',function(){
+ var g=b.dataset.go,a=g.split(':'),ni=b.closest('.ni');if(ni){ni.classList.add('shut');ni.addEventListener('mouseleave',function f(){ni.classList.remove('shut');ni.removeEventListener('mouseleave',f)})}
+ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+ if(g==='wd')return openWd();
+ if(a[0]==='modal')return openModal(a[1]);
+ var moved=cur!==a[0];if(moved)show(a[0]);setTimeout(function(){pulse(a[1])},moved?520:0)})});
+$('balref').onclick=function(){loadData().then(function(){toast('数据已刷新')})};
+})();
+</script>
+<script>
+/* v7 增量：账户菜单退出 · 信息头周期 Tab 双向同步 · TradingView 按需接入 */
+(function(){
+ function miniToast(m){var t=document.getElementById('toast');if(!t){alert(m);return}t.textContent=m;t.classList.add('on');clearTimeout(t._v7);t._v7=setTimeout(function(){t.classList.remove('on')},2200)}
+ document.querySelectorAll('[data-go="logout"]').forEach(function(b){b.addEventListener('click',function(){miniToast('退出暂不可用')})});
+})();
+(function(){
+ var rg=document.getElementById('rg'),tabs=document.getElementById('iftabs'),tf=document.querySelector('.ih-tf');
+ if(!rg||!tabs)return;var rgbtns=rg.querySelectorAll('button');
+ function findRg(code){for(var i=0;i<rgbtns.length;i++){if(rgbtns[i].textContent===code)return rgbtns[i]}return null}
+ function sync(code){Array.prototype.forEach.call(tabs.querySelectorAll('button'),function(b){b.classList.toggle('on',b.getAttribute('data-rg')===code)});if(tf)tf.textContent=code}
+ Array.prototype.forEach.call(tabs.querySelectorAll('button'),function(b){b.addEventListener('click',function(){var code=b.getAttribute('data-rg'),r=findRg(code);if(r)r.click();sync(code)})});
+ Array.prototype.forEach.call(rgbtns,function(r){r.addEventListener('click',function(){sync(r.textContent)})});
+ var onb=rg.querySelector('button.on');sync(onb?onb.textContent:'All');
+})();
+(function(){
+ var MKTS={
+  US:{sym:'—',xch:'US',nm:'等待证券目录',tv:''},
+  HK:{sym:'—',xch:'HK',nm:'等待证券目录',tv:''},
+  CN:{sym:'—',xch:'CN',nm:'等待证券目录',tv:''},
+  MY:{sym:'—',xch:'MY',nm:'等待证券目录',tv:''},
+  RO:{sym:'—',xch:'RO',nm:'等待证券目录',tv:''}
+ };
+ var curTV='';
+ function mtoast(m){var t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.add('on');clearTimeout(t._mk);t._mk=setTimeout(function(){t.classList.remove('on')},2800)}
+ function curSymbol(){var x=document.querySelector('.ihead .ih-xch'),s=document.querySelector('.ihead .ih-sym');if(x&&s&&x.textContent&&s.textContent&&s.textContent.trim()!=='—')return x.textContent.trim()+':'+s.textContent.trim();return curTV}
+ var btn=document.getElementById('tvbtn'),wrap=document.getElementById('tvwrap');
+ var loaded=false,on=false;
+ function build(){if(!wrap)return;wrap.innerHTML='';var c=document.createElement('div');c.className='tradingview-widget-container';var d=document.createElement('div');d.className='tradingview-widget-container__widget';c.appendChild(d);var s=document.createElement('script');s.type='text/javascript';s.async=true;s.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';s.text=JSON.stringify({autosize:true,symbol:curTV,interval:'D',timezone:'Etc/UTC',theme:'dark',style:'1',locale:'zh_CN',hide_side_toolbar:false,allow_symbol_change:true,support_host:'https://www.tradingview.com'});c.appendChild(s);wrap.appendChild(c);loaded=true}
+ if(btn&&wrap){btn.addEventListener('click',function(){if(!curTV){mtoast('证券目录及行情暂不可用');return}on=!on;var ep=wrap.parentNode.querySelector('.ep');if(on){curTV=curSymbol();build();wrap.hidden=false;btn.classList.add('on');btn.textContent='关闭 TradingView 实时';if(ep)ep.style.display='none'}else{wrap.hidden=true;btn.classList.remove('on');btn.textContent='查看行情图表';if(ep)ep.style.display=''}})}
+ /* 市场切换联动图表标的（仅切换图表显示，不影响持仓/下单数据） */
+ var seg=document.querySelector('.ihead .ar .seg');
+ if(seg){var mbtns=seg.querySelectorAll('button');Array.prototype.forEach.call(mbtns,function(b){b.addEventListener('click',function(){var code=b.textContent.trim(),m=MKTS[code];if(!m)return;Array.prototype.forEach.call(mbtns,function(x){x.classList.toggle('on',x===b)});var ihm=document.querySelector('.ihead .ihm'),S=document.querySelector('.ihead .ih-sym'),X=document.querySelector('.ihead .ih-xch'),N=document.querySelector('.ihead .ih-nm'),F=document.getElementById('ih-tv');var apply=function(){if(S)S.textContent=m.sym;if(X)X.textContent=m.xch;if(N)N.textContent=m.nm;if(F)F.textContent=m.tv};var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;if(ihm&&!rm){ihm.classList.add('ih-swap');setTimeout(function(){apply();ihm.classList.remove('ih-swap')},150)}else{apply()}curTV=m.tv;if(on&&loaded)build();mtoast('已切换市场 '+code+' · 证券目录等待接口数据')})})}
+})();
+</script>
+<script>
+/* 现金为负时在「我的资产」卡片补一行提示（不改变任何数据） */
+(function(){function upd(){var v=document.querySelector('#pn-bal .bc-v');if(!v)return;
+var t=(v.textContent||'').replace(/[\s,]/g,''),neg=/^[-\u2212\ufe63]\d/.test(t),h=document.getElementById('negcash');
+if(neg&&!h){var s=v.nextElementSibling;if(!s)return;h=document.createElement('div');h.id='negcash';h.className='negcash';h.textContent='现金余额为负，请核对充值记录或联系客服。';s.parentNode.insertBefore(h,s.nextSibling)}
+else if(!neg&&h){h.remove()}}
+function init(){var v=document.querySelector('#pn-bal .bc-v');if(!v)return;upd();new MutationObserver(upd).observe(v,{childList:true,characterData:true,subtree:true})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init()})();
+</script>
 </body>
 </html>
