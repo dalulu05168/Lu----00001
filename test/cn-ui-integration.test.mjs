@@ -36,6 +36,8 @@ test('admin console requires current 2FA authorization and renders only API-back
  assert.match(html,/id="clientsRows"/);
  assert.match(html,/id="subadminsRows"/);
  assert.match(html,/id="listingsRows"/);
+ assert.match(html,/id="auditRows"/);
+ assert.match(js,/api\(\x27audit\x27\)/);
  assert.match(html,/html:not\(\.cn-ready\) body\{visibility:hidden!important\}/);
  assert.doesNotMatch(html,/998937\.6|linyi05168@gmail\.com|4b6b2266|预览模式/);
  assert.match(js,/fetch\('\/api\/admin\/me'/);

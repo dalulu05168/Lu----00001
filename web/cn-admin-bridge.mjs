@@ -3,7 +3,7 @@ const token=sessionStorage.getItem('gsp_admin_token');
 const root=document.getElementById('adminVerifiedApp');
 const el=id=>document.getElementById(id);
 const ready=()=>document.documentElement.classList.add('cn-ready');
-const state={role:null,clients:null,subadmins:null,listings:null,invalidated:false};
+const state={role:null,clients:null,subadmins:null,listings:null,audit:null,invalidated:false};
 const headers=()=>({Authorization:'Bearer '+token,Accept:'application/json'});
 const cell=(row,value)=>{const td=document.createElement('td');td.textContent=String(value??'—');row.appendChild(td);return td};
 const when=value=>{if(!value)return '—';const d=new Date(value);return Number.isNaN(d.getTime())?'—':d.toLocaleString('zh-CN')};
@@ -75,6 +75,20 @@ async function loadListings(){
  }catch(e){state.listings=null;renderRows('listingsRows',[],()=>{},6);status('listingsStatus',e.message,true);}
  summary();
 }
+async function loadAudit(){
+ if(state.role!=='MASTER')return;
+ try{
+  status('auditStatus','正在读取审计记录…');
+  const data=await api('audit');
+  if(!Array.isArray(data.items))throw Error('审计接口返回格式异常');
+  state.audit=data.items;
+  renderRows('auditRows',data.items,(r,x)=>{
+   cell(r,when(x.created_at));cell(r,x.action);cell(r,x.actor_user_id);cell(r,x.target_id);
+   cell(r,JSON.stringify(x.details??{}));
+  },5);
+  status('auditStatus','最近 '+data.items.length+' 条审计记录');
+ }catch(error){state.audit=null;renderRows('auditRows',[],()=>{},5);status('auditStatus',error.message,true);}
+}
 function show(name){
  for(const n of document.querySelectorAll('[data-view]'))n.hidden=n.dataset.view!==name;
  for(const b of document.querySelectorAll('[data-panel]'))b.classList.toggle('on',b.dataset.panel===name);
@@ -95,6 +109,7 @@ function wire(){
  el('refreshClients').addEventListener('click',()=>{void loadClients();});
  el('refreshSubadmins').addEventListener('click',()=>{void loadSubadmins();});
  el('refreshListings').addEventListener('click',()=>{void loadListings();});
+ el('refreshAudit').addEventListener('click',()=>{void loadAudit();});
  el('adminLogout').addEventListener('click',async()=>{
   try{await fetch('/api/auth/logout',{method:'POST',headers:headers(),cache:'no-store'});}catch{}
   sessionStorage.removeItem('gsp_admin_token');location.assign('/admin.html');
@@ -155,8 +170,9 @@ async function run(){
   el('adminRoleTag').textContent=identity.role==='MASTER'?'主管理员 · 2FA':'子管理员 · 2FA';
   el('subadminCreateSection').hidden=identity.role!=='MASTER';
   el('listingCreateSection').hidden=identity.role!=='MASTER';
+  el('adminAuditNav').hidden=identity.role!=='MASTER';
   wire();
-  await Promise.all([loadClients(),loadSubadmins(),loadListings()]);
+  await Promise.all([loadClients(),loadSubadmins(),loadListings(),...(state.role==='MASTER'?[loadAudit()]:[])]);
   if(state.invalidated)return;
   root.hidden=false;ready();
  }catch(e){errorView(e.message||'后台暂不可用');}

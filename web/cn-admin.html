@@ -380,7 +380,7 @@ input{outline:0}
 <path d="M12.6 19.4l3.6-3.8 2.4 2.2 5-5.6" fill="none" stroke="url(#lg)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <circle cx="23.6" cy="12.2" r="1.3" fill="url(#lg)"/></svg>
 <div>CN Capital<small>ADMIN · CONSOLE</small></div></div>
-<nav class="nav" aria-label="后台菜单"><button type="button" class="tn on" data-panel="overview">概览</button><button type="button" class="tn" data-panel="clients">客户</button><button type="button" class="tn" data-panel="subadmins">子管理员</button><button type="button" class="tn" data-panel="catalog">证券目录</button><button type="button" class="tn" data-panel="operations">资金与审批</button></nav>
+<nav class="nav" aria-label="后台菜单"><button type="button" class="tn on" data-panel="overview">概览</button><button type="button" class="tn" data-panel="clients">客户</button><button type="button" class="tn" data-panel="subadmins">子管理员</button><button type="button" class="tn" data-panel="catalog">证券目录</button><button type="button" class="tn" data-panel="operations">资金与审批</button><button type="button" class="tn" data-panel="audit" id="adminAuditNav" hidden>操作审计</button></nav>
 <div class="right"><span id="adminRoleTag">正在验证身份</span><button type="button" id="adminLogout" class="cnbutton">退出</button></div>
 </header>
 <main id="adminVerifiedApp" class="cnapp" hidden>
@@ -399,6 +399,7 @@ input{outline:0}
 <label>状态<select name="status"><option value="DRAFT">草稿</option><option value="PUBLISHED">已发布</option></select></label>
 <button class="cnbutton" type="submit">保存资料</button></form><p class="cnstatus" id="listingCreateStatus" role="status"></p></div></section>
 <section class="cnpage" data-view="operations" hidden><div class="cnpanel"><div class="cnhead">资金与审批</div><div class="cnnotice">当前还没有可以验收的存取款审核、身份审批和券商交易后端接口。这些操作暂不开放，不提供尚未接入的提交入口。</div></div></section>
+<section class="cnpage" data-view="audit" hidden><div class="cnpanel"><div class="cnhead">后台操作审计（最近 100 条）<button type="button" class="cnbutton" id="refreshAudit">刷新审计</button></div><p id="auditStatus" class="cnstatus" role="status"></p><table class="cntable"><thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>对象</th><th>变更字段</th></tr></thead><tbody id="auditRows"></tbody></table></div></section>
 </main>
 <script type="module" src="/cn-admin-bridge.mjs"></script>
 </body>

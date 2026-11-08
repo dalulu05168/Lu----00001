@@ -22,6 +22,10 @@ async function runScenario({token='authorized-session',role='MASTER',responses={
    if(url==='/api/admin/me')return json(200,{role,userId:'role-owner'});
    if(url==='/api/admin/clients')return json(200,{items:[{email:'<img src=x onerror=alert(1)>',subadmin_user_id:'sub-1',created_at:'2026-11-08T00:00:00Z'}]});
    if(url==='/api/admin/subaccounts')return json(200,{items:[{email:'sub@example.test',twofa_confirmed_at:'2026-11-08T00:00:00Z',uses:0,max_uses:10,expires_at:'2026-12-01T00:00:00Z'}]});
+   if(url==='/api/admin/audit')return json(200,{items:[
+    {id:'1',action:'ADMIN_LOGIN',actor_user_id:'role-owner',target_id:'role-owner',details:{},created_at:'2026-11-08T00:00:00Z'},
+    {id:'2',action:'LISTING_CREATED',actor_user_id:'role-owner',target_id:'11111111-1111-1111-1111-111111111111',details:{symbol:'<script>alert(1)</script>'},created_at:'2026-11-08T00:00:01Z'}
+   ]});
    if(url==='/api/admin/listings'){
     if(entry.method==='POST')return json(201,{id:'11111111-1111-1111-1111-111111111111'});
     if(entry.method==='PATCH')return json(200,{id:'11111111-1111-1111-1111-111111111111',status:'PUBLISHED'});
@@ -73,6 +77,10 @@ test('verified master sees database items, never raw HTML or unsupported markets
   assert.equal(client.querySelector('img'),null);
   assert.doesNotMatch(doc.getElementById('listingsRows').textContent,/Unsupported|0700/);
   assert.equal(doc.getElementById('listingCreateSection').hidden,false);
+  assert.equal(doc.getElementById('adminAuditNav').hidden,false);
+  assert.equal(doc.getElementById('auditRows').children.length,2);
+  assert.match(doc.getElementById('auditRows').textContent,/<script>alert\(1\)<\/script>/);
+  assert.equal(doc.getElementById('auditRows').querySelector('script'),null);
   assert.equal(doc.getElementById('subadminCreateSection').hidden,false);
   assert.equal(redirects.length,0);
   for(const request of requests)assert.equal(request.authorization,'Bearer authorized-session');
@@ -118,12 +126,14 @@ test('verified master creates subadmin and US/CN catalog records through real AP
 });
 
 test('subadmin cannot create users or publish listings',async()=>{
- onResult=async({dom})=>{
+ onResult=async({dom,requests})=>{
   const doc=dom.window.document;
   assert.equal(doc.getElementById('adminVerifiedApp').hidden,false);
   assert.equal(doc.getElementById('listingCreateSection').hidden,true);
   assert.equal(doc.getElementById('subadminCreateSection').hidden,true);
+  assert.equal(doc.getElementById('adminAuditNav').hidden,true);
   assert.equal(doc.getElementById('listingsRows').querySelector('button[data-listing-id]'),null);
+  assert.ok(!requests.some(x=>x.url==='/api/admin/audit'));
  };
  await runScenario({token:'sub-token',role:'SUBADMIN'});
 });
