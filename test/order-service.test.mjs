@@ -65,3 +65,33 @@ test("retry after a market price update replays original fill without altering c
  assert.equal(f.calls.some(c=>c.sql.startsWith("UPDATE accounts")),false);
  assert.equal(f.calls.filter(c=>c.sql==="COMMIT").length,1);
 });
+
+test("persisted PostgreSQL bigint cannot be silently rounded into extra cash or shares",async()=>{
+ for(const record of [
+  {cash:"9007199254740993",held:0},
+  {cash:Number.MAX_SAFE_INTEGER+2,held:0},
+  {cash:100000,held:"9007199254740993"},
+  {cash:-1,held:0}
+ ]){
+  const f=fixture(record);
+  await assert.rejects(placeInternalOrder(f.db,"account","safe-int-check",buy,"new-order"),
+   /Unrepresentable persisted/);
+  assert.equal(f.calls.some(c=>c.sql.startsWith("UPDATE accounts")),false);
+  assert.equal(f.calls.some(c=>c.sql==="ROLLBACK"),true);
+  assert.equal(f.released,true);
+ }
+});
+test("missing SQL cash update row must abort the order and cash ledger together",async()=>{
+ const f=fixture();
+ const original=await f.db.connect();
+ const query=original.query.bind(original);
+ original.query=async(sql,params)=>{
+  if(sql.startsWith("UPDATE accounts")) {f.calls.push({sql,params});return {rowCount:0};}
+  return query(sql,params);
+ };
+ await assert.rejects(placeInternalOrder(f.db,"account","update-missing-key",buy,"new-order"),
+  e=>e.statusCode===503&&/Cash update not applied/.test(e.message));
+ assert.equal(f.calls.some(c=>c.sql==="ROLLBACK"),true);
+ assert.equal(f.calls.some(c=>c.sql.startsWith("INSERT INTO orders")),false);
+ assert.equal(f.calls.some(c=>c.sql.startsWith("INSERT INTO cash_ledger")),false);
+});
