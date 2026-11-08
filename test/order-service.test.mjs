@@ -23,7 +23,7 @@ test("commits cash, position, order and ledger atomically",async()=>{
  assert.equal(f.released,true);
 });
 test("idempotent replay does not create new order",async()=>{
- const f=fixture({existing:[{id:"existing"}]});
+ const f=fixture({existing:[{id:"existing",side:"BUY",market:"US",symbol:"AAPL",quantity:2,price_cents:"10000"}]});
  const r=await placeInternalOrder(f.db,"account","unique-key-123",buy,"new-id");
  assert.equal(r.replayed,true);assert.equal(r.order.id,"existing");
  assert.equal(f.calls.some(c=>c.sql.startsWith("INSERT INTO orders")),false);
@@ -37,4 +37,31 @@ test("cannot sell beyond position",async()=>{
  const f=fixture({held:1});
  await assert.rejects(placeInternalOrder(f.db,"account","unique-key-123",{...buy,side:"SELL"},"order-1"),/Insufficient position/);
  assert.equal(f.calls.some(c=>c.sql==="ROLLBACK"),true);
+});
+
+test("conflicting reuse of an order key is rejected without a second ledger write",async()=>{
+ for(const changed of [
+  {...buy,side:"SELL"}, {...buy,market:"CN"},
+  {...buy,symbol:"MSFT"}, {...buy,quantity:3}
+ ]){
+  const f=fixture({existing:[{id:"existing",side:"BUY",market:"US",symbol:"AAPL",quantity:"2"}]});
+  await assert.rejects(
+   placeInternalOrder(f.db,"account","unique-key-123",changed,"new-order"),
+   e=>e.statusCode===409 && /Idempotency key/.test(e.message)
+  );
+  assert.equal(f.calls.filter(c=>c.sql==="ROLLBACK").length,1);
+  assert.equal(f.calls.some(c=>c.sql.startsWith("INSERT INTO orders")),false);
+  assert.equal(f.calls.some(c=>c.sql.startsWith("INSERT INTO cash_ledger")),false);
+  assert.equal(f.released,true);
+ }
+});
+test("retry after a market price update replays original fill without altering cash",async()=>{
+ const original={id:"original-id",side:"BUY",market:"US",symbol:"AAPL",quantity:"2",price_cents:"10000"};
+ const f=fixture({existing:[original],cash:80000,held:2});
+ const result=await placeInternalOrder(f.db,"account","unique-key-123",
+  {...buy,priceCents:11500},"new-id");
+ assert.equal(result.replayed,true);
+ assert.deepEqual(result.order,original);
+ assert.equal(f.calls.some(c=>c.sql.startsWith("UPDATE accounts")),false);
+ assert.equal(f.calls.filter(c=>c.sql==="COMMIT").length,1);
 });
