@@ -69,6 +69,9 @@ export function validateBusinessSnapshot(key,data,{now=Date.now(),maxQuoteAgeMs=
 export async function runBusinessContractGate({baseUrl,clientToken,adminToken,remoteReadonly=false,
  fetchImpl=globalThis.fetch,now=Date.now(),timeoutMs=7000}={}) {
   const origin=validateBaseUrl(baseUrl,{remoteReadonly});
+  const host=new URL(origin).hostname;
+  if(!['localhost','127.0.0.1','[::1]'].includes(host)&&!origin.startsWith('https://'))
+    throw new Error('Remote authenticated QA requires HTTPS');
   if(typeof fetchImpl!=='function') throw new TypeError('fetchImpl required');
   const tokens={client:clientToken,admin:adminToken};
   const results=[];
