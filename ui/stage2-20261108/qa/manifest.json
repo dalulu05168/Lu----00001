@@ -39,5 +39,22 @@
       "backend_api": "NOT TESTED",
       "production": "NOT DEPLOYED"
     }
+  },
+  "stage3": {
+    "date": "2026-11-08",
+    "reference": "stage2 Library ZIP sha256 3f0e71dc70cce3a9396e4964f35a779aef04e6bc887c1fb1a42ed88d7e9e7a93",
+    "status": "fidelity patch only; no trading/data API wired",
+    "allowlisted_changes": [
+      "手机端.html: only four @media(max-width:420px) => 599px thresholds, restoring 428px full-viewport without changing palette/design",
+      "后台.html: only static false approval count 共 4 条 => 共 — 条"
+    ],
+    "file_sha256": {
+      "前台.html": "f9b38dd10837052bbb00731e9cdd27a2e0d6423cfc9200aafe558e7816bd159a",
+      "手机端.html": "afc62f87ef8a99b634ae6c28ef010af42e02fee9c486582041b5b95e64b79afc",
+      "后台.html": "c4a7f0584bb0152c1967a7030a949ed9c44cc00b61247b61b26f46148a6d60e7"
+    },
+    "chromium": "isolated Chromium 9/9 PASS: mobile 360/390/428 fullscreen and login fail-closed, desktop dialog, admin navigation",
+    "backendApi": "NOT TESTED",
+    "production": "NOT DEPLOYED"
   }
 }
