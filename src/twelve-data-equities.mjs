@@ -19,7 +19,7 @@ function instrument({market, symbol}) {
   }
   if (market === 'CN' && typeof symbol === 'string' && CN_SYMBOL.test(symbol)) {
     // Fail closed for unsupported BSE and ambiguous securities.
-    if (/^(60|68|90)/.test(symbol)) return {market, symbol, currency: 'CNY', mic: 'XSHG', exchange: 'SSE'};
+    if (/^(60|68)/.test(symbol)) return {market, symbol, currency: 'CNY', mic: 'XSHG', exchange: 'SSE'};
     if (/^(00|30)/.test(symbol)) return {market, symbol, currency: 'CNY', mic: 'XSHE', exchange: 'SZSE'};
   }
   throw error('UNSUPPORTED_INSTRUMENT');
@@ -34,25 +34,25 @@ function authorized(rights, market, purpose) {
   return grant;
 }
 
-function identity(body, wanted) {
+function identity(body, wanted, {requireName = true} = {}) {
   const mic = String(body?.mic_code ?? '').toUpperCase();
   if (body?.symbol !== wanted.symbol || body?.currency !== wanted.currency ||
       (wanted.mic ? mic !== wanted.mic : !US_MICS.has(mic)) ||
-      typeof body?.name !== 'string' || !body.name.trim() || body.name.length > 180) {
+      (requireName && (typeof body?.name !== 'string' || !body.name.trim() || body.name.length > 180))) {
     throw error('PROVIDER_IDENTITY_MISMATCH');
   }
-  return {name: body.name.trim(), exchange: String(body.exchange || wanted.exchange || ''), mic};
+  return {name: typeof body.name === 'string' && body.name.trim() ? body.name.trim() : null,
+    exchange: String(body.exchange || wanted.exchange || ''), mic};
 }
 
-function priceMinor(value) {
+function priceMicros(value) {
   if (typeof value !== 'string' && typeof value !== 'number') throw error('INVALID_PROVIDER_PRICE');
   const raw = String(value);
-  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,9})?$/.test(raw)) throw error('INVALID_PROVIDER_PRICE');
+  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(raw)) throw error('INVALID_PROVIDER_PRICE');
   const [major, frac = ''] = raw.split('.');
-  if (frac.slice(2).replace(/0/g, '') !== '') throw error('UNSUPPORTED_PRICE_PRECISION');
-  const cents = Number(major) * 100 + Number(frac.padEnd(2, '0').slice(0, 2));
-  if (!Number.isSafeInteger(cents) || cents <= 0) throw error('INVALID_PROVIDER_PRICE');
-  return cents;
+  const micros = Number(major) * 1_000_000 + Number(frac.padEnd(6, '0'));
+  if (!Number.isSafeInteger(micros) || micros <= 0) throw error('INVALID_PROVIDER_PRICE');
+  return micros;
 }
 
 function epochMs(seconds) {
@@ -74,7 +74,7 @@ function validAge(stamp, nowMs, maxAgeMs) {
   return age;
 }
 
-function floatFromMinor(cents) { return cents / 100; }
+function floatFromMicros(micros) { return micros / 1_000_000; }
 function validCount(v) {
   if (typeof v !== 'string' && typeof v !== 'number') throw error('INVALID_HISTORY_VOLUME');
   if (!/^(0|[1-9]\d*)$/.test(String(v)) || !Number.isSafeInteger(Number(v))) throw error('INVALID_HISTORY_VOLUME');
@@ -135,19 +135,21 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
     if (!['clientDisplay', 'internalSimulationPricing'].includes(purpose)) throw error('INVALID_DATA_PURPOSE');
     const grant = authorized(rights, market, purpose);
     const params = {symbol, interval: '1min'};
-    if (wanted.exchange) params.exchange = wanted.exchange;
+    if (wanted.mic) params.mic_code = wanted.mic;
     const data = await request('quote', params);
     const meta = identity(data, wanted);
-    const priceCents = priceMinor(data.close);
+    const price = priceMicros(data.close);
+    const priceCents = price % 10_000 === 0 ? price / 10_000 : null;
+    if (purpose === 'internalSimulationPricing' && priceCents === null) throw error('SUBCENT_ORDER_PRICING_UNSUPPORTED');
     const stamp = lastQuoteTime(data);
     const checkedAtMs = now();
     const ageMs = validAge(stamp, checkedAtMs, maxQuoteAgeMs);
-    const previousCloseCents = data.previous_close == null ? null : priceMinor(data.previous_close);
+    const previousClose = data.previous_close == null ? null : priceMicros(data.previous_close);
     return Object.freeze({status: 'FRESH', stale: false, market, symbol, ...meta,
-      currency: wanted.currency, price: floatFromMinor(priceCents), priceCents,
-      previousClose: previousCloseCents == null ? null : floatFromMinor(previousCloseCents),
-      change: previousCloseCents == null ? null : floatFromMinor(priceCents - previousCloseCents),
-      percentChange: previousCloseCents == null ? null : Number(((priceCents - previousCloseCents) / previousCloseCents * 100).toFixed(5)),
+      currency: wanted.currency, price: floatFromMicros(price), priceCents,
+      previousClose: previousClose == null ? null : floatFromMicros(previousClose),
+      change: previousClose == null ? null : floatFromMicros(price - previousClose),
+      percentChange: previousClose == null ? null : Number(((price - previousClose) / previousClose * 100).toFixed(5)),
       timestampMs: stamp, ageMs, checkedAtMs, source: SOURCE,
       entitlement: {purpose, reviewReference: grant.reviewReference},
       executionVenue: null});
@@ -160,9 +162,9 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
       throw error('INVALID_HISTORY_OPTIONS');
     }
     const params = {symbol, interval, outputsize};
-    if (wanted.exchange) params.exchange = wanted.exchange;
+    if (wanted.mic) params.mic_code = wanted.mic;
     const data = await request('time_series', params);
-    const meta = identity(data.meta, wanted);
+    const meta = identity(data.meta, wanted, {requireName: false});
     if (!Array.isArray(data.values) || data.values.length === 0 || data.values.length > outputsize) {
       throw error('INVALID_HISTORY_SERIES');
     }
@@ -173,13 +175,13 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
       if (!pattern.test(dateTime) || !Number.isFinite(calendarMs) || calendarMs > now() + 86_400_000) {
         throw error('INVALID_HISTORY_DATE');
       }
-      const openCents = priceMinor(row.open), highCents = priceMinor(row.high);
-      const lowCents = priceMinor(row.low), closeCents = priceMinor(row.close);
-      if (lowCents > Math.min(openCents, closeCents) || highCents < Math.max(openCents, closeCents)) {
+      const openMicros = priceMicros(row.open), highMicros = priceMicros(row.high);
+      const lowMicros = priceMicros(row.low), closeMicros = priceMicros(row.close);
+      if (lowMicros > Math.min(openMicros, closeMicros) || highMicros < Math.max(openMicros, closeMicros)) {
         throw error('INVALID_HISTORY_OHLC');
       }
-      return {datetime: dateTime, open: floatFromMinor(openCents), high: floatFromMinor(highCents),
-        low: floatFromMinor(lowCents), close: floatFromMinor(closeCents), volume: validCount(row.volume)};
+      return {datetime: dateTime, open: floatFromMicros(openMicros), high: floatFromMicros(highMicros),
+        low: floatFromMicros(lowMicros), close: floatFromMicros(closeMicros), volume: validCount(row.volume)};
     }).sort((a, b) => a.datetime.localeCompare(b.datetime));
     for (let i = 1; i < rows.length; i++) {
       if (rows[i].datetime === rows[i - 1].datetime) throw error('DUPLICATE_HISTORY_BAR');
