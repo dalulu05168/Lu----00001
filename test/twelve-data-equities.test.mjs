@@ -142,3 +142,25 @@ test('history rejects impossible calendar dates, invalid times and false chart b
     await assert.rejects(make({...history,meta,values:[{...history.values[0],datetime}]}).adapter.getHistory({market:'CN',symbol:'600519',interval:meta.interval}));
   }
 });
+
+
+test('preferred one-object quote purpose is honored and cannot silently switch to display', async()=>{
+  const {adapter,calls}=make();
+  const q=await adapter.getQuote({market:'US',symbol:'AAPL',purpose:'internalSimulationPricing'});
+  assert.equal(q.entitlement.purpose,'internalSimulationPricing');
+  assert.equal(q.priceCents,14885);
+  assert.equal(calls.length,1);
+  await assert.rejects(adapter.getQuote(
+    {market:'US',symbol:'AAPL',purpose:'internalSimulationPricing'},
+    {purpose:'clientDisplay'}),{code:'AMBIGUOUS_DATA_PURPOSE'});
+  assert.equal(calls.length,1);
+});
+
+test('unconfigured quote request and unlicensed CN purpose fail without vendor I/O',async()=>{
+  const {adapter,calls}=make();
+  await assert.rejects(adapter.getQuote(null),{code:'UNSUPPORTED_INSTRUMENT'});
+  await assert.rejects(adapter.getQuote(
+    {market:'CN',symbol:'600519',purpose:'internalSimulationPricing'}),
+    {code:'DATA_USE_RIGHTS_UNVERIFIED'});
+  assert.equal(calls.length,0);
+});
