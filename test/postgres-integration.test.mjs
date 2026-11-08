@@ -237,6 +237,12 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     return {status:res.status,data:res.status===204?{}:await res.json()};
   }
   try {
+    // Create a directly registered user before master activation turns on invite-only registration.
+    const directEmail="unlinked-"+randomUUID().slice(0,8)+"@example.test";
+    const direct=await req("/api/auth/register",{method:"POST",body:{
+      email:directEmail,password:"direct-client-password-2026"
+    }});
+    assert.equal(direct.status,201);
     const email=masterEmail;
     const password="testing-master-pass-2026";
     const missing=await req("/api/admin/me");
@@ -307,8 +313,15 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.equal(JSON.stringify(catalog.data).includes("simulationOnly"),false);
     assert.equal(JSON.stringify(catalog.data).includes("discountPercent"),false);
     assert.equal(JSON.stringify(catalog.data).includes("purchase_password"),false);
+    const masterClients=await req("/api/admin/clients",{token:masterToken});
+    assert.equal(masterClients.status,200);
+    assert.ok(masterClients.data.items.some(item=>item.email===attachedEmail));
+    assert.ok(masterClients.data.items.some(item=>item.email===directEmail));
+    assert.ok(!masterClients.data.items.some(item=>[masterEmail,subEmail].includes(item.email)));
     const subclients=await req("/api/admin/clients",{token:subAdmin.data.token});
+    assert.equal(subclients.status,200);
     assert.ok(subclients.data.items.some(item=>item.email===attachedEmail));
+    assert.ok(!subclients.data.items.some(item=>item.email===directEmail));
   }finally{
     await new Promise(done=>app.close(done));
     await db.end();
