@@ -112,6 +112,32 @@ export async function verifyLicensedEquityPostgres(connectionString) {
    ...args,marketData:stale,key:"qa-stale-rejected",
    request:{side:"BUY",market:"US",symbol:us,quantity:1}
   }),e=>e.statusCode===503);
+  // Vendor display prices with any sub-cent discrepancy must never be
+  // rounded/truncated into integer-cents internal settlement.
+  const subCent={getQuote:async (identity,options)=>{
+    const original=await marketData.getQuote(identity,options);
+    return {...original,price:original.price+0.001};
+  }};
+  await assert.rejects(executeLicensedInternalOrder({
+   ...args,marketData:subCent,key:"qa-subcent-rejected",
+   request:{side:"BUY",market:"US",symbol:us,quantity:1}
+  }),e=>e.statusCode===503);
+  const mismatchedMicros={getQuote:async (identity,options)=>{
+    const original=await marketData.getQuote(identity,options);
+    return {...original,priceMicros:original.priceCents*10000+1};
+  }};
+  await assert.rejects(executeLicensedInternalOrder({
+   ...args,marketData:mismatchedMicros,key:"qa-micros-rejected",
+   request:{side:"BUY",market:"US",symbol:us,quantity:1}
+  }),e=>e.statusCode===503);
+  const ambiguousStatus={getQuote:async (identity,options)=>{
+    const original=await marketData.getQuote(identity,options);
+    return {...original,status:"DELAYED",stale:true};
+  }};
+  await assert.rejects(executeLicensedInternalOrder({
+   ...args,marketData:ambiguousStatus,key:"qa-delayed-rejected",
+   request:{side:"BUY",market:"US",symbol:us,quantity:1}
+  }),e=>e.statusCode===503);
   await assert.rejects(executeLicensedInternalOrder({
    ...args,authorizeTradingSession:()=>({allowed:false}),key:"qa-closed-market",
    request:{side:"BUY",market:"US",symbol:us,quantity:1}
