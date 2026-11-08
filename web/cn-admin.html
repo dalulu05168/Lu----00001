@@ -270,7 +270,33 @@ kbd{font:11px ui-monospace,Menlo,monospace;color:var(--mut);border:1px solid var
 }
 
 </style>
-<link rel="stylesheet" href="/cn-uhd-interactions.css">
+<style id="cn-uhd-interactions">
+/* Ultra-HD layout support and shared logo, scoped to the updated CN UI only.
+ * Preserve each surface's own color variables; no API or page actions touched. */
+.top .brand{align-items:center;flex:none}
+.top .brand .cn-shared-mark{display:block;width:32px;height:auto;max-height:36px;object-fit:contain;image-rendering:auto}
+.top .brand>div{display:none!important}
+/* Match the client border-and-lift interaction in the admin console without
+   changing the distinct client/admin accent colors. */
+@media(hover:hover) and (pointer:fine){
+ body:has(#p-over) .pg .pn,
+ body:has(#p-over) .pg .sc{transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;will-change:auto}
+ body:has(#p-over) .pg .pn:hover,
+ body:has(#p-over) .pg .sc:hover{border-color:var(--ac);box-shadow:0 12px 34px -8px rgba(0,0,0,.6),0 0 0 1px var(--acb);transform:translateY(-2px)}
+}
+/* 8K / UHD desktop monitors: enlarge the existing CSS UI as a unit, rather
+   than letting fixed-pixel text and controls become microscopic. Standard
+   phone viewports are unchanged, including fullscreen mobile app behavior. */
+@media(min-width:2560px) and (min-height:1200px){body{zoom:1.25}}
+@media(min-width:3840px) and (min-height:1800px){body{zoom:1.8}}
+@media(min-width:5120px) and (min-height:2400px){body{zoom:2.6}}
+@media(min-width:7680px) and (min-height:3500px){body{zoom:3.8}}
+@media(prefers-reduced-motion:reduce){
+ body:has(#p-over) .pg .pn,body:has(#p-over) .pg .sc{transition:none!important}
+ body:has(#p-over) .pg .pn:hover,body:has(#p-over) .pg .sc:hover{transform:none}
+}
+
+</style>
 </head>
 <body data-m="b">
 <div id="cnsplash" aria-hidden="true"><canvas id="cnsky"></canvas>
