@@ -5,7 +5,9 @@ import { applyOrder } from "./ledger.mjs";
  * Account row lock serializes writes; all mutations commit atomically.
  * Caller must authenticate account ownership before calling.
  */
-export async function placeInternalOrder(db, accountId, key, input, newOrderId) {
+export async function placeInternalOrder(db, accountId, key, input, newOrderId, { assertExecutionReady } = {}) {
+  if (assertExecutionReady !== undefined && typeof assertExecutionReady !== "function")
+    throw new TypeError("Invalid synchronous execution gate");
   if (typeof accountId !== "string" || !accountId) throw new Error("Account required");
   if (typeof key !== "string" || key.length < 8 || key.length > 128) throw new Error("Invalid idempotency key");
   if (typeof newOrderId !== "string" || !newOrderId) throw new Error("Order id required");
@@ -36,6 +38,16 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId) 
     const p = await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1", [accountId]);
     const account = {cashCents:Number(a.rows[0].cash_cents),positions:Object.fromEntries(p.rows.map(r=>[r.market+":"+r.symbol,Number(r.quantity)])),orders:[]};
     const updated = applyOrder(account,input);
+    // Optional server-owned synchronous policy check is evaluated AFTER the
+    // account lock, immediately before any money or position changes. An
+    // external quote fetch must happen BEFORE the transaction; this hook may
+    // only validate the pre-fetched evidence against the current server clock.
+    // Idempotent replays bypass the gate because no new execution occurs.
+    if (assertExecutionReady) {
+      const verdict = assertExecutionReady();
+      if (verdict && typeof verdict.then === "function")
+        throw new TypeError("Execution gate must be synchronous");
+    }
     const order = updated.orders[0];
     const position = updated.positions[order.market+":"+order.symbol];
     await client.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1",[accountId,updated.cashCents]);
