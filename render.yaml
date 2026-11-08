@@ -1,4 +1,4 @@
-# Separate static marketing preview; no access to the customer trading portal or QA database.
+# Existing Render static site, now serving the latest CN Capital stage2 UI.
 services:
   - type: web
     runtime: static
@@ -17,5 +17,3 @@ services:
       - path: /*
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
-# Deliberately no custom domain. Deploy and verify preview first,
-# then bind about.nuvexapro.com only after DNS ownership and approvals.
