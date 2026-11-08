@@ -158,19 +158,50 @@ export async function createSubadmin(db,actor,{email,password}){
 }
 export async function listSubadmins(db,actor){
   if(actor?.role==="MASTER"){
-    const r=await db.query(`SELECT a.user_id,u.email,a.twofa_confirmed_at,i.code,i.expires_at,i.uses,i.max_uses
+    const r=await db.query(`SELECT a.user_id,u.email,a.twofa_confirmed_at,i.id AS invite_id,i.code,i.expires_at,i.uses,i.max_uses,i.revoked_at
       FROM admin_roles a JOIN app_users u ON u.id=a.user_id
       LEFT JOIN invite_codes i ON i.subadmin_user_id=a.user_id
       WHERE a.role='SUBADMIN' AND a.parent_user_id=$1 ORDER BY a.created_at DESC`,[actor.userId]);
     return r.rows;
   }
   if(actor?.role==="SUBADMIN"){
-    const r=await db.query(`SELECT a.user_id,u.email,a.twofa_confirmed_at,i.code,i.expires_at,i.uses,i.max_uses
+    const r=await db.query(`SELECT a.user_id,u.email,a.twofa_confirmed_at,i.id AS invite_id,i.code,i.expires_at,i.uses,i.max_uses,i.revoked_at
       FROM admin_roles a JOIN app_users u ON u.id=a.user_id
       LEFT JOIN invite_codes i ON i.subadmin_user_id=a.user_id WHERE a.user_id=$1`,[actor.userId]);
     return r.rows;
   }
   return [];
+}
+// Revocation does not remove or reassign existing customer accounts.
+export async function revokeInvitation(db,actor,data){
+  if(actor?.role!=="MASTER")invalid("Only master can revoke invitations");
+  if(!data||typeof data!=="object"||Array.isArray(data)||
+     Object.keys(data).length!==1||!Object.hasOwn(data,"inviteId"))invalid("Invalid invitation request");
+  const {inviteId}=data;
+  if(typeof inviteId!=="string"||!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(inviteId))
+    invalid("Invalid invitation ID");
+  const client=await db.connect();
+  let begun=false;
+  try{
+    await client.query("BEGIN");begun=true;
+    // Same row lock as registration's SELECT FOR UPDATE OF i. After commit,
+    // subsequent registrations cannot claim this invitation.
+    const changed=await client.query(`UPDATE invite_codes AS i SET revoked_at=now()
+      FROM admin_roles AS r
+      WHERE i.id=$1 AND i.revoked_at IS NULL
+        AND i.subadmin_user_id=r.user_id AND r.role='SUBADMIN'
+        AND r.parent_user_id=$2
+      RETURNING i.id,i.subadmin_user_id`,[inviteId,actor.userId]);
+    if(changed.rows.length!==1){
+      const error=new Error("Invitation unavailable");error.statusCode=404;throw error;
+    }
+    await client.query(`INSERT INTO admin_audit_events(action,actor_user_id,target_id,details)
+      VALUES('INVITE_REVOKED',$1,$2,jsonb_build_object('subadminUserId',$3))`,
+      [actor.userId,changed.rows[0].id,changed.rows[0].subadmin_user_id]);
+    await client.query("COMMIT");begun=false;
+    return {id:changed.rows[0].id,revoked:true};
+  }catch(error){if(begun)await client.query("ROLLBACK");throw error;}
+  finally{client.release();}
 }
 export async function listClients(db,actor){
   if(actor?.role==="MASTER"){

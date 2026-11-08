@@ -1,6 +1,6 @@
 import {
   roleFor,bootstrapMaster,confirmAdminTotp,adminLogin,createSubadmin,
-  listSubadmins,listClients,createListing,listListings,updateListing
+  listSubadmins,listClients,createListing,listListings,updateListing,revokeInvitation
 } from "./admin-service.mjs";
 function response(res,status,value){
   res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});
@@ -27,6 +27,7 @@ function safeError(error){
   if(error instanceof SyntaxError)return {status:400,error:"Invalid JSON"};
   if(error?.statusCode===401)return {status:401,error:"Invalid admin credentials"};
   if(error?.statusCode===400)return {status:400,error:error.message};
+  if(error?.statusCode===404)return {status:404,error:"Invitation unavailable"};
   if(error?.code==="23505")return {status:409,error:"Record already exists"};
   return {status:500,error:"Internal server error"};
 }
@@ -36,7 +37,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/activate":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
-    "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/audit":["GET"],"/api/catalog":["GET"]
+    "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/audit":["GET"],"/api/admin/invitations":["PATCH"],"/api/catalog":["GET"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
@@ -75,6 +76,10 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
         response(res,201,await createSubadmin(db,actor,await input(req)));return true;
       }
       response(res,200,{items:await listSubadmins(db,actor)});return true;
+    }
+    if(route==="/api/admin/invitations"){
+      if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
+      response(res,200,await revokeInvitation(db,actor,await input(req)));return true;
     }
     if(route==="/api/admin/clients"){
       response(res,200,{items:await listClients(db,actor)});return true;

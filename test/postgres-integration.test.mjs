@@ -33,7 +33,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_supported_markets_us_cn.sql", "007_admin_auth_protection.sql", "008_admin_audit.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_supported_markets_us_cn.sql", "007_admin_auth_protection.sql", "008_admin_audit.sql", "009_invitation_revocation_audit.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -350,14 +350,44 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.equal(subclients.status,200);
     assert.ok(subclients.data.items.some(item=>item.email===attachedEmail));
     assert.ok(!subclients.data.items.some(item=>item.email===directEmail));
+    // Only the master can revoke an invitation. Revocation is one-way.
+    const invites=await req("/api/admin/subaccounts",{token:masterToken});
+    const invitation=invites.data.items.find(x=>x.user_id===sub.data.userId);
+    assert.ok(invitation?.invite_id);
+    assert.equal(invitation.revoked_at,null);
+    const forbidden=await req("/api/admin/invitations",{method:"PATCH",token:subAdmin.data.token,body:{inviteId:invitation.invite_id}});
+    assert.equal(forbidden.status,403);
+    assert.equal((await req("/api/admin/invitations",{method:"PATCH",token:clientLogin.data.token,body:{inviteId:invitation.invite_id}})).status,403);
+    assert.equal((await req("/api/admin/invitations",{method:"PATCH",body:{inviteId:invitation.invite_id}})).status,401);
+    assert.equal((await req("/api/admin/invitations",{method:"PATCH",token:masterToken,body:{inviteId:"invalid"}})).status,400);
+    const revoked=await req("/api/admin/invitations",{method:"PATCH",token:masterToken,body:{inviteId:invitation.invite_id}});
+    assert.equal(revoked.status,200);
+    assert.deepEqual(revoked.data,{id:invitation.invite_id,revoked:true});
+    assert.equal((await req("/api/admin/invitations",{method:"PATCH",token:masterToken,body:{inviteId:invitation.invite_id}})).status,404);
+    const after=await req("/api/admin/subaccounts",{token:masterToken});
+    assert.ok(after.data.items.find(x=>x.invite_id===invitation.invite_id)?.revoked_at);
+    const deniedInvite=await req("/api/auth/register",{method:"POST",body:{
+      email:"revoked-"+randomUUID().slice(0,8)+"@example.test",
+      password:"long-revoked-password-2026",inviteCode:sub.data.inviteCode
+    }});
+    assert.equal(deniedInvite.status,400);
+    const existing=await req("/api/admin/clients",{token:subAdmin.data.token});
+    assert.ok(existing.data.items.some(x=>x.email===attachedEmail));
+    assert.equal((await req("/api/account",{token:clientLogin.data.token})).status,200);
+
     const audit=await db.query(`SELECT action,actor_user_id,target_id,details
       FROM admin_audit_events ORDER BY id`);
     const actions=audit.rows.map(row=>row.action);
-    for(const required of ["ADMIN_CREATED","ADMIN_2FA_ENABLED","ADMIN_LOGIN","LISTING_CREATED","LISTING_STATUS_CHANGED"])
+    for(const required of ["ADMIN_CREATED","ADMIN_2FA_ENABLED","ADMIN_LOGIN","LISTING_CREATED","LISTING_STATUS_CHANGED","INVITE_REVOKED"])
       assert.ok(actions.includes(required),required);
     assert.ok(audit.rows.some(row=>row.action==="LISTING_CREATED" &&
       row.target_id===masterListing.data.id && row.actor_user_id===setup.data.userId || 
       (row.action==="LISTING_CREATED" && row.target_id===masterListing.data.id)));
+    const revokeEvent=audit.rows.filter(row=>row.action==="INVITE_REVOKED");
+    assert.equal(revokeEvent.length,1);
+    assert.equal(revokeEvent[0].target_id,invitation.invite_id);
+    assert.equal(revokeEvent[0].details.subadminUserId,sub.data.userId);
+    assert.equal(revokeEvent[0].actor_user_id,(await req("/api/admin/me",{token:masterToken})).data.userId);
     for(const row of audit.rows){
       const text=JSON.stringify(row.details);
       assert.ok(!text.includes(password));
