@@ -1,6 +1,7 @@
 import {randomUUID} from "node:crypto";
 import {placeInternalOrder} from "./order-service.mjs";
 import {assertInternalExecutionQuote} from "./internal-execution-quote.mjs";
+import {getVerifiedInternalOrderReceipt} from "./internal-order-readback.mjs";
 
 // Server-only execution seam. No HTTP route, UI edits or broker transport.
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -26,12 +27,24 @@ function confirmIdentity(quote,intent) {
  const correctMic=intent.market==="US"
   ? US_MICS.has(quote?.mic)
   : quote?.mic===(/^(60|68)/.test(intent.symbol)?"XSHG":"XSHE");
- if(quote?.status!=="FRESH" || quote?.stale!==false ||
+ // The provider's human/display price and execution cents MUST agree
+ // exactly. Never round a sub-cent price to manufacture an executable fill.
+ if(!Number.isFinite(quote?.price) || !Number.isSafeInteger(quote?.priceCents) ||
+    quote.priceCents<=0 || quote.price!==quote.priceCents/100 ||
+    (quote.priceMicros!==undefined &&
+     (!Number.isSafeInteger(quote.priceMicros) ||
+      BigInt(quote.priceMicros)!==BigInt(quote.priceCents)*10000n)) ||
+    quote?.status!=="FRESH" || quote?.stale!==false ||
     !correctMic || typeof quote?.name!=="string" || !quote.name.trim() ||
     quote.name.length>180 ||
     quote?.entitlement?.purpose!=="internalSimulationPricing" ||
     typeof quote.entitlement.reviewReference!=="string" ||
     !quote.entitlement.reviewReference.trim()) throw unavailable();
+}
+function quoteFromReceipt(receipt) {
+ return Object.freeze({source:receipt.quoteSource,
+  timestampMs:receipt.quoteTimestampMs,currency:receipt.quoteCurrency,
+  priceCents:receipt.unitPriceCents});
 }
 function sameOrder(previous,intent) {
  return previous.side===intent.side && previous.market===intent.market &&
@@ -64,7 +77,10 @@ export async function executeLicensedInternalOrder({
   const priceCents=Number(existing.price_cents),fxUsdMicros=Number(existing.fx_usd_micros);
   if(!Number.isSafeInteger(priceCents)||priceCents<1||
      !Number.isSafeInteger(fxUsdMicros)||fxUsdMicros<1)throw unavailable();
-  return placeInternalOrder(db,accountId,key,{...intent,priceCents,fxUsdMicros},createId());
+  const replay=await placeInternalOrder(db,accountId,key,{...intent,priceCents,fxUsdMicros},createId());
+  // Existing legacy/unverified orders are never claimed to be licensed.
+  const receipt=await getVerifiedInternalOrderReceipt(db,accountId,replay.order.id);
+  return {...replay,quote:quoteFromReceipt(receipt)};
  }
  if(typeof marketData?.getQuote!=="function" ||
     typeof authorizeTradingSession!=="function" ||
@@ -126,8 +142,9 @@ export async function executeLicensedInternalOrder({
    ]);
   }
  });
- return {...result,quote:{
-  source:initial.quoteSource,timestampMs:initial.quoteTimestampMs,
-  currency:initial.currency,priceCents:initial.priceCents
- }};
+ // A concurrent request using the same key can commit a DIFFERENT quote
+ // first. Return the authenticated, committed receipt, never the losing
+ // request's pre-fetched price or source. Also verify a new fill after commit.
+ const receipt=await getVerifiedInternalOrderReceipt(db,accountId,result.order.id);
+ return {...result,quote:quoteFromReceipt(receipt)};
 }
