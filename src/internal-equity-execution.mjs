@@ -25,7 +25,8 @@ function confirmIdentity(quote,intent) {
  const correctMic=intent.market==="US"
   ? US_MICS.has(quote?.mic)
   : quote?.mic===(/^(60|68)/.test(intent.symbol)?"XSHG":"XSHE");
- if(!correctMic || typeof quote?.name!=="string" || !quote.name.trim() ||
+ if(quote?.status!=="FRESH" || quote?.stale!==false ||
+    !correctMic || typeof quote?.name!=="string" || !quote.name.trim() ||
     quote.name.length>180 ||
     quote?.entitlement?.purpose!=="internalSimulationPricing" ||
     typeof quote.entitlement.reviewReference!=="string" ||
@@ -46,7 +47,7 @@ function sameOrder(previous,intent) {
  */
 export async function executeLicensedInternalOrder({
  db,accountId,key,request,marketData,fxData,authorizeUsage,authorizeFxUsage,
- tradingEnabled=false,now=Date.now,createId=randomUUID
+ tradingEnabled=false,authorizeTradingSession,now=Date.now,createId=randomUUID
 }={}) {
  if(!db || typeof db.query!=="function" || typeof db.connect!=="function" ||
     typeof now!=="function" || typeof createId!=="function" ||
@@ -64,7 +65,9 @@ export async function executeLicensedInternalOrder({
      !Number.isSafeInteger(fxUsdMicros)||fxUsdMicros<1)throw unavailable();
   return placeInternalOrder(db,accountId,key,{...intent,priceCents,fxUsdMicros},createId());
  }
- if(typeof marketData?.getQuote!=="function" || typeof authorizeUsage!=="function" ||
+ if(typeof marketData?.getQuote!=="function" ||
+    typeof authorizeTradingSession!=="function" ||
+    typeof authorizeUsage!=="function" ||
     (intent.market==="CN" &&
       (typeof fxData?.getQuote!=="function"||typeof authorizeFxUsage!=="function")))
    throw unavailable();
@@ -74,6 +77,22 @@ export async function executeLicensedInternalOrder({
  confirmIdentity(quote,intent);
  const fxQuote=intent.market==="CN"?
    await fxData.getQuote({base:"CNY",quote:"USD",purpose:"internalPricing"}):undefined;
+ // Trading hours and exchange holiday rules are sourced only from server
+ // policy; absent or ambiguous sessions reject instead of silently executing.
+ const certifySession=()=>{
+  const moment=now();
+  let session;
+  try{session=authorizeTradingSession({market:intent.market,
+    symbol:intent.symbol,side:intent.side,now:moment});}
+  catch{throw unavailable();}
+  if(session?.allowed!==true || session.market!==intent.market ||
+     !Number.isSafeInteger(session.validUntilMs) ||
+     session.validUntilMs<moment ||
+     typeof session.ruleReference!=="string" ||
+     !session.ruleReference.trim())throw unavailable();
+  return session.ruleReference;
+ };
+ const sessionRule=certifySession();
  const certify=()=>assertInternalExecutionQuote({
    request:intent,quote,fxQuote,authorizeUsage,authorizeFxUsage,now:now()
  });
@@ -88,6 +107,8 @@ export async function executeLicensedInternalOrder({
     throw invalid("Security not available for orders",409);
   },
   assertExecutionReady:()=>{
+   const activeSessionRule=certifySession();
+   if(activeSessionRule!==sessionRule)throw unavailable();
    const fresh=certify();
    if(fresh.licenseReviewReference!==quote.entitlement.reviewReference ||
       fresh.priceCents!==initial.priceCents ||
@@ -95,12 +116,12 @@ export async function executeLicensedInternalOrder({
       fresh.amountUsdCents!==initial.amountUsdCents)throw unavailable();
   },
   persistQuoteEvidence:async (client,order)=>{
-   await client.query("INSERT INTO order_execution_evidence(order_id,account_id,market,symbol,quote_currency,quote_price_cents,quote_at,quote_source,quote_license_ref,fx_usd_micros,fx_at,fx_source,fx_license_ref) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",[
+   await client.query("INSERT INTO order_execution_evidence(order_id,account_id,market,symbol,quote_currency,quote_price_cents,quote_at,quote_source,quote_license_ref,fx_usd_micros,fx_at,fx_source,fx_license_ref,session_rule_ref) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",[
     order.id,accountId,intent.market,intent.symbol,initial.currency,
     initial.priceCents,new Date(initial.quoteTimestampMs),initial.quoteSource,
     initial.licenseReviewReference,initial.fxUsdMicros,
     initial.fxTimestampMs==null?null:new Date(initial.fxTimestampMs),
-    initial.fxSource??null,initial.fxReviewReference
+    initial.fxSource??null,initial.fxReviewReference,sessionRule
    ]);
   }
  });
