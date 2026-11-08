@@ -8,7 +8,11 @@ const usQuote={market:"US",symbol:"AAPL",currency:"USD",priceCents:10125,
  timestampMs:now-2000,source:"LICENSED_TEST_FEED",entitled:true};
 const authorizeUsage=({source,market,currency})=>({
  source,market,currency,customerDisplayAllowed:true,internalPricingAllowed:true,
- validUntilMs:now+600_000
+ validUntilMs:now+600_000,reviewReference:"LICENSE-REVIEW-TEST"
+});
+const authorizeFxUsage=({base,quote,source})=>({
+ base,quote,source,internalPricingAllowed:true,
+ validUntilMs:now+600_000,reviewReference:"FX-REVIEW-TEST"
 });
 const check=(extra={})=>validate({request:buy,quote:usQuote,authorizeUsage,now,...extra});
 function rejected(input,reason) {
@@ -57,16 +61,26 @@ test("CNY internal execution requires a recent, explicit CNY/USD FX quote",()=>{
  const quote={...usQuote,market:"CN",symbol:"600519",currency:"CNY",priceCents:12345};
  const fxQuote={base:"CNY",quote:"USD",usdMicros:140_000,
   timestampMs:now-1000,source:"LICENSED_FX_TEST"};
- const result=check({request,quote,fxQuote});
+ const result=check({request,quote,fxQuote,authorizeFxUsage});
  assert.equal(result.amountUsdCents,5185); // 12345 * 3 * 0.14 rounded once
  assert.equal(result.fxUsdMicros,140000);
- rejected({request,quote,fxQuote:undefined},"FX_UNAVAILABLE");
- rejected({request,quote,fxQuote:{...fxQuote,usdMicros:0}},"FX_UNAVAILABLE");
- rejected({request,quote,fxQuote:{...fxQuote,timestampMs:now-61000}},"FX_UNAVAILABLE");
+ rejected({request,quote,fxQuote:undefined,authorizeFxUsage},"FX_UNAVAILABLE");
+ rejected({request,quote,fxQuote:{...fxQuote,usdMicros:0},authorizeFxUsage},"FX_UNAVAILABLE");
+ rejected({request,quote,fxQuote:{...fxQuote,timestampMs:now-61000},authorizeFxUsage},"FX_UNAVAILABLE");
 });
 test("BigInt not floating point computes and rejects overflow",()=>{
  const quote={...usQuote,priceCents:4};
  const result=check({request:{...buy,quantity:3},quote});
  assert.equal(result.amountUsdCents,12);
  rejected({request:{...buy,quantity:Number.MAX_SAFE_INTEGER}},"AMOUNT_OVERFLOW");
+});
+test("CNY conversion is disabled without independent reviewed FX pricing rights",()=>{
+ const request={side:"BUY",market:"CN",symbol:"600519",quantity:1};
+ const quote={...usQuote,market:"CN",symbol:"600519",currency:"CNY"};
+ const fxQuote={base:"CNY",quote:"USD",usdMicros:140000,timestampMs:now,source:"FX_FEED"};
+ rejected({request,quote,fxQuote},"FX_LICENSE_UNVERIFIED");
+ rejected({request,quote,fxQuote,authorizeFxUsage:()=>({entitled:true})},"FX_LICENSE_UNVERIFIED");
+ rejected({request,quote,fxQuote,authorizeFxUsage:()=>({
+  ...authorizeFxUsage({base:"CNY",quote:"USD",source:"FX_FEED"}),validUntilMs:now-1
+ })},"FX_LICENSE_UNVERIFIED");
 });
