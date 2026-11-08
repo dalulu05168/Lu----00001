@@ -1,7 +1,8 @@
 import {randomUUID,randomInt,timingSafeEqual,createHash} from "node:crypto";
 import {hashPassword,verifyPassword,createSession,rejectUnknownAccount,generateSessionToken} from "./auth.mjs";
 import {enableNewProductPurchases} from './internal-products.mjs';
-import {generateTotpSecret,verifyTotpCode,totpUri,base32Encode} from "./totp.mjs";
+import {generateTotpSecret,totpUri,base32Encode} from "./totp.mjs";
+import {matchedAdminTotpStep,claimAdminTotpStep} from "./admin-totp-replay.mjs";
 import {adminTotpKey,sealTotpSecret,openTotpSecret} from "./admin-totp-storage.mjs";
 
 
@@ -155,10 +156,16 @@ export async function verifyAdminTotp(db,{pendingToken,code}){
       const error=new Error("2FA session expired; please sign in again");error.statusCode=401;throw error;
     }
     const secret=openTotpSecret(row.totp_secret_ciphertext,adminTotpKey(),row.user_id);
-    if(!verifyTotpCode(secret,code)){
+    const acceptedStep=matchedAdminTotpStep(secret,code);
+    if(acceptedStep===null){
       await client.query("UPDATE admin_totp_challenges SET attempts=attempts+1 WHERE id=$1",[row.id]);
       await client.query("COMMIT");tx=false;
       const error=new Error("Invalid 2FA code");error.statusCode=401;throw error;
+    }
+    if(!await claimAdminTotpStep(client,row.user_id,acceptedStep)){
+      await client.query("UPDATE admin_totp_challenges SET attempts=attempts+1 WHERE id=$1",[row.id]);
+      await client.query("COMMIT");tx=false;
+      const error=new Error("2FA code already used");error.statusCode=401;throw error;
     }
     if(row.setup)await client.query("UPDATE admin_roles SET totp_confirmed_at=now() WHERE user_id=$1",[row.user_id]);
     await client.query("DELETE FROM admin_totp_challenges WHERE id=$1",[row.id]);
