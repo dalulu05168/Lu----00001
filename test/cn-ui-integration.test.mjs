@@ -29,13 +29,23 @@ test('new terminal keeps account dialogs and only displays after authenticated a
   assert.match(js,/Authorization:/);
 });
 
-test('admin redesign requires current admin authorization and keeps system management fallback', async () => {
-  const html=await source('web/cn-admin.html');
-  const js=await source('web/cn-admin-bridge.mjs');
-  assert.match(html,/id="mirror"/);
-  assert.match(js,/fetch\('\/api\/admin\/me'/);
-  assert.match(js,/\['MASTER','SUBADMIN'\]/);
-  assert.match(js,/\/admin\.html\?legacy=1/);
+test('admin console requires current 2FA authorization and renders only API-backed data',async()=>{
+ const html=await source('web/cn-admin.html');
+ const js=await source('web/cn-admin-bridge.mjs');
+ assert.match(html,/id="adminVerifiedApp"/);
+ assert.match(html,/id="clientsRows"/);
+ assert.match(html,/id="subadminsRows"/);
+ assert.match(html,/id="listingsRows"/);
+ assert.match(html,/html:not\(\.cn-ready\) body\{visibility:hidden!important\}/);
+ assert.doesNotMatch(html,/998937\.6|linyi05168@gmail\.com|4b6b2266|预览模式/);
+ assert.match(js,/fetch\('\/api\/admin\/me'/);
+ assert.match(js,/\['MASTER','SUBADMIN'\]/);
+ assert.match(js,/location\.replace\('\/admin\.html'\)/);
+ assert.match(js,/api\('clients'\)/);
+ assert.match(js,/api\('subaccounts'\)/);
+ assert.match(js,/api\('listings'\)/);
+ assert.match(js,/textContent=/);
+ assert.doesNotMatch(js,/innerHTML\s*=/);
 });
 
 test('US chart vendor remains present and includes AA and NEM', async () => {
