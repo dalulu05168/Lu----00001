@@ -38,14 +38,14 @@ window.CN_SET_TOKEN=function(token){try{if(token)localStorage.setItem('cncap.ses
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CN Capital · 客户 App</title>
 <meta name="theme-color" content="#0b0b0b"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0b0b'/%3E%3Cpath d='M23.9 12A8 8 0 1 0 23.9 20' fill='none' stroke='%23eef2f7' stroke-width='2.1' stroke-linecap='round'/%3E%3Cpath d='M12 20L12 12L20 20L20 12' fill='none' stroke='%23eef2f7' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='21' cy='11.1' r='1.4' fill='%2345e0d6'/%3E%3C/svg%3E">
-<style>html,body{height:100%;margin:0}body{background:#0e0f11;display:flex;justify-content:center;align-items:center}@media(max-width:420px){body{display:block}}</style>
+<style>html,body{height:100%;margin:0}body{background:#0e0f11;display:flex;justify-content:center;align-items:center}@media(max-width:599px){body{display:block}}</style>
 <style id="css" type="text/plain">
 :host{display:block}
 *{box-sizing:border-box;margin:0;font-weight:400}
 button,input{font:inherit;color:inherit}
 .app{position:relative;width:390px;height:min(844px,100vh);background:#0b0b0b;border-radius:36px;overflow:hidden;border:1px solid #2b2f38;color:#fff;font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;font-variant-numeric:tabular-nums}
 :host(.emb) .app{width:100%;height:100%;border:0;border-radius:0}
-@media(max-width:420px){:host(:not(.emb)) .app{width:100vw;height:100vh;border:0;border-radius:0}}
+@media(max-width:599px){:host(:not(.emb)) .app{width:100vw;height:100vh;border:0;border-radius:0}}
 .app.g{background:radial-gradient(120% 46% at 0% 0%,#38490f 0%,#0b0b0b 62%)}
 .sb{position:absolute;top:0;left:0;right:0;height:48px;z-index:8;display:flex;align-items:center;justify-content:space-between;padding:6px 28px 0 34px;font-size:15px;pointer-events:none}
 .isl{position:absolute;left:50%;top:11px;width:112px;height:31px;margin-left:-56px;background:#000;border-radius:16px}
@@ -175,8 +175,8 @@ h2{font-size:21px;margin-bottom:8px;display:flex;align-items:center;gap:10px;fon
 .fab{bottom:calc(86px + env(safe-area-inset-bottom,0px))}
 .ts{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
 .sh{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
-@media(max-width:420px){:host(:not(.emb)) .sb{display:none}:host(:not(.emb)) .v{top:0;padding-top:calc(env(safe-area-inset-top,0px) + 12px)}:host(:not(.emb)) .ptr{top:env(safe-area-inset-top,0px)}}
-@supports(height:100dvh){.app{height:min(844px,100dvh)}@media(max-width:420px){:host(:not(.emb)) .app{height:100dvh}}}
+@media(max-width:599px){:host(:not(.emb)) .sb{display:none}:host(:not(.emb)) .v{top:0;padding-top:calc(env(safe-area-inset-top,0px) + 12px)}:host(:not(.emb)) .ptr{top:env(safe-area-inset-top,0px)}}
+@supports(height:100dvh){.app{height:min(844px,100dvh)}@media(max-width:599px){:host(:not(.emb)) .app{height:100dvh}}}
 
 /* User-selected navigation: gradual top-to-bottom content reveal. */
 .v.cn-page-enter>*{animation:cn-page-topfade .78s cubic-bezier(.22,1,.36,1) both}
