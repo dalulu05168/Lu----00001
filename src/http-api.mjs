@@ -26,8 +26,8 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
-  if(req.method==="GET" && ["/","/index.html","/admin","/admin.html","/mobile","/mobile.html","/cn-terminal.html","/cn-admin.html"].includes(url.pathname)){
-   const file=url.pathname==="/"?"index.html":url.pathname==="/admin"?"admin.html":url.pathname==="/mobile"?"mobile.html":url.pathname.slice(1);
+  if(req.method==="GET" && ["/","/login.html","/index.html","/admin","/admin.html","/mobile","/mobile.html","/cn-terminal.html","/cn-admin.html"].includes(url.pathname)){
+   const file=url.pathname==="/"?"login.html":url.pathname==="/admin"?"admin.html":url.pathname==="/mobile"?"mobile.html":url.pathname.slice(1);
    try{const bytes=await readFile(new URL("../web/"+file,import.meta.url));res.writeHead(200,{"content-type":file.endsWith(".mjs")?"text/javascript; charset=utf-8":file.endsWith(".css")?"text/css; charset=utf-8":"text/html; charset=utf-8","cache-control":"no-store"});res.end(bytes);return;}
    catch{return send(res,404,{error:"Not found"});}
   }
