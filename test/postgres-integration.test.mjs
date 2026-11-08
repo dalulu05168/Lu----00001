@@ -7,6 +7,7 @@ import serverlessHandler from "../api/[...path].mjs";
 import { createApi } from "../src/http-api.mjs";
 import { createSessionResolver } from "../src/auth.mjs";
 import { placeInternalOrder } from "../src/order-service.mjs";
+import {verifyLicensedEquityPostgres} from "./internal-equity-postgres.mjs";
 import {verifyInternalFunding} from './internal-funding-postgres.test.mjs';
 import {verifyInternalProducts} from './internal-products-postgres.mjs';
 import {verifyPrivateCustomerData} from './private-customer-postgres.mjs';
@@ -798,4 +799,13 @@ run("PostgreSQL: internal-order concurrency, replay identity and committed ledge
     assert.equal(Number(ledger.rows[0].delta_cents),-10000);
     assert.equal(Number(ledger.rows[0].balance_after_cents),5000);
   }finally{await db.end();}
+});
+
+run("PostgreSQL: US/CN licensed-format internal orders, FIFO P/L and atomic quote evidence",async()=>{
+ const result=await verifyLicensedEquityPostgres(connectionString);
+ assert.equal(result.orders,4);
+ assert.equal(result.evidence,4);
+ assert.equal(result.cashCents,82900);
+ assert.equal(result.realizedPnlCents,5700);
+ assert.equal(result.positionCostCents,22800);
 });
