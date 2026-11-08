@@ -66,6 +66,22 @@ export async function changeWatchlist(token, item, current, fetchImpl=fetch) {
   if (!Array.isArray(current)) throw new Error("必须先同步自选列表");
   const exists=current.some(x=>x.market===ref.market&&x.symbol===ref.symbol);
   await requestAuthenticated("/watchlist",token,{method:exists?"DELETE":"POST",body:ref,fetchImpl});
-  // Only a fresh server read may confirm a saved mutation.
-  return readWatchlist(token,fetchImpl);
+  // A successful POST/DELETE acknowledges the request, not necessarily persistence.
+  // Always re-read; never let the UI report saved/removed based on a local array.
+  let verified;
+  try {
+    verified = await readWatchlist(token,fetchImpl);
+  } catch (cause) {
+    const error = new Error("自选请求已发送，但未能回读确认；请刷新列表核对结果");
+    error.code = "WATCHLIST_READBACK_FAILED";
+    error.status = cause?.status;
+    throw error;
+  }
+  const nowExists = verified.some(item => item.market===ref.market && item.symbol===ref.symbol);
+  if (nowExists===exists) {
+    const error = new Error("自选请求已发送，但服务器没有确认变更；请刷新列表核对结果");
+    error.code = "WATCHLIST_NOT_CONFIRMED";
+    throw error;
+  }
+  return verified;
 }
