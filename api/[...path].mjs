@@ -2,6 +2,8 @@ import { isDatabaseReady } from "../src/readiness.mjs";
 import { Pool } from "pg";
 import { createApi } from "../src/http-api.mjs";
 import { createSessionResolver } from "../src/auth.mjs";
+import { createMarketDataProvider } from "../src/market-provider.mjs";
+import { createReadOnlyPricingGateway } from "../src/market-data.mjs";
 
 let runtime;
 
@@ -15,11 +17,13 @@ function getRuntime() {
       connectionTimeoutMillis: 5000,
       ssl: process.env.PGSSL === "require" ? { rejectUnauthorized: true } : undefined
     });
+    const marketDataProvider=createMarketDataProvider();
     const api = createApi({
       db,
       resolveSession: createSessionResolver(db),
-      // No broker order transport or execution-price provider is configured.
-      resolveExecutionPrice: undefined
+      marketDataProvider,
+      resolveExecutionPrice: marketDataProvider&&process.env.MARKET_DATA_EXECUTION_ENABLED==="true"
+        ?createReadOnlyPricingGateway({provider:marketDataProvider}):undefined
     });
     runtime = { db, requestHandler: api.listeners("request")[0] };
   }
@@ -36,7 +40,7 @@ function send(res, status, body) {
 export default async function handler(req, res) {
   const path = (req.url || "/").split("?")[0];
   if (req.method === "GET" && path === "/api/health") {
-    return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: false });
+    return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: Boolean(process.env.MARKET_DATA_API_KEY||process.env.FINNHUB_API_KEY||process.env.ALPHA_VANTAGE_API_KEY) });
   }
 
   const current = getRuntime();

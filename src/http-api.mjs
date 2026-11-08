@@ -22,7 +22,7 @@ async function readBody(req,maxBodyBytes){
  return payload;
 }
 function errorStatus(message){return /Invalid|Account required|Order id required/.test(message)?400:/Insufficient|position|funds/.test(message)?409:/not found/i.test(message)?404:500;}
-export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192}){
+export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,marketDataProvider,maxBodyBytes=8192}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  return createServer(async(req,res)=>{
   const url=new URL(req.url??"/","http://localhost");
@@ -41,11 +41,12 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/securities","/api/requests","/api/messages"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/securities","/api/requests","/api/messages","/api/quote"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/securities"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/quote"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/requests"&&!['GET','POST'].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/messages"&&!['GET','POST'].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/watchlist"&&!["GET","POST","DELETE"].includes(req.method))return send(res,405,{error:"Method not allowed"});
@@ -91,6 +92,13 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
     }
     return send(res,200,{sec,names,cfg:sec,name:names});
    }catch{return send(res,500,{error:"Internal server error"});}
+  }
+  if(route==="/api/quote"){
+   if(!marketDataProvider)return send(res,503,{error:"Market data provider unavailable"});
+   try{
+    const market=String(url.searchParams.get("market")||"").toUpperCase(),symbol=String(url.searchParams.get("symbol")||"").toUpperCase();
+    return send(res,200,{quote:await marketDataProvider.getQuote({market,symbol})});
+   }catch{return send(res,503,{error:"Market data unavailable"});}
   }
   if(route==="/api/requests"){
    try{
