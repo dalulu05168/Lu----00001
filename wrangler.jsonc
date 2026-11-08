@@ -1,0 +1,11 @@
+{
+  "name": "nuvexa-qa-preview-20261108",
+  "main": "src/cloudflare-qa-worker.mjs",
+  "compatibility_date": "2026-11-08",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "none"
+  }
+}
