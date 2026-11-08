@@ -67,5 +67,5 @@
 
 - [ ] **Step 1: Re-read the final diff** and check that no backend, schema, environment, or secret files changed.
 - [ ] **Step 2: Verify GitHub Actions** for the isolated branch and record both test jobs.
-- [ ] **Step 3: Push the verified changes to `dev/platform-v1` only after checks are green**, then verify the resulting Vercel deployment and live UI.
+- [ ] **Step 3: Push the verified changes to `dev/platform-v1` only after checks are green**, then verify the resulting Node service deployment and live UI.
 - [ ] **Step 4: Report exact commit, deployment URL/state, test results, and any blocked visual checks.**
