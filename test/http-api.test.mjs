@@ -51,7 +51,7 @@ test("auth endpoints reject GET method",async()=>withServer(async base=>{
 }));
 
 test("serves the replacement UI entrypoints from the same origin",async()=>withServer(async base=>{
- for(const path of ["/","/index.html","/mobile.html","/cn-terminal.html","/admin.html","/cn-admin.html"]){
+ for(const path of ["/","/login.html","/index.html","/mobile.html","/cn-terminal.html","/admin.html","/cn-admin.html"]){
   const page=await fetch(base+path);
   assert.equal(page.status,200,path);
   assert.match(await page.text(),/<!doctype html>/i,path);
@@ -91,4 +91,13 @@ test("does not expose deleted legacy UI assets",async()=>withServer(async base=>
   const response=await fetch(base+asset);
   assert.equal(response.status,404,asset);
  }
+}));
+
+test("root serves unified login instead of an unverified account screen",async()=>withServer(async base=>{
+ const response=await fetch(base+"/");
+ assert.equal(response.status,200);
+ const html=await response.text();
+ assert.match(html,/id="loginForm"/);
+ assert.match(html,/data-login-role="master"/);
+ assert.doesNotMatch(html,/state\.role=state\.loginRole/);
 }));
