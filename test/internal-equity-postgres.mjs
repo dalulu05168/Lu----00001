@@ -274,6 +274,36 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(Number(raceOrders.rows[0].quote_price_cents),raceFillPrice);
   const raceCash=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[raceAccountId]);
   assert.equal(Number(raceCash.rows[0].cash_cents),50000-raceFillPrice-100);
+  // Both competing SELL intents target the same single share, each with its
+  // own idempotency key. The account lock must permit exactly one settlement.
+  const concurrentUser=randomUUID(),concurrentAccount=randomUUID();
+  await db.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,'test-hash')",
+   [concurrentUser,"qa-sell-race-"+concurrentUser+"@example.test"]);
+  await db.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,50000)",
+   [concurrentAccount,concurrentUser]);
+  await db.query("INSERT INTO cash_ledger(account_id,delta_cents,balance_after_cents) VALUES($1,50000,50000)",
+   [concurrentAccount]);
+  const accountArgs={...args,accountId:concurrentAccount};
+  const oneBuy=await executeLicensedInternalOrder({...accountArgs,
+   key:"qa-concurrent-sell-seed",request:{side:"BUY",market:"US",symbol:us,quantity:1}});
+  assert.equal(oneBuy.replayed,false);
+  const sellers=await Promise.allSettled([
+   executeLicensedInternalOrder({...accountArgs,key:"qa-parallel-sell-one",
+    request:{side:"SELL",market:"US",symbol:us,quantity:1}}),
+   executeLicensedInternalOrder({...accountArgs,key:"qa-parallel-sell-two",
+    request:{side:"SELL",market:"US",symbol:us,quantity:1}})
+  ]);
+  assert.equal(sellers.filter(item=>item.status==="fulfilled").length,1);
+  assert.equal(sellers.filter(item=>item.status==="rejected").length,1);
+  assert.match(sellers.find(item=>item.status==="rejected").reason.message,/Insufficient position/);
+  const concurrentSnapshot=await getAccountSnapshot(db,concurrentAccount);
+  assert.equal(concurrentSnapshot.account.cashCents,50000);
+  assert.equal(concurrentSnapshot.orders.length,2);
+  assert.equal(concurrentSnapshot.positions.find(p=>p.market==="US"&&p.symbol===us)?.quantity,0);
+  const concurrentRecords=await db.query(
+   "SELECT count(*)::integer AS orders,(SELECT count(*)::integer FROM cash_ledger WHERE account_id=$1 AND order_id IS NOT NULL) AS ledger FROM orders WHERE account_id=$1",
+   [concurrentAccount]);
+  assert.deepEqual([concurrentRecords.rows[0].orders,concurrentRecords.rows[0].ledger],[2,2]);
   const [stored,ledger,evidence]=await Promise.all([
    db.query("SELECT id,market,side,amount_usd_cents FROM orders WHERE account_id=$1 ORDER BY created_at",[accountId]),
    db.query("SELECT order_id,delta_cents FROM cash_ledger WHERE account_id=$1 AND order_id IS NOT NULL",[accountId]),
