@@ -29,6 +29,8 @@ jobs:
           for entry in index.html mobile.html cn-terminal.html admin.html cn-admin.html; do
             test -s "public/$entry"
           done
+          grep -q '客户 App 镜像' public/admin.html
+          grep -q 'CN_FRONT_API_BASE' public/mobile.html
 
   postgres-integration:
     name: PostgreSQL integration
