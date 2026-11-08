@@ -8,6 +8,17 @@ import {registerAccount,loginAccount,logoutAccount,getAccountSnapshot} from "./a
 import {listWatchlist,addWatchlistItem,removeWatchlistItem} from "./watchlist-service.mjs";
 
 function send(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(status===204?undefined:JSON.stringify(data));}
+function applyCors(req,res){
+ const configured=(process.env.CORS_ORIGIN??"").split(",").map(x=>x.trim()).filter(Boolean);
+ const origin=req.headers.origin;
+ if(origin&&configured.includes(origin)){
+  res.setHeader("access-control-allow-origin",origin);
+  res.setHeader("access-control-allow-credentials","true");
+  res.setHeader("vary","Origin");
+ }
+ res.setHeader("access-control-allow-methods","GET,POST,DELETE,OPTIONS");
+ res.setHeader("access-control-allow-headers","Authorization,Content-Type,Idempotency-Key");
+}
 async function readBody(req,maxBodyBytes){
  if(req.body!==undefined){
   const payload=typeof req.body==="string"?req.body:Buffer.isBuffer(req.body)?req.body.toString("utf8"):JSON.stringify(req.body);
@@ -25,6 +36,8 @@ function errorStatus(message){return /Invalid|Account required|Order id required
 export function createApi({db,resolveSession,createId=randomUUID,resolveExecutionPrice,maxBodyBytes=8192}){
  if(!db||typeof resolveSession!=="function")throw new Error("Missing dependencies");
  return createServer(async(req,res)=>{
+  applyCors(req,res);
+  if(req.method==="OPTIONS")return send(res,204,{});
   const url=new URL(req.url??"/","http://localhost");
   if(req.method==="GET" && ["/","/index.html","/app.mjs","/styles.css","/admin.html","/admin.mjs","/admin.css","/market-allocation.mjs","/catalog-instruments.mjs","/stock-chart.mjs","/cn-terminal.html","/cn-admin.html","/cn-terminal-bridge.mjs","/cn-admin-bridge.mjs","/cn-entry-redirect.mjs","/cn-admin-entry-redirect.mjs"].includes(url.pathname)){
    const file=url.pathname==="/"?"index.html":url.pathname.slice(1);

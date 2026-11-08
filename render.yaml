@@ -17,6 +17,8 @@ services:
         sync: false
       - key: PGSSL
         value: require
+      - key: CORS_ORIGIN
+        value: https://cn-capital-phone-qa-p6ma.onrender.com
       - key: ADMIN_MASTER_EMAIL
         sync: false
       - key: ADMIN_BOOTSTRAP_SECRET
