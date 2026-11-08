@@ -52,6 +52,6 @@ with sync_playwright() as p:
     ctx.close()
     browser.close()
 
-assert len(results)==10
+assert len(results)==11
 (OUT/'results.json').write_text(json.dumps({'results':results,'note':'Isolated browser only; backend APIs and real phone hardware not tested'},ensure_ascii=False,indent=2),encoding='utf8')
 print('UI_STAGE3_BROWSER_OK '+str(len(results))+'/'+str(len(results)))
