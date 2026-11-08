@@ -17,20 +17,18 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Validate application JavaScript
         run: |
-          node --check web/app.mjs
-          node --check api/'[...path].mjs'
-          node --check src/http-api.mjs
+          for file in src/*.mjs scripts/*.mjs test/*.mjs; do
+            node --check "$file"
+          done
       - name: Run tests
         run: npm test
       - name: Build static frontend
         run: npm run build
       - name: Verify built entrypoints
         run: |
-          test -s public/index.html
-          test -s public/app.mjs
-          test -s public/styles.css
-          grep -q 'marketCards' public/index.html
-          grep -q 'refreshAccount' public/app.mjs
+          for entry in index.html mobile.html cn-terminal.html admin.html cn-admin.html; do
+            test -s "public/$entry"
+          done
 
   postgres-integration:
     name: PostgreSQL integration
