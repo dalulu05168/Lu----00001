@@ -33,7 +33,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_supported_markets_us_cn.sql", "007_admin_auth_protection.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_supported_markets_us_cn.sql", "007_admin_auth_protection.sql", "008_admin_audit.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -334,6 +334,28 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.equal(subclients.status,200);
     assert.ok(subclients.data.items.some(item=>item.email===attachedEmail));
     assert.ok(!subclients.data.items.some(item=>item.email===directEmail));
+    const audit=await db.query(`SELECT action,actor_user_id,target_id,details
+      FROM admin_audit_events ORDER BY id`);
+    const actions=audit.rows.map(row=>row.action);
+    for(const required of ["ADMIN_CREATED","ADMIN_2FA_ENABLED","ADMIN_LOGIN","LISTING_CREATED"])
+      assert.ok(actions.includes(required),required);
+    assert.ok(audit.rows.some(row=>row.action==="LISTING_CREATED" &&
+      row.target_id===masterListing.data.id && row.actor_user_id===setup.data.userId || 
+      (row.action==="LISTING_CREATED" && row.target_id===masterListing.data.id)));
+    for(const row of audit.rows){
+      const text=JSON.stringify(row.details);
+      assert.ok(!text.includes(password));
+      assert.ok(!text.includes(subPassword));
+      assert.ok(!text.includes(setup.data.totpSecret));
+      assert.ok(!text.includes(masterToken));
+    }
+    const beforeCount=audit.rowCount;
+    await assert.rejects(
+      db.query("DELETE FROM admin_audit_events WHERE id=$1",
+        [(await db.query("SELECT id FROM admin_audit_events ORDER BY id LIMIT 1")).rows[0].id]),
+      /append-only/
+    );
+    assert.equal((await db.query("SELECT count(*)::integer AS count FROM admin_audit_events")).rows[0].count,beforeCount);
   }finally{
     await new Promise(done=>app.close(done));
     await db.end();
