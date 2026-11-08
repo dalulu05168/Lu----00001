@@ -4,7 +4,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const web = resolve("web");
-const entrypoints = ["index.html", "mobile.html", "cn-terminal.html", "admin.html", "cn-admin.html"];
+const entrypoints = ["login.html", "index.html", "mobile.html", "cn-terminal.html", "admin.html", "cn-admin.html"];
 const deletedLegacy = [
   "app.mjs", "styles.css", "admin.mjs", "admin.css", "cn-login.css",
   "market-allocation.mjs", "catalog-instruments.mjs", "stock-chart.mjs",
