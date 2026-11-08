@@ -94,3 +94,14 @@ test("unified login routes verified client accounts to mobile or desktop based o
   assert.match(login, /const target=role!=='client'\?'\/admin\.html':matchMedia\('\(max-width:700px\)'\)\.matches\?'\/mobile\.html':'\/index\.html'/);
   assert.match(login, /location\.assign\(target\)/);
 });
+
+test("single customer URL uses verified login then selects independent mobile or desktop UI", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const login = await readFile(new URL("../web/login.html", import.meta.url), "utf8");
+  const verify = "const verified=await getResponse(role==='client'?'/api/account':'/api/admin/me',{headers});";
+  const route = "const target=role!=='client'?'/admin.html':matchMedia('(max-width:700px)').matches?'/mobile.html':'/index.html';";
+  assert.ok(login.includes(verify), "session must be verified before routing");
+  assert.ok(login.includes(route), "client viewport decides mobile or desktop path on same origin");
+  assert.ok(login.indexOf(verify) < login.indexOf(route), "route only after account verification");
+  assert.ok(login.includes("location.assign(target);"), "redirect uses relative path, not another domain");
+});
