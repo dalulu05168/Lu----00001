@@ -22,6 +22,7 @@ CREATE TABLE order_execution_evidence (
    AND fx_at IS NULL AND fx_source IS NULL AND fx_license_ref IS NULL)
   OR
   (market='CN' AND quote_currency='CNY' AND fx_at IS NOT NULL
+   AND fx_source IS NOT NULL AND fx_license_ref IS NOT NULL
    AND length(btrim(fx_source))>0 AND length(btrim(fx_license_ref))>0)
  )
 );
