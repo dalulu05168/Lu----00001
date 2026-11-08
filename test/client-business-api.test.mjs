@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createClientBusinessApi,normalizeAccountSnapshot,normalizeAnalytics,normalizeVerifiedQuote}
+import {createClientBusinessApi,normalizeAccountSnapshot,normalizeAnalytics,normalizeVerifiedQuote,
+  normalizePublishedCatalog,normalizeClientWatchlist}
   from '../web/client-business-api.mjs';
 
 function response(status,data){return {ok:status>=200&&status<300,status,async json(){return data;}};}
@@ -233,4 +234,142 @@ test('overview exposes independent unavailable state instead of fake zero',async
   const rejected=api(async url=>response(url==='/api/account'?401:200,
     url==='/api/account'?{error:'denied'}:sampleAnalytics()));
   await assert.rejects(()=>rejected.loadOverview(),e=>e.status===401);
+});
+
+test('real published US/CN catalog names and types are retained, never inferred from ticker',async()=>{
+  const items=[{id:'a',market:'US',symbol:'AAPL',itemType:'STOCK',name:'Apple Inc.'},
+    {id:'b',market:'CN',symbol:'600519',itemType:'STOCK',name:'贵州茅台'},
+    {id:'c',market:'US',symbol:'FUND1',itemType:'FUND',name:'Published Fund'},
+    {id:'d',market:'CN',symbol:'000001',itemType:'IPO',name:'Published Offering'}];
+  const client=api(async(url,opts)=>{
+    assert.equal(url,'/api/catalog');
+    assert.equal(opts.headers.authorization,'Bearer session-A');
+    return response(200,{items});
+  });
+  const actual=await client.getCatalog();
+  assert.equal(actual.length,4);
+  assert.deepEqual(actual.slice(0,2).map(x=>[x.market,x.symbol,x.name]),[
+    ['US','AAPL','Apple Inc.'],['CN','600519','贵州茅台']]);
+  assert.deepEqual(actual.map(x=>x.orderEligible),[false,false,false,false]);
+  assert.throws(()=>normalizePublishedCatalog({items:[{...items[0],name:''}]}), e=>e.code==='INVALID_RESPONSE');
+  assert.throws(()=>normalizePublishedCatalog({items:[...items,items[0]]}), e=>e.code==='INVALID_RESPONSE');
+  assert.throws(()=>normalizePublishedCatalog({items:[{...items[0],market:'RO'}]}), e=>e.code==='INVALID_INSTRUMENT');
+});
+
+test('catalog 401/403/503 failures are not converted to empty lists or made-up instruments',async()=>{
+  for(const status of [401,403,503]){
+    const client=api(async()=>response(status,{error:'error'}));
+    await assert.rejects(()=>client.getCatalog(),e=>e.status===status);
+  }
+  await assert.rejects(()=>api(async()=>response(200,{items:null})).getCatalog(),e=>e.code==='INVALID_RESPONSE');
+});
+
+test('US/CN watchlist retrieval rejects duplicate and unsupported legacy records rather than hiding mismatch',async()=>{
+  const items=[{market:'US',symbol:'AAPL',createdAt:'2026-11-08'},
+    {market:'CN',symbol:'600519',created_at:'2026-11-08'}];
+  const client=api(async(url,opts)=>{
+    assert.equal(url,'/api/watchlist');
+    assert.equal(opts.method,'GET');
+    return response(200,{items});
+  });
+  assert.deepEqual(await client.getWatchlist(),[
+    {market:'US',symbol:'AAPL'},{market:'CN',symbol:'600519'}]);
+  assert.throws(()=>normalizeClientWatchlist({items:[items[0],items[0]]}),e=>e.code==='INVALID_RESPONSE');
+  assert.throws(()=>normalizeClientWatchlist({items:[{market:'RO',symbol:'TEST'}]}),e=>e.code==='INVALID_INSTRUMENT');
+});
+
+test('watchlist 401/403/503 and missing list reject without reporting a saved state',async()=>{
+  for(const status of [401,403,503]){
+    const client=api(async()=>response(status,{}));
+    await assert.rejects(()=>client.getWatchlist(),e=>e.status===status);
+  }
+  await assert.rejects(()=>api(async()=>response(200,{items:undefined})).getWatchlist(),
+    e=>e.code==='INVALID_RESPONSE');
+});
+
+test('new watchlist writes require explicit QA capability; otherwise no HTTP mutation',async()=>{
+  let calls=0;
+  const client=api(async()=>{calls++;return response(200,{items:[]})});
+  await assert.rejects(()=>client.setWatchlist({market:'US',symbol:'AAPL'},true),e=>e.code==='FEATURE_DISABLED');
+  await assert.rejects(()=>client.setWatchlist({market:'CN',symbol:'600519'},true),e=>e.code==='FEATURE_DISABLED');
+  assert.equal(calls,0);
+});
+
+test('US/CN watchlist add uses the real server POST then GET readback, no browser-local guessed save',async()=>{
+  let stored=[];
+  const calls=[];
+  const client=api(async(url,opts)=>{
+    calls.push({url,method:opts.method,body:opts.body,authorization:opts.headers.authorization});
+    assert.equal(url,'/api/watchlist');
+    if(opts.method==='POST') {
+      const item=JSON.parse(opts.body);
+      stored.push(item);
+      return response(200,{item});
+    }
+    return response(200,{items:[...stored]});
+  },{capabilities:{watchlistWrites:true}});
+  const saved=await client.setWatchlist({market:'CN',symbol:'600519'},true);
+  assert.deepEqual(saved,[{market:'CN',symbol:'600519'}]);
+  assert.deepEqual(calls.map(c=>c.method),['GET','POST','GET']);
+  assert.deepEqual(JSON.parse(calls[1].body),{market:'CN',symbol:'600519'});
+  assert.ok(calls.every(c=>c.authorization==='Bearer session-A'));
+  assert.deepEqual(await client.setWatchlist({market:'CN',symbol:'600519'},true),saved);
+  assert.deepEqual(calls.map(c=>c.method),['GET','POST','GET','GET']);
+});
+
+test('US watchlist DELETE confirms removal by GET, no local optimistic deletion',async()=>{
+  let stored=[{market:'US',symbol:'MSFT'}];
+  const methods=[];
+  const client=api(async(url,opts)=>{
+    methods.push(opts.method);
+    if(opts.method==='DELETE'){stored=[];return response(200,{item:{market:'US',symbol:'MSFT'}});}
+    return response(200,{items:[...stored]});
+  },{capabilities:{watchlistWrites:true}});
+  assert.deepEqual(await client.setWatchlist({market:'US',symbol:'MSFT'},false),[]);
+  assert.deepEqual(methods,['GET','DELETE','GET']);
+});
+
+test('watchlist POST 200 without durable change and GET 503 yield uncertain failures',async()=>{
+  const unavailable=api(async(url,opts)=>{
+    if(opts.method==='POST')return response(200,{item:{market:'US',symbol:'AAPL'}});
+    return response(200,{items:[]});
+  },{capabilities:{watchlistWrites:true}});
+  await assert.rejects(()=>unavailable.setWatchlist({market:'US',symbol:'AAPL'},true),
+    e=>e.code==='WATCHLIST_UNCONFIRMED');
+  let reads=0;
+  const down=api(async(url,opts)=>{
+    if(opts.method==='POST')return response(200,{item:{market:'US',symbol:'AAPL'}});
+    reads++;
+    return reads===1?response(200,{items:[]}):response(503,{});
+  },{capabilities:{watchlistWrites:true}});
+  await assert.rejects(()=>down.setWatchlist({market:'US',symbol:'AAPL'},true),
+    e=>e.code==='WATCHLIST_READBACK_FAILED'&&e.status===503);
+});
+
+test('CN watchlist incompatibility from old US/RO QA returns actual 400 without fake success',async()=>{
+  let requests=0;
+  const client=api(async(url,opts)=>{
+    requests++;
+    return opts.method==='POST'?response(400,{error:'Invalid watchlist instrument'}):response(200,{items:[]});
+  },{capabilities:{watchlistWrites:true}});
+  await assert.rejects(()=>client.setWatchlist({market:'CN',symbol:'600519'},true),
+    e=>e.status===400&&e.code==='API_ERROR');
+  assert.equal(requests,2); // GET then rejected POST; no successful readback
+});
+
+test('watchlist wrong token or changed session during POST cannot read another account state',async()=>{
+  let token='customer-A';
+  const calls=[];
+  const client=createClientBusinessApi({getToken:()=>token,capabilities:{watchlistWrites:true},
+    fetchImpl:async(url,opts)=>{
+      calls.push(opts.method);
+      if(opts.method==='POST'){
+        token='customer-B';
+        return response(200,{item:{market:'US',symbol:'AAPL'}});
+      }
+      return response(200,{items:[]});
+    }});
+  await assert.rejects(()=>client.setWatchlist({market:'US',symbol:'AAPL'},true),
+    e=>e.code==='SESSION_CHANGED'&&e.status===401);
+  assert.deepEqual(calls,['GET','POST']);
 });
