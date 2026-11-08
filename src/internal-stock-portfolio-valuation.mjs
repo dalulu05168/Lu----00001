@@ -30,7 +30,7 @@ const unavailable=(reason,realizedPnlCents=null)=>Object.freeze({
  * the snapshot, vendor license and US/CN backend route contract in Issue #42.
  */
 export async function valueInternalStockPortfolio({
-  accountSnapshot,analytics,resolveQuote,resolveFxQuote,authorizeUsage,now=Date.now()
+  accountSnapshot,analytics,resolveQuote,resolveFxQuote,authorizeUsage,authorizeFxUsage,now=Date.now()
 }={}) {
   if(analytics?.historyAvailable!==true || analytics.method!=="FIFO" ||
      analytics.currency!=="USD" || !Number.isSafeInteger(analytics.realizedPnlCents)) {
@@ -65,7 +65,7 @@ export async function valueInternalStockPortfolio({
       const quote=await resolveQuote({market:holding.market,symbol:holding.symbol});
       const fxQuote=holding.market==="CN"
         ?await resolveFxQuote?.({base:"CNY",quote:"USD"}):undefined;
-      verified=assertInternalExecutionQuote({request,quote,fxQuote,authorizeUsage,now});
+      verified=assertInternalExecutionQuote({request,quote,fxQuote,authorizeUsage,authorizeFxUsage,now});
     } catch {
       return unavailable("QUOTE_UNAVAILABLE",realized);
     }
