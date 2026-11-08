@@ -1,14 +1,33 @@
 import { applyOrder } from "./ledger.mjs";
 
+// PostgreSQL bigint is returned as text by default. Refuse values the
+// JS-number ledger cannot represent exactly; never silently round money or
+// holdings during the account lock/settlement transaction.
+function persistedNonnegativeSafeInteger(value,field) {
+  if(!["string","number","bigint"].includes(typeof value) ||
+     (typeof value==="number"&&!Number.isSafeInteger(value)) ||
+     !/^(0|[1-9][0-9]*)$/.test(String(value)) ||
+     BigInt(value)>BigInt(Number.MAX_SAFE_INTEGER))
+    throw Object.assign(new Error("Unrepresentable persisted "+field),{statusCode:503});
+  return Number(value);
+}
+
+
 /**
  * db must expose query(sql, params) and connect() returning a client with query/release.
  * Account row lock serializes writes; all mutations commit atomically.
  * Caller must authenticate account ownership before calling.
  */
-export async function placeInternalOrder(db, accountId, key, input, newOrderId) {
+export async function placeInternalOrder(db, accountId, key, input, newOrderId, { assertExecutionReady, assertInstrumentAvailable, persistQuoteEvidence } = {}) {
+  if (assertExecutionReady !== undefined && typeof assertExecutionReady !== "function")
+    throw new TypeError("Invalid synchronous execution gate");
   if (typeof accountId !== "string" || !accountId) throw new Error("Account required");
   if (typeof key !== "string" || key.length < 8 || key.length > 128) throw new Error("Invalid idempotency key");
   if (typeof newOrderId !== "string" || !newOrderId) throw new Error("Order id required");
+  if (assertInstrumentAvailable !== undefined && typeof assertInstrumentAvailable !== "function")
+    throw new TypeError("Invalid listing policy");
+  if (persistQuoteEvidence !== undefined && typeof persistQuoteEvidence !== "function")
+    throw new TypeError("Invalid order evidence recorder");
   const client = await db.connect();
   let transactionStarted = false;
   try {
@@ -16,26 +35,65 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId) 
     const a = await client.query("SELECT cash_cents FROM accounts WHERE id=$1 FOR UPDATE", [accountId]);
     if (a.rows.length !== 1) throw new Error("Account not found");
     const existing = await client.query("SELECT * FROM orders WHERE account_id=$1 AND idempotency_key=$2", [accountId,key]);
-    if (existing.rows.length) { await client.query("COMMIT"); transactionStarted=false; return { replayed:true, order:existing.rows[0] }; }
+    if (existing.rows.length) {
+      const previous = existing.rows[0];
+      // An idempotency key represents one order intent, not a reusable
+      // authorization to return an unrelated fill. A refreshed quote may
+      // differ on retry; the original committed fill remains authoritative.
+      if (previous.side !== input?.side || previous.market !== input?.market ||
+          previous.symbol !== input?.symbol || String(previous.quantity) !== String(input?.quantity)) {
+        throw Object.assign(new Error("Idempotency key already used for another order"), { statusCode:409 });
+      }
+      await client.query("COMMIT"); transactionStarted=false;
+      return { replayed:true, order:previous };
+    }
+    // Validate against published, order-eligible platform listings while
+    // holding the same transaction. The server-only callback may take a
+    // PostgreSQL FOR SHARE lock on the listing row until COMMIT.
+    if (assertInstrumentAvailable) await assertInstrumentAvailable(client);
     if(input.side==="SELL"){
       const lock=await client.query("SELECT locked FROM stock_position_locks WHERE account_id=$1 AND market=$2 AND symbol=$3",
         [accountId,input.market,input.symbol]);
       if(lock.rows[0]?.locked)throw Object.assign(new Error("Stock position is locked"),{statusCode:409});
     }
     const p = await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1", [accountId]);
-    const account = {cashCents:Number(a.rows[0].cash_cents),positions:Object.fromEntries(p.rows.map(r=>[r.market+":"+r.symbol,Number(r.quantity)])),orders:[]};
+    const account = {
+      cashCents:persistedNonnegativeSafeInteger(a.rows[0].cash_cents,"cash balance"),
+      positions:Object.fromEntries(p.rows.map(r=>[
+        r.market+":"+r.symbol,
+        persistedNonnegativeSafeInteger(r.quantity,"position quantity")
+      ])),orders:[]
+    };
     const updated = applyOrder(account,input);
+    // Optional server-owned synchronous policy check is evaluated AFTER the
+    // account lock, immediately before any money or position changes. An
+    // external quote fetch must happen BEFORE the transaction; this hook may
+    // only validate the pre-fetched evidence against the current server clock.
+    // Idempotent replays bypass the gate because no new execution occurs.
+    if (assertExecutionReady) {
+      const verdict = assertExecutionReady();
+      if (verdict && typeof verdict.then === "function")
+        throw new TypeError("Execution gate must be synchronous");
+    }
     const order = updated.orders[0];
     const position = updated.positions[order.market+":"+order.symbol];
-    await client.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1",[accountId,updated.cashCents]);
-    await client.query(`INSERT INTO positions(account_id,market,symbol,quantity) VALUES($1,$2,$3,$4)
+    const changedAccount=await client.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1",[accountId,updated.cashCents]);
+    if(changedAccount.rowCount===0)throw Object.assign(new Error("Cash update not applied"),{statusCode:503});
+    const changedPosition=await client.query(`INSERT INTO positions(account_id,market,symbol,quantity) VALUES($1,$2,$3,$4)
       ON CONFLICT(account_id,market,symbol) DO UPDATE SET quantity=EXCLUDED.quantity`,
       [accountId,order.market,order.symbol,position]);
+    if(changedPosition.rowCount===0)throw Object.assign(new Error("Position update not applied"),{statusCode:503});
     await client.query(`INSERT INTO orders(id,account_id,idempotency_key,market,symbol,side,quantity,price_cents,fx_usd_micros,amount_usd_cents)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [newOrderId,accountId,key,order.market,order.symbol,order.side,order.quantity,order.priceCents,order.fxUsdMicros,order.amountCents]);
     await client.query("INSERT INTO cash_ledger(account_id,order_id,delta_cents,balance_after_cents) VALUES($1,$2,$3,$4)",
       [accountId,newOrderId,order.side==="BUY"?-order.amountCents:order.amountCents,updated.cashCents]);
+    // Strong execution provenance and ledger must be in the SAME transaction:
+    // any missing approved schema, quote evidence or insert failure rolls back
+    // the cash update, position update, order and cash ledger together.
+    if (persistQuoteEvidence) await persistQuoteEvidence(client,{
+      id:newOrderId,accountId,...order
+    });
     await client.query("COMMIT");transactionStarted=false;
     return {replayed:false,order:{id:newOrderId,...order},cashCents:updated.cashCents,position};
   } catch(error) {
