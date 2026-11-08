@@ -164,3 +164,11 @@ test('unconfigured quote request and unlicensed CN purpose fail without vendor I
     {code:'DATA_USE_RIGHTS_UNVERIFIED'});
   assert.equal(calls.length,0);
 });
+
+test('exact integer micro-unit quote contract preserves subcent source precision', async()=>{
+  const provider=make({...base,close:'148.85001'});
+  const result=await provider.adapter.getQuote({market:'US',symbol:'AAPL'});
+  assert.equal(result.priceMicros,148850010);
+  assert.equal(result.priceCents,null);
+  assert.equal(result.price,148.85001);
+});
