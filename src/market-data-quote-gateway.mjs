@@ -56,15 +56,37 @@ function checkQuote(quote, request, source, now, maxAgeMs) {
       quote.entitlement?.purpose !== request.purpose ||
       typeof quote.entitlement?.reviewReference !== 'string' ||
       !quote.entitlement.reviewReference.trim()) throw failure('INVALID_UPSTREAM_QUOTE');
+  // Exact integer micro-unit contract for the original client data bridge.
+  // Existing isolated provider fixtures may omit priceMicros; in that case
+  // reconstruct only when decimal representation is exactly micro-precise.
+  const rawPrice = String(quote.price);
+  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(rawPrice)) {
+    throw failure('INVALID_PRICE_PRECISION');
+  }
+  const [whole, fractional=''] = rawPrice.split('.');
+  const computedMicros = Number(whole) * 1_000_000 + Number(fractional.padEnd(6, '0'));
+  const priceMicros = quote.priceMicros == null ? computedMicros : quote.priceMicros;
+  if (!Number.isSafeInteger(priceMicros) || priceMicros <= 0 ||
+      priceMicros !== computedMicros ||
+      (quote.priceCents != null &&
+       (!Number.isSafeInteger(quote.priceCents) ||
+        quote.priceCents <= 0 || priceMicros !== quote.priceCents * 10_000))) {
+    throw failure('INVALID_PRICE_PRECISION');
+  }
   if (request.purpose === 'internalSimulationPricing' &&
       (!Number.isSafeInteger(quote.priceCents) || quote.priceCents <= 0 ||
-       Math.abs(quote.priceCents / 100 - quote.price) > 0.00000001)) {
+       priceMicros % 10_000 !== 0)) {
     throw failure('EXECUTION_PRICE_NOT_EXACT_CENTS');
   }
   if (quote.timestampMs > now + 5_000 || now - quote.timestampMs > maxAgeMs) {
     throw failure('QUOTE_STALE_OR_FUTURE');
   }
-  return quote;
+  return Object.freeze({...quote, priceMicros});
+}
+
+function displayPermission(rights, quote) {
+  return Object.freeze({customerDisplayAllowed: true, market: quote.market,
+    currency: quote.currency, source: quote.source, validUntilMs: rights.expiresAtMs});
 }
 
 function verifyRights(authorizeAccess, value, request, now) {
@@ -102,7 +124,7 @@ function normalizeHistory(history, request, source, interval, outputsize) {
   for (const bar of history.values) {
     if (typeof bar?.datetime !== 'string' || bar.datetime <= last ||
         !['open', 'high', 'low', 'close'].every(k => Number.isFinite(bar[k]) && bar[k] > 0) ||
-        bar.low > Math.min(bar.open, bar.close) ||
+        bar.low > bar.high || bar.low > Math.min(bar.open, bar.close) ||
         bar.high < Math.max(bar.open, bar.close) ||
         !Number.isSafeInteger(bar.volume) || bar.volume < 0) {
       throw failure('INVALID_UPSTREAM_HISTORY');
@@ -139,7 +161,8 @@ export function createMarketDataQuoteGateway({provider, authorizeAccess, now = D
       const quote = checkQuote(snapshot.quote, normalized, source, start, maxAgeMs);
       const rights = verifyRights(authorizeAccess, quote, normalized, start);
       return Object.freeze({...quote, ageMs: start - quote.timestampMs, checkedAtMs: start,
-        entitlement: Object.freeze({purpose: normalized.purpose, reviewReference: rights.reviewReference})});
+        entitlement: Object.freeze({purpose: normalized.purpose, reviewReference: rights.reviewReference}),
+        ...(normalized.purpose === 'clientDisplay' ? {displayPermission: displayPermission(rights, quote)} : {})});
     }
     let task = pending.get(key);
     if (!task) {
@@ -153,16 +176,18 @@ export function createMarketDataQuoteGateway({provider, authorizeAccess, now = D
     catch { throw failure('UPSTREAM_QUOTE_UNAVAILABLE'); }
     const checkedAt = now();
     if (!Number.isSafeInteger(checkedAt)) throw failure('SERVER_TIME_UNAVAILABLE');
-    checkQuote(quote, normalized, source, checkedAt, maxAgeMs);
-    const rights = verifyRights(authorizeAccess, quote, normalized, checkedAt);
+    const checkedQuote = checkQuote(quote, normalized, source, checkedAt, maxAgeMs);
+    const rights = verifyRights(authorizeAccess, checkedQuote, normalized, checkedAt);
     if (cacheTtlMs) {
       if (!cache.has(key) && cache.size >= maxCacheEntries) {
         cache.delete(cache.keys().next().value);
       }
       cache.set(key, {quote, cachedAt: checkedAt});
     }
-    return Object.freeze({...quote, ageMs: checkedAt - quote.timestampMs, checkedAtMs: checkedAt,
-      entitlement: Object.freeze({purpose: normalized.purpose, reviewReference: rights.reviewReference})});
+    return Object.freeze({...checkedQuote, ageMs: checkedAt - quote.timestampMs, checkedAtMs: checkedAt,
+      entitlement: Object.freeze({purpose: normalized.purpose, reviewReference: rights.reviewReference}),
+      ...(normalized.purpose === 'clientDisplay'
+        ? {displayPermission: displayPermission(rights, checkedQuote)} : {})});
   }
 
   async function getHistory(request) {
