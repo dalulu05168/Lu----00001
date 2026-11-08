@@ -257,11 +257,11 @@ td .sk{height:11px}
 </div>
 
 <div class="pn ordpn">
-<div class="ph"><div>交易明细</div><small><span data-b="nord"></span> 笔 · 全部时间</small>
+<div class="ph"><div>交易明细</div><small><span data-b="nord"></span> 笔 · 最近100笔范围</small>
 <div class="al"><div class="seg" id="flt"><button class="on">全部</button><button>买入</button><button>卖出</button></div></div>
 <div class="ar"><button class="btn" id="exp">导出已加载记录</button></div></div>
 <div class="sy"><table><thead><tr><th>代码</th><th>名称</th><th>类型</th><th>价格</th><th>数量</th><th>总额 USD</th><th>时间</th><th>记录</th></tr></thead><tbody class="fd" id="tb-ord"></tbody></table></div>
-<div class="note">统计基于完整历史 <span data-b="nord"></span> 笔；筛选、分页和导出仅作用于已加载记录。点击任意一行查看订单记录详情。</div>
+<div class="note">当前仅加载最近最多 100 笔账户订单；筛选、分页、导出仅针对这些已加载记录，不代表完整历史。点击记录可查看详情。</div>
 </div>
 </div>
 
@@ -654,7 +654,7 @@ window.CN_SYNC_CATALOG=function(items){
 };
 window.CN_DATA_STATUS=function(section,message){
   if(section==='watchlist'){DATA.watch=[];DATA.fav=[];DATA.watchLoaded=false;DATA.watchStatus=message;rWatch();rProd()}
-  if(section==='catalog'){$('pbody').textContent=message}
+  if(section==='catalog'){DATA.catalog=[];$('pbody').textContent=message}
 };
 /* ========== 启动 ========== */
 renderChat();loadData().then(draw);
