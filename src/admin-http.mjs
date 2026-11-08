@@ -2,6 +2,7 @@ import {
   roleFor,bootstrapMaster,confirmAdminTotp,adminLogin,createSubadmin,
   listSubadmins,listClients,createListing,listListings,updateListing
 } from "./admin-service.mjs";
+import {createSession} from "./auth.mjs";
 function response(res,status,value){
   res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});
   res.end(JSON.stringify(value));
@@ -35,7 +36,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/activate":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
-    "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/requests":["GET"],"/api/admin/messages":["GET","POST"],"/api/admin/mirror":["GET"],"/api/catalog":["GET"]
+    "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/requests":["GET"],"/api/admin/messages":["GET","POST"],"/api/admin/mirror":["GET"],"/api/admin/mirror/session":["GET"],"/api/catalog":["GET"]
   };
   const requestMatch=route.match(/^\/api\/admin\/requests\/([0-9a-f-]+)$/i);
   const messageMatch=route.match(/^\/api\/admin\/messages\/([0-9a-f-]+)$/i);
@@ -70,6 +71,14 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator 2FA session required"});return true;}
+    if(route==="/api/admin/mirror/session"){
+      const email=new URL(req.url,"http://localhost").searchParams.get("email")?.trim().toLowerCase();
+      if(!email){response(res,400,{error:"Customer email required"});return true;}
+      const u=await db.query(`SELECT u.id,a.id AS account_id FROM app_users u JOIN accounts a ON a.user_id=u.id WHERE u.email=$1`,[email]);
+      if(!u.rows.length){response(res,404,{error:"Customer not found"});return true;}
+      const token=await createSession(db,{userId:u.rows[0].id,accountId:u.rows[0].account_id,expiresAt:new Date(Date.now()+30*60*1000)});
+      response(res,200,{token,expiresAt:new Date(Date.now()+30*60*1000).toISOString(),mirror:true});return true;
+    }
     if(route==="/api/admin/mirror"){
       const email=new URL(req.url,"http://localhost").searchParams.get("email")?.trim().toLowerCase();
       if(!email){response(res,400,{error:"Customer email required"});return true;}

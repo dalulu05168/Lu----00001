@@ -6,11 +6,17 @@ window.CN_API_BASE='/api';
 window.CN_FRONT_API_BASE='/api';
 window.CN_SET_TOKEN=function(token){try{if(token)localStorage.setItem('cncap.session',token);else localStorage.removeItem('cncap.session')}catch(e){}};
 (function(){
+  var mirror='';try{mirror=new URLSearchParams(location.search).get('mirror')||''}catch(e){}
+  window.CN_MIRROR_EMAIL=mirror;
+  window.CN_MIRROR_TOKEN='';
+  window.CN_MIRROR_READY=mirror?fetch('/api/admin/mirror/session?email='+encodeURIComponent(mirror)).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){window.CN_MIRROR_TOKEN=j.token;return j}).catch(function(){return null}):Promise.resolve(null);
+})();
+(function(){
   var raw=window.fetch.bind(window);
   window.fetch=function(input,init){
     init=init||{};
     var url=typeof input==='string'?input:(input&&input.url)||'';
-    var token='';try{token=localStorage.getItem('cncap.session')||''}catch(e){}
+    var token='';try{token=(window.CN_MIRROR_EMAIL&&window.CN_MIRROR_TOKEN&&url.indexOf('/api/admin/mirror/session')<0?window.CN_MIRROR_TOKEN:localStorage.getItem('cncap.session')||'')}catch(e){}
     if(token && /^(?:\/api\b|https?:\/\/[^/]+\/api\b)/.test(url)){
       var h=new Headers(init.headers||{});
       if(!h.has('Authorization'))h.set('Authorization','Bearer '+token);
@@ -257,7 +263,7 @@ function api(k){if(k==='config'&&window.CN&&window.CN_API_BASE){CN.pull();toast(
 function reply(t){toast('客服暂不可用，消息未发送')} /* No simulated customer service replies. */
 function syncMobile(){
  var base=MIRROR_EMAIL?'/api/admin/mirror?email='+encodeURIComponent(MIRROR_EMAIL):null;
- return (base?fetch(base):Promise.all([fetch('/api/account'),fetch('/api/requests'),fetch('/api/messages')])).then(function(rs){return base?rs.json():Promise.all(rs.map(function(r){if(!r.ok)throw 0;return r.json()}))}).then(function(x){
+ return (MIRROR_EMAIL?window.CN_MIRROR_READY:Promise.resolve()).then(function(){return base?fetch(base):Promise.all([fetch('/api/account'),fetch('/api/requests'),fetch('/api/messages')])}).then(function(rs){return base?rs.json():Promise.all(rs.map(function(r){if(!r.ok)throw 0;return r.json()}))}).then(function(x){
   if(base)x={account:x.account,positions:x.positions,orders:x.orders,items:x.requests,messages:x.messages};
   var a=x.account||{},rr=x.items||[],mm=x.messages||[],tm={DEPOSIT:'充值申请',WITHDRAW:'提现申请',KYC:'身份审核',BANK:'银行卡登记'};
   D.cash=typeof a.cashCents==='number'?a.cashCents/100:null;D.acct=a.id||'';D.accountReady=true;D.hold=(x[0].positions||[]).map(function(q){return {s:q.symbol,q:Number(q.quantity),c:null}});D.ord=(x[0].orders||[]).map(function(q){return {id:q.id,s:q.symbol,q:Number(q.quantity),a:q.amount_usd_cents==null?null:Number(q.amount_usd_cents)/100,d:q.created_at,t:q.side==='BUY'?'买入':'卖出',st:'已成交'}});D.ordersReady=true;D.req=rr.map(function(q){return {id:q.id,k:tm[q.request_type]||q.request_type,a:q.amount_cents==null?null:Number(q.amount_cents)/100,st:q.status==='APPROVED'?'审核通过':q.status==='REJECTED'?'已拒绝':'待审核',d:q.created_at,payload:q.payload||{}}});
@@ -541,7 +547,7 @@ else if(a==='rfp'){api('config');return}
 else if(a==='rfc'){api('chat');return}
 else if(a==='sym'){D.sym=v;D.lp='';D.qty=String(MQ())}
 else if(a==='pdk')D.pdk=D.pdk?0:1;
-else if(a==='logout'){fetch('/api/auth/logout',{method:'POST'}).catch(function(){});window.CN_SET_TOKEN(null);D.auth=0;D.accountReady=false;D.sh=null;D.cs=0;D.tab='home';D.ov=null}
+else if(a==='logout'){fetch('/api/auth/logout',{method:'POST'}).catch(function(){});if(MIRROR_EMAIL){window.CN_MIRROR_TOKEN='';D.auth=0;D.accountReady=false;D.sh=null;D.cs=0;D.tab='home';D.ov=null}else{window.CN_SET_TOKEN(null);D.auth=0;D.accountReady=false;D.sh=null;D.cs=0;D.tab='home';D.ov=null}}
 else if(a==='reset'){try{localStorage.removeItem('cncap.v1')}catch(x){}location.reload();return}
 else if(a==='rk')D.rk=D.rk?0:1;
 else if(a==='gotrade'){if(v&&CFG[v])D.sym=v;D.ten=1;D.tab='trade';D.ov=null}
