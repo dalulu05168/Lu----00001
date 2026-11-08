@@ -238,3 +238,42 @@ test('getHistory rejects missing provider and malformed size/period without remo
     authorizeAccess:grant});
   await assert.rejects(x.getHistory(CN),{code:'HISTORY_PROVIDER_NOT_CONFIGURED'});
 });
+
+test('display-only response attaches server-reviewed permission for existing client bridge', async()=>{
+  const data=await create().getQuote({...US,purpose:'clientDisplay'});
+  assert.equal(data.priceMicros,129450000);
+  assert.deepEqual(data.displayPermission,{
+    customerDisplayAllowed:true,market:'US',source:'Twelve Data',currency:'USD',
+    validUntilMs:NOW+60_000
+  });
+  assert.equal(data.entitlement.reviewReference,rightsRef);
+  const backend=await create().getQuote(US,{purpose:'internalSimulationPricing'});
+  assert.equal(backend.displayPermission,undefined);
+  assert.equal(backend.priceCents,12945);
+});
+
+test('rejects inconsistent micro price, cents, and non-micro price inputs',async()=>{
+  for(const wrong of [
+    {...quote,priceMicros:129450001},
+    {...quote,priceMicros:129450000,priceCents:9999},
+    {...quote,price:129.4512345},
+    {...quote,price:1e-8}
+  ]) {
+    await assert.rejects(create({getQuote:async()=>wrong}).getQuote(US),
+      {code:'INVALID_PRICE_PRECISION'});
+  }
+});
+
+test('display right revocation on cache hit never carries a stale permission',async()=>{
+  let current=NOW, allowed=true, upstream=0;
+  const service=create({
+    clock:()=>current,cacheTtlMs:5000,
+    getQuote:async()=>{upstream++;return quote;},
+    authorizeAccess:r=>allowed?grant(r):null
+  });
+  const first=await service.getQuote(US);
+  assert.equal(first.displayPermission.customerDisplayAllowed,true);
+  allowed=false;current+=200;
+  await assert.rejects(service.getQuote(US),{code:'DATA_RIGHTS_NOT_VERIFIED'});
+  assert.equal(upstream,1);
+});
