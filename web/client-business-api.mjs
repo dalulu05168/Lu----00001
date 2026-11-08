@@ -1,0 +1,339 @@
+// Client-only adapter for existing authenticated platform HTTP endpoints.
+// No prices, balances, fills, or P/L are synthesized in this module.
+const MARKETS = new Set(['US', 'CN']);
+const SYMBOL = /^[A-Z0-9][A-Z0-9.-]{0,23}$/;
+const MAX_QUOTE_AGE_MS = 60_000;
+
+function failure(code, message, status, cause) {
+  return Object.assign(new Error(message), {code, ...(status === undefined ? {} : {status}), ...(cause === undefined ? {} : {cause})});
+}
+function integer(value, min = 0) {
+  if ((typeof value !== 'number' && typeof value !== 'string') || String(value).trim() === '') return null;
+  // Database bigint values may arrive as decimal strings. Reject JS coercions
+  // such as 1e3, 0x10 or whitespace rather than silently altering quantities.
+  if (typeof value === 'string' && !/^-?(?:0|[1-9]\d*)$/.test(value)) return null;
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= min ? number : null;
+}
+function identity(item) {
+  if (!item || typeof item !== 'object' || !MARKETS.has(item.market) ||
+      typeof item.symbol !== 'string' || !SYMBOL.test(item.symbol)) {
+    throw failure('INVALID_INSTRUMENT', '证券代码或市场无效');
+  }
+  return {market:item.market, symbol:item.symbol};
+}
+function nonEmptyId(value) { return typeof value === 'string' && value.length > 0; }
+function transactionKey(value) {
+  if (typeof value !== 'string' || value.length < 8 || value.length > 128 || !/^[\x21-\x7E]+$/.test(value)) {
+    throw failure('INVALID_IDEMPOTENCY_KEY', '缺少有效的交易请求标识');
+  }
+  return value;
+}
+function shape(value, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw failure('INVALID_RESPONSE', label + '响应格式不正确');
+  }
+  return value;
+}
+
+export function normalizeAccountSnapshot(payload) {
+  shape(payload, '账户');
+  const account = shape(payload.account, '账户');
+  const cashCents = integer(account.cashCents);
+  if (!nonEmptyId(account.id) || cashCents === null || account.currency !== 'USD') {
+    throw failure('INVALID_RESPONSE', '账户余额未能确认');
+  }
+  if (!Array.isArray(payload.positions) || !Array.isArray(payload.orders)) {
+    throw failure('INVALID_RESPONSE', '持仓或订单数据未能确认');
+  }
+  const positionsSeen = new Set();
+  const positions = payload.positions.map(item => {
+    const ref = identity(item);
+    const quantity = integer(item.quantity, 1);
+    if (quantity === null) throw failure('INVALID_RESPONSE', '持仓数量无效');
+    const key = ref.market + ':' + ref.symbol;
+    if (positionsSeen.has(key)) throw failure('INVALID_RESPONSE', '持仓记录重复');
+    positionsSeen.add(key);
+    return {...ref, quantity};
+  });
+  const orderIds = new Set();
+  const orders = payload.orders.map(item => {
+    const ref = identity(item);
+    const quantity = integer(item.quantity, 1);
+    const priceCents = integer(item.price_cents, 1);
+    const amountUsdCents = integer(item.amount_usd_cents, 1);
+    if (!nonEmptyId(item.id) || !['BUY','SELL'].includes(item.side) ||
+        quantity === null || priceCents === null || amountUsdCents === null ||
+        !Number.isFinite(Date.parse(item.created_at))) {
+      throw failure('INVALID_RESPONSE', '订单记录无效');
+    }
+    if (orderIds.has(item.id)) throw failure('INVALID_RESPONSE', '订单记录重复');
+    orderIds.add(item.id);
+    return {id:item.id, ...ref, side:item.side, quantity, priceCents, amountUsdCents,
+      createdAt:new Date(item.created_at).toISOString()};
+  });
+  return {account:{id:account.id, cashCents, currency:account.currency}, positions, orders};
+}
+
+export function normalizeAnalytics(payload) {
+  const data = shape(payload, '盈亏');
+  if (data.currency !== 'USD' || data.method !== 'FIFO' || data.basis !== 'INTERNAL_GROSS' ||
+      typeof data.historyAvailable !== 'boolean') {
+    throw failure('INVALID_RESPONSE', '盈亏口径未能确认');
+  }
+  const fields = ['orderCount','holdingCount','buyVolumeCents','sellVolumeCents','volumeCents',
+    'realizedPnlCents','dayRealizedPnlCents','monthRealizedPnlCents','positionCostCents','portfolioValueCents'];
+  const result = {currency:'USD', method:'FIFO', basis:'INTERNAL_GROSS', historyAvailable:data.historyAvailable,
+    asOf:typeof data.asOf === 'string' && Number.isFinite(Date.parse(data.asOf)) ? data.asOf : null,
+    reason:typeof data.reason === 'string' ? data.reason : null};
+  for (const field of fields) {
+    const value = data[field];
+    // null means unknown; never coerce it to zero.
+    if (value == null) { result[field] = null; continue; }
+    const parsed = integer(value, field.toLowerCase().includes('pnl') ? Number.MIN_SAFE_INTEGER : 0);
+    if (parsed === null) throw failure('INVALID_RESPONSE', '盈亏字段无效：' + field);
+    result[field] = parsed;
+  }
+  if (!data.historyAvailable) {
+    for (const field of ['realizedPnlCents','dayRealizedPnlCents','monthRealizedPnlCents','positionCostCents']) result[field] = null;
+  }
+  return result;
+}
+
+/**
+ * Display-eligible quote contract. A vendor's raw `entitled:true`, token,
+ * `entitlement` description, or HTTP 200 is NOT a reviewed license grant.
+ * The same-origin API must attach displayPermission only after verifying its
+ * server-owned grant for this market/source/currency and current time.
+ */
+export function normalizeVerifiedQuote(payload, expected, {nowMs = Date.now(), maxAgeMs = MAX_QUOTE_AGE_MS} = {}) {
+  const ref = identity(expected);
+  const quote = shape(payload, '行情');
+  const currency = ref.market === 'CN' ? 'CNY' : 'USD';
+  const cents = quote.priceCents == null ? null : integer(quote.priceCents, 1);
+  const priceMicros = quote.priceMicros == null ?
+    (cents === null || !Number.isSafeInteger(cents * 10_000) ? null : cents * 10_000) :
+    integer(quote.priceMicros, 1);
+  const timestampMs = quote.timestampMs;
+  if (quote.market !== ref.market || quote.symbol !== ref.symbol || priceMicros === null ||
+      (quote.priceCents != null && (cents === null || priceMicros !== cents * 10_000)) ||
+      quote.currency !== currency || !nonEmptyId(quote.source) ||
+      !Number.isSafeInteger(timestampMs) || !Number.isSafeInteger(nowMs) ||
+      !Number.isSafeInteger(maxAgeMs) || maxAgeMs <= 0 || maxAgeMs > MAX_QUOTE_AGE_MS ||
+      timestampMs > nowMs + 5_000 || nowMs - timestampMs > maxAgeMs ||
+      quote.stale !== false || quote.status !== 'FRESH') {
+    throw failure('QUOTE_UNAVAILABLE', '当前行情不可用，请刷新后重试', 503);
+  }
+  const permission = quote.displayPermission;
+  if (permission?.customerDisplayAllowed !== true || permission?.market !== ref.market ||
+      permission?.source !== quote.source || permission?.currency !== currency ||
+      !Number.isSafeInteger(permission?.validUntilMs) || permission.validUntilMs < nowMs) {
+    throw failure('QUOTE_NOT_ENTITLED', '当前行情不可用，请刷新后重试', 503);
+  }
+  // `priceCents === null` for a true sub-cent quote; never round a display
+  // quote to fit the existing internal-order cents ledger.
+  return {...ref, currency, source:quote.source, timestampMs,
+    priceMicros, priceCents:priceMicros % 10_000 === 0 ? priceMicros / 10_000 : null,
+    price:priceMicros / 1_000_000, stale:false};
+}
+
+
+/** Only a published server catalog can supply instrument names and item types.
+ * If QA still advertises US/RO, do not silently pretend it is US/CN-ready.
+ * The catalog does NOT convey a trade-execution price or order eligibility.
+ */
+export function normalizePublishedCatalog(payload) {
+  const data = shape(payload, '证券目录');
+  if (!Array.isArray(data.items)) throw failure('INVALID_RESPONSE', '证券目录响应缺少列表');
+  const seen = new Set();
+  return data.items.map(item => {
+    const ref = identity(item);
+    if (!['STOCK','FUND','IPO'].includes(item.itemType) ||
+        typeof item.name !== 'string' || !item.name.trim() || item.name.length > 180) {
+      throw failure('INVALID_RESPONSE', '证券目录名称或类型无效');
+    }
+    const key = ref.market + ':' + ref.symbol;
+    if (seen.has(key)) throw failure('INVALID_RESPONSE', '证券目录包含重复代码');
+    seen.add(key);
+    return {...ref, name:item.name.trim(),itemType:item.itemType,
+      orderEligible:false}; // Listing alone never authorizes a BUY or SELL.
+  });
+}
+
+export function normalizeClientWatchlist(payload) {
+  const data = shape(payload, '自选');
+  if (!Array.isArray(data.items)) throw failure('INVALID_RESPONSE', '自选列表响应缺少列表');
+  const seen = new Set();
+  return data.items.map(item => {
+    const ref = identity(item);
+    const key = ref.market + ':' + ref.symbol;
+    if (seen.has(key)) throw failure('INVALID_RESPONSE', '自选列表包含重复代码');
+    seen.add(key);
+    return ref;
+  });
+}
+
+export function createClientBusinessApi({getToken, fetchImpl = fetch,
+  capabilities = {}, now = Date.now} = {}) {
+  if (typeof getToken !== 'function' || typeof fetchImpl !== 'function') throw new TypeError('Missing client API dependencies');
+  // Must be enabled explicitly after QA/server permission verification; defaults are read-only.
+  const allowed = Object.freeze({trading:capabilities.trading === true,
+    supportWrites:capabilities.supportWrites === true, requestWrites:capabilities.requestWrites === true,
+    watchlistWrites:capabilities.watchlistWrites === true});
+  function assertSameSession(token, message='登录账户已切换，请重新加载') {
+    if (getToken() !== token) throw failure('SESSION_CHANGED', message, 401);
+  }
+  async function call(path,{method='GET', body, key}={}) {
+    const token = getToken();
+    if (typeof token !== 'string' || !token) throw failure('AUTH_REQUIRED', '请先登录', 401);
+    const headers = {authorization:'Bearer ' + token, accept:'application/json'};
+    if (body !== undefined) headers['content-type'] = 'application/json';
+    if (key !== undefined) headers['idempotency-key'] = transactionKey(key);
+    let response;
+    try {
+      response = await fetchImpl('/api' + path, {method, headers, cache:'no-store',
+        ...(body === undefined ? {} : {body:JSON.stringify(body)})});
+    } catch (cause) {
+      throw failure('NETWORK_UNAVAILABLE', '网络连接失败，请核对操作结果后再试', undefined, cause);
+    }
+    const data = response.status === 204 ? null : await response.json().catch(() => null);
+    // An old request must never render into a newly signed-in customer's UI.
+    assertSameSession(token);
+    if (!response.ok) {
+      const status = response.status;
+      const code = status === 401 ? 'AUTH_REQUIRED' : status === 403 ? 'FORBIDDEN'
+        : status === 409 ? 'CONFLICT' : status === 503 ? 'SERVICE_UNAVAILABLE' : 'API_ERROR';
+      const message = status === 401 ? '请重新登录' : status === 403 ? '无权执行该操作'
+        : status === 503 ? '服务暂不可用' :
+        (typeof data?.error === 'string' && data.error ? data.error : '请求失败');
+      throw failure(code,message,status);
+    }
+    if (response.status !== 204 && (!data || typeof data !== 'object' || Array.isArray(data))) {
+      throw failure('INVALID_RESPONSE', '接口响应格式不正确');
+    }
+    return data;
+  }
+  const getAccount = async () => normalizeAccountSnapshot(await call('/account'));
+  const getAnalytics = async () => normalizeAnalytics(await call('/account/analytics'));
+  async function loadOverview() {
+    const token = getToken();
+    if (typeof token !== 'string' || !token) throw failure('AUTH_REQUIRED', '请先登录', 401);
+    const results = await Promise.allSettled([getAccount(),getAnalytics()]);
+    assertSameSession(token);
+    const fatal = results.find(item => item.status === 'rejected' &&
+      (item.reason?.status === 401 || item.reason?.status === 403));
+    if (fatal) throw fatal.reason;
+    const entry = item => item.status === 'fulfilled'
+      ? {state:'ready', data:item.value, errorCode:null}
+      : {state:'unavailable',data:null,errorCode:item.reason?.code || 'API_ERROR'};
+    return {account:entry(results[0]),analytics:entry(results[1])};
+  }
+  async function getCatalog() {
+    return normalizePublishedCatalog(await call('/catalog'));
+  }
+  async function getWatchlist() {
+    return normalizeClientWatchlist(await call('/watchlist'));
+  }
+  async function setWatchlist(item, wantSaved) {
+    if (!allowed.watchlistWrites) throw failure('FEATURE_DISABLED', '当前无法修改自选');
+    const ref = identity(item);
+    if (typeof wantSaved !== 'boolean') throw failure('INVALID_WATCHLIST_ACTION', '自选操作无效');
+    const token = getToken();
+    const same = row => row.market === ref.market && row.symbol === ref.symbol;
+    // Obtain current server state first; never trust locally cached array.
+    const before = await getWatchlist();
+    assertSameSession(token);
+    if (before.some(same) === wantSaved) return before;
+    await call('/watchlist', {method:wantSaved?'POST':'DELETE',body:ref});
+    assertSameSession(token, '自选结果待核对，请重新登录查看');
+    let after;
+    try { after = await getWatchlist(); }
+    catch (cause) {
+      throw failure('WATCHLIST_READBACK_FAILED', '自选操作已发送，但回读失败，请刷新列表核对', cause.status, cause);
+    }
+    assertSameSession(token, '自选结果待核对，请重新登录查看');
+    if (after.some(same) !== wantSaved) {
+      throw failure('WATCHLIST_UNCONFIRMED', '服务器尚未确认自选变更');
+    }
+    return after;
+  }
+  async function getQuote(item) {
+    const ref = identity(item);
+    return normalizeVerifiedQuote(await call('/stock-quote?market=' + ref.market + '&symbol=' + encodeURIComponent(ref.symbol)),ref,{nowMs:now()});
+  }
+  async function getSupport() {
+    const result = shape(await call('/support'),'客服');
+    if (!Array.isArray(result.messages)) throw failure('INVALID_RESPONSE', '客服记录不可用');
+    return result;
+  }
+  async function sendSupport(message) {
+    if (!allowed.supportWrites) throw failure('FEATURE_DISABLED', '当前无法提交客服消息');
+    if (typeof message !== 'string' || !message.trim() || message.trim().length > 4000) {
+      throw failure('INVALID_MESSAGE','消息内容无效');
+    }
+    const token = getToken();
+    const result = shape(await call('/support',{method:'POST',body:{message:message.trim()}}),'客服发送');
+    assertSameSession(token, '客服消息状态待核对，请重新登录查看');
+    const id = result.message?.id;
+    if (!nonEmptyId(id)) throw failure('SUPPORT_UNCONFIRMED', '消息已发送，但结果尚未确认');
+    let updated;
+    try { updated = await getSupport(); }
+    catch (cause) { throw failure('SUPPORT_READBACK_FAILED','消息已发送，但无法确认结果，请刷新记录核对',cause.status,cause); }
+    assertSameSession(token, '客服消息状态待核对，请重新登录查看');
+    if (!updated.messages.some(item=>item.id===id && item.body===message.trim())) {
+      throw failure('SUPPORT_UNCONFIRMED','消息已发送，但服务器未确认记录');
+    }
+    return updated;
+  }
+  async function getRequests(category) {
+    if (category !== undefined && !/^[A-Z_]{2,48}$/.test(category)) throw failure('INVALID_CATEGORY','请求类型无效');
+    const result = shape(await call('/requests' + (category ? '?category=' + category : '')),'业务申请');
+    if (!Array.isArray(result.items)) throw failure('INVALID_RESPONSE','申请记录不可用');
+    return result.items;
+  }
+  async function submitRequest(category,body) {
+    if (!allowed.requestWrites) throw failure('FEATURE_DISABLED','当前无法提交业务申请');
+    if (!/^[A-Z_]{2,48}$/.test(category) || !body || typeof body !== 'object' || Array.isArray(body)) {
+      throw failure('INVALID_REQUEST','申请参数无效');
+    }
+    const token = getToken();
+    const data = shape(await call('/requests?category=' + category,{method:'POST',body}),'业务申请');
+    assertSameSession(token, '业务申请状态待核对，请重新登录查看');
+    if (!nonEmptyId(data.item?.id)) throw failure('REQUEST_UNCONFIRMED','申请已提交，但结果尚未确认');
+    let items;
+    try { items = await getRequests(category); }
+    catch (cause) { throw failure('REQUEST_READBACK_FAILED','申请已提交，但无法确认结果，请刷新记录核对',cause.status,cause); }
+    assertSameSession(token, '业务申请状态待核对，请重新登录查看');
+    if (!items.some(item=>item.id===data.item.id)) throw failure('REQUEST_UNCONFIRMED','申请已提交，但服务器未确认记录');
+    return {item:data.item,items};
+  }
+  async function submitInternalOrder({side,market,symbol,quantity,idempotencyKey}) {
+    if (!allowed.trading) throw failure('FEATURE_DISABLED','当前无法提交订单');
+    const ref = identity({market,symbol});
+    const count = integer(quantity,1);
+    if (!['BUY','SELL'].includes(side) || count === null) throw failure('INVALID_ORDER','交易参数无效');
+    const key = transactionKey(idempotencyKey);
+    const token = getToken();
+    // Price and FX are intentionally not supplied by the browser: server verifies both.
+    const result = shape(await call('/orders',{method:'POST',body:{side,...ref,quantity:count},key}),'订单提交');
+    assertSameSession(token, '订单状态待核对，请重新登录后查看订单');
+    const orderId = result.order?.id;
+    if (!nonEmptyId(orderId)) throw failure('ORDER_UNCONFIRMED','订单已提交，但服务器未返回订单标识');
+    let snapshot;
+    try { snapshot = await getAccount(); }
+    catch (cause) { throw failure('ORDER_READBACK_FAILED','订单已提交，但回读失败，请核对订单记录后再试',cause.status,cause); }
+    assertSameSession(token, '订单状态待核对，请重新登录后查看订单');
+    const committed = snapshot.orders.find(item=>item.id===orderId && item.side===side &&
+      item.market===ref.market && item.symbol===ref.symbol && item.quantity===count);
+    if (!committed) throw failure('ORDER_UNCONFIRMED','订单已提交，但服务器未确认成交记录');
+    const acknowledgedPrice = result.order.priceCents ?? result.order.price_cents;
+    const acknowledgedAmount = result.order.amountCents ?? result.order.amount_usd_cents;
+    if ((acknowledgedPrice != null && integer(acknowledgedPrice,1) !== committed.priceCents) ||
+        (acknowledgedAmount != null && integer(acknowledgedAmount,1) !== committed.amountUsdCents)) {
+      throw failure('ORDER_UNCONFIRMED','订单已提交，但服务器成交金额与回读记录不一致');
+    }
+    return {order:committed,snapshot,replayed:result.replayed === true};
+  }
+  return Object.freeze({getAccount,getAnalytics,loadOverview,getCatalog,getWatchlist,setWatchlist,
+    getQuote,getSupport,sendSupport,getRequests,submitRequest,submitInternalOrder});
+}
