@@ -1,0 +1,45 @@
+name: Market API issue 42 isolated checks
+on:
+  push:
+    branches:
+      - work/market-data-api-research-20261108
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  market-api-unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout quote branch
+        uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check quote source syntax
+        run: |
+          node --check src/twelve-data-equities.mjs
+          node --check src/market-data-quote-gateway.mjs
+      - name: Run isolated quote and history tests
+        run: node --test test/twelve-data-equities.test.mjs test/market-data-quote-gateway.test.mjs
+      - name: Demo upstream HTTP diagnostic only (not licensed or real-time feed)
+        continue-on-error: true
+        run: |
+          node --input-type=module - <<'NODE'
+          const url = new URL('https://api.twelvedata.com/quote');
+          url.searchParams.set('symbol', 'AAPL');
+          url.searchParams.set('apikey', 'demo');
+          const response = await fetch(url, {redirect:'error',signal:AbortSignal.timeout(8000)});
+          const body = await response.json();
+          console.log(JSON.stringify({
+            provider:'Twelve Data', demo_only:true, http_status:response.status,
+            has_symbol: typeof body.symbol === 'string',
+            has_timestamp: Number.isSafeInteger(body.last_quote_at),
+            error_code:body.code ?? null,
+            prices_logged:false,
+            licensed_customer_quote:false
+          }));
+          if (!response.ok || typeof body.symbol !== 'string') process.exitCode = 1;
+          NODE
