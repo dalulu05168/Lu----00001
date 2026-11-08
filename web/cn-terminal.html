@@ -40,17 +40,17 @@ button,input{font:inherit;color:inherit}
 .v{position:absolute;left:0;right:0;top:48px;bottom:0;padding:8px 16px 86px;overflow-y:auto;scrollbar-width:none}
 .cvp.fin{animation:cfin .85s cubic-bezier(.2,.7,.3,1)}
 @keyframes cfin{0%{opacity:.28;transform:scaleX(.965)}100%{opacity:1;transform:scaleX(1)}}
-.tenter>*{animation:tein .5s both cubic-bezier(.34,1.3,.64,1)}
-.tenter>*:nth-child(1){animation-delay:.03s}
-.tenter>*:nth-child(2){animation-delay:.08s}
-.tenter>*:nth-child(3){animation-delay:.13s}
-.tenter>*:nth-child(4){animation-delay:.18s}
-.tenter>*:nth-child(5){animation-delay:.23s}
-.tenter>*:nth-child(6){animation-delay:.28s}
-.tenter>*:nth-child(n+7){animation-delay:.32s}
-@keyframes tein{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
-.vhead{animation:vhead .55s both cubic-bezier(.16,1,.3,1);animation-delay:.3s}
-@keyframes vhead{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.tenter>*{animation:tein .78s both cubic-bezier(.22,1,.36,1)}
+.tenter>*:nth-child(1){animation-delay:.08s}
+.tenter>*:nth-child(2){animation-delay:.16s}
+.tenter>*:nth-child(3){animation-delay:.24s}
+.tenter>*:nth-child(4){animation-delay:.32s}
+.tenter>*:nth-child(5){animation-delay:.40s}
+.tenter>*:nth-child(6){animation-delay:.48s}
+.tenter>*:nth-child(n+7){animation-delay:.56s}
+@keyframes tein{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+.vhead{animation:vhead .78s both cubic-bezier(.22,1,.36,1);animation-delay:.08s}
+@keyframes vhead{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
 .m{color:#bcc3b4;font-size:12px}
 .t-g{--c:#d7ff00;--b:rgba(215,255,0,.13)}.t-r{--c:#ff6b5a;--b:rgba(255,107,90,.15)}.t-a{--c:#ffb938;--b:rgba(255,185,56,.15)}.t-b{--c:#5b9cff;--b:rgba(91,156,255,.16)}.t-p{--c:#b58cff;--b:rgba(181,140,255,.16)}.t-c{--c:#36d3c9;--b:rgba(54,211,201,.15)}.t-k{--c:#ff7ab8;--b:rgba(255,122,184,.15)}.t-m{--c:#bcc3b4;--b:rgba(255,255,255,.08)}
 .chips{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
@@ -164,7 +164,50 @@ h2{font-size:21px;margin-bottom:8px;display:flex;align-items:center;gap:10px;fon
 .sh{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
 @media(max-width:420px){:host(:not(.emb)) .sb{display:none}:host(:not(.emb)) .v{top:0;padding-top:calc(env(safe-area-inset-top,0px) + 12px)}:host(:not(.emb)) .ptr{top:env(safe-area-inset-top,0px)}}
 @supports(height:100dvh){.app{height:min(844px,100dvh)}@media(max-width:420px){:host(:not(.emb)) .app{height:100dvh}}}
+
+/* User-selected navigation: gradual top-to-bottom content reveal. */
+.v.cn-page-enter>*{animation:cn-page-topfade .78s cubic-bezier(.22,1,.36,1) both}
+.v.cn-page-enter>*:nth-child(1){animation-delay:.08s}
+.v.cn-page-enter>*:nth-child(2){animation-delay:.18s}
+.v.cn-page-enter>*:nth-child(3){animation-delay:.28s}
+.v.cn-page-enter>*:nth-child(4){animation-delay:.38s}
+.v.cn-page-enter>*:nth-child(n+5){animation-delay:.46s}
+.sh>*{animation:cn-page-topfade .78s cubic-bezier(.22,1,.36,1) both}
+.sh>*:nth-child(1){animation-delay:.06s}
+.sh>*:nth-child(2){animation-delay:.14s}
+.sh>*:nth-child(3){animation-delay:.22s}
+.sh>*:nth-child(4){animation-delay:.30s}
+.sh>*:nth-child(n+5){animation-delay:.38s}
+@keyframes cn-page-topfade{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.v.cn-page-enter>*,.sh>*,.tenter>*{animation:none!important}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<style id="cn-uhd-interactions">
+/* Ultra-HD layout support and shared logo, scoped to the updated CN UI only.
+ * Preserve each surface's own color variables; no API or page actions touched. */
+.top .brand{align-items:center;flex:none}
+.top .brand .cn-shared-mark{display:block;width:32px;height:auto;max-height:36px;object-fit:contain;image-rendering:auto}
+.top .brand>div{display:none!important}
+/* Match the client border-and-lift interaction in the admin console without
+   changing the distinct client/admin accent colors. */
+@media(hover:hover) and (pointer:fine){
+ body:has(#p-over) .pg .pn,
+ body:has(#p-over) .pg .sc{transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;will-change:auto}
+ body:has(#p-over) .pg .pn:hover,
+ body:has(#p-over) .pg .sc:hover{border-color:var(--ac);box-shadow:0 12px 34px -8px rgba(0,0,0,.6),0 0 0 1px var(--acb);transform:translateY(-2px)}
+}
+/* 8K / UHD desktop monitors: enlarge the existing CSS UI as a unit, rather
+   than letting fixed-pixel text and controls become microscopic. Standard
+   phone viewports are unchanged, including fullscreen mobile app behavior. */
+@media(min-width:2560px) and (min-height:1200px){body{zoom:1.25}}
+@media(min-width:3840px) and (min-height:1800px){body{zoom:1.8}}
+@media(min-width:5120px) and (min-height:2400px){body{zoom:2.6}}
+@media(min-width:7680px) and (min-height:3500px){body{zoom:3.8}}
+@media(prefers-reduced-motion:reduce){
+ body:has(#p-over) .pg .pn,body:has(#p-over) .pg .sc{transition:none!important}
+ body:has(#p-over) .pg .pn:hover,body:has(#p-over) .pg .sc:hover{transform:none}
+}
+
 </style>
 </head>
 <body>
@@ -473,7 +516,7 @@ var T=[['home','首页','g'],['market','行情','b'],['trade','交易','a'],['or
 var nv=D.ov?'':'<div class="nv">'+T.map(function(t){return '<button class="t-'+t[2]+(D.tab===t[0]?' on':'')+'" data-a="tab" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>';
 A.className='app'+(!D.ov&&D.tab==='home'?' g':'');
 A.innerHTML=sbar()+'<div class="ptr" id="ptr"></div><div class="v">'+body+'</div>'+nv+(D.sh?sheet():'')+(!D.ov&&!D.sh&&!D.cs&&D.rq==null?'<button class="fab t-c" data-a="chat">客服'+(D.un?'<span class="bd">'+D.un+'</span>':'')+'</button>':'')+(D.cs?chatSheet():'')+(D.rq!=null?reqSheet():'')+'<div class="ts" id="ts" aria-hidden="true"></div>';
-if(key===lastKey)A.querySelector('.v').scrollTop=y;lastKey=key;
+if(key!==lastKey){var cnPage=A.querySelector('.v');if(cnPage)cnPage.classList.add('cn-page-enter')}if(key===lastKey)A.querySelector('.v').scrollTop=y;lastKey=key;
 if(D.src&&D.tab==='trade'){var ve=A.querySelector('.v');if(ve){var F=ve.getBoundingClientRect(),S=D.src,tx=S.x-F.x,ty=S.y-F.y,sx=S.w/F.w,sy=S.h/F.h;ve.style.transformOrigin='0 0';ve.style.transition='none';ve.style.transform='translate('+tx+'px,'+ty+'px) scale('+sx+','+sy+')';ve.style.opacity='.55';void ve.offsetWidth;ve.style.transition='transform .48s cubic-bezier(.22,.9,.26,1),opacity .36s ease';ve.style.transform='none';ve.style.opacity='1';var hd=ve.querySelector('h2');if(hd){hd.classList.add('vhead');setTimeout(function(){hd.classList.remove('vhead')},920)}setTimeout(function(){ve.style.transition='';ve.style.transform='';ve.style.transformOrigin='';ve.style.opacity=''},520)}}D.src=null;D.ten=0;
 if(D.ov==='AA')bindChart();
 bindCarousel();
@@ -511,7 +554,8 @@ else if(a==='rfp'){api('config');return}
 else if(a==='rfc'){api('chat');return}
 else if(a==='sym'){D.sym=v;D.lp='';D.qty=String(MQ())}
 else if(a==='pdk')D.pdk=D.pdk?0:1;
-else if(a==='logout'){D.auth=0;D.sh=null;D.cs=0;D.tab='home';D.ov=null}
+else if(a==='logout'){var tok='';try{tok=localStorage.getItem('cncap.session')||''}catch(ignore){}D.auth=0;D.accountReady=false;D.sh=null;D.cs=0;D.tab='home';D.ov=null;
+ fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+tok},cache:'no-store',keepalive:true}).catch(function(){}).finally(function(){window.CN_SET_TOKEN(null);location.replace('/login.html')});return}
 else if(a==='reset'){try{localStorage.removeItem('cncap.v1')}catch(x){}location.reload();return}
 else if(a==='rk')D.rk=D.rk?0:1;
 else if(a==='gotrade'){if(v&&CFG[v])D.sym=v;D.ten=1;D.tab='trade';D.ov=null}
@@ -548,8 +592,21 @@ if(D.kyc[k])URL.revokeObjectURL(D.kyc[k].u);D.kyc[k]={u:URL.createObjectURL(fl),
 setInterval(function(){var c=root.getElementById('clk');if(c)c.textContent=hm()},15000);
 setInterval(function(){if(FEAT.length<2||document.hidden||RMQ()||D.tab!=='home'||D.ov||D.sh||D.cs||D.rq!=null)return;var tr=root.getElementById('ctrack');if(!tr)return;if(D.hp){if(Date.now()<D.hp)return;D.hp=0;var vp=tr.parentNode;if(vp){vp.classList.remove('fin');void vp.offsetWidth;vp.classList.add('fin');setTimeout(function(){vp.classList.remove('fin')},900)}}hslide((D.hi||0)+1)},3800);
 addEventListener('resize',function(){if(D.ov==='AA')draw()});
-if(window.CN){CN.on(function(v){applyShared(v);R()});CN.pull()}
-R()}
+if(window.CN){CN.on(function(v){applyShared(v);if(D.auth)R()});CN.pull()}
+(function restoreUnifiedLogin(){
+ var token='';try{token=localStorage.getItem('cncap.session')||''}catch(ignore){}
+ if(!token){location.replace('/login.html');return}
+ A.className='app g';A.innerHTML='<div role="status" style="padding:28px;color:#a8b9cb">正在验证登录状态…</div>';
+ fetch('/api/account',{headers:{Authorization:'Bearer '+token,Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
+ .then(function(r){if(!r.ok)throw new Error('Unauthorized');return r.json()})
+ .then(function(j){var v=j&&j.account;if(!v||!v.id)throw new Error('Account not verified');
+  D.acct=v.id;D.cash=Number.isSafeInteger(v.cashCents)?v.cashCents/100:null;
+  D.ordersReady=Array.isArray(j.orders);D.ord=D.ordersReady?j.orders.map(function(o){return {id:o.id,s:o.symbol,q:Number(o.quantity),a:o.amount_usd_cents==null?null:Number(o.amount_usd_cents)/100,d:o.created_at,t:o.side==='BUY'?'买入':'卖出',st:'已成交'}}):[];
+  D.hold=Array.isArray(j.positions)?j.positions.map(function(p){return {s:p.symbol,q:Number(p.quantity),c:null}}):[];
+  D.accountReady=true;D.auth=1;D.sync=now();R()})
+ .catch(function(){window.CN_SET_TOKEN(null);D.auth=0;location.replace('/login.html')});
+})();
+}
 mountApp(document.getElementById('host'),document.getElementById('css').textContent);
 </script>
 </body>
