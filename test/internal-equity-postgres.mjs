@@ -35,7 +35,8 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(purpose,"internalSimulationPricing");
   return {status:"FRESH",stale:false,market,symbol,currency:market==="US"?"USD":"CNY",
    mic:market==="US"?"XNAS":"XSHG",name:"Isolated test equity",
-   priceCents:prices.get(market+":"+symbol),timestampMs:clock-1000,
+   priceCents:prices.get(market+":"+symbol),price:prices.get(market+":"+symbol)/100,
+   timestampMs:clock-1000,
    source:"QA_EQUITY_FIXTURE",
    entitlement:{purpose,reviewReference:"QA-EQUITY-REVIEW"}};
  }};
@@ -169,6 +170,40 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(noQuoteValuation.valuationAvailable,false);
   assert.equal(noQuoteValuation.unrealizedPnlCents,null);
   assert.equal(noQuoteValuation.portfolioValueCents,null);
+  // Separate account guarantees the original FIFO/cash fixture is unchanged.
+  const raceUserId=randomUUID(),raceAccountId=randomUUID();
+  await db.query("INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,'test-hash')",
+   [raceUserId,"qa-trade-race-"+raceUserId+"@example.test"]);
+  await db.query("INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,50000)",
+   [raceAccountId,raceUserId]);
+  await db.query("INSERT INTO cash_ledger(account_id,delta_cents,balance_after_cents) VALUES($1,50000,50000)",
+   [raceAccountId]);
+  // Two same-key requests can each prefetch a different valid price before
+  // the account row lock. Both must return the one actually committed quote.
+  const racingPrices=[12000,13000];
+  const racingMarketData={getQuote:async ({market,symbol},{purpose})=>{
+   const data=await marketData.getQuote({market,symbol},{purpose});
+   const priceCents=racingPrices.shift() ?? 13000;
+   return {...data,priceCents,price:priceCents/100};
+  }};
+  const race=await Promise.all([
+    executeLicensedInternalOrder({...args,accountId:raceAccountId,marketData:racingMarketData,
+      key:"qa-race-same-key",request:{side:"BUY",market:"US",symbol:us,quantity:1}}),
+    executeLicensedInternalOrder({...args,accountId:raceAccountId,marketData:racingMarketData,
+      key:"qa-race-same-key",request:{side:"BUY",market:"US",symbol:us,quantity:1}})
+  ]);
+  assert.equal(race.filter(r=>r.replayed).length,1);
+  assert.equal(race[0].order.id,race[1].order.id);
+  assert.equal(race[0].quote.priceCents,race[1].quote.priceCents);
+  const raceFillPrice=race[0].quote.priceCents;
+  assert.ok([12000,13000].includes(raceFillPrice));
+
+  const raceOrders=await db.query("SELECT o.id,o.price_cents,e.quote_price_cents FROM orders o JOIN order_execution_evidence e ON e.order_id=o.id WHERE o.account_id=$1",[raceAccountId]);
+  assert.equal(raceOrders.rows.length,1);
+  assert.equal(Number(raceOrders.rows[0].price_cents),raceFillPrice);
+  assert.equal(Number(raceOrders.rows[0].quote_price_cents),raceFillPrice);
+  const raceCash=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[raceAccountId]);
+  assert.equal(Number(raceCash.rows[0].cash_cents),50000-raceFillPrice);
   const [stored,ledger,evidence]=await Promise.all([
    db.query("SELECT id,market,side,amount_usd_cents FROM orders WHERE account_id=$1 ORDER BY created_at",[accountId]),
    db.query("SELECT order_id,delta_cents FROM cash_ledger WHERE account_id=$1 AND order_id IS NOT NULL",[accountId]),
