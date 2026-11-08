@@ -53,3 +53,17 @@ node --test test/twelve-data-equities.test.mjs
 官方资料：
 - https://twelvedata.com/docs
 - https://support.twelvedata.com/en/articles/5332349-commercial-and-personal-usage
+
+
+## 2026-11-08 追加实证｜报价网关与独立远端 CI
+
+- 新增 `src/market-data-quote-gateway.mjs`：服务端独立读取网关、按 `market:symbol:purpose` 请求去重、最长 5 秒内的可配置短缓存；缓存命中不会延长上游时间戳，每次展示/内部定价读取均重新执行`authorizeAccess` 服务端许可检验（provider/market/currency/purpose/expiry/reviewReference）。未获许可、报价过旧/异种市场、不准确的分精度、网络失败均以 503 拒绝，不返回假数据。仅进程内缓存，**尚未跨实例限流或接入现有交易路由**。
+- 新增 `test/market-data-quote-gateway.test.mjs`：8 项测试覆盖缓存授权撤销、到期报价、并发去重（12 个同标的调用一次上游）、展示权不能等同内部成交定价权、错误/失效/跨市场安全拒绝。
+- 增强 `src/twelve-data-equities.mjs` 与 `test/twelve-data-equities.test.mjs`：历史返回 `meta.interval` 和 `meta.exchange_timezone` 与请求及交易所一致性校验，拒绝非真实日期、越界时间、错误时间语义；历史专属测试从 13 增至 15。
+- 实际在隔离的 Node 22 本地执行 `node --test test/twelve-data-equities.test.mjs test/market-data-quote-gateway.test.mjs`，**23 tests / 23 pass / 0 failed**；这些测试使用仅在测试代码内存在的固定夹具，绝不作为平台行情价格。
+- 新增仅针对本行情分支的 `.github/workflows/market-api-issue42.yml`，GitHub Actions [run 42435621116](https://github.com/dalulu05168/Lu----00001/actions/runs/42435621116)：`completed / success`，日志 `23 tests / 23 pass / 0 fail`。
+- 同一 run 的**真实外网**只读诊断请求 Twelve Data 官方公开 `AAPL` 演示接口（`apikey=demo`）：HTTP **200**，`has_symbol=true`，`has_timestamp=true`，`error_code=null`。没有输出价格，没有持有或检查平台实际 API key/合同；**demo 成功只证明上游官方接口可达和基础结构，不等于可用的实时 US/CN 商用数据、订单定价许可或中国 A 股订阅成功**。
+- 执行容器直连官方域名时也实际尝试过 HTTP，网络环境 DNS `EAI_AGAIN`；这与 GitHub-hosted runner 成功演示诊断不是同一联网环境，不能把其中任一结果泛化为 QA/生产接通。
+- 经官方许可页面核对：Business Venture/Enterprise 才可在具体合同/交易所条件下商业显示和内部使用；中国等美国之外地区商业用途还需要额外批准，向客户再分发须单独协议；US 默认数据虽覆盖上市证券范围，但非合并全市场盘口，具体客户再分发仍需授权。见：https://support.twelvedata.com/en/articles/5332349-commercial-and-personal-usage 及 https://support.twelvedata.com/en/articles/9935903-us-equities-market-data 。
+
+**仍未验收**：客户可展示的 US 和 CN 实际最新上游数据、正式供应商 key 和合同许可证据、真实可用换汇价、跨实例缓存/限流、共享 `src/http-api.mjs` 与订单事务闭环、任何 QA/生产/Neon DB 修改和真实用户浏览器。保持 `TRADING_ENABLED=false`。上述检测或 CI 不得替代七项业务端到端验收。
