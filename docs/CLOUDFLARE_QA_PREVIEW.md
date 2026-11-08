@@ -11,6 +11,13 @@
 - Build command: `npm run build` (copies `web/` to `public/`). Deploy command: `npx wrangler deploy`. Root directory: `/`.
 - Test first: `node --test test/cloudflare-qa-worker.test.mjs`. Never paste credentials into files or GitHub issues.
 
+## Unified customer URL and automatic device routing
+
+- Customers use one domain (for example, `https://nuvexapro.com` in a future approved production release). The root URL serves the same verified login for desktop and mobile.
+- The **existing** `web/login.html` validates a real session with `/api/account` before selecting the client UI: width at most 700 CSS px goes to `/mobile.html`, and wider screens to `/index.html`. Customers do not manually choose a device site. Administrator login stays role/2FA-based and goes to `/admin.html`.
+- These client pages are separate paths **under the same origin**, not separately exposed network ports. This is not yet verified on the live Cloudflare preview.
+- Cloudflare assets use the built-in 404 behavior if no asset matches; no unsupported `assets.not_found_handling` value is specified.
+
 ## Route and backend rules
 
 - `/` serves the original designed `web/login.html`; `/index.html`, `/mobile.html`, and `/admin.html` remain separate UI files. `/mobile` and `/admin` aliases resolve to their corresponding `.html` pages.

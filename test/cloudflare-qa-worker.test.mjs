@@ -86,3 +86,11 @@ test("upstream redirect is not followed", async () => {
   });
   assert.equal(res.status, 503);
 });
+
+test("unified login routes verified client accounts to mobile or desktop based on viewport, not separate domains", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const login = await readFile(new URL("../web/login.html", import.meta.url), "utf8");
+  assert.match(login, /const verified=await getResponse\(role==='client'\?'\/api\/account':'\/api\/admin\/me',\{headers\}\)/);
+  assert.match(login, /const target=role!=='client'\?'\/admin\.html':matchMedia\('\(max-width:700px\)'\)\.matches\?'\/mobile\.html':'\/index\.html'/);
+  assert.match(login, /location\.assign\(target\)/);
+});
