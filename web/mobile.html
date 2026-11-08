@@ -654,7 +654,7 @@ if(window.CN){CN.on(function(v){applyShared(v);if(D.auth)R()});CN.pull()}
   D.acct=account.id;D.cash=Number.isSafeInteger(account.cashCents)?account.cashCents/100:null;D.ordersReady=Array.isArray(j.orders);D.ord=D.ordersReady?j.orders:[];D.hold=Array.isArray(j.positions)?j.positions:[];D.accountReady=true;D.auth=1;D.sync=now();R();syncMobile()})
  .catch(function(){window.CN_SET_TOKEN(null);D.auth=0;D.accountReady=false;location.replace('/login.html')});
 })();
-
+}
 mountApp(document.getElementById('host'),document.getElementById('css').textContent);
 </script>
 </body>
