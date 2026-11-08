@@ -4,7 +4,7 @@ import {resolve,dirname} from "node:path";
 import {runMigrations} from "../src/migrations.mjs";
 const connectionString=process.env.DATABASE_URL_UNPOOLED||process.env.DATABASE_URL;
 if(!connectionString)throw new Error("DATABASE_URL or DATABASE_URL_UNPOOLED required");
-const db=new Pool({connectionString});
+const db=new Pool({connectionString,ssl:process.env.PGSSL==="require"?{rejectUnauthorized:true}:undefined});
 try{
  await runMigrations(db,resolve(dirname(fileURLToPath(import.meta.url)),"../db"));
  console.log("Migrations completed");
