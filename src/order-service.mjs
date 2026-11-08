@@ -1,5 +1,18 @@
 import { applyOrder } from "./ledger.mjs";
 
+// PostgreSQL bigint is returned as text by default. Refuse values the
+// JS-number ledger cannot represent exactly; never silently round money or
+// holdings during the account lock/settlement transaction.
+function persistedNonnegativeSafeInteger(value,field) {
+  if(!["string","number","bigint"].includes(typeof value) ||
+     (typeof value==="number"&&!Number.isSafeInteger(value)) ||
+     !/^(0|[1-9][0-9]*)$/.test(String(value)) ||
+     BigInt(value)>BigInt(Number.MAX_SAFE_INTEGER))
+    throw Object.assign(new Error("Unrepresentable persisted "+field),{statusCode:503});
+  return Number(value);
+}
+
+
 /**
  * db must expose query(sql, params) and connect() returning a client with query/release.
  * Account row lock serializes writes; all mutations commit atomically.
@@ -44,7 +57,13 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId, 
       if(lock.rows[0]?.locked)throw Object.assign(new Error("Stock position is locked"),{statusCode:409});
     }
     const p = await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1", [accountId]);
-    const account = {cashCents:Number(a.rows[0].cash_cents),positions:Object.fromEntries(p.rows.map(r=>[r.market+":"+r.symbol,Number(r.quantity)])),orders:[]};
+    const account = {
+      cashCents:persistedNonnegativeSafeInteger(a.rows[0].cash_cents,"cash balance"),
+      positions:Object.fromEntries(p.rows.map(r=>[
+        r.market+":"+r.symbol,
+        persistedNonnegativeSafeInteger(r.quantity,"position quantity")
+      ])),orders:[]
+    };
     const updated = applyOrder(account,input);
     // Optional server-owned synchronous policy check is evaluated AFTER the
     // account lock, immediately before any money or position changes. An
@@ -58,10 +77,12 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId, 
     }
     const order = updated.orders[0];
     const position = updated.positions[order.market+":"+order.symbol];
-    await client.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1",[accountId,updated.cashCents]);
-    await client.query(`INSERT INTO positions(account_id,market,symbol,quantity) VALUES($1,$2,$3,$4)
+    const changedAccount=await client.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1",[accountId,updated.cashCents]);
+    if(changedAccount.rowCount===0)throw Object.assign(new Error("Cash update not applied"),{statusCode:503});
+    const changedPosition=await client.query(`INSERT INTO positions(account_id,market,symbol,quantity) VALUES($1,$2,$3,$4)
       ON CONFLICT(account_id,market,symbol) DO UPDATE SET quantity=EXCLUDED.quantity`,
       [accountId,order.market,order.symbol,position]);
+    if(changedPosition.rowCount===0)throw Object.assign(new Error("Position update not applied"),{statusCode:503});
     await client.query(`INSERT INTO orders(id,account_id,idempotency_key,market,symbol,side,quantity,price_cents,fx_usd_micros,amount_usd_cents)
       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [newOrderId,accountId,key,order.market,order.symbol,order.side,order.quantity,order.priceCents,order.fxUsdMicros,order.amountCents]);
