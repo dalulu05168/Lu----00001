@@ -63,6 +63,7 @@ export function assertInternalExecutionQuote({
     unavailable("LICENSE_UNVERIFIED");
   }
   let fxUsdMicros=1_000_000;
+  let fxReviewReference=null;
   if(request.market==="CN"){
     if(!fxQuote || fxQuote.base!=="CNY" || fxQuote.quote!=="USD" ||
         !positiveSafeInteger(fxQuote.usdMicros) ||
@@ -84,6 +85,7 @@ export function assertInternalExecutionQuote({
        typeof fxRights.reviewReference!=="string" || !fxRights.reviewReference.trim())
       unavailable("FX_LICENSE_UNVERIFIED");
     fxUsdMicros=fxQuote.usdMicros;
+    fxReviewReference=fxRights.reviewReference;
   }
   // Exact integer multiplication, consistent with applyOrder() in ledger.mjs.
   const amount=(BigInt(quote.priceCents)*BigInt(fxUsdMicros)*
@@ -94,6 +96,7 @@ export function assertInternalExecutionQuote({
     quantity:request.quantity,priceCents:quote.priceCents,
     currency:quote.currency,fxUsdMicros,amountUsdCents:Number(amount),
     quoteTimestampMs:quote.timestampMs,quoteSource:quote.source,
+    licenseReviewReference:rights.reviewReference,fxReviewReference,
     ...(fxQuote && request.market==="CN"?{
       fxTimestampMs:fxQuote.timestampMs,fxSource:fxQuote.source
     }:{})
