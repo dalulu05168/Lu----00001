@@ -62,6 +62,42 @@ test('watchlist mutation writes through API and verifies saved items with second
   assert.deepEqual(calls.map(x=>x[1]),['GET','GET','POST','GET','DELETE','GET']);
   await assert.rejects(()=>changeWatchlist('user',{market:'HK',symbol:'0700'},[],fake),/无效/);
 });
+test('watchlist write acknowledged without durable change must never report success',async()=>{
+  let writes=0,reads=0;
+  const ignoreWrite=async(path,opts)=>{
+    assert.equal(path,'/api/watchlist');
+    if(opts.method==='POST'){writes++;return reply(200,{item:{market:'US',symbol:'AAPL'}});}
+    reads++;
+    return reply(200,{items:[]});
+  };
+  await assert.rejects(
+    ()=>changeWatchlist('token-A',{market:'US',symbol:'AAPL'},[],ignoreWrite),
+    error=>error.code==='WATCHLIST_NOT_CONFIRMED'&&/没有确认/.test(error.message));
+  assert.equal(writes,1);
+  assert.equal(reads,1);
+
+  const ignoreDelete=async(path,opts)=>{
+    assert.equal(path,'/api/watchlist');
+    if(opts.method==='DELETE')return reply(200,{item:{market:'CN',symbol:'600519'}});
+    return reply(200,{items:[{market:'CN',symbol:'600519'}]});
+  };
+  await assert.rejects(
+    ()=>changeWatchlist('token-A',{market:'CN',symbol:'600519'},[{market:'CN',symbol:'600519'}],ignoreDelete),
+    error=>error.code==='WATCHLIST_NOT_CONFIRMED');
+});
+test('lost watchlist readback preserves uncertainty, never claims a successful save',async()=>{
+  let calls=0;
+  const unavailable=async(path,opts)=>{
+    calls++;
+    return opts.method==='POST'
+      ? reply(200,{item:{market:'US',symbol:'MSFT'}})
+      : reply(503,{error:'database unavailable'});
+  };
+  await assert.rejects(
+    ()=>changeWatchlist('token-A',{market:'US',symbol:'MSFT'},[],unavailable),
+    error=>error.code==='WATCHLIST_READBACK_FAILED' && error.status===503 && /未能回读/.test(error.message));
+  assert.equal(calls,2);
+});
 test('both terminals bind catalog/watchlist sync and keep trade closed',async()=>{
   const root=new URL('../',import.meta.url);
   for(const base of ['desktop','cn-terminal']){
