@@ -248,7 +248,8 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    // rules, and explicitly set tradingEnabled.
    if(verifiedTrading!==null){
     const outcome=await postVerifiedInternalOrder({
-     db,session,idempotencyKey:key,body:data,...verifiedTrading,
+     ...verifiedTrading,db,session,idempotencyKey:key,body:data,
+     // Authenticated request data must never be overridden by configuration.
      // An explicit boolean is mandatory; no environment/client truthiness.
      tradingEnabled:verifiedTrading?.tradingEnabled===true
     });
