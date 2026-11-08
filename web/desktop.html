@@ -396,7 +396,7 @@ var IDLE_MS=15*60*1000;      // 无操作自动锁定时间
 var IS_READONLY_PREVIEW=new URLSearchParams(location.search).get('preview')==='1';
 
 /* ========== 唯一数据源：页面所有数字都由这里计算，不会互相矛盾 ========== */
-var DATA={acct:'',sync:'待同步',cashOverride:0,names:{},disc:{},watch:[],fav:[],catalog:[],watchStatus:'自选尚未同步',orders:[],holds:[],reqs:[],chat:[]};
+var DATA={acct:'',sync:'待同步',cashOverride:0,names:{},disc:{},watch:[],fav:[],catalog:[],watchLoaded:false,watchStatus:'自选尚未同步',orders:[],holds:[],reqs:[],chat:[]};
 function sum(a,fn){return a.reduce(function(x,y){return x+fn(y)},0)}
 function cost(){return DATA.holds.some(function(h){return h.c==null||!Number.isFinite(h.c)})?NaN:sum(DATA.holds,function(h){return h.c})}
 function traded(){return sum(DATA.orders,function(o){return o.a})}
@@ -433,10 +433,18 @@ function rStat(){var g={};DATA.reqs.forEach(function(r){g[r.st]=(g[r.st]||0)+1})
  $('req-stat').innerHTML=Object.keys(g).map(function(k){return '<div class="kv"><span>'+k+'</span><span class="chip '+stc(k)+'">'+g[k]+'</span></div>'}).join('')}
 var SEC='股票';
 function rProd(){
- var kind={'股票':'STOCK','基金':'FUND','IPO':'IPO'}[SEC],list=(DATA.catalog||[]).filter(function(x){return x.itemType===kind});
- var rows=list.map(function(x){return '<div class="kv"><span>'+esc(x.market+':'+x.symbol)+'</span><span>'+esc(x.name)+'</span></div>'}).join('');
- $('pbody').innerHTML=(rows||'<div class="mut" style="padding:12px">当前分类没有已发布的证券资料</div>')
-  +'<div class="bn in">以上仅为账户可查看的证券目录。授权行情与真实交易通道未连接，不能下单。</div>';
+  var kind={'股票':'STOCK','基金':'FUND','IPO':'IPO'}[SEC];
+  var list=(DATA.catalog||[]).filter(function(x){return x.itemType===kind});
+  var rows=list.map(function(x){
+    var key=x.market+':'+x.symbol,saved=DATA.watch.indexOf(key)>=0;
+    var disabled=!DATA.watchLoaded;
+    return '<div class="kv"><span>'+esc(key)+'</span><span>'+esc(x.name)+'</span>'
+      +'<button type="button" class="btn" data-save-instrument="'+esc(key)+'"'
+      +(disabled?' disabled':'')+' aria-label="'+(saved?'移除自选 ':'加入自选 ')+esc(key)+'">'
+      +(disabled?'自选未就绪':saved?'★ 已自选':'☆ 加入自选')+'</button></div>';
+  }).join('');
+  $('pbody').innerHTML=(rows||'<div class="mut" style="padding:12px">当前分类没有已发布的证券资料</div>')
+    +'<div class="bn in">证券目录仅为已发布的参考资料。未连接授权行情与真实交易通道，不能下单。</div>';
 }
 function renderAll(){bind();rOrders();rHolds();rWatch();rReqs();rStat();rProd();renderBadge();var cl=$('cvload');if(cl)cl.hidden=true;clearInterval(skTimer);if(skActive){skActive=false;reveal()}}
 
@@ -484,9 +492,10 @@ function toggleFav(key){
   .catch(function(err){toast(err&&err.message||'自选操作失败，未保存')});
 }
 $('tb-watch').addEventListener('click',function(e){var b=e.target.closest('.star');if(b)toggleFav(b.dataset.key)});
+$('pbody').addEventListener('click',function(e){var b=e.target.closest('button[data-save-instrument]');if(b&&!b.disabled)toggleFav(b.dataset.saveInstrument)});
 $('favaa').onclick=function(){toggleFav('US:AA')};
 $('ptabs').querySelectorAll('button').forEach(function(b){b.onclick=function(){$('ptabs').querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});SEC=b.textContent;fade($('pbody'),rProd)}});
-$('refprod').onclick=function(){if(typeof window.CN_REFRESH_CATALOG==='function')window.CN_REFRESH_CATALOG();else toast('证券目录接口尚未就绪')};
+$('refprod').onclick=function(){if(typeof window.CN_REFRESH_CATALOG==='function')window.CN_REFRESH_CATALOG().then(function(){toast('证券目录已同步')}).catch(function(err){toast(err&&err.message||'证券目录刷新失败')});else toast('证券目录接口尚未就绪')};
 $('exp').onclick=function(){var c='代码,类型,价格,数量,总额USD,时间\n'+DATA.orders.map(function(o){return [o.s,o.t,o.p,o.q,o.a,o.d].join(',')}).join('\n');
  try{var u=URL.createObjectURL(new Blob(['﻿'+c],{type:'text/csv'})),a=document.createElement('a');a.href=u;a.download='nuvexa-desktop-orders.csv';a.click();setTimeout(function(){URL.revokeObjectURL(u)},1000)}catch(x){}
  toast('已导出已加载记录 · '+DATA.orders.length+' 笔')};
@@ -611,7 +620,7 @@ window.CN_SYNC_ACCOUNT=function(snapshot){
   if(!Number.isSafeInteger(a.cashCents))throw new Error('账户现金字段格式不匹配');
   DATA.acct=String(a.id||'').replace(/[^a-zA-Z0-9-]/g,'').slice(-8);
   DATA.cashOverride=a.cashCents/100;
-  DATA.names={};DATA.watch=[];DATA.disc={};DATA.fav=[];DATA.catalog=[];DATA.watchStatus='正在同步自选…';
+  DATA.names={};DATA.watch=[];DATA.disc={};DATA.fav=[];DATA.catalog=[];DATA.watchLoaded=false;DATA.watchStatus='正在同步自选…';
   function sym(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9.-]/g,'').slice(0,16)}
   DATA.holds=(snapshot.positions||[]).filter(function(p){return Number(p.quantity)>0}).map(function(p){
     var code=sym(p.symbol);DATA.names[code]=code;return {s:code,q:Number(p.quantity),c:null};
@@ -627,10 +636,11 @@ window.CN_SYNC_ACCOUNT=function(snapshot){
 };
 
 window.CN_SYNC_WATCHLIST=function(items){
+  DATA.watchLoaded=true;
   DATA.watch=(Array.isArray(items)?items:[]).map(function(item){return item.market+':'+item.symbol});
   DATA.fav=DATA.watch.slice();
   DATA.watchStatus='账户已保存 '+DATA.watch.length+' 只 · 行情未连接';
-  rWatch();
+  rWatch();rProd();
 };
 window.CN_SYNC_CATALOG=function(items){
   DATA.catalog=Array.isArray(items)?items:[];
@@ -638,7 +648,7 @@ window.CN_SYNC_CATALOG=function(items){
   rWatch();rProd();
 };
 window.CN_DATA_STATUS=function(section,message){
-  if(section==='watchlist'){DATA.watch=[];DATA.fav=[];DATA.watchStatus=message;rWatch()}
+  if(section==='watchlist'){DATA.watch=[];DATA.fav=[];DATA.watchLoaded=false;DATA.watchStatus=message;rWatch();rProd()}
   if(section==='catalog'){$('pbody').textContent=message}
 };
 /* ========== 启动 ========== */
