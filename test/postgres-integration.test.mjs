@@ -6,7 +6,7 @@ import { Pool } from "pg";
 import { createServer } from "node:http";
 import serverlessHandler from "../api/[...path].mjs";
 import { createApi } from "../src/http-api.mjs";
-import { createSessionResolver } from "../src/auth.mjs";
+import { createSessionResolver,sessionTokenHash } from "../src/auth.mjs";
 import { placeInternalOrder } from "../src/order-service.mjs";
 
 const connectionString = process.env.TEST_DATABASE_URL;
@@ -58,6 +58,19 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     assert.equal(loginA.status, 200);
     assert.equal(loginB.status, 200);
     const tokenA = loginA.value.token, tokenB = loginB.value.token;
+
+    // Reject unknown user and previously valid but expired sessions.
+    const unknown = await request("/api/auth/login", {method:"POST",body:{
+      email:"missing-" + suffix + "@example.test",password
+    }});
+    assert.equal(unknown.status,401);
+    const temporaryLogin = await request("/api/auth/login", {method:"POST",body:{email:emailA,password}});
+    assert.equal(temporaryLogin.status,200);
+    await db.query("UPDATE user_sessions SET expires_at=now()-interval '1 second' WHERE token_hash=$1",
+      [sessionTokenHash(temporaryLogin.value.token)]);
+    assert.equal((await request("/api/account",{token:temporaryLogin.value.token})).status,401);
+    assert.equal((await request("/api/watchlist",{token:temporaryLogin.value.token})).status,401);
+    assert.equal((await request("/api/catalog",{token:temporaryLogin.value.token})).status,401);
     assert.ok(tokenA.length >= 32);
     assert.ok(tokenB.length >= 32);
 
