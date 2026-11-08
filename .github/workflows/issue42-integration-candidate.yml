@@ -1,0 +1,87 @@
+name: Issue42 isolated integration acceptance
+on:
+  push:
+    branches:
+      - work/issue42-seven-features-integration-20261108
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Syntax check staged modules
+        run: |
+          for p in src/twelve-data-equities.mjs src/market-data-quote-gateway.mjs src/internal-order-http-adapter.mjs src/internal-equity-execution.mjs src/internal-account-portfolio.mjs src/admin-client-analytics.mjs src/admin-service.mjs web/client-business-api.mjs; do node --check "$p"; done
+      - name: Integrated market and business client contracts
+        run: node --test test/twelve-data-equities.test.mjs test/market-data-quote-gateway.test.mjs test/client-business-api.test.mjs test/three-end-feature-preservation.test.mjs
+      - name: Internal order, ledger, readback and valuation regressions
+        run: node --test test/internal-execution-quote.test.mjs test/internal-order-http-adapter.test.mjs test/internal-order-readback.test.mjs test/internal-account-portfolio.test.mjs test/internal-stock-portfolio-valuation.test.mjs test/order-service.test.mjs test/ledger.test.mjs
+      - name: Admin access and TOTP regressions
+        run: node --test test/admin-client-analytics.test.mjs test/admin-client-analytics-route.test.mjs test/admin-totp-replay.test.mjs
+      - name: Existing QA functionality regression
+        run: npm test
+  trading-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: issue42_trading_isolated
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d issue42_trading_isolated"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:isolated-test-only@127.0.0.1:5432/issue42_trading_isolated
+      TEST_DATABASE_URL: postgres://postgres:isolated-test-only@127.0.0.1:5432/issue42_trading_isolated
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run migrate
+      - name: Buy sell ledger and FIFO with ephemeral SQL
+        run: node --test test/postgres-integration.test.mjs
+  admin-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: issue42_admin_isolated
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d issue42_admin_isolated"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:isolated-test-only@127.0.0.1:5432/issue42_admin_isolated
+      TEST_DATABASE_URL: postgres://postgres:isolated-test-only@127.0.0.1:5432/issue42_admin_isolated
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm run migrate
+      - name: Admin TOTP and finance readback with ephemeral SQL
+        run: node --test test/admin-stage2-postgres.test.mjs
