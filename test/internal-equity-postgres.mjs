@@ -299,7 +299,7 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   const concurrentSnapshot=await getAccountSnapshot(db,concurrentAccount);
   assert.equal(concurrentSnapshot.account.cashCents,50000);
   assert.equal(concurrentSnapshot.orders.length,2);
-  assert.equal(concurrentSnapshot.positions.find(p=>p.market==="US"&&p.symbol===us)?.quantity,0);
+  assert.equal(Number(concurrentSnapshot.positions.find(p=>p.market==="US"&&p.symbol===us)?.quantity),0);
   const concurrentRecords=await db.query(
    "SELECT count(*)::integer AS orders,(SELECT count(*)::integer FROM cash_ledger WHERE account_id=$1 AND order_id IS NOT NULL) AS ledger FROM orders WHERE account_id=$1",
    [concurrentAccount]);
