@@ -34,6 +34,11 @@ export async function postVerifiedInternalOrder({
   if(!body || typeof body!=="object" || Array.isArray(body) ||
      Object.keys(body).some(key=>!allowedFields.has(key)))
     throw statusError("Invalid order fields",400);
+  // The shared verifiedTrading route may inject an isolated test executor.
+  // Even a custom executor must not bypass the server's explicit trading
+  // enablement: reject before invoking any order or database write callback.
+  if(tradingEnabled!==true)
+    throw statusError("Verified internal order pricing unavailable",503);
   if(typeof execute!=="function")throw new TypeError("Missing order execution service");
   const options={
     db,accountId:session.accountId,key:idempotencyKey,request:body,
