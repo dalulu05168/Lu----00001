@@ -277,7 +277,7 @@ td .sk{height:11px}
 <div class="sy" style="max-height:132px"><table><thead><tr><th>标的</th><th>数量</th><th>持仓成本</th></tr></thead><tbody id="tb-hold"></tbody></table></div>
 <div class="pb kg" style="border-top:1px solid var(--ln)">
 <div class="kv"><span>现金余额 USD</span><span class="amt lime" data-b="cash"></span></div>
-<div class="kv"><span>总成交额</span><span class="amt" data-b="traded"></span></div>
+<div class="kv"><span>已加载订单金额（最近100笔）</span><span class="amt" data-b="traded"></span></div>
 <div class="kv"><span>已实现盈亏</span><span class="amt" data-b="realized"></span></div>
 <div class="kv"><span>持仓成本 <span class="mut" style="font-size:10px">未知时显示 —</span></span><span class="amt" data-b="cost"></span></div>
 <div class="kv"><span>总资产</span><span class="amt lime" data-b="total"></span></div>
@@ -398,13 +398,13 @@ var IS_READONLY_PREVIEW=new URLSearchParams(location.search).get('preview')==='1
 /* ========== 唯一数据源：页面所有数字都由这里计算，不会互相矛盾 ========== */
 var DATA={acct:'',sync:'待同步',cashOverride:0,names:{},disc:{},watch:[],fav:[],catalog:[],watchStatus:'自选尚未同步',orders:[],holds:[],reqs:[],chat:[]};
 function sum(a,fn){return a.reduce(function(x,y){return x+fn(y)},0)}
-function cost(){return sum(DATA.holds,function(h){return h.c})}
+function cost(){return DATA.holds.some(function(h){return h.c==null||!Number.isFinite(h.c)})?NaN:sum(DATA.holds,function(h){return h.c})}
 function traded(){return sum(DATA.orders,function(o){return o.a})}
-function realized(){return 0}
+function realized(){return DATA.orders.length ? NaN : 0}
 function cash(){if(DATA.cashOverride!=null)return DATA.cashOverride;
  return sum(DATA.reqs.filter(function(r){return r.k==='充值申请'&&r.st.indexOf('成功')>-1}),function(r){return r.a})-traded()}
 function held(s){var h=DATA.holds.filter(function(x){return x.s===s})[0];return h||null}
-function f(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function f(n){return typeof n==='number'&&Number.isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function stc(s){return s.indexOf('已记录')>-1||s.indexOf('已添加')>-1?'ok':s.indexOf('待补充')>-1?'wa':'in'}
