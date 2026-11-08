@@ -106,10 +106,13 @@ export function calculateAccountAnalytics({cashCents,positions,orders,now=new Da
 }
 
 /** All reads share one snapshot; caller must derive accountId from the session. */
-export async function getAccountAnalytics(db,accountId,{now}={}){
- const client=await db.connect();let active=false;
+export async function getAccountAnalytics(db,accountId,{now,transactionClient}={}){
+ if(transactionClient!==undefined && (!transactionClient || typeof transactionClient.query!=="function"))
+   throw new TypeError("Invalid transaction client");
+ const ownTransaction=!transactionClient;
+ const client=transactionClient??await db.connect();let active=false;
  try{
-  await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");active=true;
+  if(ownTransaction){await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");active=true;}
   const account=await client.query("SELECT cash_cents,clock_timestamp() AS as_of FROM accounts WHERE id=$1",[accountId]);
   if(account.rows.length!==1)throw Object.assign(new Error("Account not found"),{statusCode:404});
   const positions=await client.query(`WITH active_lots AS (
@@ -148,7 +151,7 @@ export async function getAccountAnalytics(db,accountId,{now}={}){
   const result=calculateAccountAnalytics({cashCents:account.rows[0].cash_cents,positions:positions.rows,orders:orders.rows,
    now:now??account.rows[0].as_of??new Date()});
   if(orders.rows.every(row=>row.record_key))result.orderCount=new Set(orders.rows.map(row=>row.record_key)).size;
-  await client.query("COMMIT");active=false;return result;
+  if(active){await client.query("COMMIT");active=false;}return result;
  }catch(error){if(active)await client.query("ROLLBACK");throw error;}
- finally{client.release();}
+ finally{if(ownTransaction)client.release();}
 }
