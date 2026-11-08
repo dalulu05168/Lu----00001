@@ -6,6 +6,7 @@ import {executeLicensedInternalOrder} from "../src/internal-equity-execution.mjs
 import {placeInternalOrder} from "../src/order-service.mjs";
 import {getAccountAnalytics} from "../src/account-analytics.mjs";
 import {getAccountSnapshot} from "../src/account-service.mjs";
+import {getVerifiedInternalOrderReceipt} from "../src/internal-order-readback.mjs";
 import {valueInternalStockPortfolio} from "../src/internal-stock-portfolio-valuation.mjs";
 
 // Real ephemeral PostgreSQL; only external quote calls use deterministic
@@ -172,6 +173,18 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(stored.rows.length,4);
   assert.equal(ledger.rows.length,4);
   assert.equal(evidence.rows.length,4);
+  const buyReceipt=await getVerifiedInternalOrderReceipt(db,accountId,usPurchase.order.id);
+  assert.equal(buyReceipt.execution,"INTERNAL_ONLY");
+  assert.equal(buyReceipt.quoteCurrency,"USD");
+  assert.equal(buyReceipt.amountUsdCents,30000);
+  assert.equal(buyReceipt.cashDeltaCents,-30000);
+  const cnReceipt=await getVerifiedInternalOrderReceipt(db,accountId,cnSale.order.id);
+  assert.equal(cnReceipt.quoteCurrency,"CNY");
+  assert.equal(cnReceipt.fxUsdMicros,140000);
+  assert.equal(cnReceipt.amountUsdCents,3500);
+  assert.equal(cnReceipt.cashDeltaCents,3500);
+  await assert.rejects(getVerifiedInternalOrderReceipt(db,otherId,usPurchase.order.id),
+    e=>e.statusCode===404 && e.reason==="ORDER_NOT_FOUND");
   assert.equal(evidence.rows.filter(x=>x.market==="CN"&&
    x.fx_license_ref==="QA-FX-REVIEW").length,2);
   assert.equal(evidence.rows.every(x=>x.quote_license_ref==="QA-EQUITY-REVIEW"),true);
