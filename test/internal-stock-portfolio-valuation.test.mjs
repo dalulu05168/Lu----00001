@@ -5,7 +5,11 @@ import {valueInternalStockPortfolio as value} from "../src/internal-stock-portfo
 const now=Date.parse("2026-11-08T01:00:00Z");
 const authorizeUsage=({market,source,currency})=>({
  market,source,currency,customerDisplayAllowed:true,internalPricingAllowed:true,
- validUntilMs:now+60000
+ validUntilMs:now+60000,reviewReference:"EQUITY-REVIEW-TEST"
+});
+const authorizeFxUsage=({base,quote,source})=>({
+ base,quote,source,internalPricingAllowed:true,validUntilMs:now+60000,
+ reviewReference:"FX-REVIEW-TEST"
 });
 const snapshot=(positions=[{market:"US",symbol:"AAPL",quantity:"3"}],cashCents=10000)=>({
  account:{currency:"USD",cashCents},positions
@@ -78,7 +82,7 @@ test("multiple US/CN holdings are valued in USD using verified CNY/USD conversio
  const r=await value(input({
   accountSnapshot:snapshot(rows,10000),
   analytics:analytics(12000,2),
-  resolveFxQuote:async()=>({base:"CNY",quote:"USD",usdMicros:140000,
+  authorizeFxUsage,resolveFxQuote:async()=>({base:"CNY",quote:"USD",usdMicros:140000,
    timestampMs:now-2000,source:"TEST_FX"}),
  }));
  // US: $100, CN: 2*100 CNY @ $0.14 = $28
