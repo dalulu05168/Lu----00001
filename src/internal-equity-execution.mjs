@@ -46,6 +46,14 @@ function quoteFromReceipt(receipt) {
   timestampMs:receipt.quoteTimestampMs,currency:receipt.quoteCurrency,
   priceCents:receipt.unitPriceCents});
 }
+function normalizedCommittedOrder(receipt) {
+ return Object.freeze({
+  id:receipt.id,side:receipt.side,market:receipt.market,symbol:receipt.symbol,
+  quantity:receipt.quantity,priceCents:receipt.unitPriceCents,
+  fxUsdMicros:receipt.fxUsdMicros,amountCents:receipt.amountUsdCents,
+  execution:"INTERNAL_ONLY",createdAt:receipt.createdAt
+ });
+}
 function sameOrder(previous,intent) {
  return previous.side===intent.side && previous.market===intent.market &&
    previous.symbol===intent.symbol && String(previous.quantity)===String(intent.quantity);
@@ -80,7 +88,7 @@ export async function executeLicensedInternalOrder({
   const replay=await placeInternalOrder(db,accountId,key,{...intent,priceCents,fxUsdMicros},createId());
   // Existing legacy/unverified orders are never claimed to be licensed.
   const receipt=await getVerifiedInternalOrderReceipt(db,accountId,replay.order.id);
-  return {...replay,quote:quoteFromReceipt(receipt)};
+  return {...replay,order:normalizedCommittedOrder(receipt),receipt,quote:quoteFromReceipt(receipt)};
  }
  if(typeof marketData?.getQuote!=="function" ||
     typeof authorizeTradingSession!=="function" ||
@@ -146,5 +154,5 @@ export async function executeLicensedInternalOrder({
  // first. Return the authenticated, committed receipt, never the losing
  // request's pre-fetched price or source. Also verify a new fill after commit.
  const receipt=await getVerifiedInternalOrderReceipt(db,accountId,result.order.id);
- return {...result,quote:quoteFromReceipt(receipt)};
+ return {...result,order:normalizedCommittedOrder(receipt),receipt,quote:quoteFromReceipt(receipt)};
 }
