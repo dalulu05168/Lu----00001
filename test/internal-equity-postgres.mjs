@@ -127,6 +127,10 @@ export async function verifyLicensedEquityPostgres(connectionString) {
    ...args,key:"qa-client-price-rejected",
    request:{side:"BUY",market:"US",symbol:us,quantity:1,priceCents:1}
   }),e=>e.statusCode===400);
+  await assert.rejects(executeLicensedInternalOrder({
+   ...args,key:"qa-numeric-symbol-rejected",
+   request:{side:"BUY",market:"CN",symbol:600519,quantity:1}
+  }),e=>e.statusCode===400);
   // Prove quote audit is part of the transaction: an evidence write failure
   // must also roll back cash, position, order and cash-ledger mutations.
   await assert.rejects(placeInternalOrder(db,accountId,"qa-audit-fails",{
