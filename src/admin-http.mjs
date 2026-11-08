@@ -1,4 +1,5 @@
 import {getClientAppMirror,listClientMirrorAudit,getClientMirrorSetupStatus,purchaseForMirrorClient} from "./admin-mirror.mjs";
+import {getAdminClientAnalytics} from "./admin-client-analytics.mjs";
 import {getClientPolicy,changeClientPolicy,listClientPolicyAudit} from "./client-admin-policies.mjs";
 import {listAdminRequests,reviewAdminRequest,listAdminWorkflowAudit,listAdminClientHistoryPage} from "./operational-workflows.mjs";
 import {getSubadminPolicy,changeSubadminLogin,listSubadminControlAudit} from "./admin-subaccount-policies.mjs";
@@ -60,6 +61,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuo
     "/api/admin/client-controls":["GET","PATCH"],"/api/admin/client-control-audit":["GET"],
     "/api/admin/workflow-requests":["GET","PATCH"],"/api/admin/workflow-audit":["GET"],
     "/api/admin/client-history":["GET"],
+    "/api/admin/client-analytics":["GET"],
     "/api/admin/mirror":["GET"],"/api/admin/mirror-audit":["GET"],"/api/admin/mirror-status":["GET"],
     "/api/admin/mirror-purchases":["GET","POST"],
     "/api/admin/stock-position-lock":["PATCH"],
@@ -213,6 +215,10 @@ export async function handleAdminApi(req,res,route,db,resolveSession,getStockQuo
       }
       const url=new URL(req.url??"/","http://localhost");
       response(res,200,{items:await listAdminRequests(db,actor,url.searchParams.get("category"),url.searchParams.get("clientId"))});return true;
+    }
+    if(route==="/api/admin/client-analytics"){
+      const url=new URL(req.url??"/","http://localhost");
+      response(res,200,await getAdminClientAnalytics(db,actor,url.searchParams.get("clientId")));return true;
     }
     if(route==="/api/admin/client-history"){
       const url=new URL(req.url??"/","http://localhost");
