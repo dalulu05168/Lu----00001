@@ -5,8 +5,9 @@
 ## Git source and deployment
 
 - Source baseline: `work/platform-v1-cn-ui-login-sync-20261108` (`faf2d2643a3135eaba6c0eab4939a8ceb7dc7587`).
-- Create a **new** Cloudflare Worker from the QA route-fix branch, not a production/preview branch override on `lu----00001`.
-- Configuration is `wrangler.jsonc`, Worker name `nuvexa-qa-preview-20261108`, static assets `./public`, and entrypoint `src/cloudflare-qa-worker.mjs`.
+- Create a **new** Cloudflare Worker for QA, never override the existing `lu----00001` Worker.
+- Cloudflare Workers Builds may initially deploy the repository default branch `dev/platform-v1` during setup. Once the new Worker exists, use **Settings > Build > Branch control** to select **`dev/cloudflare-qa-preview-20261108`** as the production branch for this QA-only Worker; then trigger a fresh build from that branch and verify its SHA and routes. A successful initial deployment from the default branch is *not* acceptance of this QA preview.
+- Configuration is `wrangler.jsonc`, Worker name `nuvexaqa1108`, static assets `./public`, and entrypoint `src/cloudflare-qa-worker.mjs`.
 - Build command: `npm run build` (copies `web/` to `public/`). Deploy command: `npx wrangler deploy`. Root directory: `/`.
 - Test first: `node --test test/cloudflare-qa-worker.test.mjs`. Never paste credentials into files or GitHub issues.
 
