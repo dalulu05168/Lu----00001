@@ -58,7 +58,21 @@ export async function postVerifiedInternalOrder({
      !Number.isSafeInteger(result.order.fxUsdMicros) ||
      result.order.fxUsdMicros<1 ||
      !result.receipt || result.receipt.id!==result.order.id ||
-     result.receipt.amountUsdCents!==result.order.amountCents)
+     result.receipt.market!==result.order.market ||
+     result.receipt.symbol!==result.order.symbol ||
+     result.receipt.side!==result.order.side ||
+     result.receipt.quantity!==result.order.quantity ||
+     result.receipt.execution!=="INTERNAL_ONLY" ||
+     result.receipt.unitPriceCents!==result.order.priceCents ||
+     result.receipt.fxUsdMicros!==result.order.fxUsdMicros ||
+     result.receipt.amountUsdCents!==result.order.amountCents ||
+     !Number.isSafeInteger(result.receipt.cashDeltaCents) ||
+     result.receipt.cashDeltaCents!==(result.order.side==="BUY"
+       ?-result.order.amountCents:result.order.amountCents) ||
+     result.quote?.priceCents!==result.receipt.unitPriceCents ||
+     result.quote?.source!==result.receipt.quoteSource ||
+     result.quote?.timestampMs!==result.receipt.quoteTimestampMs ||
+     result.quote?.currency!==result.receipt.quoteCurrency)
     throw statusError("Internal order readback unavailable",503);
   return {status:result.replayed?200:201,body:result};
 }
