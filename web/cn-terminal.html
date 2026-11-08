@@ -554,7 +554,8 @@ else if(a==='rfp'){api('config');return}
 else if(a==='rfc'){api('chat');return}
 else if(a==='sym'){D.sym=v;D.lp='';D.qty=String(MQ())}
 else if(a==='pdk')D.pdk=D.pdk?0:1;
-else if(a==='logout'){D.auth=0;D.sh=null;D.cs=0;D.tab='home';D.ov=null}
+else if(a==='logout'){var tok='';try{tok=localStorage.getItem('cncap.session')||''}catch(ignore){}D.auth=0;D.accountReady=false;D.sh=null;D.cs=0;D.tab='home';D.ov=null;
+ fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+tok},cache:'no-store',keepalive:true}).catch(function(){}).finally(function(){window.CN_SET_TOKEN(null);location.replace('/login.html')});return}
 else if(a==='reset'){try{localStorage.removeItem('cncap.v1')}catch(x){}location.reload();return}
 else if(a==='rk')D.rk=D.rk?0:1;
 else if(a==='gotrade'){if(v&&CFG[v])D.sym=v;D.ten=1;D.tab='trade';D.ov=null}
@@ -591,8 +592,21 @@ if(D.kyc[k])URL.revokeObjectURL(D.kyc[k].u);D.kyc[k]={u:URL.createObjectURL(fl),
 setInterval(function(){var c=root.getElementById('clk');if(c)c.textContent=hm()},15000);
 setInterval(function(){if(FEAT.length<2||document.hidden||RMQ()||D.tab!=='home'||D.ov||D.sh||D.cs||D.rq!=null)return;var tr=root.getElementById('ctrack');if(!tr)return;if(D.hp){if(Date.now()<D.hp)return;D.hp=0;var vp=tr.parentNode;if(vp){vp.classList.remove('fin');void vp.offsetWidth;vp.classList.add('fin');setTimeout(function(){vp.classList.remove('fin')},900)}}hslide((D.hi||0)+1)},3800);
 addEventListener('resize',function(){if(D.ov==='AA')draw()});
-if(window.CN){CN.on(function(v){applyShared(v);R()});CN.pull()}
-R()}
+if(window.CN){CN.on(function(v){applyShared(v);if(D.auth)R()});CN.pull()}
+(function restoreUnifiedLogin(){
+ var token='';try{token=localStorage.getItem('cncap.session')||''}catch(ignore){}
+ if(!token){location.replace('/login.html');return}
+ A.className='app g';A.innerHTML='<div role="status" style="padding:28px;color:#a8b9cb">正在验证登录状态…</div>';
+ fetch('/api/account',{headers:{Authorization:'Bearer '+token,Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
+ .then(function(r){if(!r.ok)throw new Error('Unauthorized');return r.json()})
+ .then(function(j){var v=j&&j.account;if(!v||!v.id)throw new Error('Account not verified');
+  D.acct=v.id;D.cash=Number.isSafeInteger(v.cashCents)?v.cashCents/100:null;
+  D.ordersReady=Array.isArray(j.orders);D.ord=D.ordersReady?j.orders.map(function(o){return {id:o.id,s:o.symbol,q:Number(o.quantity),a:o.amount_usd_cents==null?null:Number(o.amount_usd_cents)/100,d:o.created_at,t:o.side==='BUY'?'买入':'卖出',st:'已成交'}}):[];
+  D.hold=Array.isArray(j.positions)?j.positions.map(function(p){return {s:p.symbol,q:Number(p.quantity),c:null}}):[];
+  D.accountReady=true;D.auth=1;D.sync=now();R()})
+ .catch(function(){window.CN_SET_TOKEN(null);D.auth=0;location.replace('/login.html')});
+})();
+
 mountApp(document.getElementById('host'),document.getElementById('css').textContent);
 </script>
 </body>
