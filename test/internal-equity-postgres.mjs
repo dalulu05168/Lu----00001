@@ -26,9 +26,13 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   base,quote,source,internalPricingAllowed:true,validUntilMs:clock+60000,
   reviewReference:"QA-FX-REVIEW"
  });
+ const authorizeTradingSession=({market})=>({
+  market,allowed:true,validUntilMs:clock+60000,
+  ruleReference:"QA-EXCHANGE-SESSION"
+ });
  const marketData={async getQuote({market,symbol},{purpose}){
   assert.equal(purpose,"internalSimulationPricing");
-  return {market,symbol,currency:market==="US"?"USD":"CNY",
+  return {status:"FRESH",stale:false,market,symbol,currency:market==="US"?"USD":"CNY",
    mic:market==="US"?"XNAS":"XSHG",name:"Isolated test equity",
    priceCents:prices.get(market+":"+symbol),timestampMs:clock-1000,
    source:"QA_EQUITY_FIXTURE",
@@ -38,7 +42,7 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(purpose,"internalPricing");
   return {base,quote,usdMicros:140000,timestampMs:clock-1000,source:"QA_FX_FIXTURE"};
  }};
- const args={db,accountId,marketData,fxData,authorizeUsage,authorizeFxUsage,
+ const args={db,accountId,marketData,fxData,authorizeUsage,authorizeFxUsage,authorizeTradingSession,
   tradingEnabled:true,now:()=>clock};
  const buy=(market,symbol,quantity,key)=>executeLicensedInternalOrder({
   ...args,key,request:{side:"BUY",market,symbol,quantity}
@@ -107,6 +111,10 @@ export async function verifyLicensedEquityPostgres(connectionString) {
    request:{side:"BUY",market:"US",symbol:us,quantity:1}
   }),e=>e.statusCode===503);
   await assert.rejects(executeLicensedInternalOrder({
+   ...args,authorizeTradingSession:()=>({allowed:false}),key:"qa-closed-market",
+   request:{side:"BUY",market:"US",symbol:us,quantity:1}
+  }),e=>e.statusCode===503);
+  await assert.rejects(executeLicensedInternalOrder({
    ...args,authorizeUsage:()=>({entitled:true}),key:"qa-unlicensed",
    request:{side:"BUY",market:"US",symbol:us,quantity:1}
   }),e=>e.statusCode===503);
@@ -159,7 +167,7 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   const [stored,ledger,evidence]=await Promise.all([
    db.query("SELECT id,market,side,amount_usd_cents FROM orders WHERE account_id=$1 ORDER BY created_at",[accountId]),
    db.query("SELECT order_id,delta_cents FROM cash_ledger WHERE account_id=$1 AND order_id IS NOT NULL",[accountId]),
-   db.query("SELECT market,quote_source,quote_license_ref,fx_source,fx_license_ref,quote_price_cents FROM order_execution_evidence WHERE account_id=$1",[accountId])
+   db.query("SELECT market,quote_source,quote_license_ref,fx_source,fx_license_ref,quote_price_cents,session_rule_ref FROM order_execution_evidence WHERE account_id=$1",[accountId])
   ]);
   assert.equal(stored.rows.length,4);
   assert.equal(ledger.rows.length,4);
@@ -167,6 +175,7 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   assert.equal(evidence.rows.filter(x=>x.market==="CN"&&
    x.fx_license_ref==="QA-FX-REVIEW").length,2);
   assert.equal(evidence.rows.every(x=>x.quote_license_ref==="QA-EQUITY-REVIEW"),true);
+  assert.equal(evidence.rows.every(x=>x.session_rule_ref==="QA-EXCHANGE-SESSION"),true);
   assert.equal((await db.query("SELECT count(*)::integer AS c FROM orders WHERE account_id=$1",[otherId])).rows[0].c,0);
   return {accountId,orders:stored.rows.length,evidence:evidence.rows.length,
    cashCents:account.account.cashCents,realizedPnlCents:analytics.realizedPnlCents,
