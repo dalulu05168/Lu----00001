@@ -12,6 +12,7 @@ CREATE TABLE order_execution_evidence (
  quote_at timestamptz NOT NULL,
  quote_source varchar(120) NOT NULL CHECK (length(btrim(quote_source))>0),
  quote_license_ref varchar(256) NOT NULL CHECK (length(btrim(quote_license_ref))>0),
+ session_rule_ref varchar(256) NOT NULL CHECK (length(btrim(session_rule_ref))>0),
  fx_usd_micros bigint NOT NULL CHECK (fx_usd_micros>0),
  fx_at timestamptz,
  fx_source varchar(120),
