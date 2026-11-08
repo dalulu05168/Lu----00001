@@ -16,7 +16,18 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId) 
     const a = await client.query("SELECT cash_cents FROM accounts WHERE id=$1 FOR UPDATE", [accountId]);
     if (a.rows.length !== 1) throw new Error("Account not found");
     const existing = await client.query("SELECT * FROM orders WHERE account_id=$1 AND idempotency_key=$2", [accountId,key]);
-    if (existing.rows.length) { await client.query("COMMIT"); transactionStarted=false; return { replayed:true, order:existing.rows[0] }; }
+    if (existing.rows.length) {
+      const previous = existing.rows[0];
+      // An idempotency key represents one order intent, not a reusable
+      // authorization to return an unrelated fill. A refreshed quote may
+      // differ on retry; the original committed fill remains authoritative.
+      if (previous.side !== input?.side || previous.market !== input?.market ||
+          previous.symbol !== input?.symbol || String(previous.quantity) !== String(input?.quantity)) {
+        throw Object.assign(new Error("Idempotency key already used for another order"), { statusCode:409 });
+      }
+      await client.query("COMMIT"); transactionStarted=false;
+      return { replayed:true, order:previous };
+    }
     if(input.side==="SELL"){
       const lock=await client.query("SELECT locked FROM stock_position_locks WHERE account_id=$1 AND market=$2 AND symbol=$3",
         [accountId,input.market,input.symbol]);
