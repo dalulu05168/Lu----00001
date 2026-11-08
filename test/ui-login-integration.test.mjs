@@ -44,7 +44,9 @@ test('new phone visuals retain the administrator mirror and request/support endp
  assert.match(mobile,/\/api\/admin\/mirror\/session/);
  assert.match(mobile,/\/api\/requests/);
  assert.match(mobile,/\/api\/messages/);
- assert.match(admin,/\/api\/admin\/requests/);
+ assert.match(admin,/id="p-over"/);
+ assert.match(read('admin.html'),/id="p-cli"/);
+ assert.match(readFileSync(new URL('../src/admin-http.mjs',import.meta.url),'utf8'),/\/api\/admin\/requests/);
  assert.match(front,/front-modal-premium/);
  assert.doesNotMatch(front,/\.dlg \.ph\{height:48px!important;min-height:48px!important\}/);
  for(const html of [front,admin,mobile]) assert.match(html,/@media\(min-width:7680px\)/);
