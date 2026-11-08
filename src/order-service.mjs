@@ -5,12 +5,14 @@ import { applyOrder } from "./ledger.mjs";
  * Account row lock serializes writes; all mutations commit atomically.
  * Caller must authenticate account ownership before calling.
  */
-export async function placeInternalOrder(db, accountId, key, input, newOrderId, { assertExecutionReady } = {}) {
+export async function placeInternalOrder(db, accountId, key, input, newOrderId, { assertExecutionReady, assertInstrumentAvailable } = {}) {
   if (assertExecutionReady !== undefined && typeof assertExecutionReady !== "function")
     throw new TypeError("Invalid synchronous execution gate");
   if (typeof accountId !== "string" || !accountId) throw new Error("Account required");
   if (typeof key !== "string" || key.length < 8 || key.length > 128) throw new Error("Invalid idempotency key");
   if (typeof newOrderId !== "string" || !newOrderId) throw new Error("Order id required");
+  if (assertInstrumentAvailable !== undefined && typeof assertInstrumentAvailable !== "function")
+    throw new TypeError("Invalid listing policy");
   const client = await db.connect();
   let transactionStarted = false;
   try {
@@ -30,6 +32,10 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId, 
       await client.query("COMMIT"); transactionStarted=false;
       return { replayed:true, order:previous };
     }
+    // Validate against published, order-eligible platform listings while
+    // holding the same transaction. The server-only callback may take a
+    // PostgreSQL FOR SHARE lock on the listing row until COMMIT.
+    if (assertInstrumentAvailable) await assertInstrumentAvailable(client);
     if(input.side==="SELL"){
       const lock=await client.query("SELECT locked FROM stock_position_locks WHERE account_id=$1 AND market=$2 AND symbol=$3",
         [accountId,input.market,input.symbol]);
