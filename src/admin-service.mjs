@@ -1,6 +1,6 @@
-import {randomUUID,randomInt} from "node:crypto";
+import {randomUUID,randomInt,createHash} from "node:crypto";
 import {hashPassword,verifyPassword,createSession} from "./auth.mjs";
-import {newTotpSecret as generateTotpSecret,currentOtp,checkOtp} from "./totp.mjs";
+import {newTotpSecret as generateTotpSecret,matchingTotpStep,checkOtp} from "./totp.mjs";
 import {protectTotp,unprotectTotp,matchBootstrapKey} from "./admin-secrets.mjs";
 
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -20,6 +20,32 @@ function safeListing(value){
      typeof name!=="string"||!name.trim()||name.length>120||
      !["DRAFT","PUBLISHED"].includes(status))invalid("Invalid listing fields");
   return {itemType,market,symbol,name:name.trim(),status};
+}
+
+
+// All login and enrollment attempts are counted atomically in PostgreSQL.
+// The key is a SHA-256 digest of a normalized email, not the plain email.
+// This is per-account protection; infrastructure-level IP rate limiting is also needed.
+const ADMIN_MAX_ATTEMPTS=8;
+export async function reserveAdminAuthAttempt(db,action,email){
+  if(!["LOGIN","ACTIVATE"].includes(action))throw new Error("Invalid auth action");
+  const emailHash=createHash("sha256").update(email).digest("hex");
+  const result=await db.query(`INSERT INTO admin_auth_attempts(action,email_hash,attempt_count,window_started_at)
+    VALUES($1,$2,1,now())
+    ON CONFLICT(action,email_hash) DO UPDATE SET
+      attempt_count=CASE WHEN admin_auth_attempts.window_started_at<now()-interval '15 minutes'
+        THEN 1 ELSE admin_auth_attempts.attempt_count+1 END,
+      window_started_at=CASE WHEN admin_auth_attempts.window_started_at<now()-interval '15 minutes'
+        THEN now() ELSE admin_auth_attempts.window_started_at END
+    RETURNING attempt_count`,[action,emailHash]);
+  if(Number(result.rows[0]?.attempt_count)>ADMIN_MAX_ATTEMPTS){
+    const error=new Error("Too many admin authentication attempts");
+    error.statusCode=429;throw error;
+  }
+  return emailHash;
+}
+export async function clearAdminAuthAttempts(db,action,emailHash){
+  await db.query("DELETE FROM admin_auth_attempts WHERE action=$1 AND email_hash=$2",[action,emailHash]);
 }
 
 export async function roleFor(db,session) {
@@ -61,6 +87,7 @@ export async function bootstrapMaster(db,{email,password,setupKey}){
 export async function confirmAdminTotp(db,{email,password,otp}){
   if(typeof password!=="string"||typeof otp!=="string")invalid("Invalid enrollment credentials");
   const normalized=getEmail(email);
+  const attempt=await reserveAdminAuthAttempt(db,"ACTIVATE",normalized);
   const r=await db.query(`SELECT a.user_id,a.role,a.totp_secret_ciphertext,
     a.twofa_confirmed_at,u.password_hash
     FROM admin_roles a JOIN app_users u ON u.id=a.user_id WHERE u.email=$1`,[normalized]);
@@ -73,20 +100,31 @@ export async function confirmAdminTotp(db,{email,password,otp}){
   // Do not block new customer registrations until a subadmin invite is ready.
   if(r.rows[0].role==="SUBADMIN")
     await db.query("UPDATE registration_policy SET invite_required=true WHERE id=1");
+  await clearAdminAuthAttempts(db,"ACTIVATE",attempt);
   return {activated:true,role:r.rows[0].role};
 }
 export async function adminLogin(db,{email,password,otp}){
   if(typeof password!=="string"||typeof otp!=="string")invalid("Invalid admin login");
+  const normalized=getEmail(email);
+  const attempt=await reserveAdminAuthAttempt(db,"LOGIN",normalized);
   const r=await db.query(`SELECT u.id,u.password_hash,a.id AS account_id,r.role,r.totp_secret_ciphertext
     FROM app_users u JOIN accounts a ON a.user_id=u.id
     JOIN admin_roles r ON r.user_id=u.id AND r.twofa_confirmed_at IS NOT NULL
-    WHERE u.email=$1`,[getEmail(email)]);
-  if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash))||
-     !checkOtp(unprotectTotp(r.rows[0].totp_secret_ciphertext),otp)) {
-    const error=new Error("Invalid admin credentials");error.statusCode=401;throw error;
-  }
-  const row=r.rows[0],expiresAt=new Date(Date.now()+30*60*1000);
+    WHERE u.email=$1`,[normalized]);
+  const unauthorized=()=>{const error=new Error("Invalid admin credentials");error.statusCode=401;throw error;};
+  if(r.rows.length!==1||!(await verifyPassword(password,r.rows[0].password_hash)))unauthorized();
+  const row=r.rows[0];
+  const step=matchingTotpStep(unprotectTotp(row.totp_secret_ciphertext),otp);
+  if(step===null)unauthorized();
+  // Database-level compare-and-set prevents concurrent reuse of a valid OTP
+  // even when the app is running across multiple instances.
+  const claimed=await db.query(`UPDATE admin_roles SET last_login_totp_step=$2
+    WHERE user_id=$1 AND (last_login_totp_step IS NULL OR last_login_totp_step<$2)
+    RETURNING user_id`,[row.id,step]);
+  if(claimed.rows.length!==1)unauthorized();
+  const expiresAt=new Date(Date.now()+30*60*1000);
   const token=await createSession(db,{userId:row.id,accountId:row.account_id,expiresAt,adminVerified:true});
+  await clearAdminAuthAttempts(db,"LOGIN",attempt);
   return {token,role:row.role,expiresAt:expiresAt.toISOString()};
 }
 export async function createSubadmin(db,actor,{email,password}){

@@ -23,6 +23,7 @@ async function input(req){
 }
 function safeError(error){
   if(error?.statusCode===413)return {status:413,error:"Request too large"};
+  if(error?.statusCode===429)return {status:429,error:"Too many attempts; try again later"};
   if(error instanceof SyntaxError)return {status:400,error:"Invalid JSON"};
   if(error?.statusCode===401)return {status:401,error:"Invalid admin credentials"};
   if(error?.statusCode===400)return {status:400,error:error.message};

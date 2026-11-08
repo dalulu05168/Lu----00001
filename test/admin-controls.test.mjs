@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 import {createApi} from "../src/http-api.mjs";
-import {newTotpSecret,currentOtp,checkOtp} from "../src/totp.mjs";
+import {newTotpSecret,currentOtp,checkOtp,matchingTotpStep} from "../src/totp.mjs";
 import {protectTotp,unprotectTotp,matchBootstrapKey} from "../src/admin-secrets.mjs";
 import {createListing,updateListing} from "../src/admin-service.mjs";
 
@@ -15,6 +15,8 @@ test("administrator 2FA is six digits and refuses invalid or expired codes",()=>
   assert.equal(checkOtp(secret,code,instant+31000),true);
   assert.equal(checkOtp(secret,code,instant+120000),false);
   assert.equal(checkOtp(secret,"abcdef",instant),false);
+  assert.equal(matchingTotpStep(secret,code,instant),Math.floor(instant/30000));
+  assert.equal(matchingTotpStep(secret,"abcdef",instant),null);
 });
 test("2FA values are encrypted and bootstrap proofs must match",()=>{
   const previousKey=process.env.ADMIN_TOTP_ENCRYPTION_KEY;

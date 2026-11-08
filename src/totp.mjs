@@ -24,7 +24,16 @@ export function currentOtp(secret,at=Date.now()){
   const position=hash[19]&15;
   return String((hash.readUInt32BE(position)&0x7fffffff)%1000000).padStart(6,"0");
 }
+export function matchingTotpStep(secret,code,at=Date.now()){
+  if(typeof code!=="string"||!/^\\d{6}$/.test(code))return null;
+  const nowStep=Math.floor(at/30000);
+  // Most recent matching time step first; avoid accepting a reused older step.
+  for(const offset of [1,0,-1]){
+    const candidate=(nowStep+offset)*30000;
+    if(candidate>=0 && currentOtp(secret,candidate)===code)return nowStep+offset;
+  }
+  return null;
+}
 export function checkOtp(secret,code,at=Date.now()){
-  if(typeof code!=="string"||!/^\d{6}$/.test(code))return false;
-  return [-30000,0,30000].some(offset=>currentOtp(secret,at+offset)===code);
+  return matchingTotpStep(secret,code,at)!==null;
 }

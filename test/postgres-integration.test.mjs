@@ -33,7 +33,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     const migrations = await db.query("SELECT filename FROM schema_migrations ORDER BY filename");
     assert.deepEqual(
       migrations.rows.map(row => row.filename),
-      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_supported_markets_us_cn.sql"]
+      ["001_init.sql", "002_sessions.sql", "003_private_account_data.sql", "003_watchlist.sql", "004_watchlist_security.sql", "005_admin_roles_and_catalog.sql", "006_supported_markets_us_cn.sql", "007_admin_auth_protection.sql"]
     );
     const rls = await db.query(`SELECT relname, relrowsecurity FROM pg_class
       WHERE relname IN ('app_users','accounts','positions','orders','cash_ledger','user_sessions')
@@ -265,6 +265,18 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     assert.equal(admin.status,200);
     assert.equal(admin.data.role,"MASTER");
     const masterToken=admin.data.token;
+    // The same authenticator code must never authorize two admin sessions.
+    const replay=await req("/api/admin/login",{method:"POST",body:{email,password,otp}});
+    assert.equal(replay.status,401);
+    // An unknown account must be throttled after repeated authentication failures,
+    // with the limit stored in PostgreSQL rather than in application memory.
+    const fakeEmail="unknown-admin-"+randomUUID().slice(0,8)+"@example.test";
+    for(let n=0;n<8;n++){
+      const invalid=await req("/api/admin/login",{method:"POST",body:{email:fakeEmail,password,otp}});
+      assert.equal(invalid.status,401);
+    }
+    const rateLimited=await req("/api/admin/login",{method:"POST",body:{email:fakeEmail,password,otp}});
+    assert.equal(rateLimited.status,429);
     assert.equal((await req("/api/admin/me",{token:masterToken})).data.role,"MASTER");
     const subEmail="sub-"+randomUUID().slice(0,8)+"@example.test";
     const subPassword="testing-subadmin-pass-2026";
