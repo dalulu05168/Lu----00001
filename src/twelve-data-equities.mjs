@@ -131,7 +131,17 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
     return data;
   }
 
-  async function getQuote({market, symbol}, {purpose = 'clientDisplay'} = {}) {
+  async function getQuote(request, options = {}) {
+    if (!request || typeof request !== 'object' || Array.isArray(request)) {
+      throw error('UNSUPPORTED_INSTRUMENT');
+    }
+    const {market, symbol} = request;
+    const firstPurpose = request.purpose;
+    const secondPurpose = options?.purpose;
+    if (firstPurpose != null && secondPurpose != null && firstPurpose !== secondPurpose) {
+      throw error('AMBIGUOUS_DATA_PURPOSE');
+    }
+    const purpose = firstPurpose ?? secondPurpose ?? 'clientDisplay';
     const wanted = instrument({market, symbol});
     if (!['clientDisplay', 'internalSimulationPricing'].includes(purpose)) throw error('INVALID_DATA_PURPOSE');
     const grant = authorized(rights, market, purpose);
