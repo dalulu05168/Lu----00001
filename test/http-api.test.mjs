@@ -50,13 +50,12 @@ test("auth endpoints reject GET method",async()=>withServer(async base=>{
  const res=await fetch(base+"/api/auth/login");assert.equal(res.status,405);
 }));
 
-test("serves terminal from the same origin",async()=>withServer(async base=>{
- const page=await fetch(base+"/");
- assert.equal(page.status,200);
- assert.match(await page.text(),/Global Stock Platform/);
- const script=await fetch(base+"/app.mjs");
- assert.equal(script.status,200);
- assert.match(await script.text(),/refreshAccount/);
+test("serves the replacement UI entrypoints from the same origin",async()=>withServer(async base=>{
+ for(const path of ["/","/index.html","/mobile.html","/cn-terminal.html","/admin.html","/cn-admin.html"]){
+  const page=await fetch(base+path);
+  assert.equal(page.status,200,path);
+  assert.match(await page.text(),/<!doctype html>/i,path);
+ }
 }));
 test("rejects inaccessible static paths",async()=>withServer(async base=>{
  const res=await fetch(base+"/private.env");assert.equal(res.status,404);
@@ -87,10 +86,9 @@ test("readiness endpoint checks database connection",async()=>{
  }finally{await new Promise(resolve=>api.close(resolve));}
 });
 
-test("serves all frontend ESM imports on the Node service",async()=>withServer(async base=>{
- for(const asset of ["/market-allocation.mjs","/catalog-instruments.mjs"]){
+test("does not expose deleted legacy UI assets",async()=>withServer(async base=>{
+ for(const asset of ["/app.mjs","/styles.css","/admin.mjs","/stock-chart.mjs"]){
   const response=await fetch(base+asset);
-  assert.equal(response.status,200,asset);
-  assert.match(response.headers.get("content-type"),/javascript/,asset);
+  assert.equal(response.status,404,asset);
  }
 }));

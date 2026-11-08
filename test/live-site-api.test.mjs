@@ -8,10 +8,10 @@ const isGitHubCI = process.env.GITHUB_ACTIONS === "true";
 const runLive = isGitHubCI && /^https:\/\/[^/]+$/.test(ORIGIN);
 const targets = [
   ["/", 200, "GET"],
+  ["/mobile.html", 200, "GET"],
+  ["/cn-terminal.html", 200, "GET"],
   ["/admin.html", 200, "GET"],
-  ["/admin.mjs", 200, "GET"],
-  ["/admin.css", 200, "GET"],
-  ["/stock-chart.mjs", 200, "GET"],
+  ["/cn-admin.html", 200, "GET"],
   ["/api/health", 200, "GET"],
   ["/api/ready", 200, "GET"],
   ["/api/auth/register", 400, "POST"],
