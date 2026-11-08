@@ -37,7 +37,10 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
     "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
   };
-  if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
+  const requestMatch=route.match(/^\/api\/admin\/requests\/([0-9a-f-]+)$/i);
+  const messageMatch=route.match(/^\/api\/admin\/messages\/([0-9a-f-]+)$/i);
+  if(!allowed[route]&&!requestMatch&&!messageMatch){response(res,404,{error:"Not found"});return true;}
+  if((requestMatch||messageMatch)&&req.method!=="PATCH"&&req.method!=="POST"){response(res,405,{error:"Method not allowed"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
   try{
     if(route==="/api/admin/login"){
@@ -67,6 +70,35 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator 2FA session required"});return true;}
+    if(route==="/api/admin/requests"){
+      const data=await db.query(`SELECT r.id,r.account_id,r.request_type,r.amount_cents,r.payload,r.status,r.review_note,r.created_at,r.updated_at,u.email FROM customer_requests r JOIN accounts a ON a.id=r.account_id JOIN app_users u ON u.id=a.user_id ORDER BY r.created_at DESC LIMIT 200`);
+      response(res,200,{items:data.rows});return true;
+    }
+    if(requestMatch){
+      const body=await input(req),status=String(body.status||"");
+      if(!["APPROVED","REJECTED","CANCELLED"].includes(status)){response(res,400,{error:"Invalid status"});return true;}
+      const q=await db.query(`SELECT id,account_id,request_type,amount_cents,status FROM customer_requests WHERE id=$1`,[requestMatch[1]]);
+      if(!q.rows.length){response(res,404,{error:"Request not found"});return true;}
+      if(q.rows[0].status!=="PENDING"){response(res,409,{error:"Request already reviewed"});return true;}
+      await db.query(`UPDATE customer_requests SET status=$1,review_note=$2,reviewed_by=$3,updated_at=now() WHERE id=$4`,[status,body.note||null,actor.userId,requestMatch[1]]);
+      if(status==="APPROVED"&&q.rows[0].request_type==="DEPOSIT"&&q.rows[0].amount_cents>0){
+       const bal=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[q.rows[0].account_id]);
+       const next=Number(bal.rows[0].cash_cents)+Number(q.rows[0].amount_cents);
+       await db.query("UPDATE accounts SET cash_cents=$1 WHERE id=$2",[next,q.rows[0].account_id]);
+       await db.query("INSERT INTO cash_ledger(account_id,delta_cents,balance_after_cents) VALUES($1,$2,$3)",[q.rows[0].account_id,q.rows[0].amount_cents,next]);
+      }
+      response(res,200,{ok:true,id:requestMatch[1],status});return true;
+    }
+    if(route==="/api/admin/messages"){
+      const data=await db.query(`SELECT m.id,m.account_id,m.sender_role,m.body,m.created_at,m.read_at,u.email FROM support_messages m JOIN accounts a ON a.id=m.account_id JOIN app_users u ON u.id=a.user_id ORDER BY m.created_at ASC LIMIT 500`);
+      response(res,200,{items:data.rows});return true;
+    }
+    if(messageMatch){
+      const body=await input(req);
+      if(typeof body.body!=="string"||!body.body.trim()){response(res,400,{error:"Invalid message"});return true;}
+      const data=await db.query(`INSERT INTO support_messages(id,account_id,sender_role,body) VALUES(gen_random_uuid(),$1,'ADMIN',$2) RETURNING id,sender_role,body,created_at`,[messageMatch[1],body.body.trim()]);
+      response(res,201,{item:data.rows[0]});return true;
+    }
     if(route==="/api/admin/me"){response(res,200,{role:actor.role,userId:actor.userId});return true;}
     if(route==="/api/admin/subaccounts"){
       if(req.method==="POST"){

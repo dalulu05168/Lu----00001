@@ -41,11 +41,13 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/securities"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/securities","/api/requests","/api/messages"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/securities"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/requests"&&!['GET','POST'].includes(req.method))return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/messages"&&!['GET','POST'].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/watchlist"&&!["GET","POST","DELETE"].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/auth/logout"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(isAuthRoute){
@@ -89,6 +91,34 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
     }
     return send(res,200,{sec,names,cfg:sec,name:names});
    }catch{return send(res,500,{error:"Internal server error"});}
+  }
+  if(route==="/api/requests"){
+   try{
+    if(req.method==="GET"){
+     const r=await db.query(`SELECT id,request_type,amount_cents,payload,status,review_note,created_at,updated_at FROM customer_requests WHERE account_id=$1 ORDER BY created_at DESC LIMIT 100`,[session.accountId]);
+     return send(res,200,{items:r.rows});
+    }
+    const body=JSON.parse(await readBody(req,5*1024*1024));
+    const types={"充值申请":"DEPOSIT","提现申请":"WITHDRAW","身份审核":"KYC","银行卡登记":"BANK"};
+    const type=types[body.type]||body.type, amount=body.amount==null?null:Number(body.amount);
+    if(!['DEPOSIT','WITHDRAW','KYC','BANK'].includes(type))return send(res,400,{error:"Invalid request type"});
+    if(['DEPOSIT','WITHDRAW'].includes(type)&&(!Number.isFinite(amount)||amount<=0))return send(res,400,{error:"Invalid amount"});
+    const payload={...body};delete payload.type;delete payload.amount;delete payload.accountId;
+    const r=await db.query(`INSERT INTO customer_requests(id,account_id,request_type,amount_cents,payload) VALUES($1,$2,$3,$4,$5::jsonb) RETURNING id,request_type,amount_cents,payload,status,created_at`,[randomUUID(),session.accountId,type,amount==null?null:Math.round(amount*100),JSON.stringify(payload)]);
+    return send(res,201,{item:r.rows[0]});
+   }catch(err){if(err.statusCode===413)return send(res,413,{error:"Request too large"});if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});return send(res,500,{error:"Internal server error"});}
+  }
+  if(route==="/api/messages"){
+   try{
+    if(req.method==="GET"){
+     const r=await db.query(`SELECT id,sender_role,body,created_at,read_at FROM support_messages WHERE account_id=$1 ORDER BY created_at ASC LIMIT 200`,[session.accountId]);
+     return send(res,200,{items:r.rows});
+    }
+    const body=JSON.parse(await readBody(req,16384));
+    if(typeof body.body!=="string"||!body.body.trim()||body.body.length>4000)return send(res,400,{error:"Invalid message"});
+    const r=await db.query(`INSERT INTO support_messages(id,account_id,sender_role,body) VALUES($1,$2,'CLIENT',$3) RETURNING id,sender_role,body,created_at`,[randomUUID(),session.accountId,body.body.trim()]);
+    return send(res,201,{item:r.rows[0]});
+   }catch(err){if(err instanceof SyntaxError)return send(res,400,{error:"Invalid JSON"});return send(res,500,{error:"Internal server error"});}
   }
   if(route==="/api/watchlist"){
     try {

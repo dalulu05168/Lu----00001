@@ -1004,8 +1004,9 @@ $('f-dep').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var v=parse
  if($('dtype').value==='提现申请'&&v>cash()){er.textContent='提现金额不能超过现金余额';return}
  if($('dtype').value==='提现申请'){if(DATA.perm&&DATA.perm.withdraw==='禁止提现'){er.textContent='当前账户已被限制提现，请联系客服';return}
   if(!$('dpw').value){er.textContent='请输入提款密码';return}
-  $('dpw').value=''}   /* 提款密码只随真实提交请求发送，取出后立即清空，不进 DATA；对错由服务器判断 */
- toast('资金申请暂不可用，未提交')};
+  var wp=$('dpw').value;$('dpw').value=''}   /* 提款密码只随真实提交请求发送，取出后立即清空，不进 DATA；对错由服务器判断 */
+ var body={type:$('dtype').value,amount:v,withdrawPassword:wp};fetch(API+'/requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(){closeModal('m-dep');toast('申请已提交，等待后台审核');return loadData()}).catch(function(){er.textContent='提交失败，请稍后重试'});
+};
 function magic(file,cb){var r=new FileReader();r.onload=function(){var u=new Uint8Array(r.result);cb((u[0]===0x89&&u[1]===0x50&&u[2]===0x4E&&u[3]===0x47)||(u[0]===0xFF&&u[1]===0xD8&&u[2]===0xFF))};r.onerror=function(){cb(false)};r.readAsArrayBuffer(file.slice(0,4))}
 ['f','b'].forEach(function(k){var box=$('up-'+k),inp=box.querySelector('input'),img=box.querySelector('img');
  inp.onchange=function(){var fl=inp.files[0];if(!fl)return;
@@ -1014,11 +1015,11 @@ function magic(file,cb){var r=new FileReader();r.onload=function(){var u=new Uin
   magic(fl,function(ok){if(!ok){toast('文件内容不是有效的 PNG / JPEG 图片');inp.value='';return}
    files[k]=fl;var u=URL.createObjectURL(fl);urls.push(u);img.src=u;box.classList.add('has');$('fn-'+k).textContent=fl.name})}});
 $('f-id').onsubmit=function(e){e.preventDefault();if(!SECURE)return;if(!files.f||!files.b){toast('请先选择正面和反面两张资料图片');return}
- toast('身份资料暂不可用，未上传')};
+ Promise.all([files.f,files.b].map(function(fl){return new Promise(function(ok){var r=new FileReader();r.onload=function(){ok(r.result)};r.readAsDataURL(fl)})})).then(function(x){return fetch(API+'/requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'身份审核',front:x[0],back:x[1]})})}).then(function(r){if(!r.ok)throw 0;closeModal('m-id');toast('身份资料已提交，等待后台审核');return loadData()}).catch(function(){toast('身份资料提交失败')})};
 $('bno-t').onclick=function(){var i=$('bno'),s=i.type==='password';i.type=s?'text':'password';this.textContent=s?'隐藏':'显示'};
 $('f-bank').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var n=$('bname').value.trim(),c=$('bno').value.replace(/\s/g,''),er=$('bank-er');
  if(!n||!/^\d{8,30}$/.test(c)){er.textContent='请填写银行名称和 8–30 位数字账号';return}
- toast('银行卡登记暂不可用，未提交')};
+ fetch(API+'/requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'银行卡登记',bankName:n,bankAccount:c})}).then(function(r){if(!r.ok)throw 0;closeModal('m-bank');toast('银行卡资料已提交，等待后台审核');return loadData()}).catch(function(){er.textContent='提交失败，请稍后重试'})};
 
 /* ========== 客服：快捷问题 / 自动回复 / 未读角标 ========== */
 var QA={'充值多久到账':'此页面仅显示充值申请状态，不处理真实资金划转。','身份资料进度':'您的身份资料申请目前为「资料处理中」，如需补充材料我们会在此通知您。','提现问题':'此页面不处理真实提现或资金划转。','交易通道':'此页面不提供真实证券买入或卖出服务。'};
@@ -1035,7 +1036,7 @@ $('csx').onclick=function(){chat(false)};cp.onclick=function(e){e.stopPropagatio
 document.addEventListener('click',function(){chat(false)});
 $('csref').onclick=function(){renderChat();toast('客服消息已刷新')};
 $('qk').onclick=function(e){var b=e.target.closest('button[data-q]');if(!b)return;var k=b.dataset.q;toast('客服暂不可用，消息未发送')};
-$('f-chat').onsubmit=function(e){e.preventDefault();var i=$('cmsg'),t=i.value.trim();if(!t)return;toast('客服暂不可用，消息未发送')};
+$('f-chat').onsubmit=function(e){e.preventDefault();var i=$('cmsg'),t=i.value.trim();if(!t)return;fetch(API+'/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({body:t})}).then(function(r){if(!r.ok)throw 0;i.value='';return loadData()}).catch(function(){toast('消息发送失败')})};
 
 /* ========== 自动锁定 / 快捷键 ========== */
 var idle;function arm(){clearTimeout(idle);idle=setTimeout(function(){if(!(openM&&openM.id==='m-lock')){openModal('m-lock');chat(false)}},IDLE_MS)}
@@ -1077,11 +1078,14 @@ function showSkeleton(){
 function clearSnapshot(){DATA_READY=false;HAVE={};DATA.cashOverride=null;DATA.realizedPnl=null;DATA.totalAssets=null;DATA.orders=[];DATA.holds=[];DATA.reqs=[];DATA.sec={};DATA.watch=[];DATA.fav=[];DATA.chat=[];DATA.acct='';DATA.sync='未同步'}
 function loadData(){if(!API){clearSnapshot();renderAll();return Promise.resolve()}
  clearSnapshot();showSkeleton();
- return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){
-  var a=d&&d.account||{},p=Array.isArray(d&&d.positions)?d.positions:[],o=Array.isArray(d&&d.orders)?d.orders:[];
+ return Promise.all([fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}),fetch(API+'/requests',{credentials:'include'}),fetch(API+'/messages',{credentials:'include'})]).then(function(rs){return Promise.all(rs.map(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}))}).then(function(xs){
+  var d=xs[0],a=d&&d.account||{},p=Array.isArray(d&&d.positions)?d.positions:[],o=Array.isArray(d&&d.orders)?d.orders:[],rr=Array.isArray(xs[1].items)?xs[1].items:[],mm=Array.isArray(xs[2].items)?xs[2].items:[];
+  var typ={DEPOSIT:'充值申请',WITHDRAW:'提现申请',KYC:'身份审核',BANK:'银行卡登记'},st=function(x){return x==='APPROVED'?'审核通过':x==='REJECTED'?'已拒绝':'待审核'};
   var adapted=Object.assign({},d,{acct:a.id||'',cashOverride:typeof a.cashCents==='number'?a.cashCents/100:null,
    holds:p.map(function(x){return {s:x.symbol,q:Number(x.quantity),c:null,market:x.market}}),
-   orders:o.map(function(x){return {id:x.id,s:x.symbol,q:Number(x.quantity),a:typeof x.amount_usd_cents==='number'?x.amount_usd_cents/100:null,d:x.created_at,side:x.side,market:x.market}})});
+   orders:o.map(function(x){return {id:x.id,s:x.symbol,q:Number(x.quantity),a:typeof x.amount_usd_cents==='number'?x.amount_usd_cents/100:null,d:x.created_at,side:x.side,market:x.market}}),
+   reqs:rr.map(function(x){return {id:x.id,k:typ[x.request_type]||x.request_type,a:x.amount_cents==null?null:Number(x.amount_cents)/100,st:st(x.status),d:x.created_at,payload:x.payload}}),
+   chat:mm.map(function(x){return {me:x.sender_role==='CLIENT',t:x.body,d:x.created_at}})});
   var v=safe(adapted);HAVE={};Object.keys(v).forEach(function(k){HAVE[k]=true});Object.assign(DATA,v);DATA_READY=Object.keys(HAVE).length>0;renderAll()}).catch(function(){clearSnapshot();toast('数据加载失败');renderAll()})}
 
 /* ========== 图表（Canvas，高清渲染） ========== */
