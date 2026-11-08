@@ -9,8 +9,9 @@ const MARKER='<!-- gsp-cross-window-monitor:v1 -->';
 
 export const WINDOWS=Object.freeze([
   {key:'backend',label:'后台与 2FA',ackPattern:/后台|管理后台/,branches:['dev/admin-backend-hardening-20261108']},
-  {key:'frontend',label:'前台账号与 API',ackPattern:/前台.*(?:API|接口)|API.*前台/,branches:['dev/frontend-phase2-session-catalog-20261108','work/frontend-api-contract-20261108']},
-  {key:'ui-cleanup',label:'UI 假数据清理',ackPattern:/UI.*假数据|假数据.*清理/,branches:['dev/remove-hk-my-markets-20261108']},
+  {key:'frontend',label:'前台账号与 API',ackPattern:/前台.*(?:API|接口)|API.*前台/,branches:['dev/frontend-phase2-session-catalog-20261108','work/frontend-api-contract-20261108','dev/frontend-api-readback-contract-20261108']},
+  {key:'ui-cleanup',label:'UI 假数据清理',ackPattern:/UI.*假数据|假数据.*清理/,branches:['work/ui-fake-data-audit-20261108']},
+  {key:'market-scope',label:'US/CN 市场约束',ackPattern:/港股|马股|US.CN|市场范围/,branches:['dev/remove-hk-my-markets-20261108']},
   {key:'market-data',label:'行情接口调研',ackPattern:/市场数据|行情.*API|API.*行情/,branches:['work/market-data-api-research-20261108']},
   {key:'mobile',label:'独立手机前台',ackPattern:/手机|移动端/,branches:['work/mobile-site-implementation-20261107']},
   {key:'desktop',label:'电脑版前台',ackPattern:/电脑前台|桌面前台/,branches:['work/desktop-front-20261107']}
@@ -61,7 +62,7 @@ export function renderDashboard({issueState,acks,branches}){
     lines.push(`| ${esc(group.label)} | ${ackCell} | ${branchCell} | ${ciCell} |`);
   }
   lines.push('',
-    '**待确认 P0：** 共享 QA 双阶段 2FA 与新后台单阶段实现冲突；Neon main 的迁移 001–005 与 QA 的另一套 001–022 不可按同编号覆盖；正式环境的部署 SHA、连接数据库、资金/审批和真实交易能力尚无完整验收。',
+    '**待确认 P0：** 共享 QA 双阶段 2FA 与新后台单阶段实现冲突；Neon main 的迁移 001–005 与 QA 的另一套 001–022 不可按同编号覆盖；QA 自选市场 US/RO 与前台 US/CN 契约不一致；正式环境的部署 SHA、连接数据库、资金/审批和真实交易能力尚无完整验收。',
     '',
     '执行窗口须在开始工作、修改共享接口或请求合并前主动阅读 Issue #42，并回报：`模块 | 分支 SHA | 修改内容 | 测试命令/真实结果 | 目标数据库分支 | 部署证据 | 剩余阻断`。',
     '',
