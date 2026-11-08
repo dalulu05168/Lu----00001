@@ -1422,6 +1422,7 @@ document.querySelectorAll('.ddi').forEach(function(b){b.addEventListener('click'
  var g=b.dataset.go,a=g.split(':'),ni=b.closest('.ni');if(ni){ni.classList.add('shut');ni.addEventListener('mouseleave',function f(){ni.classList.remove('shut');ni.removeEventListener('mouseleave',f)})}
  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
  if(g==='wd')return openWd();
+ if(g==='logout')return;
  if(a[0]==='modal')return openModal(a[1]);
  var moved=cur!==a[0];if(moved)show(a[0]);setTimeout(function(){pulse(a[1])},moved?520:0)})});
 $('balref').onclick=function(){loadData().then(function(){toast('数据已刷新')})};
@@ -1431,7 +1432,13 @@ $('balref').onclick=function(){loadData().then(function(){toast('数据已刷新
 /* v7 增量：账户菜单退出 · 信息头周期 Tab 双向同步 · TradingView 按需接入 */
 (function(){
  function miniToast(m){var t=document.getElementById('toast');if(!t){alert(m);return}t.textContent=m;t.classList.add('on');clearTimeout(t._v7);t._v7=setTimeout(function(){t.classList.remove('on')},2200)}
- document.querySelectorAll('[data-go="logout"]').forEach(function(b){b.addEventListener('click',function(){miniToast('退出暂不可用')})});
+ document.querySelectorAll('[data-go="logout"]').forEach(function(b){
+ b.addEventListener('click',function(){
+  var token='';try{token=localStorage.getItem('cncap.session')||''}catch(ignore){}
+  var req=token?fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store',keepalive:true}).catch(function(){}):Promise.resolve();
+  req.finally(function(){window.CN_SET_TOKEN(null);location.replace('/login.html')});
+ })
+});
 })();
 (function(){
  var rg=document.getElementById('rg'),tabs=document.getElementById('iftabs'),tf=document.querySelector('.ih-tf');
