@@ -85,7 +85,7 @@ test('mobile terminal initializes with empty account data and cannot fake financ
   assert.match(html,/watch:\[\],fav:\[\],catalog:\[\],watchLoaded:false,watchStatus:'自选尚未同步',orders:\[\],holds:\[\],reqs:\[\],chat:\[\]/);
    assert.match(html,/window\.CN_SYNC_WATCHLIST/);
    assert.match(html,/window\.CN_SYNC_CATALOG/);
-  assert.match(html,/if\(!Number\.isSafeInteger\(a\.cashCents\)\)throw/);
+  assert.match(html,/if\(!Number\.isSafeInteger\(a\.cashCents\)\|\|a\.cashCents<0\)throw/);
   assert.match(html,/return \{s:key,q:Number\(p\.quantity\),c:null\}/);
   assert.match(html,/充值与提现服务暂不可用/);
   assert.match(html,/身份资料提交服务暂不可用/);
