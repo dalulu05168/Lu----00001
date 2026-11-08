@@ -2,7 +2,10 @@
 // This module does NOT fetch market data or authorize a quote source itself.
 // A trusted backend policy callback is mandatory: raw provider "entitled:true"
 // is not evidence of customer display or internal-price-use licensing.
-const SYMBOL = /^[A-Z0-9][A-Z0-9.-]{0,23}$/;
+const SYMBOLS = Object.freeze({
+  US:/^[A-Z][A-Z0-9.-]{0,23}$/,
+  CN:/^(?:60|68|00|30)\d{4}$/
+});
 const CURRENCIES = Object.freeze({ US:"USD", CN:"CNY" });
 
 function unavailable(reason) {
@@ -22,11 +25,12 @@ function positiveSafeInteger(value) {
  * Do not enable orders until real sources, legal use and HTTP integration are verified.
  */
 export function assertInternalExecutionQuote({
-  request, quote, fxQuote, authorizeUsage, now=Date.now(),
+  request, quote, fxQuote, authorizeUsage, authorizeFxUsage, now=Date.now(),
   maxAgeMs=60_000, maxFxAgeMs=60_000
 }={}) {
   if(!request || typeof request!=="object" || !["BUY","SELL"].includes(request.side) ||
-      !Object.hasOwn(CURRENCIES,request.market) || !SYMBOL.test(request.symbol??"") ||
+      !Object.hasOwn(CURRENCIES,request.market) ||
+      !SYMBOLS[request.market].test(request.symbol??"") ||
       !positiveSafeInteger(request.quantity)) {
     throw Object.assign(new Error("Invalid order intent"),{statusCode:400});
   }
@@ -54,6 +58,7 @@ export function assertInternalExecutionQuote({
   if(rights?.customerDisplayAllowed!==true || rights?.internalPricingAllowed!==true ||
       rights?.market!==quote.market || rights?.source!==quote.source ||
       rights?.currency!==quote.currency ||
+      typeof rights?.reviewReference!=="string" || !rights.reviewReference.trim() ||
       !Number.isSafeInteger(rights.validUntilMs) || rights.validUntilMs<now) {
     unavailable("LICENSE_UNVERIFIED");
   }
@@ -67,6 +72,17 @@ export function assertInternalExecutionQuote({
         typeof fxQuote.source!=="string" || !fxQuote.source.trim()) {
       unavailable("FX_UNAVAILABLE");
     }
+    if(typeof authorizeFxUsage!=="function") unavailable("FX_LICENSE_UNVERIFIED");
+    let fxRights;
+    try {
+      fxRights=authorizeFxUsage({source:fxQuote.source,base:"CNY",quote:"USD",
+        usage:"INTERNAL_PRICING",now});
+    } catch { unavailable("FX_LICENSE_UNVERIFIED"); }
+    if(fxRights?.source!==fxQuote.source || fxRights?.base!=="CNY" ||
+       fxRights?.quote!=="USD" || fxRights?.internalPricingAllowed!==true ||
+       !Number.isSafeInteger(fxRights.validUntilMs) || fxRights.validUntilMs<now ||
+       typeof fxRights.reviewReference!=="string" || !fxRights.reviewReference.trim())
+      unavailable("FX_LICENSE_UNVERIFIED");
     fxUsdMicros=fxQuote.usdMicros;
   }
   // Exact integer multiplication, consistent with applyOrder() in ledger.mjs.
