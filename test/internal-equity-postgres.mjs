@@ -224,12 +224,24 @@ export async function verifyLicensedEquityPostgres(connectionString) {
   const raceFillPrice=race[0].quote.priceCents;
   assert.ok([12000,13000].includes(raceFillPrice));
 
+  // A legacy/manual order without a source/FX record must never be advertised
+  // as a licensed fill even when the same idempotency key matches.
+  await placeInternalOrder(db,raceAccountId,"qa-legacy-no-evidence",
+   {side:"BUY",market:"US",symbol:us,quantity:1,
+    priceCents:100,fxUsdMicros:1000000},randomUUID());
+  await assert.rejects(executeLicensedInternalOrder({
+    ...args,accountId:raceAccountId,marketData:undefined,
+    key:"qa-legacy-no-evidence",
+    request:{side:"BUY",market:"US",symbol:us,quantity:1}
+  }),e=>e.statusCode===503 && e.reason==="EVIDENCE_UNAVAILABLE");
+  // Deliberate legacy row changes this account's cash; the verified row
+  // must still be exactly one, and the amount is accounted for below.
   const raceOrders=await db.query("SELECT o.id,o.price_cents,e.quote_price_cents FROM orders o JOIN order_execution_evidence e ON e.order_id=o.id WHERE o.account_id=$1",[raceAccountId]);
   assert.equal(raceOrders.rows.length,1);
   assert.equal(Number(raceOrders.rows[0].price_cents),raceFillPrice);
   assert.equal(Number(raceOrders.rows[0].quote_price_cents),raceFillPrice);
   const raceCash=await db.query("SELECT cash_cents FROM accounts WHERE id=$1",[raceAccountId]);
-  assert.equal(Number(raceCash.rows[0].cash_cents),50000-raceFillPrice);
+  assert.equal(Number(raceCash.rows[0].cash_cents),50000-raceFillPrice-100);
   const [stored,ledger,evidence]=await Promise.all([
    db.query("SELECT id,market,side,amount_usd_cents FROM orders WHERE account_id=$1 ORDER BY created_at",[accountId]),
    db.query("SELECT order_id,delta_cents FROM cash_ledger WHERE account_id=$1 AND order_id IS NOT NULL",[accountId]),
