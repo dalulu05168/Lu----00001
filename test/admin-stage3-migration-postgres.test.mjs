@@ -54,6 +54,16 @@ run('stage3 disposable PG16: 023 then 024 constraints, financial preservation, t
         "VALUES($1,$2,'US','TEST','CNY',100,now(),'fixture','fixture','fixture',1000000)",
         [randomUUID(),ref]),errorCode('23503')); // no order FK, so rejects before publishing
       await conn.query('ROLLBACK TO SAVEPOINT bad_fx');
+      // An existing US order must not accept a CNY execution evidence record.
+      const usOrder=randomUUID();
+      await conn.query("INSERT INTO orders(id,account_id,idempotency_key,market,symbol,side,quantity,price_cents,fx_usd_micros,amount_usd_cents) "+
+        "VALUES($1,$2,$3,'US','TEST','BUY',1,100,1000000,100)",
+        [usOrder,ref,'stage3-us-'+randomUUID()]);
+      await conn.query('SAVEPOINT invalid_currency');
+      await assert.rejects(conn.query("INSERT INTO order_execution_evidence(order_id,account_id,market,symbol,quote_currency,quote_price_cents,quote_at,quote_source,quote_license_ref,session_rule_ref,fx_usd_micros) "+
+        "VALUES($1,$2,'US','TEST','CNY',100,now(),'fixture','fixture','fixture',1000000)",
+        [usOrder,ref]),errorCode('23514'));
+      await conn.query('ROLLBACK TO SAVEPOINT invalid_currency');
       const q=await conn.query("SELECT market,quote_currency,fx_source FROM order_execution_evidence WHERE order_id=$1",[order]);
       assert.equal(q.rows.length,1);
       assert.equal(q.rows[0].market,'CN');
