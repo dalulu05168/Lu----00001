@@ -25,7 +25,7 @@ export function currentOtp(secret,at=Date.now()){
   return String((hash.readUInt32BE(position)&0x7fffffff)%1000000).padStart(6,"0");
 }
 export function matchingTotpStep(secret,code,at=Date.now()){
-  if(typeof code!=="string"||!/^\\d{6}$/.test(code))return null;
+  if(typeof code!=="string"||!/^\d{6}$/.test(code))return null;
   const nowStep=Math.floor(at/30000);
   // Most recent matching time step first; avoid accepting a reused older step.
   for(const offset of [1,0,-1]){
