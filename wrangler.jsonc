@@ -1,5 +1,5 @@
 {
-  "name": "nuvexa-qa-preview-20261108",
+  "name": "nuvexaqa1108",
   "main": "src/cloudflare-qa-worker.mjs",
   "compatibility_date": "2026-11-08",
   "assets": {
