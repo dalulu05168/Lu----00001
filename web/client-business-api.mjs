@@ -137,12 +137,49 @@ export function normalizeVerifiedQuote(payload, expected, {nowMs = Date.now(), m
     price:priceMicros / 1_000_000, stale:false};
 }
 
+
+/** Only a published server catalog can supply instrument names and item types.
+ * If QA still advertises US/RO, do not silently pretend it is US/CN-ready.
+ * The catalog does NOT convey a trade-execution price or order eligibility.
+ */
+export function normalizePublishedCatalog(payload) {
+  const data = shape(payload, '证券目录');
+  if (!Array.isArray(data.items)) throw failure('INVALID_RESPONSE', '证券目录响应缺少列表');
+  const seen = new Set();
+  return data.items.map(item => {
+    const ref = identity(item);
+    if (!['STOCK','FUND','IPO'].includes(item.itemType) ||
+        typeof item.name !== 'string' || !item.name.trim() || item.name.length > 180) {
+      throw failure('INVALID_RESPONSE', '证券目录名称或类型无效');
+    }
+    const key = ref.market + ':' + ref.symbol;
+    if (seen.has(key)) throw failure('INVALID_RESPONSE', '证券目录包含重复代码');
+    seen.add(key);
+    return {...ref, name:item.name.trim(),itemType:item.itemType,
+      orderEligible:false}; // Listing alone never authorizes a BUY or SELL.
+  });
+}
+
+export function normalizeClientWatchlist(payload) {
+  const data = shape(payload, '自选');
+  if (!Array.isArray(data.items)) throw failure('INVALID_RESPONSE', '自选列表响应缺少列表');
+  const seen = new Set();
+  return data.items.map(item => {
+    const ref = identity(item);
+    const key = ref.market + ':' + ref.symbol;
+    if (seen.has(key)) throw failure('INVALID_RESPONSE', '自选列表包含重复代码');
+    seen.add(key);
+    return ref;
+  });
+}
+
 export function createClientBusinessApi({getToken, fetchImpl = fetch,
   capabilities = {}, now = Date.now} = {}) {
   if (typeof getToken !== 'function' || typeof fetchImpl !== 'function') throw new TypeError('Missing client API dependencies');
   // Must be enabled explicitly after QA/server permission verification; defaults are read-only.
   const allowed = Object.freeze({trading:capabilities.trading === true,
-    supportWrites:capabilities.supportWrites === true, requestWrites:capabilities.requestWrites === true});
+    supportWrites:capabilities.supportWrites === true, requestWrites:capabilities.requestWrites === true,
+    watchlistWrites:capabilities.watchlistWrites === true});
   function assertSameSession(token, message='登录账户已切换，请重新加载') {
     if (getToken() !== token) throw failure('SESSION_CHANGED', message, 401);
   }
@@ -190,6 +227,35 @@ export function createClientBusinessApi({getToken, fetchImpl = fetch,
       ? {state:'ready', data:item.value, errorCode:null}
       : {state:'unavailable',data:null,errorCode:item.reason?.code || 'API_ERROR'};
     return {account:entry(results[0]),analytics:entry(results[1])};
+  }
+  async function getCatalog() {
+    return normalizePublishedCatalog(await call('/catalog'));
+  }
+  async function getWatchlist() {
+    return normalizeClientWatchlist(await call('/watchlist'));
+  }
+  async function setWatchlist(item, wantSaved) {
+    if (!allowed.watchlistWrites) throw failure('FEATURE_DISABLED', '当前无法修改自选');
+    const ref = identity(item);
+    if (typeof wantSaved !== 'boolean') throw failure('INVALID_WATCHLIST_ACTION', '自选操作无效');
+    const token = getToken();
+    const same = row => row.market === ref.market && row.symbol === ref.symbol;
+    // Obtain current server state first; never trust locally cached array.
+    const before = await getWatchlist();
+    assertSameSession(token);
+    if (before.some(same) === wantSaved) return before;
+    await call('/watchlist', {method:wantSaved?'POST':'DELETE',body:ref});
+    assertSameSession(token, '自选结果待核对，请重新登录查看');
+    let after;
+    try { after = await getWatchlist(); }
+    catch (cause) {
+      throw failure('WATCHLIST_READBACK_FAILED', '自选操作已发送，但回读失败，请刷新列表核对', cause.status, cause);
+    }
+    assertSameSession(token, '自选结果待核对，请重新登录查看');
+    if (after.some(same) !== wantSaved) {
+      throw failure('WATCHLIST_UNCONFIRMED', '服务器尚未确认自选变更');
+    }
+    return after;
   }
   async function getQuote(item) {
     const ref = identity(item);
@@ -268,5 +334,6 @@ export function createClientBusinessApi({getToken, fetchImpl = fetch,
     }
     return {order:committed,snapshot,replayed:result.replayed === true};
   }
-  return Object.freeze({getAccount,getAnalytics,loadOverview,getQuote,getSupport,sendSupport,getRequests,submitRequest,submitInternalOrder});
+  return Object.freeze({getAccount,getAnalytics,loadOverview,getCatalog,getWatchlist,setWatchlist,
+    getQuote,getSupport,sendSupport,getRequests,submitRequest,submitInternalOrder});
 }
