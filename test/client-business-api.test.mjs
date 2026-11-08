@@ -50,17 +50,21 @@ test('analytics preserves realized loss and unknown unrealized data; missing his
 test('quote must match symbol, currency, freshness and display rights',async()=>{
   const now=Date.parse('2026-11-08T00:00:00Z');
   const verified={market:'US',symbol:'AAPL',priceCents:18554,timestampMs:now-5000,
-    source:'Licensed Provider',currency:'USD',entitled:true};
+    source:'Licensed Provider',currency:'USD',status:'FRESH',stale:false,
+    displayPermission:{customerDisplayAllowed:true,market:'US',currency:'USD',
+      source:'Licensed Provider',validUntilMs:now+60000}};
   const calls=[];
   const client=api(async(url)=>{calls.push(url);return response(200,verified);});
   const quote=await client.getQuote({market:'US',symbol:'AAPL'});
   assert.equal(quote.priceCents,18554);
   assert.equal(calls[0],'/api/stock-quote?market=US&symbol=AAPL');
   for(const wrong of [
-    {...verified,entitled:undefined}, {...verified,entitled:false},
+    {...verified,displayPermission:undefined,entitled:true},
+    {...verified,displayPermission:{customerDisplayAllowed:true},entitlement:{purpose:'clientDisplay'}},
+    {...verified,displayPermission:{...verified.displayPermission,validUntilMs:now-1}},
     {...verified,timestampMs:now-61000}, {...verified,market:'CN'},
     {...verified,currency:'CNY'}, {...verified,priceCents:0},
-    {...verified,source:''}, {...verified,stale:true}
+    {...verified,source:''}, {...verified,stale:true}, {...verified,status:'HISTORICAL'}
   ]){
     assert.throws(()=>normalizeVerifiedQuote(wrong,{market:'US',symbol:'AAPL'},{nowMs:now}),e=>e.status===503);
   }
@@ -155,4 +159,78 @@ test('request submissions use old QA path and readback; missing persistence reje
   const noPersist=api(async(url,opts)=>opts.method==='POST'?
     response(201,{item:{id:'fund-1'}}):response(200,{items:[]}),{capabilities:{requestWrites:true}});
   await assert.rejects(()=>noPersist.submitRequest('FUNDING',{amountCents:12000}),e=>e.code==='REQUEST_UNCONFIRMED');
+});
+
+test('reviewed server display grant required even if provider sets entitled:true',()=>{
+  const now=Date.parse('2026-11-08T00:00:00Z');
+  const quote={market:'US',symbol:'AAPL',priceCents:18200,timestampMs:now-10,
+    source:'Twelve Data',currency:'USD',status:'FRESH',stale:false,entitled:true,
+    entitlement:{purpose:'clientDisplay',reviewReference:'vendor-level-note'}};
+  assert.throws(()=>normalizeVerifiedQuote(quote,{market:'US',symbol:'AAPL'},{nowMs:now}),
+    error=>error.code==='QUOTE_NOT_ENTITLED');
+});
+test('fractional-cent approved market quotes remain precise and never become execution cents',()=>{
+  const now=Date.parse('2026-11-08T00:00:00Z');
+  const quote={market:'CN',symbol:'600519',priceMicros:1234567890,priceCents:null,
+    timestampMs:now,source:'Twelve Data',currency:'CNY',status:'FRESH',stale:false,
+    displayPermission:{customerDisplayAllowed:true,market:'CN',source:'Twelve Data',currency:'CNY',validUntilMs:now+1000}};
+  const normalized=normalizeVerifiedQuote(quote,{market:'CN',symbol:'600519'},{nowMs:now});
+  assert.equal(normalized.priceMicros,1234567890);
+  assert.equal(normalized.price,1234.56789);
+  assert.equal(normalized.priceCents,null);
+  assert.throws(()=>normalizeVerifiedQuote({...quote,priceCents:123457},
+    {market:'CN',symbol:'600519'},{nowMs:now}),e=>e.code==='QUOTE_UNAVAILABLE');
+});
+test('server duplicate holdings/orders and fake numeric notation cannot silently change accounting',()=>{
+  const p=sampleAccount();
+  assert.throws(()=>normalizeAccountSnapshot({...p,positions:[...p.positions,...p.positions]}),
+    e=>e.code==='INVALID_RESPONSE');
+  assert.throws(()=>normalizeAccountSnapshot({...p,orders:[...p.orders,...p.orders]}),
+    e=>e.code==='INVALID_RESPONSE');
+  assert.throws(()=>normalizeAccountSnapshot({...p,positions:[{...p.positions[0],quantity:'1e3'}]}),
+    e=>e.code==='INVALID_RESPONSE');
+  assert.throws(()=>normalizeAccountSnapshot({...p,account:{...p.account,currency:'CNY'}}),
+    e=>e.code==='INVALID_RESPONSE');
+});
+test('obsolete account response cannot leak into a newly signed-in session',async()=>{
+  let token='user-A';
+  let release;
+  const fetchImpl=async()=>new Promise(resolve=>{release=()=>resolve(response(200,sampleAccount()));});
+  const client=createClientBusinessApi({getToken:()=>token,fetchImpl});
+  const pending=client.getAccount();
+  token='user-B';
+  release();
+  await assert.rejects(()=>pending,e=>e.code==='SESSION_CHANGED'&&e.status===401);
+});
+test('session switch during post-order readback returns uncertainty, not confirmation',async()=>{
+  let token='user-A';
+  const fetchImpl=async(url)=>{
+    if(url==='/api/orders')return response(201,{order:{id:'order-1'}});
+    if(url==='/api/account'){
+      token='user-B';
+      return response(200,sampleAccount());
+    }
+    throw Error('unexpected route');
+  };
+  const client=createClientBusinessApi({getToken:()=>token,fetchImpl,capabilities:{trading:true}});
+  await assert.rejects(()=>client.submitInternalOrder({side:'BUY',market:'US',symbol:'AAPL',quantity:2,
+    idempotencyKey:'stable-key-0001'}),e=>e.code==='ORDER_READBACK_FAILED'&&e.status===401);
+});
+test('acknowledged execution price/amount must equal committed order readback',async()=>{
+  const client=api(async url=>url==='/api/orders' ?
+    response(201,{order:{id:'order-1',priceCents:999,amountCents:1998}}) :
+    response(200,sampleAccount()),{capabilities:{trading:true}});
+  await assert.rejects(()=>client.submitInternalOrder({side:'BUY',market:'US',symbol:'AAPL',quantity:2,
+    idempotencyKey:'same-order-1000'}),e=>e.code==='ORDER_UNCONFIRMED');
+});
+test('overview exposes independent unavailable state instead of fake zero',async()=>{
+  const client=api(async url=>response(url==='/api/account'?200:503,
+    url==='/api/account'?sampleAccount():{error:'DB pending'}));
+  const overview=await client.loadOverview();
+  assert.equal(overview.account.state,'ready');
+  assert.equal(overview.account.data.account.cashCents,10550);
+  assert.deepEqual(overview.analytics,{state:'unavailable',data:null,errorCode:'SERVICE_UNAVAILABLE'});
+  const rejected=api(async url=>response(url==='/api/account'?401:200,
+    url==='/api/account'?{error:'denied'}:sampleAnalytics()));
+  await assert.rejects(()=>rejected.loadOverview(),e=>e.status===401);
 });
