@@ -41,10 +41,11 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
   const authPath=["/api/auth/register","/api/auth/login"].includes(route);
   const isAuthRoute=authPath&&req.method==="POST";
   if(authPath&&!isAuthRoute)return send(res,405,{error:"Method not allowed"});
-  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist"].includes(route);
+  const isProtected=["/api/orders","/api/account","/api/auth/logout","/api/watchlist","/api/securities"].includes(route);
   if(!isAuthRoute&&!isProtected)return send(res,404,{error:"Not found"});
   if(route==="/api/orders"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/account"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
+  if(route==="/api/securities"&&req.method!=="GET")return send(res,405,{error:"Method not allowed"});
   if(route==="/api/watchlist"&&!["GET","POST","DELETE"].includes(req.method))return send(res,405,{error:"Method not allowed"});
   if(route==="/api/auth/logout"&&req.method!=="POST")return send(res,405,{error:"Method not allowed"});
   if(isAuthRoute){
@@ -76,6 +77,19 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    try{return send(res,200,await getAccountSnapshot(db,session.accountId));}
    catch{return send(res,500,{error:"Internal server error"});}
   }
+  if(route==="/api/securities"){
+   try{
+    const result=await db.query(`SELECT item_type,market,symbol,display_name
+      FROM listings WHERE status='PUBLISHED' ORDER BY created_at DESC LIMIT 100`);
+    const sec={},names={};
+    for(const row of result.rows){
+      const symbol=String(row.symbol);
+      names[symbol]=row.display_name||symbol;
+      sec[symbol]={symbol,market:row.market,name:row.display_name||symbol,type:row.item_type};
+    }
+    return send(res,200,{sec,names,cfg:sec,name:names});
+   }catch{return send(res,500,{error:"Internal server error"});}
+  }
   if(route==="/api/watchlist"){
     try {
       if(req.method==="GET")return send(res,200,{items:await listWatchlist(db,session.accountId)});
@@ -102,20 +116,24 @@ export function createApi({db,resolveSession,createId=randomUUID,resolveExecutio
    const body=await readBody(req,maxBodyBytes);
    const data=JSON.parse(body);
    if(!data||typeof data!=="object"||Array.isArray(data))return send(res,400,{error:"Invalid body"});
-   const allowed=["side","market","symbol","quantity"];
+   const allowed=["side","market","symbol","quantity","qty","tradePassword"];
    if(Object.keys(data).some(k=>!allowed.includes(k)))return send(res,400,{error:"Unexpected fields"});
+   const side=data.side==="买入"?"BUY":data.side==="卖出"?"SELL":data.side;
+   const quantity=data.quantity??data.qty;
+   if(!["BUY","SELL"].includes(side)||!Number.isSafeInteger(quantity)||quantity<=0)
+    return send(res,400,{error:"Invalid order fields"});
    // Do not trust a browser-supplied execution price or FX rate.
    // Until a licensed read-only quote service and pricing policy are configured,
    // the HTTP endpoint is disabled instead of creating misleading orders.
    if(typeof resolveExecutionPrice!=="function")return send(res,503,{error:"Verified market pricing unavailable"});
-   const verified=await resolveExecutionPrice({market:data.market,symbol:data.symbol,side:data.side,quantity:data.quantity});
+   const verified=await resolveExecutionPrice({market:data.market,symbol:data.symbol,side,quantity});
    if(!verified||!Number.isSafeInteger(verified.priceCents)||verified.priceCents<=0||
       !Number.isSafeInteger(verified.fxUsdMicros)||verified.fxUsdMicros<=0||
       !Number.isFinite(verified.timestampMs)||Date.now()-verified.timestampMs>60000||
       verified.timestampMs>Date.now()+5000)
       return send(res,503,{error:"Verified market pricing unavailable"});
    const result=await placeInternalOrder(db,session.accountId,key,{
-     side:data.side,market:data.market,symbol:data.symbol,quantity:data.quantity,
+     side,market:data.market,symbol:data.symbol,quantity,
      priceCents:verified.priceCents,fxUsdMicros:verified.fxUsdMicros
    },createId());
    return send(res,result.replayed?200:201,result);

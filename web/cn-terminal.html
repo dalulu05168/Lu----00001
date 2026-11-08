@@ -1,6 +1,26 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
+<script>
+window.CN_API_BASE='/api';
+window.CN_FRONT_API_BASE='/api';
+window.CN_SET_TOKEN=function(token){try{if(token)localStorage.setItem('cncap.session',token);else localStorage.removeItem('cncap.session')}catch(e){}};
+(function(){
+  var raw=window.fetch.bind(window);
+  window.fetch=function(input,init){
+    init=init||{};
+    var url=typeof input==='string'?input:(input&&input.url)||'';
+    var token='';try{token=localStorage.getItem('cncap.session')||''}catch(e){}
+    if(token && /^(?:\/api\b|https?:\/\/[^/]+\/api\b)/.test(url)){
+      var h=new Headers(init.headers||{});
+      if(!h.has('Authorization'))h.set('Authorization','Bearer '+token);
+      init.headers=h;
+    }
+    return raw(input,init);
+  };
+})();
+</script>
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CN Capital · 客户 App</title>
