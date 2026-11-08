@@ -48,9 +48,23 @@ async function loadSubadmins(){
   renderRows('subadminsRows',data.items,(r,x)=>{
    cell(r,x.email);cell(r,x.twofa_confirmed_at?'已启用':'未启用');
    cell(r,(x.uses??0)+' / '+(x.max_uses??'—'));cell(r,when(x.expires_at));
-  },4);
+   const td=document.createElement('td');
+   const expires=Date.parse(x.expires_at);
+   if(!x.invite_id)td.textContent='无邀请码';
+   else if(x.revoked_at)td.textContent='已撤销';
+   else if(Number.isFinite(expires)&&expires<=Date.now())td.textContent='已到期';
+   else if(Number(x.uses)>=Number(x.max_uses))td.textContent='已用完';
+   else if(state.role==='MASTER'){
+     const button=document.createElement('button');button.type='button';
+     button.className='cnbutton';button.dataset.inviteId=x.invite_id;
+     button.textContent='撤销邀请码';
+     button.setAttribute('aria-label','撤销该子管理员的邀请码');
+     td.appendChild(button);
+   }else td.textContent='有效';
+   r.appendChild(td);
+  },5);
   status('subadminsStatus','已读取 '+data.items.length+' 条子管理员记录');
- }catch(e){state.subadmins=null;renderRows('subadminsRows',[],()=>{},4);status('subadminsStatus',e.message,true);}
+ }catch(e){state.subadmins=null;renderRows('subadminsRows',[],()=>{},5);status('subadminsStatus',e.message,true);}
  summary();
 }
 async function loadListings(){
@@ -108,6 +122,25 @@ function wire(){
  el('adminRefresh').addEventListener('click',()=>{void Promise.all([loadClients(),loadSubadmins(),loadListings()]);});
  el('refreshClients').addEventListener('click',()=>{void loadClients();});
  el('refreshSubadmins').addEventListener('click',()=>{void loadSubadmins();});
+ el('subadminsRows').addEventListener('click',async e=>{
+   const button=e.target.closest('button[data-invite-id]');
+   if(!button||state.role!=='MASTER'||button.disabled)return;
+   if(button.dataset.confirmed!=='true'){
+     button.dataset.confirmed='true';button.textContent='确认撤销';
+     status('subadminsStatus','请再次点击“确认撤销”，已关联客户不受影响');
+     return;
+   }
+   button.disabled=true;
+   try{
+     await api('invitations',{method:'PATCH',body:{inviteId:button.dataset.inviteId}});
+     await loadSubadmins();
+     status('subadminsStatus','邀请码已撤销；已关联客户不受影响');
+     await loadAudit();
+   }catch(error){
+     status('subadminsStatus',error.message,true);
+     button.disabled=false;button.dataset.confirmed='false';button.textContent='撤销邀请码';
+   }
+ });
  el('refreshListings').addEventListener('click',()=>{void loadListings();});
  el('refreshAudit').addEventListener('click',()=>{void loadAudit();});
  el('adminLogout').addEventListener('click',async()=>{

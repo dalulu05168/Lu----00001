@@ -21,7 +21,8 @@ async function runScenario({token='authorized-session',role='MASTER',responses={
    if(responses[url])return responses[url](entry);
    if(url==='/api/admin/me')return json(200,{role,userId:'role-owner'});
    if(url==='/api/admin/clients')return json(200,{items:[{email:'<img src=x onerror=alert(1)>',subadmin_user_id:'sub-1',created_at:'2026-11-08T00:00:00Z'}]});
-   if(url==='/api/admin/subaccounts')return json(200,{items:[{email:'sub@example.test',twofa_confirmed_at:'2026-11-08T00:00:00Z',uses:0,max_uses:10,expires_at:'2026-12-01T00:00:00Z'}]});
+   if(url==='/api/admin/subaccounts')return json(200,{items:[{email:'sub@example.test',invite_id:'33333333-3333-3333-3333-333333333333',revoked_at:null,twofa_confirmed_at:'2026-11-08T00:00:00Z',uses:0,max_uses:10,expires_at:'2026-12-01T00:00:00Z'}]});
+   if(url==='/api/admin/invitations')return entry.method==='PATCH'?json(200,{id:entry.body.inviteId,revoked:true}):json(405,{});
    if(url==='/api/admin/audit')return json(200,{items:[
     {id:'1',action:'ADMIN_LOGIN',actor_user_id:'role-owner',target_id:'role-owner',details:{},created_at:'2026-11-08T00:00:00Z'},
     {id:'2',action:'LISTING_CREATED',actor_user_id:'role-owner',target_id:'11111111-1111-1111-1111-111111111111',details:{symbol:'<script>alert(1)</script>'},created_at:'2026-11-08T00:00:01Z'}
@@ -125,6 +126,29 @@ test('verified master creates subadmin and US/CN catalog records through real AP
  });
 });
 
+test('master confirms revocation before backend call and subadmin cannot revoke',async()=>{
+ onResult=async({dom,requests})=>{
+  const doc=dom.window.document;
+  const button=doc.querySelector('#subadminsRows button[data-invite-id]');
+  assert.ok(button);
+  assert.ok(!requests.some(r=>r.url==='/api/admin/invitations'));
+  button.click();
+  assert.equal(button.textContent,'确认撤销');
+  assert.ok(!requests.some(r=>r.url==='/api/admin/invitations'));
+  button.click();
+  await wait(65);
+  const call=requests.find(r=>r.url==='/api/admin/invitations');
+  assert.equal(call.method,'PATCH');
+  assert.deepEqual(call.body,{inviteId:'33333333-3333-3333-3333-333333333333'});
+  assert.match(doc.getElementById('subadminsStatus').textContent,/已撤销/);
+ };
+ await runScenario({});
+ onResult=async({dom,requests})=>{
+  assert.equal(dom.window.document.querySelector('#subadminsRows button[data-invite-id]'),null);
+  assert.ok(!requests.some(r=>r.url==='/api/admin/invitations'));
+ };
+ await runScenario({token:'sub-token',role:'SUBADMIN'});
+});
 test('subadmin cannot create users or publish listings',async()=>{
  onResult=async({dom,requests})=>{
   const doc=dom.window.document;
