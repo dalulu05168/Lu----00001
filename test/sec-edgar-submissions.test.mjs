@@ -115,3 +115,31 @@ test('per-instance request pacing uses injected wait, never a user-controlled up
   assert.equal(count,2);
   assert.deepEqual(waits,[350]);
 });
+
+test('streaming body is byte-limited before collecting oversized chunks', async()=>{
+  let pulls=0;
+  const stream = new ReadableStream({
+    pull(controller) {
+      pulls++;
+      controller.enqueue(new Uint8Array(1_200_000));
+      if (pulls===2) controller.close();
+    }
+  });
+  const response={ok:true,headers:{get:k=>k==='content-type'?'application/json':null},body:stream};
+  await assert.rejects(client(async()=>response)(320193),{statusCode:503});
+  assert.equal(pulls,2);
+});
+
+test('streaming normal JSON completes and returns filings', async()=>{
+  const encoded=new TextEncoder().encode(JSON.stringify(sample()));
+  const mid=Math.floor(encoded.length/2);
+  const stream=new ReadableStream({start(controller){
+    controller.enqueue(encoded.slice(0,mid));
+    controller.enqueue(encoded.slice(mid));
+    controller.close();
+  }});
+  const response={ok:true,headers:{get:k=>k==='content-type'?'application/json':null},body:stream};
+  const r=await client(async()=>response)(320193);
+  assert.equal(r.filings.length,3);
+  assert.equal(r.priceAvailable,false);
+});
