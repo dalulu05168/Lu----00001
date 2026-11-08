@@ -1,0 +1,25 @@
+# Independent QA API only. Never connect this service to production data.
+services:
+  - type: web
+    runtime: node
+    name: cn-capital-api-qa
+    region: singapore
+    plan: free
+    branch: qa/cn-capital-api-20261108
+    autoDeployTrigger: commit
+    buildCommand: npm install --omit=dev
+    startCommand: npm run migrate && node src/server.mjs
+    healthCheckPath: /api/ready
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: PGSSL
+        value: require
+      - key: ADMIN_MASTER_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_SECRET
+        generateValue: true
+      - key: ADMIN_TOTP_ENCRYPTION_KEY
+        generateValue: true
