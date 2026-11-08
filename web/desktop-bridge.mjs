@@ -1,5 +1,6 @@
 // Authenticated CN Capital terminal adapter. Existing login/auth endpoints stay unchanged.
 import { mountStockChart } from './stock-chart.mjs';
+import {readCatalog,readWatchlist,changeWatchlist} from './client-data-api.mjs';
 
 // Isolated desktop adapter, not shared with mobile.
 const token = sessionStorage.getItem('gsp_token');
@@ -57,6 +58,69 @@ function attachUsChart() {
   host.append(layer, toggle);
 }
 
+
+let watchlistItems = null;
+let watchlistWriting = false;
+function stillAuthenticated() {
+  return Boolean(token && sessionStorage.getItem('gsp_token') === token);
+}
+function handleDataError(error,section) {
+  if (error?.status === 401 || error?.status === 403) {
+    sessionStorage.removeItem('gsp_token');
+    location.replace('/#account-section');
+    return;
+  }
+  if (stillAuthenticated() && typeof window.CN_DATA_STATUS === 'function') {
+    window.CN_DATA_STATUS(section,section==='watchlist'?'自选列表暂不可用':'证券目录暂不可用');
+  }
+}
+async function refreshClientCatalog() {
+  const items = await readCatalog(token);
+  if (stillAuthenticated()) window.CN_SYNC_CATALOG(items);
+  return items;
+}
+async function refreshClientWatchlist() {
+  const items = await readWatchlist(token);
+  if (stillAuthenticated()) {
+    watchlistItems = items;
+    window.CN_SYNC_WATCHLIST(items);
+  }
+  return items;
+}
+window.CN_REFRESH_CATALOG = () =>
+  refreshClientCatalog().catch(error => {handleDataError(error,'catalog');throw error;});
+window.CN_TOGGLE_WATCHLIST = async key => {
+  if (!stillAuthenticated()) throw new Error('登录已失效，请重新登录');
+  if (watchlistWriting) throw new Error('自选操作正在处理');
+  if (!Array.isArray(watchlistItems)) throw new Error('自选数据尚未同步');
+  if (typeof key !== 'string' || !/^(US|CN):[A-Z0-9][A-Z0-9.-]{0,23}$/.test(key))
+    throw new Error('无效的自选证券');
+  const [market,symbol] = key.split(':');
+  const wasSaved = watchlistItems.some(item => item.market===market && item.symbol===symbol);
+  watchlistWriting = true;
+  try {
+    const items = await changeWatchlist(token,{market,symbol},watchlistItems);
+    if (!stillAuthenticated()) throw new Error('登录已失效，请重新登录');
+    watchlistItems = items;
+    window.CN_SYNC_WATCHLIST(items);
+    return !wasSaved;
+  } catch(error) {
+    if (error?.status === 401 || error?.status === 403) handleDataError(error,'watchlist');
+    throw error;
+  } finally {
+    watchlistWriting = false;
+  }
+};
+function refreshClientDatasets() {
+  // Catalog and saved instruments are independent from account snapshot.
+  // One failing must not wipe the authenticated cash/positions/order view.
+  void Promise.allSettled([refreshClientCatalog(),refreshClientWatchlist()])
+    .then(results => {
+      if (results[0].status==='rejected') handleDataError(results[0].reason,'catalog');
+      if (results[1].status==='rejected') handleDataError(results[1].reason,'watchlist');
+    });
+}
+
 async function run() {
   if (!token) {location.replace('/#account-section');return;}
   try {
@@ -74,6 +138,7 @@ async function run() {
     attachToolbar();
     attachUsChart();
     ready();
+    refreshClientDatasets();
   } catch (error) { errorView(error?.message || '账户加载失败'); }
 }
 if (readOnlyPreview) {
