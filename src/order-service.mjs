@@ -5,7 +5,7 @@ import { applyOrder } from "./ledger.mjs";
  * Account row lock serializes writes; all mutations commit atomically.
  * Caller must authenticate account ownership before calling.
  */
-export async function placeInternalOrder(db, accountId, key, input, newOrderId, { assertExecutionReady, assertInstrumentAvailable } = {}) {
+export async function placeInternalOrder(db, accountId, key, input, newOrderId, { assertExecutionReady, assertInstrumentAvailable, persistQuoteEvidence } = {}) {
   if (assertExecutionReady !== undefined && typeof assertExecutionReady !== "function")
     throw new TypeError("Invalid synchronous execution gate");
   if (typeof accountId !== "string" || !accountId) throw new Error("Account required");
@@ -13,6 +13,8 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId, 
   if (typeof newOrderId !== "string" || !newOrderId) throw new Error("Order id required");
   if (assertInstrumentAvailable !== undefined && typeof assertInstrumentAvailable !== "function")
     throw new TypeError("Invalid listing policy");
+  if (persistQuoteEvidence !== undefined && typeof persistQuoteEvidence !== "function")
+    throw new TypeError("Invalid order evidence recorder");
   const client = await db.connect();
   let transactionStarted = false;
   try {
@@ -65,6 +67,12 @@ export async function placeInternalOrder(db, accountId, key, input, newOrderId, 
       [newOrderId,accountId,key,order.market,order.symbol,order.side,order.quantity,order.priceCents,order.fxUsdMicros,order.amountCents]);
     await client.query("INSERT INTO cash_ledger(account_id,order_id,delta_cents,balance_after_cents) VALUES($1,$2,$3,$4)",
       [accountId,newOrderId,order.side==="BUY"?-order.amountCents:order.amountCents,updated.cashCents]);
+    // Strong execution provenance and ledger must be in the SAME transaction:
+    // any missing approved schema, quote evidence or insert failure rolls back
+    // the cash update, position update, order and cash ledger together.
+    if (persistQuoteEvidence) await persistQuoteEvidence(client,{
+      id:newOrderId,accountId,...order
+    });
     await client.query("COMMIT");transactionStarted=false;
     return {replayed:false,order:{id:newOrderId,...order},cashCents:updated.cashCents,position};
   } catch(error) {
