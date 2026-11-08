@@ -40,6 +40,11 @@ test('login keeps original design animation, mobile rules and role-specific real
 test('new phone visuals retain the administrator mirror and request/support endpoints',()=>{
  const mobile=read('mobile.html'),admin=read('admin.html'),front=read('index.html');
  assert.match(mobile,/cn-page-topfade/);
+ for(const phone of ['mobile.html','cn-terminal.html']){
+  const screen=read(phone);
+  assert.equal((screen.match(/@media\\(max-width:599px\\)/g)||[]).length,4,phone+' should fill common modern phone widths');
+  assert.doesNotMatch(screen,/@media\\(max-width:420px\\)/);
+ }
  assert.match(mobile,/CN_MIRROR_READY/);
  assert.match(mobile,/\/api\/admin\/mirror\/session/);
  assert.match(mobile,/\/api\/requests/);
