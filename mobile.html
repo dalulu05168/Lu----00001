@@ -213,7 +213,13 @@ sync:'未连接',tab:'home',hi:0,ov:null,sh:null,filt:'全部',drg:'全部时间
 rg:'All',mode:'走势',mk:'US',q:'',qty:'1',lp:'',rk:0,od:null,tc:0,demo:0,sec:'股票',amt:'',sym:''};
 /* Query parameters cannot enable fake trading or quote data. */
 /* Account data must come from an authenticated server, never localStorage. */
-function save(){}
+	function save(){}
+	function token(){try{return sessionStorage.getItem('cn.cap.token')||''}catch(e){return ''}}
+	function setToken(v){try{if(v)sessionStorage.setItem('cn.cap.token',v);else sessionStorage.removeItem('cn.cap.token')}catch(e){}}
+	function accountHeaders(){var h={Accept:'application/json'};var t=token();if(t)h.Authorization='Bearer '+t;return h}
+	function applyAccount(v){var a=v&&v.account;if(!a)return false;D.auth=1;D.accountReady=true;D.acct=a.id||'';D.cash=typeof a.cashCents==='number'?a.cashCents/100:null;D.hold=(v.positions||[]).map(function(p){return{s:p.symbol,q:Number(p.quantity)||0,c:0,lots:[]}});D.ord=(v.orders||[]).map(function(o){return{id:o.id,s:o.symbol,t:o.side==='BUY'?'买入':o.side==='SELL'?'卖出':String(o.side||''),q:Number(o.quantity)||0,p:typeof o.priceCents==='number'?o.priceCents/100:null,a:typeof o.amountUsdCents==='number'?o.amountUsdCents/100:null,d:o.createdAt||''}});return true}
+	function loadAccount(){if(!window.CN_API_BASE||!token()){D.auth=0;D.accountReady=false;return Promise.resolve(false)}return fetch(window.CN_API_BASE+'/account',{headers:accountHeaders(),cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('account '+r.status);return r.json()}).then(function(v){if(!applyAccount(v))throw new Error('invalid account');R();return true}).catch(function(){setToken('');D.auth=0;D.accountReady=false;toast('登录状态已失效');R();return false})}
+	function login(){var u=D.user.trim(),p=D.lpw||'';if(!window.CN_API_BASE){toast('接口尚未上线');return}if(!u||!p)return;var b=root.getElementById('lg');if(b)b.disabled=true;fetch(window.CN_API_BASE+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({email:u,password:p}),cache:'no-store'}).then(function(r){return r.json().then(function(v){if(!r.ok)throw new Error(v.error||'登录失败');return v})}).then(function(v){if(!v.token)throw new Error('登录响应无会话');setToken(v.token);return loadAccount()}).then(function(ok){if(!ok)throw new Error('账户读取失败');D.lpw='';toast('登录成功');R()}).catch(function(e){setToken('');D.auth=0;toast(e.message==='Invalid credentials'?'账号或密码错误':'登录失败，请稍后重试');R()})}
 function pushNt(t){D.nt.unshift({t:t,d:now(),r:0});D.nt.length=Math.min(D.nt.length,50)}
 function RMQ(){return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)}
 function f(n){return typeof n==='number'&&isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}
@@ -469,7 +475,8 @@ try{var u=URL.createObjectURL(new Blob(['\ufeff'+c],{type:'text/csv'})),a=docume
 
 root.addEventListener('click',function(e){
 var t=e.target.closest('[data-a]');if(!t)return;var a=t.dataset.a,v=t.dataset.v,m='';
-  if(['login','place','cancelo','ksub','bsub','send','submit','qa','fav'].indexOf(a)>=0){toast('暂不可用，未执行操作');return;}
+	  if(a==='login'){login();return;}
+	  if(['place','cancelo','ksub','bsub','send','submit','qa','fav'].indexOf(a)>=0){toast('暂不可用，未执行操作');return;}
 if(a==='msg'){toast(v);return}
 if(a==='tab'){if(v==='trade'&&D.tab!=='trade')D.ten=1;D.tab=v;D.ov=null}
 else if(a==='hgo'){if(v&&CFG[v])D.sym=v;var r=t.getBoundingClientRect();D.src={x:r.left,y:r.top,w:r.width,h:r.height};D.tab='trade';D.ov=null}
@@ -491,7 +498,7 @@ else if(a==='rfp'){api('config');return}
 else if(a==='rfc'){api('chat');return}
 else if(a==='sym'){D.sym=v;D.lp='';D.qty=String(MQ())}
 else if(a==='pdk')D.pdk=D.pdk?0:1;
-else if(a==='logout'){D.auth=0;D.sh=null;D.cs=0;D.tab='home';D.ov=null}
+	else if(a==='logout'){var lt=token();setToken('');D.auth=0;D.sh=null;D.cs=0;D.tab='home';D.ov=null;if(window.CN_API_BASE&&lt)fetch(window.CN_API_BASE+'/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+lt}}).catch(function(){});}
 else if(a==='reset'){try{localStorage.removeItem('cncap.v1')}catch(x){}location.reload();return}
 else if(a==='rk')D.rk=D.rk?0:1;
 else if(a==='gotrade'){if(v&&CFG[v])D.sym=v;D.ten=1;D.tab='trade';D.ov=null}
@@ -528,8 +535,8 @@ if(D.kyc[k])URL.revokeObjectURL(D.kyc[k].u);D.kyc[k]={u:URL.createObjectURL(fl),
 setInterval(function(){var c=root.getElementById('clk');if(c)c.textContent=hm()},15000);
 setInterval(function(){if(FEAT.length<2||document.hidden||RMQ()||D.tab!=='home'||D.ov||D.sh||D.cs||D.rq!=null)return;var tr=root.getElementById('ctrack');if(!tr)return;if(D.hp){if(Date.now()<D.hp)return;D.hp=0;var vp=tr.parentNode;if(vp){vp.classList.remove('fin');void vp.offsetWidth;vp.classList.add('fin');setTimeout(function(){vp.classList.remove('fin')},900)}}hslide((D.hi||0)+1)},3800);
 addEventListener('resize',function(){if(D.ov==='AA')draw()});
-if(window.CN){CN.on(function(v){applyShared(v);R()});CN.pull()}
-R()}
+	if(window.CN){CN.on(function(v){applyShared(v);R()});CN.pull()}
+	R();if(token())loadAccount()}
 mountApp(document.getElementById('host'),document.getElementById('css').textContent);
 </script>
 </body>
