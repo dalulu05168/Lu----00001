@@ -9,7 +9,7 @@ const rights = Object.freeze({
 });
 const base = {symbol:'AAPL', name:'Apple Inc.', currency:'USD', mic_code:'XNAS', exchange:'NASDAQ',
   close:'148.85000', previous_close:'149.09000', last_quote_at:Math.floor((NOW-13_000)/1000), timestamp:0};
-const history = {meta:{symbol:'600519',name:'Kweichow Moutai',mic_code:'XSHG',exchange:'SSE',currency:'CNY'},
+const history = {meta:{symbol:'600519',mic_code:'XSHG',exchange:'SSE',currency:'CNY'},
   values:[{datetime:'2026-11-06',open:'1450.00',high:'1460.00',low:'1449.00',close:'1455.00',volume:'10000'},
           {datetime:'2026-11-05',open:'1445.00',high:'1457.00',low:'1443.00',close:'1451.00',volume:'9000'}]};
 const ok = data => new Response(JSON.stringify(data),{status:200,headers:{'content-type':'application/json'}});
@@ -36,7 +36,7 @@ test('CN six-digit SSE quote and history are requested with explicit exchange',a
   const {adapter,calls}=make(q);
   const result=await adapter.getQuote({market:'CN',symbol:'600519'});
   assert.equal(result.currency,'CNY');assert.equal(result.price,1452);
-  assert.equal(calls[0].url.searchParams.get('exchange'),'SSE');
+  assert.equal(calls[0].url.searchParams.get('mic_code'),'XSHG');
   const h=make(history);
   const bars=await h.adapter.getHistory({market:'CN',symbol:'600519',outputsize:2});
   assert.deepEqual(bars.values.map(x=>x.datetime),['2026-11-05','2026-11-06']);
@@ -49,7 +49,7 @@ test('CN SZSE mapping is exact, and incorrect provider exchange rejected',async(
   const q={...base,symbol:'000001',name:'Ping An Bank',currency:'CNY',mic_code:'XSHE',exchange:'SZSE'};
   const {adapter,calls}=make(q);
   await adapter.getQuote({market:'CN',symbol:'000001'});
-  assert.equal(calls[0].url.searchParams.get('exchange'),'SZSE');
+  assert.equal(calls[0].url.searchParams.get('mic_code'),'XSHE');
   await assert.rejects(make({...q,mic_code:'XSHG'}).adapter.getQuote({market:'CN',symbol:'000001'}),{code:'PROVIDER_IDENTITY_MISMATCH'});
 });
 
@@ -80,7 +80,7 @@ test('fail closed with no API key, invalid symbols, or unrecognized markets',asy
 
 test('invalid source identity, currency, precision and volumes never return valid quotes',async()=>{
   for(const value of [{...base,currency:'CNY'}, {...base,symbol:'MSFT'}, {...base,mic_code:'XSHG'},
-    {...base,close:'148.851'}, {...base,close:'0.00000'}]){
+    {...base,close:'148.8500001'}, {...base,close:'0.00000'}]){
     await assert.rejects(make(value).adapter.getQuote({market:'US',symbol:'AAPL'}));
   }
   await assert.rejects(make({...history,values:[{...history.values[0],volume:'-3'}]}).adapter.getHistory({market:'CN',symbol:'600519'}),
@@ -112,4 +112,18 @@ test('history rejects duplicate bars and inconsistent OHLC, and limits request s
 
 test('rejects impossible future historical dates', async()=>{
   await assert.rejects(make({...history,values:[{...history.values[0],datetime:'2099-11-06'}]}).adapter.getHistory({market:'CN',symbol:'600519'}), {code:'INVALID_HISTORY_DATE'});
+});
+
+test('provider five-decimal display prices stay exact; subcent prices cannot become cent-only order prices',async()=>{
+  const x=make({...base,close:'148.85001',previous_close:'149.09000'});
+  const quote=await x.adapter.getQuote({market:'US',symbol:'AAPL'});
+  assert.equal(quote.price,148.85001);
+  assert.equal(quote.priceCents,null);
+  assert.equal(quote.change,-0.23999);
+  await assert.rejects(x.adapter.getQuote({market:'US',symbol:'AAPL'},{purpose:'internalSimulationPricing'}),
+    {code:'SUBCENT_ORDER_PRICING_UNSUPPORTED'});
+});
+
+test('Shanghai B-share symbols are not mistaken for CNY-denominated A shares',async()=>{
+  await assert.rejects(make().adapter.getQuote({market:'CN',symbol:'900901'}),{code:'UNSUPPORTED_INSTRUMENT'});
 });
