@@ -8,6 +8,7 @@ const US_SYMBOL = /^[A-Z][A-Z0-9.-]{0,23}$/;
 const CN_SYMBOL = /^\d{6}$/;
 const US_MICS = new Set(['XNAS', 'XNYS', 'XASE', 'ARCX', 'XNGS', 'XNMS', 'XNCM', 'BATS']);
 const INTERVALS = new Set(['1min', '5min', '15min', '1day', '1week', '1month']);
+const EXCHANGE_TIMEZONES = Object.freeze({US: 'America/New_York', CN: 'Asia/Shanghai'});
 
 function error(code) {
   return Object.assign(new Error(code), {code, statusCode: 503});
@@ -124,7 +125,7 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
     if (res.status === 429) throw error('PROVIDER_RATE_LIMITED');
     if (!res.ok) throw error('PROVIDER_HTTP_ERROR');
     const data = await boundedJson(res, maxResponseBytes);
-    if (!data || typeof data !== 'object' || data.status === 'error' || data.code) {
+    if (!data || typeof data !== 'object' || Array.isArray(data) || data.status === 'error' || data.code) {
       throw error('PROVIDER_REJECTED_REQUEST');
     }
     return data;
@@ -165,14 +166,21 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
     if (wanted.mic) params.mic_code = wanted.mic;
     const data = await request('time_series', params);
     const meta = identity(data.meta, wanted, {requireName: false});
+    if (data.meta?.interval !== interval || data.meta?.exchange_timezone !== EXCHANGE_TIMEZONES[market]) {
+      throw error('PROVIDER_HISTORY_METADATA_MISMATCH');
+    }
     if (!Array.isArray(data.values) || data.values.length === 0 || data.values.length > outputsize) {
       throw error('INVALID_HISTORY_SERIES');
     }
     const rows = data.values.map(row => {
       const dateTime = String(row?.datetime ?? '');
       const pattern = interval.includes('min') ? /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/ : /^\d{4}-\d{2}-\d{2}$/;
-      const calendarMs = Date.parse(dateTime.slice(0, 10) + 'T00:00:00Z');
-      if (!pattern.test(dateTime) || !Number.isFinite(calendarMs) || calendarMs > now() + 86_400_000) {
+      const datePart = dateTime.slice(0, 10);
+      const calendarMs = Date.parse(datePart + 'T00:00:00Z');
+      const validDay = Number.isFinite(calendarMs) && new Date(calendarMs).toISOString().slice(0, 10) === datePart;
+      const validClock = !interval.includes('min') || (Number(dateTime.slice(11, 13)) < 24 &&
+        Number(dateTime.slice(14, 16)) < 60 && Number(dateTime.slice(17, 19)) < 60);
+      if (!pattern.test(dateTime) || !validDay || !validClock || calendarMs > now() + 86_400_000) {
         throw error('INVALID_HISTORY_DATE');
       }
       const openMicros = priceMicros(row.open), highMicros = priceMicros(row.high);
@@ -187,7 +195,7 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
       if (rows[i].datetime === rows[i - 1].datetime) throw error('DUPLICATE_HISTORY_BAR');
     }
     return Object.freeze({status: 'HISTORICAL', market, symbol, ...meta, currency: wanted.currency,
-      interval, timezone: interval.includes('min') ? (market === 'CN' ? 'Asia/Shanghai' : 'America/New_York') : 'EXCHANGE_LOCAL_DATE',
+      interval, timezone: data.meta.exchange_timezone,
       source: SOURCE, values: rows});
   }
 
