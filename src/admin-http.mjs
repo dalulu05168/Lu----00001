@@ -36,7 +36,7 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/activate":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
-    "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
+    "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/audit":["GET"],"/api/catalog":["GET"]
   };
   if(!allowed[route]){response(res,404,{error:"Not found"});return true;}
   if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
@@ -78,6 +78,12 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     if(route==="/api/admin/clients"){
       response(res,200,{items:await listClients(db,actor)});return true;
+    }
+    if(route==="/api/admin/audit"){
+      if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true;}
+      const audit=await db.query(`SELECT id,action,actor_user_id,target_id,details,created_at
+        FROM admin_audit_events ORDER BY id DESC LIMIT 100`);
+      response(res,200,{items:audit.rows});return true;
     }
     if(route==="/api/admin/listings"){
       if(req.method!=="GET"&&actor.role!=="MASTER"){

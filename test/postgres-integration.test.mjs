@@ -322,9 +322,25 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     const catalog=await req("/api/catalog",{token:clientLogin.data.token});
     assert.equal(catalog.status,200);
     assert.ok(catalog.data.items.some(item=>item.symbol==="IPO123"));
+    // Only the master may retrieve the append-only audit trail.
+    const subAudit=await req("/api/admin/audit",{token:subAdmin.data.token});
+    assert.equal(subAudit.status,403);
+    const clientAudit=await req("/api/admin/audit",{token:clientLogin.data.token});
+    assert.equal(clientAudit.status,403);
+    const missingAudit=await req("/api/admin/audit");
+    assert.equal(missingAudit.status,401);
+    const auditResponse=await req("/api/admin/audit",{token:masterToken});
+    assert.equal(auditResponse.status,200);
+    assert.ok(Array.isArray(auditResponse.data.items));
+    assert.ok(auditResponse.data.items.some(item=>item.action==="ADMIN_LOGIN"));
+    assert.ok(auditResponse.data.items.some(item=>item.action==="LISTING_CREATED"));
     assert.equal(JSON.stringify(catalog.data).includes("simulationOnly"),false);
     assert.equal(JSON.stringify(catalog.data).includes("discountPercent"),false);
     assert.equal(JSON.stringify(catalog.data).includes("purchase_password"),false);
+    const unpublished=await req("/api/admin/listings",{method:"PATCH",token:masterToken,body:{
+      id:masterListing.data.id,status:"DRAFT"
+    }});
+    assert.equal(unpublished.status,200);
     const masterClients=await req("/api/admin/clients",{token:masterToken});
     assert.equal(masterClients.status,200);
     assert.ok(masterClients.data.items.some(item=>item.email===attachedEmail));
@@ -337,7 +353,7 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
     const audit=await db.query(`SELECT action,actor_user_id,target_id,details
       FROM admin_audit_events ORDER BY id`);
     const actions=audit.rows.map(row=>row.action);
-    for(const required of ["ADMIN_CREATED","ADMIN_2FA_ENABLED","ADMIN_LOGIN","LISTING_CREATED"])
+    for(const required of ["ADMIN_CREATED","ADMIN_2FA_ENABLED","ADMIN_LOGIN","LISTING_CREATED","LISTING_STATUS_CHANGED"])
       assert.ok(actions.includes(required),required);
     assert.ok(audit.rows.some(row=>row.action==="LISTING_CREATED" &&
       row.target_id===masterListing.data.id && row.actor_user_id===setup.data.userId || 
