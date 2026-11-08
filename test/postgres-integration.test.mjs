@@ -301,7 +301,7 @@ run("PostgreSQL: master TOTP, scoped subadmin invitations and securities directo
       await import("../web/cn-design-client.mjs?postgres-desktop");
       await window.CN_REFRESH();
       assert.equal(window.document.querySelector('[data-b="cash"]').textContent, "0.00");
-      await window.CN_FAVORITE("US:AA");
+      await window.CN_FAVORITE("AA");
       assert.match(window.document.querySelector("#tb-watch").textContent, /US:AA/);
     });
     await withPage(base, "cn-mobile", async window => {
