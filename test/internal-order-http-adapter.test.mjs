@@ -8,13 +8,16 @@ const body={side:"BUY",market:"US",symbol:"AAPL",quantity:2};
 const receipt={
  id,side:"BUY",market:"US",symbol:"AAPL",quantity:2,
  unitPriceCents:10000,fxUsdMicros:1000000,amountUsdCents:20000,
- execution:"INTERNAL_ONLY",cashDeltaCents:-20000
+ execution:"INTERNAL_ONLY",cashDeltaCents:-20000,
+ quoteSource:"SERVER_TEST",quoteTimestampMs:Date.parse("2026-11-08T01:00:00Z"),
+ quoteCurrency:"USD"
 };
 const confirmed={
  replayed:false,order:{
   id,...body,priceCents:10000,fxUsdMicros:1000000,
   amountCents:20000,execution:"INTERNAL_ONLY"
- },receipt,quote:{priceCents:10000,currency:"USD",source:"SERVER_TEST"}
+ },receipt,quote:{priceCents:10000,currency:"USD",source:"SERVER_TEST",
+ timestampMs:receipt.quoteTimestampMs}
 };
 function call(overrides={}){
  return postVerifiedInternalOrder({
@@ -65,6 +68,13 @@ test("response is never successful without verified matching committed order and
   {...confirmed,receipt:undefined},
   {...confirmed,receipt:{...receipt,id:randomUUID()}},
   {...confirmed,receipt:{...receipt,amountUsdCents:19999}},
+  {...confirmed,receipt:{...receipt,cashDeltaCents:-19999}},
+  {...confirmed,receipt:{...receipt,side:"SELL"}},
+  {...confirmed,receipt:{...receipt,fxUsdMicros:500000}},
+  {...confirmed,receipt:{...receipt,unitPriceCents:9999}},
+  {...confirmed,receipt:{...receipt,quoteSource:"OTHER"}},
+  {...confirmed,quote:{...confirmed.quote,priceCents:9999}},
+  {...confirmed,quote:{...confirmed.quote,currency:"CNY"}},
  ];
  for(const response of corrupt)
   await assert.rejects(call({execute:async()=>response}),
