@@ -14,6 +14,36 @@ const DOC_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/;
 const MAX_RESPONSE_BYTES = 2_000_000;
 const DEFAULT_TTL_MS = 15 * 60_000;
 
+async function limitedJsonText(response) {
+  // Node fetch exposes a Web ReadableStream. Enforce the cap *while* reading,
+  // not only after response.text() has already allocated an unbounded body.
+  if (response.body && typeof response.body.getReader === 'function') {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8', {fatal: true});
+    let length = 0, text = '';
+    try {
+      for (;;) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        if (!(value instanceof Uint8Array)) throw unavailable();
+        length += value.byteLength;
+        if (length > MAX_RESPONSE_BYTES) {
+          await reader.cancel().catch(()=>{});
+          throw unavailable();
+        }
+        text += decoder.decode(value, {stream: true});
+      }
+      text += decoder.decode();
+      return text;
+    } finally {reader.releaseLock();}
+  }
+  // Test doubles without a body stream still support the regular text path;
+  // production Node HTTP responses are streaming and bounded above.
+  const text = await response.text();
+  if (Buffer.byteLength(text, 'utf8') > MAX_RESPONSE_BYTES) throw unavailable();
+  return text;
+}
+
 function unavailable() {
   return Object.assign(new Error('SEC EDGAR filings unavailable'), {statusCode: 503});
 }
@@ -88,8 +118,7 @@ export function createSecEdgarClient({
       if (!res.ok || !String(res.headers?.get?.('content-type') ?? '').toLowerCase().includes('json')) throw unavailable();
       const headerLength = Number(res.headers?.get?.('content-length'));
       if (Number.isFinite(headerLength) && headerLength > MAX_RESPONSE_BYTES) throw unavailable();
-      const body = await res.text();
-      if (Buffer.byteLength(body, 'utf8') > MAX_RESPONSE_BYTES) throw unavailable();
+      const body = await limitedJsonText(res);
       const parsed = filingsFromResponse(JSON.parse(body), cik, now());
       cache.delete(cik);
       cache.set(cik, {data: parsed, fetchedAt: now()});
