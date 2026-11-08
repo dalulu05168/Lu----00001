@@ -1,0 +1,57 @@
+name: Admin stage 2 isolated acceptance
+on:
+  push:
+    branches: ['dev/admin-stage2-compatible-20261108']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  admin-unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Validate backend source
+        run: |
+          node --check src/admin-client-analytics.mjs
+          node --check src/admin-totp-replay.mjs
+          node --check src/admin-http.mjs
+          node --check src/admin-service.mjs
+          node --check test/admin-stage2-postgres.test.mjs
+      - name: Admin isolated regression
+        run: |
+          node --test test/admin-client-analytics.test.mjs test/admin-client-analytics-route.test.mjs test/admin-totp-replay.test.mjs test/admin-login-minimal.test.mjs
+      - name: Full Node test suite
+        run: npm test
+  admin-postgres:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: admin_stage2_isolated
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d admin_stage2_isolated"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:isolated-only-password@127.0.0.1:5432/admin_stage2_isolated
+      TEST_DATABASE_URL: postgres://postgres:isolated-only-password@127.0.0.1:5432/admin_stage2_isolated
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Baseline QA schema 001-022 on ephemeral PostgreSQL only
+        run: npm run migrate
+      - name: Apply 023 candidate only inside the isolated test process
+        run: node --test test/admin-stage2-postgres.test.mjs
