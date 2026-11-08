@@ -516,9 +516,9 @@ function login(){
  if(btn)btn.disabled=true;
  fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:u.value.trim(),password:p.value})})
   .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||'登录失败');return j})})
-  .then(function(j){window.CN_SET_TOKEN(j.token);D.user=u.value.trim();D.auth=1;D.sync='已登录';R();return fetch('/api/account')})
+  .then(function(j){if(typeof j.token!=='string'||j.token.length<12)throw new Error('无效会话');window.CN_SET_TOKEN(j.token);D.user=u.value.trim();return fetch('/api/account')})
   .then(function(r){if(!r.ok)throw new Error('账户读取失败');return r.json()})
-  .then(function(j){var a=j.account||{};D.cash=typeof a.cashCents==='number'?a.cashCents/100:null;D.acct=a.id||'';D.accountReady=true;D.ordersReady=Array.isArray(j.orders);D.ord=Array.isArray(j.orders)?j.orders:[];D.hold=Array.isArray(j.positions)?j.positions:[];D.sync=now();R()})
+  .then(function(j){var a=j.account||{};if(!a.id)throw new Error('账户验证未完成');D.cash=Number.isSafeInteger(a.cashCents)?a.cashCents/100:null;D.acct=a.id;D.accountReady=true;D.ordersReady=Array.isArray(j.orders);D.ord=Array.isArray(j.orders)?j.orders:[];D.hold=Array.isArray(j.positions)?j.positions:[];D.auth=1;D.sync=now();R()})
   .catch(function(e){window.CN_SET_TOKEN(null);D.auth=0;R();toast(e.message||'登录失败')});
 }
 function R(){save();if(!D.auth){A.className='app g';A.innerHTML=loginView();return}var ae=root.activeElement,fk='';try{var d0=ae&&ae.closest&&ae.closest('[data-a]');if(d0)fk='[data-a="'+d0.dataset.a+'"]'+(d0.dataset.v!=null?'[data-v="'+d0.dataset.v+'"]':'')}catch(x){}
@@ -566,7 +566,7 @@ else if(a==='rfp'){api('config');return}
 else if(a==='rfc'){api('chat');return}
 else if(a==='sym'){D.sym=v;D.lp='';D.qty=String(MQ())}
 else if(a==='pdk')D.pdk=D.pdk?0:1;
-else if(a==='logout'){fetch('/api/auth/logout',{method:'POST'}).catch(function(){});window.CN_SET_TOKEN(null);D.auth=0;D.accountReady=false;D.sh=null;D.cs=0;D.tab='home';D.ov=null}
+else if(a==='logout'){var tok='';try{tok=localStorage.getItem('cncap.session')||''}catch(ignore){}D.auth=0;D.accountReady=false;D.sh=null;D.cs=0;D.tab='home';D.ov=null;fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+tok},cache:'no-store',keepalive:true}).catch(function(){}).finally(function(){window.CN_SET_TOKEN(null);location.replace('/login.html')});return}
 else if(a==='reset'){try{localStorage.removeItem('cncap.v1')}catch(x){}location.reload();return}
 else if(a==='rk')D.rk=D.rk?0:1;
 else if(a==='gotrade'){if(v&&CFG[v])D.sym=v;D.ten=1;D.tab='trade';D.ov=null}
@@ -603,8 +603,21 @@ if(D.kyc[k])URL.revokeObjectURL(D.kyc[k].u);D.kyc[k]={u:URL.createObjectURL(fl),
 setInterval(function(){var c=root.getElementById('clk');if(c)c.textContent=hm()},15000);
 setInterval(function(){if(FEAT.length<2||document.hidden||RMQ()||D.tab!=='home'||D.ov||D.sh||D.cs||D.rq!=null)return;var tr=root.getElementById('ctrack');if(!tr)return;if(D.hp){if(Date.now()<D.hp)return;D.hp=0;var vp=tr.parentNode;if(vp){vp.classList.remove('fin');void vp.offsetWidth;vp.classList.add('fin');setTimeout(function(){vp.classList.remove('fin')},900)}}hslide((D.hi||0)+1)},3800);
 addEventListener('resize',function(){if(D.ov==='AA')draw()});
-if(window.CN){CN.on(function(v){applyShared(v);R()});CN.pull()}
-R()}
+if(window.CN){CN.on(function(v){applyShared(v);if(D.auth)R()});CN.pull()}
+(function restoreUnifiedLogin(){
+ var token='';try{token=localStorage.getItem('cncap.session')||''}catch(ignore){}
+ if(!token){location.replace('/login.html');return}
+ A.className='app g';A.innerHTML='<div role="status" style="padding:28px;color:#a8b9cb">正在验证登录状态…</div>';
+ fetch('/api/account',{headers:{Authorization:'Bearer '+token,Accept:'application/json'},cache:'no-store',credentials:'same-origin'})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+  .then(function(j){var account=j&&j.account;if(!account||!account.id)throw new Error('账户验证失败');
+    D.acct=account.id;D.cash=Number.isSafeInteger(account.cashCents)?account.cashCents/100:null;
+    D.ordersReady=Array.isArray(j.orders);D.ord=D.ordersReady?j.orders:[];
+    D.hold=Array.isArray(j.positions)?j.positions:[];D.accountReady=true;D.auth=1;D.sync=now();R()})
+  .catch(function(err){if(/HTTP (401|403)/.test(String(err&&err.message)))window.CN_SET_TOKEN(null);
+    D.auth=0;D.accountReady=false;location.replace('/login.html')});
+})()
+}
 mountApp(document.getElementById('host'),document.getElementById('css').textContent);
 </script>
 </body>
