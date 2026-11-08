@@ -14,6 +14,7 @@ function normalizeIntent(request) {
  if(!request||typeof request!=="object"||Array.isArray(request)||
     Object.keys(request).some(k=>!["side","market","symbol","quantity"].includes(k))||
     !["BUY","SELL"].includes(request.side) ||
+    typeof request.symbol!=="string" ||
     !(request.market==="US" ? US.test(request.symbol??"") :
       request.market==="CN" ? CN.test(request.symbol??"") : false) ||
     !Number.isSafeInteger(request.quantity) || request.quantity<1 || request.quantity>1_000_000)
