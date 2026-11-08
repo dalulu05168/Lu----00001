@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+
+const root = process.argv[2] || process.cwd();
+const pages = ['前台.html', '手机端.html', '后台.html'];
+const bar = (day, extra = {}) => ({t:day, o:100, h:103, l:98, c:101, v:0, ...extra});
+let cases = 0;
+for (const page of pages) {
+  const html = readFileSync(path.join(root,page),'utf8');
+  assert.doesNotMatch(html, /function bridge\s*\(/, `${page}: fake intraday splitter`);
+  assert.doesNotMatch(html, /rnd\(\)\s*\*\s*9e4/, `${page}: fake volume`);
+  assert.doesNotMatch(html, /2026-01-01/, `${page}: frozen YTD date`);
+  const marker = '/* K 线/分时只过滤实际收到的 OHLCV';
+  const from = html.indexOf(marker);
+  const to = html.indexOf('function vol(v)', from);
+  assert.ok(from >= 0 && to > from, `${page}: chart gate source missing`);
+  const source = html.slice(from, to);
+  const scope = {DL:[], ST:{rg:'All'}, D:{rg:'All'}, Date, isFinite};
+  vm.createContext(scope);
+  vm.runInContext(source, scope, {filename:page});
+  const select = (range, rows) => {
+    scope.DL = rows;
+    scope.ST.rg = range;
+    scope.D.rg = range;
+    return vm.runInContext('ser()', scope);
+  };
+  assert.equal(select('1D',[]).length,0,`${page}: unavailable source must stay empty`); cases++;
+  const daily = ['2027-01-01','2027-01-02','2027-01-03','2027-01-04','2027-01-05','2027-01-06'].map(barDay=>bar(barDay));
+  const day = select('1D', daily);
+  assert.equal(day.length,1,`${page}: one daily bar cannot turn into 78 intraday bars`);
+  assert.strictEqual(day[0],daily[5],`${page}: retain true source candle`); cases++;
+  const five = select('5D',daily);
+  assert.equal(five.length,5,`${page}: five daily candles cannot turn into 65 artificial bars`);
+  assert.strictEqual(five[0],daily[1]);
+  assert.ok(five.every(b=>b.v===0),`${page}: never synthesize trading volume`); cases++;
+  const intraday=[bar('2027-01-05T09:30:00Z'),bar('2027-01-06T09:30:00Z'),bar('2027-01-06T09:31:00Z',{v:3})];
+  const minute = select('1D',intraday);
+  assert.equal(minute.length,2,`${page}: only actual intraday ticks`);
+  assert.strictEqual(minute[1],intraday[2]); cases++;
+  const malformed=[bar('2027-01-05',{h:90}),bar('2027-01-06',{l:-1}),bar('2027-01-07',{c:NaN}),bar('bad-date'),bar('2027-01-08')];
+  const valid=select('All',malformed);
+  assert.equal(valid.length,1,`${page}: skip malformed/invalid quote bars`);
+  assert.strictEqual(valid[0],malformed[4]); cases++;
+  const annual=select('YTD',[bar('2026-12-30'),bar('2027-01-02'),bar('2027-02-01')]);
+  assert.equal(annual.length,2,`${page}: YTD must use last actual bar year, not fixed 2026`); cases++;
+  const month=select('1M',[bar('2026-11-01'),bar('2027-01-01'),bar('2027-01-10')]);
+  assert.equal(month.length,2,`${page}: 1M must use dated source records`); cases++;
+}
+console.log(`UI_CHART_SOURCE_OK: ${pages.length} screens, ${cases} isolated chart-source assertions passed (test fixtures only)`);
