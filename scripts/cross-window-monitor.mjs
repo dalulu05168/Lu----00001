@@ -41,7 +41,7 @@ export function renderDashboard({issueState,acks,branches}){
     '',
     '**说明：** 本评论由 GitHub Actions 按计划更新。ACK 仅证明留言存在；CI 仅证明对应提交的自动化作业结果。所有模块的真实业务验收仍需要受控 API、数据库、权限、浏览器等证据。此机制不会自动唤醒独立 GPT 窗口，也不会自动部署。',
     '',
-    `- 协作 Issue #`{ISSUE} 状态：**`{issueState==='open'?'Open':'Closed（保留原状）'}**`,
+    `- 协作 Issue #${ISSUE} 状态：**${issueState==='open'?'Open':'Closed（保留原状）'}**`,
     '- 门禁：**数据库迁移、账户/资金写入、跨分支合并、生产发布均需单独人工批准**。',
     '',
     '| 责任窗口 | 已读 ACK 证据 | 分支与最新提交 | 对应提交 CI |',
@@ -49,16 +49,16 @@ export function renderDashboard({issueState,acks,branches}){
   ];
   for(const ack of acks){
     const group=WINDOWS.find(w=>w.key===ack.key);
-    const ackCell=ack.commentUrl?`[已留回执](`{ack.commentUrl})`:'尚无匹配 ACK';
+    const ackCell=ack.commentUrl?`[已留回执](${ack.commentUrl})`:'尚无匹配 ACK';
     const items=branches.filter(b=>group.branches.includes(b.name));
-    const branchCell=items.length?items.map(b=>b.found?`\`{esc(b.name)}\ @ \`{esc(b.sha?.slice(0,12))}\`:`\`{esc(b.name)}\（未找到）`).join('<br>'):'未记录';
+    const branchCell=items.length?items.map(b=>b.found?esc(b.name)+' @ '+esc(b.sha?.slice(0,12)):esc(b.name)+'（未找到）').join('<br>'):'未记录';
     const ciCell=items.length?items.map(b=>{
       if(!b.found)return '未知';
       if(!b.ci||b.ci.state==='no-evidence')return '未找到当前 SHA 的 CI';
       const labels={'ci-pass':'CI 通过（非业务验收）','ci-failed':'CI 未通过','pending':'CI 待完成'};
-      return b.ci.url?`[`{labels[b.ci.state]}](`{b.ci.url})`:labels[b.ci.state];
+      return b.ci.url?`[${labels[b.ci.state]}](${b.ci.url})`:labels[b.ci.state];
     }).join('<br>'):'未核实';
-    lines.push(`| `{esc(group.label)} | `{ackCell} | `{branchCell} | `{ciCell} |`);
+    lines.push(`| ${esc(group.label)} | ${ackCell} | ${branchCell} | ${ciCell} |`);
   }
   lines.push('',
     '**待确认 P0：** 共享 QA 双阶段 2FA 与新后台单阶段实现冲突；Neon main 的迁移 001–005 与 QA 的另一套 001–022 不可按同编号覆盖；正式环境的部署 SHA、连接数据库、资金/审批和真实交易能力尚无完整验收。',
@@ -69,39 +69,39 @@ export function renderDashboard({issueState,acks,branches}){
   return lines.join('\n');
 }
 function ghHeaders(){
-  return {accept:'application/vnd.github+json',authorization:`Bearer `{TOKEN}`,
+  return {accept:'application/vnd.github+json',authorization:`Bearer ${TOKEN}`,
     'x-github-api-version':'2022-11-28','user-agent':'gsp-cross-window-monitor','content-type':'application/json'};
 }
 async function gh(path,options={}){
-  const res=await fetch(`https://api.github.com`{path}`,{...options,headers:ghHeaders()});
+  const res=await fetch(`https://api.github.com${path}`,{...options,headers:ghHeaders()});
   if(res.status===404&&options.allow404)return null;
-  if(!res.ok)throw new Error(`GitHub request failed (`{res.status}) for `{path}: `{(await res.text()).slice(0,250)}`);
+  if(!res.ok)throw new Error(`GitHub request failed (${res.status}) for ${path}: ${(await res.text()).slice(0,250)}`);
   return res.status===204?null:res.json();
 }
 async function pages(path,limit=10){
   const all=[];
   for(let page=1;page<=limit;page++){
-    const values=await gh(``{path}`{path.includes('?')?'&':'?'}per_page=100&page=`{page}`);
+    const values=await gh(`${path}${path.includes('?')?'&':'?'}per_page=100&page=${page}`);
     all.push(...values);
     if(values.length<100)return all;
   }
-  throw new Error(`Pagination limit exceeded for `{path}; refusing incomplete evidence`);
+  throw new Error(`Pagination limit exceeded for ${path}; refusing incomplete evidence`);
 }
 export async function monitor(){
   if(!TOKEN)throw new Error('GITHUB_TOKEN missing; refusing unauthenticated run');
   if(!/^[\w.-]+\/[\w.-]+$/.test(REPO))throw new Error('Invalid repository');
   if(!Number.isSafeInteger(ISSUE)||ISSUE<1)throw new Error('Invalid issue number');
-  const root=`/repos/`{REPO}`;
-  const issue=await gh(``{root}/issues/`{ISSUE}`);
-  const comments=await pages(``{root}/issues/`{ISSUE}/comments`);
+  const root=`/repos/${REPO}`;
+  const issue=await gh(`${root}/issues/${ISSUE}`);
+  const comments=await pages(`${root}/issues/${ISSUE}/comments`);
   const acks=discoverAcks(comments);
   const names=[...new Set(WINDOWS.flatMap(group=>group.branches))],branches=[];
   for(const name of names){
-    const branch=await gh(``{root}/branches/`{encodeURIComponent(name)}`,{allow404:true});
+    const branch=await gh(`${root}/branches/${encodeURIComponent(name)}`,{allow404:true});
     if(!branch){branches.push({name,found:false});continue;}
     const sha=branch.commit?.sha;
-    if(!/^[0-9a-f]{40}$/.test(sha||''))throw new Error(`Invalid SHA for `{name}`);
-    const runs=await gh(``{root}/actions/runs?branch=`{encodeURIComponent(name)}&per_page=30`);
+    if(!/^[0-9a-f]{40}$/.test(sha||''))throw new Error(`Invalid SHA for ${name}`);
+    const runs=await gh(`${root}/actions/runs?branch=${encodeURIComponent(name)}&per_page=30`);
     branches.push({name,found:true,sha,ci:latestCiForSha(runs.workflow_runs,sha)});
   }
   const body=renderDashboard({issueState:issue.state,acks,branches});
@@ -111,9 +111,9 @@ export async function monitor(){
     return {changed:false,commentId:prior.id};
   }
   const saved=prior
-    ?await gh(``{root}/issues/comments/`{prior.id}`,{method:'PATCH',body:JSON.stringify({body})})
-    :await gh(``{root}/issues/`{ISSUE}/comments`,{method:'POST',body:JSON.stringify({body})});
-  process.stdout.write(`Dashboard `{prior?'updated':'created'}: `{saved.html_url}\n`);
+    ?await gh(`${root}/issues/comments/${prior.id}`,{method:'PATCH',body:JSON.stringify({body})})
+    :await gh(`${root}/issues/${ISSUE}/comments`,{method:'POST',body:JSON.stringify({body})});
+  process.stdout.write(`Dashboard ${prior?'updated':'created'}: ${saved.html_url}\n`);
   return {changed:true,commentId:saved.id};
 }
 if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
