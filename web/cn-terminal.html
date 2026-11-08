@@ -606,7 +606,7 @@ if(window.CN){CN.on(function(v){applyShared(v);if(D.auth)R()});CN.pull()}
   D.accountReady=true;D.auth=1;D.sync=now();R()})
  .catch(function(){window.CN_SET_TOKEN(null);D.auth=0;location.replace('/login.html')});
 })();
-
+}
 mountApp(document.getElementById('host'),document.getElementById('css').textContent);
 </script>
 </body>
