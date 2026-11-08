@@ -1,0 +1,31 @@
+name: Cross-window coordination evidence monitor
+
+# Scheduled Actions run only from the repository default branch.
+# No PR merges, deployments, migrations, or production account writes.
+'on':
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  issues: write
+concurrency:
+  group: cross-window-monitor-issue42
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify monitor (no external writes)
+        run: node --test test/cross-window-monitor.test.mjs
+      - name: Refresh Issue 42 evidence snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COORDINATION_ISSUE: '42'
+        run: node scripts/cross-window-monitor.mjs
