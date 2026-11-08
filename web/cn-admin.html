@@ -349,6 +349,7 @@ var hold=reduce?400:2500;setTimeout(function(){sp.classList.add('cn-off');setTim
 <div class="right">
 <button class="btn" id="hidebtn" data-own aria-pressed="false">隐藏金额</button>
 <input class="sr" type="search" placeholder="搜索客户邮箱或编号  按 / 聚焦" aria-label="搜索客户邮箱或编号">
+<button class="btn" id="cnAdminSignout" type="button">退出登录</button>
 <div class="av" title="管理员">G</div></div>
 </header>
 
@@ -1268,5 +1269,16 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
  });
  sbChk();edChk();subPassChk();subLockChk();
 })();</script>
+<script id="cn-admin-unified-logout">
+(function(){
+ var b=document.getElementById('cnAdminSignout');if(!b)return;
+ b.addEventListener('click',function(){
+  if(b.disabled)return;b.disabled=true;
+  var token='';try{token=localStorage.getItem('cncap.session')||''}catch(ignore){}
+  var task=token?fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store',keepalive:true}).catch(function(){return null}):Promise.resolve();
+  task.finally(function(){if(window.CN_SET_TOKEN)window.CN_SET_TOKEN(null);else try{localStorage.removeItem('cncap.session')}catch(ignore){};location.replace('/login.html')});
+ });
+})();
+</script>
 </body>
 </html>
