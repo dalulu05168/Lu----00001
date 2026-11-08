@@ -1,18 +1,21 @@
 # Security implementation status
 
 ## Implemented foundations
-- Passwords hashed with per-password random salt using Node scrypt.
-- Session tokens generated with cryptographic randomness; only SHA-256 digests stored.
-- Session lookup checks expiry, revocation and account ownership.
-- Order API derives account ID from the authenticated session.
-- Order API refuses to process orders without trusted server-side price and FX verification.
-- No broker order routing.
+
+- Passwords are hashed with Node.js `scrypt` and per-password random salts.
+- Session tokens are generated with cryptographic randomness; only SHA-256 digests are stored.
+- Session lookup checks expiry and revocation and resolves the account server-side.
+- Registration, login, logout, and protected account/order HTTP routes are implemented.
+- The order API derives the account from the authenticated session and does not accept client-supplied execution prices or FX rates as authoritative.
+- The pricing gateway validates quote identity, freshness, provenance, and entitlement before it can authorize internal order pricing.
+- No broker order routing exists.
 
 ## Not yet implemented or verified
-- Registration/login HTTP routes, CSRF protection for cookie-based sessions, session rotation.
-- Request rate limiting, abuse detection, email verification and password reset.
-- PostgreSQL deployment and migrations execution against a real database.
-- Licensed quote provider and server-side quote entitlement verification.
-- Full integration tests, dependency scanning, security audit and production monitoring.
 
-Do not expose this development API to the public internet before these controls are implemented and reviewed.
+- Login rate limiting, abuse detection, verified email, and password reset.
+- Production TLS termination, deployment-specific CORS/origin policy, and review of browser session/CSRF controls.
+- Production PostgreSQL provisioning and migration execution; the real PostgreSQL integration suite requires a configured test database.
+- Live market-data credentials and licensed entitlements. The provider adapter currently retrieves US quotes; Alpha Vantage fallback quotes are not entitled for execution.
+- Production-grade funding audit/reconciliation, full browser E2E coverage, dependency scanning, security review, and monitoring.
+
+Keep `MARKET_DATA_EXECUTION_ENABLED=false` until quote rights, freshness, pricing policy, and accounting controls are verified. Do not expose this development service publicly before the remaining controls are implemented and reviewed. Internal orders do not reach a broker and do not represent real securities or withdrawable funds.
