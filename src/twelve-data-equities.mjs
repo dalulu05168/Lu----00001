@@ -150,6 +150,8 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
     const data = await request('quote', params);
     const meta = identity(data, wanted);
     const price = priceMicros(data.close);
+    // The existing client bridge needs exact integer micro-units. Never round
+    // a vendor sub-cent quote into a cent-denominated internal execution.
     const priceCents = price % 10_000 === 0 ? price / 10_000 : null;
     if (purpose === 'internalSimulationPricing' && priceCents === null) throw error('SUBCENT_ORDER_PRICING_UNSUPPORTED');
     const stamp = lastQuoteTime(data);
@@ -157,7 +159,8 @@ export function createTwelveDataEquities({apiKey, rights, fetchImpl = fetch, now
     const ageMs = validAge(stamp, checkedAtMs, maxQuoteAgeMs);
     const previousClose = data.previous_close == null ? null : priceMicros(data.previous_close);
     return Object.freeze({status: 'FRESH', stale: false, market, symbol, ...meta,
-      currency: wanted.currency, price: floatFromMicros(price), priceCents,
+      currency: wanted.currency, price: floatFromMicros(price),
+      priceMicros: price, priceCents,
       previousClose: previousClose == null ? null : floatFromMicros(previousClose),
       change: previousClose == null ? null : floatFromMicros(price - previousClose),
       percentChange: previousClose == null ? null : Number(((price - previousClose) / previousClose * 100).toFixed(5)),
