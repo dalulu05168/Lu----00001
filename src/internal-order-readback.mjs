@@ -45,8 +45,7 @@ export async function getVerifiedInternalOrderReceipt(db,accountId,orderId){
   const balance=num(r.balance_after_cents,{positive:false});
   if(quoted!==price||verifiedFx!==fx ||
      (r.market==="US"&&r.quote_currency!=="USD")||
-     (r.market==="CN"&&(r.quote_currency!=="CNY"||
-      !r.fx_at||!r.fx_source||!r.fx_license_ref)))throw failure("EVIDENCE_MISMATCH");
+     (r.market==="CN"&&r.quote_currency!=="CNY"))throw failure("EVIDENCE_MISMATCH");
   const calc=(quantity*price*fx+500_000n)/1_000_000n;
   if(calc!==total||calc>MAX)throw failure("ORDER_AMOUNT_MISMATCH");
   if(!["number","string"].includes(typeof r.delta_cents)||
