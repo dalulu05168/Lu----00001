@@ -1140,7 +1140,7 @@ window.addEventListener('resize',fitMirror);setTimeout(fitMirror,0);fitMirror();
   if(e.target===m||e.target.closest('[data-mc]')){shut(m);return}
   if(['ed-ok','sb-ok','sp-save','sublock-save','chat-send','cm-save','cf-ok'].indexOf(e.target.id)>=0){e.preventDefault();toast('管理接口未接入，未执行任何修改');return;}
   switch(e.target.id){
-   case'det-m':shut(m);var mir=q('[data-open="m-mir"]');if(mir)mir.click();break;
+   case'det-m':shut(m);var frame=q('#mirror-frame');if(frame)frame.src='mobile.html?embedded=1&mirror='+encodeURIComponent(currentCustomer);var mir=q('[data-open="m-mir"]');if(mir)mir.click();break;
    case'sec-bk':step(1);break;
    case'sec-ok':
     if(m.dataset.n==='1'&&m.dataset.mode!=='set'){step(2)}

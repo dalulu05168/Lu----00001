@@ -35,13 +35,13 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     "/api/admin/login":["POST"],"/api/admin/bootstrap":["POST"],
     "/api/admin/activate":["POST"],"/api/admin/me":["GET"],
     "/api/admin/subaccounts":["GET","POST"],"/api/admin/clients":["GET"],
-    "/api/admin/listings":["GET","POST","PATCH"],"/api/catalog":["GET"]
+    "/api/admin/listings":["GET","POST","PATCH"],"/api/admin/requests":["GET"],"/api/admin/messages":["GET","POST"],"/api/admin/mirror":["GET"],"/api/catalog":["GET"]
   };
   const requestMatch=route.match(/^\/api\/admin\/requests\/([0-9a-f-]+)$/i);
   const messageMatch=route.match(/^\/api\/admin\/messages\/([0-9a-f-]+)$/i);
   if(!allowed[route]&&!requestMatch&&!messageMatch){response(res,404,{error:"Not found"});return true;}
   if((requestMatch||messageMatch)&&req.method!=="PATCH"&&req.method!=="POST"){response(res,405,{error:"Method not allowed"});return true;}
-  if(!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
+  if(allowed[route]&&!allowed[route].includes(req.method)){response(res,405,{error:"Method not allowed"});return true;}
   try{
     if(route==="/api/admin/login"){
       const data=await input(req);
@@ -70,6 +70,20 @@ export async function handleAdminApi(req,res,route,db,resolveSession){
     }
     const actor=await roleFor(db,session);
     if(!actor){response(res,403,{error:"Administrator 2FA session required"});return true;}
+    if(route==="/api/admin/mirror"){
+      const email=new URL(req.url,"http://localhost").searchParams.get("email")?.trim().toLowerCase();
+      if(!email){response(res,400,{error:"Customer email required"});return true;}
+      const u=await db.query(`SELECT a.id,u.email,a.cash_cents,a.base_currency FROM app_users u JOIN accounts a ON a.user_id=u.id WHERE u.email=$1`,[email]);
+      if(!u.rows.length){response(res,404,{error:"Customer not found"});return true;}
+      const account=u.rows[0];
+      const [p,o,r,m]=await Promise.all([
+        db.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1 AND quantity>0 ORDER BY market,symbol",[account.id]),
+        db.query("SELECT id,market,symbol,side,quantity,price_cents,amount_usd_cents,created_at FROM orders WHERE account_id=$1 ORDER BY created_at DESC LIMIT 100",[account.id]),
+        db.query("SELECT id,request_type,amount_cents,payload,status,review_note,created_at,updated_at FROM customer_requests WHERE account_id=$1 ORDER BY created_at DESC LIMIT 100",[account.id]),
+        db.query("SELECT id,sender_role,body,created_at,read_at FROM support_messages WHERE account_id=$1 ORDER BY created_at ASC LIMIT 200",[account.id])
+      ]);
+      response(res,200,{mirror:true,customer:{email:account.email},account:{id:account.id,cashCents:Number(account.cash_cents),currency:account.base_currency},positions:p.rows,orders:o.rows,requests:r.rows,messages:m.rows});return true;
+    }
     if(route==="/api/admin/requests"){
       const data=await db.query(`SELECT r.id,r.account_id,r.request_type,r.amount_cents,r.payload,r.status,r.review_note,r.created_at,r.updated_at,u.email FROM customer_requests r JOIN accounts a ON a.id=r.account_id JOIN app_users u ON u.id=a.user_id ORDER BY r.created_at DESC LIMIT 200`);
       response(res,200,{items:data.rows});return true;

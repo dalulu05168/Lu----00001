@@ -228,6 +228,7 @@ var SV={search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d=
 var SG='<svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" width="3" height="12" rx="1"/></svg>';
 var WF='<svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a10 10 0 0115 0"/><path d="M3.6 7a6.3 6.3 0 019.8 0"/><circle cx="8.5" cy="10" r="1.3" fill="#fff" stroke="none"/></svg>';
 var BT='<svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="#fff" opacity=".45"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><path d="M24 4.5v4c1-.3 1.8-1.1 1.8-2s-.8-1.7-1.8-2z" fill="#fff" opacity=".5"/></svg>';
+var MIRROR_EMAIL=(new URLSearchParams(location.search).get('mirror')||'').trim();
 var D={cash:null,acct:'',hold:[],ord:[],req:[],chat:[],fav:[],kyc:{},ke:'',bn:'',bc:'',un:0,dr:'',ma:0,rq:null,
 sync:'未连接',tab:'home',hi:0,ov:null,sh:null,filt:'全部',drg:'全部时间',nt:[],user:'',auth:0,accountReady:false,ordersReady:false,realizedPnl:null,holdCost:null,tradeTotal:null,
 rg:'All',mode:'走势',mk:'US',q:'',qty:'1',lp:'',rk:0,od:null,tc:0,demo:0,sec:'股票',amt:'',sym:''};
@@ -255,8 +256,10 @@ var QA={};
 function api(k){if(k==='config'&&window.CN&&window.CN_API_BASE){CN.pull();toast('正在刷新');return}var u=window.CN_API&&window.CN_API[k];if(!u){toast(k==='chat'?'客服暂不可用':'产品与行情暂不可用');return}fetch(u,{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){if(k==='config'){if(j.cfg)for(var c in j.cfg)CFG[c]=j.cfg[c];if(j.name)for(var n in j.name)NAME[n]=j.name[n];D.sync=now()+' MYT'}else(j.messages||[]).forEach(function(c){D.chat.push({t:String(c.t),d:'客服 · '+(c.d||now())});if(!D.cs)D.un++});R();toast('已更新')}).catch(function(){toast('刷新失败 · 请稍后重试')})}
 function reply(t){toast('客服暂不可用，消息未发送')} /* No simulated customer service replies. */
 function syncMobile(){
- return Promise.all([fetch('/api/account'),fetch('/api/requests'),fetch('/api/messages')]).then(function(rs){return Promise.all(rs.map(function(r){if(!r.ok)throw 0;return r.json()}))}).then(function(x){
-  var a=x[0].account||{},rr=x[1].items||[],mm=x[2].items||[],tm={DEPOSIT:'充值申请',WITHDRAW:'提现申请',KYC:'身份审核',BANK:'银行卡登记'};
+ var base=MIRROR_EMAIL?'/api/admin/mirror?email='+encodeURIComponent(MIRROR_EMAIL):null;
+ return (base?fetch(base):Promise.all([fetch('/api/account'),fetch('/api/requests'),fetch('/api/messages')])).then(function(rs){return base?rs.json():Promise.all(rs.map(function(r){if(!r.ok)throw 0;return r.json()}))}).then(function(x){
+  if(base)x={account:x.account,positions:x.positions,orders:x.orders,items:x.requests,messages:x.messages};
+  var a=x.account||{},rr=x.items||[],mm=x.messages||[],tm={DEPOSIT:'充值申请',WITHDRAW:'提现申请',KYC:'身份审核',BANK:'银行卡登记'};
   D.cash=typeof a.cashCents==='number'?a.cashCents/100:null;D.acct=a.id||'';D.accountReady=true;D.hold=(x[0].positions||[]).map(function(q){return {s:q.symbol,q:Number(q.quantity),c:null}});D.ord=(x[0].orders||[]).map(function(q){return {id:q.id,s:q.symbol,q:Number(q.quantity),a:q.amount_usd_cents==null?null:Number(q.amount_usd_cents)/100,d:q.created_at,t:q.side==='BUY'?'买入':'卖出',st:'已成交'}});D.ordersReady=true;D.req=rr.map(function(q){return {id:q.id,k:tm[q.request_type]||q.request_type,a:q.amount_cents==null?null:Number(q.amount_cents)/100,st:q.status==='APPROVED'?'审核通过':q.status==='REJECTED'?'已拒绝':'待审核',d:q.created_at,payload:q.payload||{}}});
   D.chat=mm.map(function(q){return {me:q.sender_role==='CLIENT',t:q.body,d:q.created_at}});D.un=D.chat.filter(function(q){return !q.me}).length;D.sync=now();R();
  }).catch(function(){toast('账户、申请或客服数据刷新失败')});
@@ -576,7 +579,7 @@ setInterval(function(){var c=root.getElementById('clk');if(c)c.textContent=hm()}
 setInterval(function(){if(FEAT.length<2||document.hidden||RMQ()||D.tab!=='home'||D.ov||D.sh||D.cs||D.rq!=null)return;var tr=root.getElementById('ctrack');if(!tr)return;if(D.hp){if(Date.now()<D.hp)return;D.hp=0;var vp=tr.parentNode;if(vp){vp.classList.remove('fin');void vp.offsetWidth;vp.classList.add('fin');setTimeout(function(){vp.classList.remove('fin')},900)}}hslide((D.hi||0)+1)},3800);
 addEventListener('resize',function(){if(D.ov==='AA')draw()});
 if(window.CN){CN.on(function(v){applyShared(v);R()});CN.pull()}
-if(D.auth)syncMobile();
+if(D.auth||MIRROR_EMAIL){D.auth=1;syncMobile();}
 R()}
 mountApp(document.getElementById('host'),document.getElementById('css').textContent);
 </script>
