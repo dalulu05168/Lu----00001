@@ -66,7 +66,7 @@ run("PostgreSQL: migrations, isolated accounts, sessions, internal orders, and r
     assert.equal(unknown.status,401);
     const temporaryLogin = await request("/api/auth/login", {method:"POST",body:{email:emailA,password}});
     assert.equal(temporaryLogin.status,200);
-    await db.query("UPDATE user_sessions SET expires_at=now()-interval '1 second' WHERE token_hash=$1",
+    await db.query("UPDATE user_sessions SET created_at=now()-interval '2 days', expires_at=now()-interval '1 day' WHERE token_hash=$1",
       [sessionTokenHash(temporaryLogin.value.token)]);
     assert.equal((await request("/api/account",{token:temporaryLogin.value.token})).status,401);
     assert.equal((await request("/api/watchlist",{token:temporaryLogin.value.token})).status,401);
