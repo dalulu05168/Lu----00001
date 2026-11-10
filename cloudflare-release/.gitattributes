@@ -2,3 +2,6 @@
 /web/*.html -text
 /web/*.png -text
 /screenshots/*.png -text
+
+/src/products/*.js -text
+/web/products-ui.js -text
