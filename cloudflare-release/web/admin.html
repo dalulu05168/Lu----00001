@@ -2626,7 +2626,8 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
     const boot='('+initialize.toString()+')('+snapshot+');';
     const policy="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob: https://admin.maacropierce.com; connect-src 'none'; form-action 'none'; base-uri 'none'";
     const template=me.role==='MASTER'?MIRROR_TEMPLATE:MIRROR_TEMPLATE.replace('<style id="css" type="text/plain">','<style id="css" type="text/plain">[data-a="chat"],.mirror-support-heading{display:none!important}');
-    frame.srcdoc=template.replace(/<head>/i,'<head><meta http-equiv="Content-Security-Policy" content="'+policy+'"><script>'+boot+'</scr'+'ipt>');
+    const mirrorLayout=':host{position:relative;--cn-header-height:52px;--cn-safe-top:env(safe-area-inset-top,0px)}:host(:not(.emb)) .app{height:100dvh!important}:host .app>.v,:host .app>.ptr{top:calc(var(--cn-safe-top) + var(--cn-header-height));overscroll-behavior-y:contain}:host .cn-mobile-brand{top:calc(var(--cn-safe-top) + 3px)}:host .sh{max-height:calc(100% - 8px);overflow-y:auto;overscroll-behavior:contain}';
+    frame.srcdoc=template.replace(/(<style id="css" type="text\/plain">)([\s\S]*?)(<\/style>)/i,(_,open,css,close)=>open+css+mirrorLayout+close).replace(/<head>/i,'<head><meta http-equiv="Content-Security-Policy" content="'+policy+'"><script>'+boot+'</scr'+'ipt>');
     body.append(frame);
     const controller=new AbortController();
     dialog.addEventListener('close',()=>controller.abort(),{once:true});

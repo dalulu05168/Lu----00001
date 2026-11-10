@@ -51,6 +51,7 @@ async function page(browser,kind,token,email){
     }
     return route.fulfill({response:await route.fetch({url:base+path.pathname+path.search})});
   }
+  if(process.env.CN_ACCEPTANCE_SOURCE&&['/','/admin'].includes(path.pathname)){const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8');const pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);return route.fulfill({contentType:'text/html; charset=utf-8',body:pages[kind]});}
   if(!live&&path.pathname==='/logo.png')return route.fulfill({contentType:'image/png',body:logo});
   if(!live&&['/','/admin'].includes(path.pathname))return route.fulfill({contentType:'text/html',body:fs.readFileSync('nov10-updated-'+kind+'.html')});
   return route.continue();

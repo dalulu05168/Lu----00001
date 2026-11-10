@@ -1,7 +1,7 @@
 {
   "worker": "lu----00001",
-  "version": "0b827b57-bfc9-46da-b50d-2d6d1faa5a77",
-  "sourceSha256": "9a83193fba680bc57bda48653e5d27138d4aa6b2f8523fc9baaa42e580bc2579",
+  "version": "648af46e-bc89-4ae8-bc6d-707950628166",
+  "sourceSha256": "12964ce0624fdf540cae9dc4a1e170d3ac0d3df454eb48e174e5a024e7911d84",
   "domains": [
     "nuvexapro.com",
     "admin.maacropierce.com"
@@ -11,7 +11,7 @@
     "migration-z-configurable-products.sql"
   ],
   "paidQuotePending": true,
-  "baseVersion": "9443e787-ec97-47ce-a9c0-a48d5b9d9826",
-  "publishedAt": "2026-11-10T11:58:02.131Z",
+  "baseVersion": "0b827b57-bfc9-46da-b50d-2d6d1faa5a77",
+  "publishedAt": "2026-11-10T12:06:14.273Z",
   "fundMaturityCron": "*/5 * * * *"
 }
