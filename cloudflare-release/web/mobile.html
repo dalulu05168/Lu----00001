@@ -498,7 +498,7 @@ if(!(v>0))return{v:v,msg:'请输入大于 0 的金额'};var min=D.sh==='wd'?10:1
 if(!wdOk())return{v:v,msg:'充值 / 提现前需先完成身份审核并登记银行账户'};if(D.sh==='wd'&&v>avail())return{v:v,msg:'超出可提现额度 $'+f(avail())+holdTxt()};return{v:v,msg:''}}
 function kycSt(){if(profileStatus.IDENTITY==='PENDING')return 'pending';if(profileStatus.IDENTITY==='APPROVED')return 'passed';var L=D.req.filter(function(r){return r.k.indexOf('身份')>-1});if(L.some(function(r){return /通过|成功/.test(r.st)}))return 'passed';if(L.some(function(r){return r.st.indexOf('等待')>-1}))return 'need';if(L.some(function(r){return /审核中|待审核/.test(r.st)}))return 'pending';return 'none'}
 function pnlKv(){return '<div class="kv"><span>市值 / 浮动盈亏</span><span class="m">—</span></div>'}
-function lockKv(p){var nw=Date.now(),lq=0,nx=null,unk=0;D.ord.forEach(function(o){if(o.s!==p.s||o.t!=='买入'||os(o)!=='已成交')return;if(o.hd==null){unk=1;return}var u=Date.parse(o.d.replace(' ','T')+':00+08:00')+o.hd*864e5;if(u>nw){lq+=o.q;if(nx==null||u<nx)nx=u}});
+function lockKv(p){if(Number.isInteger(p.available))return '<div class="kv"><span>可卖数量</span><span>'+p.available+' 股</span></div>'+(p.unlock?'<div class="kv"><span>最近解锁时间</span><span>'+esc(new Date(p.unlock).toLocaleString('zh-CN',{timeZone:'Asia/Kuala_Lumpur'}))+'</span></div>':'');var nw=Date.now(),lq=0,nx=null,unk=0;D.ord.forEach(function(o){if(o.s!==p.s||o.t!=='买入'||os(o)!=='已成交')return;if(o.hd==null){unk=1;return}var u=Date.parse(o.d.replace(' ','T')+':00+08:00')+o.hd*864e5;if(u>nw){lq+=o.q;if(nx==null||u<nx)nx=u}});
 if(unk)return '<div class="kv"><span>可卖数量 / 解锁日期</span><span class="m">可卖数量暂不可用</span></div>';
 return '<div class="kv"><span>可卖数量</span><span>'+Math.max(0,p.q-lq)+' 股</span></div><div class="kv"><span>锁定数量 · 解锁日期</span><span>'+lq+' 股 · '+(nx?new Date(nx+288e5).toISOString().slice(0,10):'无锁定')+'</span></div>'}
 function mvTxt(){return '市值 —'}
@@ -633,11 +633,11 @@ return '<h2>行情'+tg('TradingView','b')+'</h2><div class="sr">'+SV.search+'<in
 +rates()}
 
 function trade(){
- if(window.CNProducts){const result=CNProducts.mobile(D.sec);if(result!==null)return '<h2>下单</h2><div class="chips">'+['股票','基金','IPO','大宗交易'].map(x=>chip('sec',x,D.sec)).join('')+'</div>'+result;}
-var h='<h2>下单'+tg('大宗交易','b')+'<span style="flex:1"></span>'+chip('rfp','','','刷新产品').replace('t-m','t-c')+'</h2><div class="chips">'+['股票','基金','IPO','大宗商品'].map(function(x){return chip('sec',x,D.sec)}).join('')+'</div>';
+ if(window.CNProducts){const result=CNProducts.mobile(D.sec);if(result!==null)return '<h2>下单</h2><div class="chips">'+['股票','基金','IPO','大宗交易','ETF'].map(x=>chip('sec',x,D.sec)).join('')+'</div>'+result;}
+var h='<h2>下单'+tg('大宗交易','b')+'<span style="flex:1"></span>'+chip('rfp','','','刷新产品').replace('t-m','t-c')+'</h2><div class="chips">'+['股票','基金','IPO','大宗交易','ETF'].map(function(x){return chip('sec',x,D.sec)}).join('')+'</div>';
 h+='<button type="button" class="chip t-a" data-a="managed-products">IPO 与普通基金</button>';
-const choices=Object.keys(CFG).filter(symbol=>CFG[symbol].type===(D.sec==='基金'?'FUND':'STOCK'));
-if(D.sec!=='股票'&&D.sec!=='基金'){
+const choices=Object.keys(CFG).filter(symbol=>CFG[symbol].type===(D.sec==='ETF'?'FUND':'STOCK'));
+if(D.sec!=='股票'&&D.sec!=='ETF'){
    const items=publishedProducts.filter(row=>row.itemType===({基金:'FUND',IPO:'IPO',大宗商品:'COMMODITY'}[D.sec]));
    h+=items.length?items.map(row=>'<div class="kv"><span>'+esc(row.symbol)+' · '+esc(row.name)+'</span><span>已发布</span></div>').join(''):'<div class="bn in">暂无已发布产品</div>';
  }
@@ -656,7 +656,7 @@ return '<h2>交易明细'+tg(L.length+' 笔 · '+D.drg,'m')+'</h2><div class="ch
 
 function assets(){
 return '<h2>账户与客服</h2><div class="card" style="cursor:default;flex:none"><div class="m">现金余额 USD</div><div class="bal">$'+f(D.cash)+'</div><div class="chips"><button class="chip t-g on" data-a="sheet" data-v="dep">充值</button><button class="chip t-a on" data-a="sheet" data-v="wd">提现</button>'+chip('sheet','kyc','','身份审核').replace('t-m','t-b')+chip('sheet','bank','','登记银行账户').replace('t-m','t-p')+chip('sheet','set','','设置')+'</div></div>'
-+stats()+'<h3>我的持仓'+tg(D.hold.length,'b')+'</h3>'+D.hold.map(function(h){return row(h.s,'<div class="r">'+h.q+' 股<small>成本 $'+f(h.c)+'</small><small>'+mvTxt(h)+'</small></div>')}).join('')+'<h3>持仓配置 · 按成本</h3>'+alloc()
++stats()+'<h3>我的持仓'+tg(D.hold.length,'b')+'</h3>'+D.hold.map(function(h){return row(h.s,'<div class="r">'+h.q+' 股<small>可卖 '+h.available+' 股</small><small>成本 $'+f(h.c)+'</small><small>'+mvTxt(h)+'</small></div>')}).join('')+'<h3>持仓配置 · 按成本</h3>'+alloc()
 
 +'<h3>我的申请记录</h3>'+D.req.map(function(r,i){return '<div class="rw" role="button" tabindex="0" data-a="rq" data-v="'+i+'"><div class="l">'+r.k+(r.a?' · $'+f(r.a):'')+'<small>'+r.d+'</small></div><div class="r">'+tg(r.st,stc(r.st))+'</div></div>'}).join('')
 +'<h3>客户客服'+tg('在线','g')+'</h3><div class="card" role="button" tabindex="0" data-a="chat" style="flex:none;display:flex;gap:10px;align-items:center"><span class="av" style="width:34px;height:34px;flex:none">客</span><div style="flex:1;min-width:0">'+(D.chat.length?esc(D.chat[D.chat.length-1].t):'暂无客服消息')+'<small>'+(D.chat.length?D.chat[D.chat.length-1].d:'客服暂不可用')+' · 点击打开聊天</small></div>'+tg(D.chat.length+' 条','c')+'</div>'}
@@ -797,6 +797,9 @@ async function syncMobileTrading(){
   if(account.ok){
     const result=await account.json();
     D.cash=result.account.cashCents/100;D.accountReady=true;D.ordersReady=true;
+    D.sync=now();
+    D.hold=result.positions.map(p=>({s:p.symbol,q:Number(p.quantity),available:Math.max(0,Number(p.quantity)-Number(p.locked_quantity)),unlock:p.next_unlock_at,c:p.cost_cents==null?null:Number(p.cost_cents)/100}));
+    D.holdCost=D.hold.every(p=>p.c!==null)?D.hold.reduce((sum,p)=>sum+p.c,0):null;
     D.ord=result.orders.map(function(o){return {id:o.id,s:o.symbol,t:o.side,q:Number(o.quantity),p:Number(o.price_cents)/100,a:Number(o.amount_usd_cents)/100,d:new Date(o.created_at).toLocaleString(),st:'已成交',ty:'内部限价'}})
   }
   R();

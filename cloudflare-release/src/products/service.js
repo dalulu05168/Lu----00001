@@ -165,7 +165,10 @@ async function cnSettleFundContract(db, id) {
 async function cnSettleDueFunds(db, accountId = null) {
   const due = (await db.query("SELECT id FROM cn_fund_contracts WHERE status='ACTIVE' AND due_at<=now() AND ($1::uuid IS NULL OR account_id=$1) ORDER BY due_at,id LIMIT 100",[accountId])).rows;
   let settled=0;
-  for (const row of due) if (await cnSettleFundContract(db,row.id)) settled++;
+  for (const row of due) {
+    try { if (await cnSettleFundContract(db,row.id)) settled++; }
+    catch (error) { console.error('Fund settlement failed',row.id,error.code||error.name); }
+  }
   return {settled};
 }
 async function cnProductCustomer(db, session, write=true) {

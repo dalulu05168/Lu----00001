@@ -12,7 +12,11 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{ran
  const first=await app.cnFundSubscribe(db,session,{tierId:tiers[0].id},'subscribe-first');await app.cnFundSubscribe(db,session,{tierId:tiers[1].id},'subscribe-second');assert.equal((await app.cnFundSubscribe(db,session,{tierId:tiers[0].id},'subscribe-first')).replayed,true);
  assert.equal(Number((await pg.query('SELECT cash_cents FROM accounts WHERE id=$1',[aid])).rows[0].cash_cents),85000000);
  await app.cnProductSave(db,actor,{id:fund.id,version:fund.version,kind:'TERM_FUND',name:'修改后档位',status:'PUBLISHED',tiers:[{principalCents:1000000,holdingDays:30,profitBps:900}]},quote);
- await pg.query("UPDATE cn_fund_contracts SET due_at=now()-interval '1 second'");assert.equal((await app.cnSettleDueFunds(db)).settled,2);assert.equal((await app.cnSettleDueFunds(db)).settled,0);
+ await pg.query("UPDATE cn_fund_contracts SET due_at=now()-interval '1 second'");await pg.query("UPDATE cn_fund_contracts SET due_at=now()-interval '2 seconds' WHERE id=$1",[first.contract.id]);
+ const fault={...db,connect:async()=>{const tx=await db.connect();return {...tx,query:(sql,args)=>sql.includes("status='MATURED'")&&args?.[0]===first.contract.id?Promise.reject(Error('InjectedSettlementFailure')):tx.query(sql,args)};}};
+ assert.equal((await app.cnSettleDueFunds(fault)).settled,1);
+ assert.equal((await pg.query("SELECT status FROM cn_fund_contracts WHERE id=$1",[first.contract.id])).rows[0].status,'ACTIVE');
+ assert.equal((await app.cnSettleDueFunds(db)).settled,1);assert.equal((await app.cnSettleDueFunds(db)).settled,0);
  assert.equal(Number((await pg.query('SELECT cash_cents FROM accounts WHERE id=$1',[aid])).rows[0].cash_cents),100300000);
  const bulk=await app.cnProductSave(db,actor,{kind:'BULK_STOCK',name:'Apple Inc',market:'US',symbol:'AAPL',status:'PUBLISHED',discountBps:1200,holdingDays:7,minQuantity:10,tradePassword:'123456'},quote);
  const input={market:'US',symbol:'AAPL',side:'BUY',quantity:10,priceCents:30861,fxUsdMicros:1000000,bulkTerms:{id:bulk.id,version:bulk.version,minimum:10,holdingDays:7,discountBps:1200,referencePrice:35069,referenceTimestamp:new Date().toISOString()}};

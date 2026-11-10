@@ -63,17 +63,22 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
    await p.route('**/*',r=>{const url=new URL(r.request().url());return url.origin!==base?r.abort():url.pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue()});
    await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:12000});console.log(kind+' loaded');
    if(kind==='desktop'){
-    await p.locator('#ptabs').getByRole('button',{name:symbol==='SPY'?'基金':'股票',exact:true}).click();await p.locator('[data-buy="'+symbol+'"]').click();
+    await p.locator('#ptabs').getByRole('button',{name:symbol==='SPY'?'ETF':'股票',exact:true}).click();await p.locator('[data-buy="'+symbol+'"]').click();
     await p.locator('#tr-next').click();await p.locator('#tr-limit').fill('13');await p.locator('#tr-pw').fill(password);await p.locator('#tr-ag').check();
    }else{
     await p.locator('[data-a=tab][data-v=trade]').click();
-    await p.locator('[data-a=sec][data-v='+(symbol==='SPY'?'基金':'股票')+']').click();
+    await p.locator('[data-a=sec][data-v='+(symbol==='SPY'?'ETF':'股票')+']').click();
     if(symbol!=='SPY')await p.locator('[data-a=sym][data-v='+symbol+']').click();else await p.locator('[data-a=open][data-v=SPY]').first().waitFor();
     await p.locator('#lp').fill('13');await p.locator('#qty').fill('2');await p.locator('#tb').click();
     await p.locator('[data-a=rk]').click();await p.locator('#tpw').fill(password);
    }
    console.log(kind+' submitting '+symbol);const [response]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/orders')&&r.request().method()==='POST'),p.locator(kind==='desktop'?'#tr-go':'#pl').click()]);
    console.log(kind,"response",response.status());assert.equal(response.status(),201);
+   if(kind==='desktop'){
+    await p.getByText('买入已记录',{exact:true}).waitFor();
+    await p.locator('#tb-hold tr[data-s="'+symbol+'"]').waitFor();
+    assert.notEqual(await p.locator('#k-total [data-b=total]').textContent(),'—');
+   }
    await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
   }
  }finally{for(const context of browser.contexts())for(const page of context.pages())await page.unrouteAll({behavior:'ignoreErrors'});await browser.close()}

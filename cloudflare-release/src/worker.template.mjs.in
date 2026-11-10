@@ -7012,7 +7012,23 @@ async function getAccountSnapshot(db, accountId) {
   const a2 = await db.query("SELECT id,cash_cents,base_currency FROM accounts WHERE id=$1", [accountId]);
   if (a2.rows.length !== 1) throw new Error("Account not found");
   const [p2, o] = await Promise.all([
-    db.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1 AND quantity>0 ORDER BY market,symbol", [accountId]),
+    db.query(`SELECT p.market,p.symbol,p.quantity,
+      COALESCE(l.locked,0) AS locked_quantity,l.next_unlock_at,
+      CASE WHEN c.covered=p.quantity THEN c.cost END AS cost_cents
+      FROM positions p
+      LEFT JOIN LATERAL (
+        SELECT SUM(quantity) AS locked,MIN(locked_until) AS next_unlock_at
+        FROM cn_bulk_order_terms WHERE account_id=p.account_id AND market=p.market AND symbol=p.symbol AND locked_until>now()
+      ) l ON true
+      LEFT JOIN LATERAL (
+        SELECT SUM(remaining) AS covered,ROUND(SUM(remaining*unit_cost)) AS cost
+        FROM (
+          SELECT GREATEST(0,LEAST(o.quantity,p.quantity-COALESCE(SUM(o.quantity) OVER (ORDER BY o.created_at DESC,o.id DESC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING),0))) AS remaining,
+          o.amount_usd_cents::numeric/o.quantity AS unit_cost
+          FROM orders o WHERE o.account_id=p.account_id AND o.market=p.market AND o.symbol=p.symbol AND o.side='BUY'
+        ) buys
+      ) c ON true
+      WHERE p.account_id=$1 AND p.quantity>0 ORDER BY p.market,p.symbol`, [accountId]),
     db.query("SELECT id,market,symbol,side,quantity,price_cents,amount_usd_cents,created_at FROM orders WHERE account_id=$1 ORDER BY created_at DESC LIMIT 100", [accountId])
   ]);
   return { account: { id: a2.rows[0].id, cashCents: Number(a2.rows[0].cash_cents), currency: a2.rows[0].base_currency }, positions: p2.rows, orders: o.rows, disclosure: "Internal records only; no brokerage orders or real securities ownership." };
@@ -7345,7 +7361,7 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
         return send(res, 404, { error: "Not found" });
       }
     }
-    if (["/health", "/api/health"].includes(url.pathname) && req.method === "GET") return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: typeof resolveExecutionPrice === "function" || typeof resolveProductQuote === "function", referenceSymbols: resolveCommodityReferencePrice ? Object.keys(commodityReferenceIds) : [] });
+    if (["/health", "/api/health"].includes(url.pathname) && req.method === "GET") return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: typeof resolveExecutionPrice === "function" || typeof resolveProductQuote === "function", quoteAvailability: "per-instrument", referenceSymbols: resolveCommodityReferencePrice ? Object.keys(commodityReferenceIds) : [] });
     if (["/ready", "/api/ready"].includes(url.pathname) && req.method === "GET") {
       try {
         if (!await isDatabaseReady(db)) return send(res, 503, { status: "not_ready", database: "schema_missing", brokerConnected: false });
@@ -7412,7 +7428,7 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
     }
     if (!session?.accountId) return send(res, 401, { error: "Authentication required" });
     if(["/api/products","/api/products/quote","/api/fund-subscriptions","/api/bulk-orders"].includes(route))return cnProductsRoute(req,res,route,db,session,null,resolveProductQuote);
-    if(route==="/api/account")await cnSettleDueFunds(db,session.accountId);
+
     if (route === "/api/withdrawal-pin") {
       if(!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
       try{
@@ -7558,7 +7574,18 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
     }
     if (route === "/api/account") {
       try {
-        return send(res, 200, await getAccountSnapshot(db, session.accountId));
+        await cnSettleDueFunds(db,session.accountId).catch(error=>console.error('Account maturity check failed',error.code||error.name));
+        const snapshot=await getAccountSnapshot(db,session.accountId);
+        if (!snapshot.positions.length) snapshot.totalAssets=snapshot.account.cashCents/100;
+        else if (resolveProductQuote && snapshot.positions.length<=12) {
+          const values=await Promise.allSettled(snapshot.positions.map(async p=>{
+            const q=await resolveProductQuote(p);
+            if(!q||q.market!==p.market||q.symbol!==p.symbol||!Number.isSafeInteger(q.priceCents)||q.priceCents<=0)throw Error('Missing valuation quote');
+            return q.priceCents*Number(p.quantity);
+          }));
+          if(values.every(x=>x.status==='fulfilled'))snapshot.totalAssets=(snapshot.account.cashCents+values.reduce((n,x)=>n+x.value,0))/100;
+        }
+        return send(res,200,snapshot);
       } catch {
         return send(res, 500, { error: "Internal server error" });
       }

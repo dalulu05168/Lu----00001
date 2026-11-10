@@ -61,11 +61,11 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
    await p.route('**/*',r=>{const url=new URL(r.request().url());return url.origin!==base?r.abort():url.pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue()});
    await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:12000});console.log(kind+' loaded');
    if(kind==='desktop'){
-    await p.locator('#ptabs').getByRole('button',{name:'基金',exact:true}).click();await p.locator('[data-buy="'+symbol+'"]').click();
+    await p.locator('#ptabs').getByRole('button',{name:'ETF',exact:true}).click();await p.locator('[data-buy="'+symbol+'"]').click();
     await p.locator('#tr-next').click();await p.locator('#tr-limit').fill('500');await p.locator('#tr-pw').fill(password);await p.locator('#tr-ag').check();
    }else{
     await p.locator('[data-a=tab][data-v=trade]').click();
-    await p.locator('[data-a=sec][data-v=基金]').click();
+    await p.locator('[data-a=sec][data-v=ETF]').click();
     await p.locator('[data-a=sym][data-v=SLV]').click();await p.locator('#lp').fill('50');await p.locator('#qty').fill('2');await p.locator('#tb').click();
     await p.locator('[data-a=rk]').click();await p.locator('#tpw').fill(password);
    }

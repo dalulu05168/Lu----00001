@@ -82,9 +82,11 @@ const adminPath='/api/admin/product-settlement',clientPath='/api/product-settlem
   const page=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:900}});
   page.setDefaultTimeout(7000);
   await page.addInitScript(({session,kind})=>{if(top===self){localStorage.setItem(kind==='admin'?'cncap.admin.session':'cncap.session',session);sessionStorage.setItem('cncap.mobile.entry','1');sessionStorage.setItem('cncap.admin.entry','1')}},{session,kind});
+  const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').match(/const replacementPages = (.+);/)[1]);
   const origin=kind==='admin'?'https://admin.maacropierce.com':'https://nuvexapro.com';
   await page.route('**/*',async route=>{const url=new URL(route.request().url());if(url.origin!==origin)return route.abort();
    if(url.pathname.startsWith('/api/')||url.pathname==='/health')return route.fulfill({response:await route.fetch({url:base+url.pathname+url.search})});
+   if (route.request().isNavigationRequest() && ['/', '/admin', '/login'].includes(url.pathname)) return route.fulfill({contentType:'text/html; charset=utf-8',body:pages[url.pathname==='/login'?'login':kind]});
    return route.continue();
   });
   await page.goto(origin+(kind==='admin'?'/admin':'/'),{waitUntil:'domcontentloaded'});
