@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CN Capital</title>
 <meta name="theme-color" content="#0b0b0b"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0b0b'/%3E%3Cpath d='M23.9 12A8 8 0 1 0 23.9 20' fill='none' stroke='%23eef2f7' stroke-width='2.1' stroke-linecap='round'/%3E%3Cpath d='M12 20L12 12L20 20L20 12' fill='none' stroke='%23eef2f7' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='21' cy='11.1' r='1.4' fill='%2345e0d6'/%3E%3C/svg%3E">
-<style>html,body{height:100%;margin:0;background:#0b0b0b}</style>
+<style>html,body{height:100%;margin:0;background:#0b0b0b;overflow:hidden;overscroll-behavior:none}#host:not(.emb){position:fixed;inset:0;overflow:hidden}</style>
 <style id="css" type="text/plain">
 .sh[role=dialog],.cn-notify{background:radial-gradient(360px 150px at 0 0,rgba(25,191,189,.13),transparent 75%),linear-gradient(180deg,#192329,#10171d);border:1px solid rgba(190,219,221,.22);border-radius:22px;box-shadow:0 0 0 5px #ffffff07,0 25px 70px #0009}.sh[role=dialog] .chh,.cn-notify-head{border-bottom:1px solid rgba(190,219,221,.16)}.cn-notify::backdrop{background:#050707bc;backdrop-filter:blur(9px)}
 
@@ -54,7 +54,7 @@ button,input{font:inherit;color:inherit}
 .sb{position:absolute;top:0;left:0;right:0;height:48px;z-index:8;display:flex;align-items:center;justify-content:space-between;padding:6px 28px 0 34px;font-size:15px;pointer-events:none}
 .isl{position:absolute;left:50%;top:11px;width:112px;height:31px;margin-left:-56px;background:#000;border-radius:16px}
 .si{display:flex;gap:6px;align-items:center}
-.v{position:absolute;left:0;right:0;top:env(safe-area-inset-top, 0px);bottom:0;padding:8px 16px calc(100px + env(safe-area-inset-bottom, 0px));overflow-y:auto;scrollbar-width:none}
+.v{position:absolute;left:0;right:0;top:env(safe-area-inset-top, 0px);bottom:0;padding:8px 16px calc(100px + env(safe-area-inset-bottom, 0px));overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:none}
 .cvp.fin{animation:cfin .85s cubic-bezier(.2,.7,.3,1)}
 @keyframes cfin{0%{opacity:.28;transform:scaleX(.965)}100%{opacity:1;transform:scaleX(1)}}
 .tenter>*{animation:tein .5s both cubic-bezier(.34,1.3,.64,1)}
@@ -179,7 +179,7 @@ h2{font-size:21px;margin-bottom:8px;display:flex;align-items:center;gap:10px;fon
 .fab{bottom:calc(100px + env(safe-area-inset-bottom,0px))}
 .ts{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
 .sh{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
-@supports(height:100dvh){.app{height:min(844px,100dvh)}@media(max-width:420px){:host(:not(.emb)) .app{height:100dvh}}}
+:host(:not(.emb)) .app{height:100%}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 .v.page-enter{animation:cn-page-enter .29s cubic-bezier(.22,.9,.26,1) both}
