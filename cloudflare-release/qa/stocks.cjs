@@ -81,8 +81,27 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
    }
    await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
   }
+ const sellPage=await browser.newPage({viewport:{width:1440,height:900}});
+ sellPage.setDefaultTimeout(8000);
+ await sellPage.addInitScript(t=>localStorage.setItem('cncap.session',t),client);
+ await sellPage.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base?r.abort():u.pathname==='/'?r.fulfill({contentType:'text/html',body:pages.desktop}):r.continue()});
+ await sellPage.goto(base+'/',{waitUntil:'domcontentloaded'});
+ await sellPage.locator('#tb-hold tr[data-s=AAPL]').click();
+ await sellPage.locator('#tq').fill('3');
+ await sellPage.locator('#tr-next').click();
+ await sellPage.locator('#tr-ag').check();
+ const [sold]=await Promise.all([sellPage.waitForResponse(r=>r.url().endsWith('/api/orders')&&r.request().method()==='POST'),sellPage.locator('#tr-go').click()]);
+ assert.equal(sold.status(),201);
+ const confirmation=sellPage.locator('.tr-ok[role=status]');
+ await confirmation.getByText('\u5356\u51fa\u5df2\u8bb0\u5f55').waitFor();
+ assert.match(await confirmation.innerText(),/AAPL.*3/);
+ assert.equal(await confirmation.locator('.check').evaluate(el=>getComputedStyle(el).color),'rgb(79, 221, 143)');
+ assert.equal(await confirmation.locator('.check svg').evaluate(el=>getComputedStyle(el).transform),'none');
+ await sellPage.locator('#tb-hold tr[data-s=AAPL]').waitFor({state:'detached'});
+ await sellPage.unrouteAll({behavior:'ignoreErrors'});await sellPage.close();
+ console.log('Desktop sell confirmation and refreshed holdings verified');
  }finally{for(const context of browser.contexts())for(const page of context.pages())await page.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
- console.log('Checking sells');for(const symbol of ['AAPL','NVDA','SPY'])await api('/api/orders',201,client,{market:'US',symbol,side:'SELL',quantity:3});
+ console.log('Checking remaining sells');for(const symbol of ['NVDA','SPY'])await api('/api/orders',201,client,{market:'US',symbol,side:'SELL',quantity:3});
  const result=await api(detailPath(a),200,agent.token);
  assert.equal(result.orders.length,9);
  assert.equal(result.account.cashCents,99991);

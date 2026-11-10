@@ -525,27 +525,12 @@ body{text-rendering:optimizeLegibility;-moz-osx-font-smoothing:grayscale}
 /* 3·买卖下单成交确认动效（勾选圈 · 绿买红卖 · 委托已受理措辞 · 降级友好） */
 .dlg{position:relative}
 .tr-ok{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(8,11,16,.92);backdrop-filter:blur(4px);border-radius:inherit;animation:trfade .25s ease}
-.tr-ok .ring{position:relative;width:92px;height:92px}
-.tr-ok .ring svg{position:absolute;inset:0;width:92px;height:92px;transform:rotate(-90deg)}
-.tr-ok .rc{fill:none;stroke:rgba(79,221,143,.16);stroke-width:5}
-.tr-ok .rp{fill:none;stroke:#4fdd8f;stroke-width:5;stroke-linecap:round;stroke-dasharray:264;stroke-dashoffset:264;animation:trring .7s cubic-bezier(.65,0,.35,1) forwards}
-.tr-ok .pulse{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 0 rgba(79,221,143,.5);animation:trpulse 1.1s ease-out .55s}
-.tr-ok .ck{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.tr-ok .ck svg{width:46px;height:46px}
-.tr-ok .ck path{fill:none;stroke:#4fdd8f;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:48;stroke-dashoffset:48;animation:trck .4s ease .5s forwards}
+.tr-ok .check{display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:#15372a;color:#4fdd8f}
+.tr-ok .check svg{display:block;width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
 .tr-ok b{font-size:16px;color:#fff;font-weight:700!important}
 .tr-ok>span{font-size:12.5px;color:var(--mut)}
-.tr-ok .tag{font-size:11.5px;color:#4fdd8f;border:1px solid rgba(79,221,143,.4);border-radius:999px;padding:3px 12px}
-.tr-ok.sell .rp,.tr-ok.sell .ck path{stroke:#ff5b50}
-.tr-ok.sell .rc{stroke:rgba(255,91,80,.16)}
-.tr-ok.sell .pulse{box-shadow:0 0 0 0 rgba(255,91,80,.5);animation:trpulseS 1.1s ease-out .55s}
-.tr-ok.sell .tag{color:#ff5b50;border-color:rgba(255,91,80,.4)}
-@keyframes trring{to{stroke-dashoffset:0}}
-@keyframes trck{to{stroke-dashoffset:0}}
 @keyframes trfade{from{opacity:0}to{opacity:1}}
-@keyframes trpulse{0%{box-shadow:0 0 0 0 rgba(79,221,143,.5)}100%{box-shadow:0 0 0 22px rgba(79,221,143,0)}}
-@keyframes trpulseS{0%{box-shadow:0 0 0 0 rgba(255,91,80,.5)}100%{box-shadow:0 0 0 22px rgba(255,91,80,0)}}
-@media(prefers-reduced-motion:reduce){.tr-ok,.tr-ok .rp,.tr-ok .ck path,.tr-ok .pulse{animation:none!important}.tr-ok .rp{stroke-dashoffset:0}.tr-ok .ck path{stroke-dashoffset:0}}
+@media(prefers-reduced-motion:reduce){.tr-ok{animation:none}}
 </style>
 <style id="v9-type-lock">
 /* ===== v9：字号统一 + 防挤压（置于所有样式之后，作为最终字号层）=====
@@ -1231,9 +1216,12 @@ function csrf(){var m=document.querySelector('meta[name="csrf-token"]');return m
 function newKey(){try{return crypto.randomUUID()}catch(e){return String(Date.now())+Math.random().toString(16).slice(2)}}
 /* 前端校验仅用于体验；最低数量、持有期、密码、余额必须由服务器再次校验。密码只随这一次请求发送，不缓存。 */
 function playOrderConfirm(o){o=o||{};var dlg=document.querySelector('#m-trade .dlg');if(!dlg){if(o.done)o.done();return}
- var sell=o.side==='卖出',old=dlg.querySelector('.tr-ok');if(old)old.remove();
- var el=document.createElement('div');el.className='tr-ok'+(sell?' sell':'');
- el.innerHTML='<div class="ring"><span class="pulse"></span><svg viewBox="0 0 92 92"><circle class="rc" cx="46" cy="46" r="42"/><circle class="rp" cx="46" cy="46" r="42"/></svg><span class="ck"><svg viewBox="0 0 46 46"><path d="M12 24 L20 32 L34 15"/></svg></span></div>'+'<b>'+(o.demo?'订单预览':((o.side||'订单')+'已记录'))+'</b>'+'<span>'+esc((o.side||'')+' '+(o.code||'')+(o.qty?' · '+o.qty+' 股':''))+'</span>'+'<span class="tag">'+(o.demo?'订单预览 · 未提交':'已更新账户记录')+'</span>';
+ var old=dlg.querySelector('.tr-ok');if(old)old.remove();
+ var el=document.createElement('div');el.className='tr-ok';el.setAttribute('role','status');
+ var check='<span class="check" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M9 21 L17 29 L31 12"/></svg></span>';
+ el.innerHTML=(o.demo?'':check)+'<b>'+esc(o.demo?'订单预览':o.side+'已记录')+'</b>'+
+  '<span>'+esc((o.code||'')+' · '+o.qty+' 股')+'</span>'+
+  (Number.isFinite(o.price)?'<span>成交单价 $'+f(o.price)+'</span>':'');
  dlg.appendChild(el);
  var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
  setTimeout(function(){el.remove();if(o.done)o.done()},o.demo?1600:(rm?700:1750));
@@ -1247,11 +1235,15 @@ function placeOrder(){if(!goOk())return;
  var payload=JSON.stringify(body);body=null;
  fetch(API+'/orders',{method:'POST',credentials:'include',headers:hd,body:payload})
  .then(function(r){if(r.ok)return r.json();return r.json().catch(function(){return{}}).then(function(d){throw{code:d&&d.error,status:r.status,wait:d&&d.retryAfter}})})
- .then(function(){TR.busy=false;playOrderConfirm({side:TR.side,code:TR.code,qty:TR.qty,done:function(){closeM();toast('订单已记录');loadData()}})})
+ .then(function(result){
+  var order=result?.order;
+  if(!order?.id||!['BUY','SELL'].includes(order.side)||!Number.isSafeInteger(Number(order.quantity))||Number(order.quantity)<1)throw{code:'unconfirmed_order'};
+  playOrderConfirm({side:order.side==='BUY'?'买入':'卖出',code:order.symbol,qty:Number(order.quantity),price:Number(order.priceCents??order.price_cents)/100,done:function(){TR.busy=false;closeM();toast('订单已记录');loadData()}});
+ })
  .catch(function(x){TR.busy=false;var code=x&&x.code;if(!code&&x&&x.status===401)code='unauthorized';if(!code&&x&&x.status===429)code='rate_limited';
   if(code&&DEFINITIVE[code])TR.key=null;   /* 服务器已明确拒绝：换新幂等键；网络错误/5xx 保留原键，重试不会重复下单 */
   if(x?.status===403||x?.status===409)TR.key=null;
-  var msg=ERRMSG[code]||({'Invalid trading password':'交易密码错误','Quote exceeds buy limit':'当前报价高于买入限价','Verified market pricing unavailable':'当前报价不可用，请稍后重试'})[code]||'提交失败，请稍后重试';if(x&&x.wait&&(code==='rate_limited'||code==='locked'))msg+='（约 '+Math.ceil(x.wait/60)+' 分钟后）';
+  var msg=ERRMSG[code]||({unconfirmed_order:'暂未确认订单结果，请查看交易明细后再试','Invalid trading password':'交易密码错误','Quote exceeds buy limit':'当前报价高于买入限价','Verified market pricing unavailable':'当前报价不可用，请稍后重试'})[code]||'提交失败，请稍后重试';if(x&&x.wait&&(code==='rate_limited'||code==='locked'))msg+='（约 '+Math.ceil(x.wait/60)+' 分钟后）';
   var pe=$('tr-pwer');if((code==='bad_password'||code==='rate_limited'||code==='locked')&&pe)pe.textContent=msg;else toast(msg);var g=$('tr-go');if(g)g.disabled=!goOk()})}
 
 
