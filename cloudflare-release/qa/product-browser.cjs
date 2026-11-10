@@ -63,7 +63,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
  }
  }finally{for(const context of browser.contexts())for(const p of context.pages())await p.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
- const snap=await api('/api/account',200,client);const products=await api('/api/products',200,client);assert.equal(products.contracts.length,2);assert.equal(snap.orders.length,2);assert.equal(snap.account.cashCents,89382780);assert.equal(Number(snap.positions.find(x=>x.symbol==='AAPL').quantity),20);
+ const snap=await api('/api/account',200,client);const products=await api('/api/products',200,client);assert.equal(products.contracts.length,2);assert.equal(snap.orders.length,2);assert.equal(snap.account.cashCents,89382780);assert.equal(snap.account.activeFundPrincipalCents,10000000);assert.equal(snap.totalAssets,(89382780+10000000+20*35069)/100);assert.equal(Number(snap.positions.find(x=>x.symbol==='AAPL').quantity),20);
  const product=products.items.find(x=>x.kind==='BULK_STOCK');
  const r=await fetch(base+'/api/bulk-orders',{method:'POST',headers:{Authorization:'Bearer '+client,'Content-Type':'application/json','Idempotency-Key':'locked-sell-check'},body:JSON.stringify({productId:product.id,quantity:1,side:'SELL',expectedVersion:product.version,expectedPriceCents:35069,tradePassword:'123456'})});assert.equal(r.status,409);
  fs.writeFileSync(path.join(process.env.CN_QA_SAVE_DIR,'results.json'),JSON.stringify({snapshot:snap,products,errors},null,2));assert.deepEqual(errors,[]);console.log('New product admin publication, desktop and mobile subscription and bulk purchase passed');

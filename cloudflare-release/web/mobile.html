@@ -542,7 +542,7 @@ return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-
 +'<div style="margin-top:8px"><div class="kv"><span>类型</span><span>'+(o.ty||'—')+'</span></div><div class="kv"><span>价格</span><span>$'+f(o.p)+'</span></div><div class="kv"><span>数量</span><span>'+o.q+' 股</span></div><div class="kv"><span>总额</span><span>$'+f(o.a)+'</span></div></div>'
 +'<div class="tl">'+L.map(function(x,i){return '<div class="'+S[i]+'">'+x+'<small>'+(i===0?o.d:S[i]==='d'?'已完成':S[i]==='a'?'进行中':'待处理')+'</small></div>'}).join('')+'</div>'
 +(s==='待成交'?'<div class="bn">撤销后，占用的可用资金会立即释放。</div><div class="two"><button class="cta gh" data-a="close">关闭</button><button class="cta red" data-a="cancelo">撤销订单</button></div>':'<button class="cta gh" data-a="close">关闭</button>')+'</div>'}
-function stats(){return bxs([['总成交额',usd(tot())],['已实现盈亏（FIFO）',usd(rpnl())],['持仓成本','$'+f(inv())],['订单',(D.auth&&D.ordersReady?D.ord.length:'—')+' · '+'—'],['账户','<span class="am">—</span>'],['最近同步',D.sync]])}
+function stats(){return bxs([['总资产',usd(D.totalAssets)],['持有中期限本金',usd(D.fundPrincipal)],['总成交额',usd(tot())],['已实现盈亏（FIFO）',usd(rpnl())],['持仓成本','$'+f(inv())],['订单',(D.auth&&D.ordersReady?D.ord.length:'—')+' · '+'—'],['账户','<span class="am">—</span>'],['最近同步',D.sync]])}
 function alloc(){var by={},t=0,CL={US:'#5b9cff',HK:'#ff6b5a',CN:'#ffb938',MY:'#d7ff00',RO:'#b58cff'};D.hold.forEach(function(h){var m=mkOf(h.s);by[m]=(by[m]||0)+h.c;t+=h.c});
 return '<div class="alloc">'+MK.map(function(k){return by[k]?'<i style="width:'+(by[k]/t*100)+'%;background:'+CL[k]+'"></i>':''}).join('')+'</div><div class="al">'+MK.map(function(k){return tg(k+' '+(D.auth&&D.accountReady&&t?((by[k]||0)/t*100).toFixed(1)+'%':'—'),MC[k])}).join('')+'</div>'}
 function rates(){return '<h3>汇率</h3><div class="bn">暂无可用汇率</div>'}
@@ -664,7 +664,7 @@ h+='<div data-live-chart style="height:340px;margin-bottom:10px"></div>';
 h+='<div style="margin-top:8px">';
 if(p)h+='<div class="kv"><span>持仓数量</span><span>'+p.q+' 股</span></div><div class="kv"><span>持仓成本</span><span>$'+f(p.c)+'</span></div><div class="kv"><span>成本均价</span><span>$'+f(p.c/p.q)+'</span></div>'+pnlKv(p)+lockKv(p);
 if(CFG[s])h+=cfgKv(CFG[s]);
-h+='</div><div class="bn">'+(D.tc?'暂无可用报价':'暂无可用报价')+' · 行情暂不可用</div><div class="two">'+'<button class="cta" data-a="gotrade">查看大宗交易</button>'+'<button class="cta red off" data-a="msg" data-v="'+(p?'暂无可卖出数量':'当前未持有该标的')+'">卖出</button></div>';
+h+='</div><div class="bn">'+(D.tc?'暂无可用报价':'暂无可用报价')+' · 行情暂不可用</div><div class="two">'+'<button class="cta" data-a="gotrade">查看大宗交易</button>'+(p?.available>0?'<button class="cta red" data-a="sell-open">卖出</button>':'<button class="cta red" disabled>卖出</button>')+'</div>';
 var o=D.ord.filter(function(x){return x.s===s});
 return h+'<h3>相关交易'+tg(o.length+' 笔','m')+'</h3>'+(o.length?o.map(ordRow).join(''):'<div class="ep">暂无该标的交易记录</div>')+rates()}
 
@@ -695,7 +695,7 @@ function bankSheet(){if(profileStatus.BANK==='APPROVED')return '<div class="bk" 
 function sheet(){
 if(D.sh==='nt')return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-modal="true" tabindex="-1" aria-label="通知" style="max-height:70%;overflow-y:auto"><div style="font-size:17px">通知</div>'+(D.nt.length?D.nt.map(function(r){return '<div class="rw" style="cursor:default"><div class="l">'+esc(r.t)+'<small>'+r.d+' MYT</small></div></div>'}).join(''):'<div class="ep">暂无通知</div>')+'<button class="cta gh" data-a="close" style="margin-top:12px">关闭</button></div>';
 if(D.sh==='set')return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-modal="true" tabindex="-1" aria-label="设置"><div style="font-size:17px">设置</div><div class="kv"><span>账户</span><span>'+esc(D.user)+'</span></div><div class="kv"><span>时区</span><span>马来西亚时间（MYT）</span></div><div class="two"><button class="cta gh" data-a="reset">清理本地缓存</button><button class="cta red" data-a="logout">退出登录</button></div></div>';
-if(D.sh==='buy')return buySheet();if(D.sh==='od')return odSheet();if(D.sh==='kyc')return kycSheet();if(D.sh==='bank')return bankSheet();
+if(D.sh==='sell')return sellSheet();if(D.sh==='buy')return buySheet();if(D.sh==='od')return odSheet();if(D.sh==='kyc')return kycSheet();if(D.sh==='bank')return bankSheet();
 var wd=D.sh==='wd';
 return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-modal="true" tabindex="-1" aria-label="'+(wd?'提现':'充值')+'申请"><div style="font-size:17px">'+(wd?'提现申请':'充值申请')+'</div><div class="m" style="margin-top:2px">'+(wd?'可提现额度 $'+f(avail())+holdTxt()+' · 单笔 $'+f(MINA)+' – $'+f(MAXA):'单笔 $'+f(MINA)+' – $'+f(MAXA))+'</div>'
 +(!wdOk()?'<div class="bn">充值 / 提现前需先完成身份审核并登记银行账户 · 审核通过后开放</div><div class="chips"><button class="chip t-b" data-a="sheet" data-v="kyc">去身份审核</button><button class="chip t-p" data-a="sheet" data-v="bank">去登记银行账户</button></div>':'')+'<label for="amt">申请金额（USD）</label><input id="amt" inputmode="decimal" placeholder="例如 100.00" value="'+esc(D.amt)+'" autocomplete="off"><div class="chips">'+[100,1000,10000].map(function(n){return '<button class="chip t-'+['c','b','p'][[100,1000,10000].indexOf(n)]+'" data-a="amt" data-v="'+n+'">'+f(n).replace('.00','')+'</button>'}).join('')+'</div>'
@@ -816,13 +816,46 @@ async function syncMobileTrading(){
   D.tc=pricing.pricingConnected===true;referenceSymbols=pricing.referenceSymbols||[];
   if(account.ok){
     const result=await account.json();
-    D.cash=result.account.cashCents/100;D.accountReady=true;D.ordersReady=true;
+    D.cash=result.account.cashCents/100;D.fundPrincipal=result.account.activeFundPrincipalCents/100;D.totalAssets=result.totalAssets;D.accountReady=true;D.ordersReady=true;
     D.sync=now();
-    D.hold=result.positions.map(p=>({s:p.symbol,q:Number(p.quantity),available:Math.max(0,Number(p.quantity)-Number(p.locked_quantity)),unlock:p.next_unlock_at,c:p.cost_cents==null?null:Number(p.cost_cents)/100}));
+    D.hold=result.positions.map(p=>({s:p.symbol,market:p.market,q:Number(p.quantity),available:Math.max(0,Number(p.quantity)-Number(p.locked_quantity)),unlock:p.next_unlock_at,c:p.cost_cents==null?null:Number(p.cost_cents)/100}));
     D.holdCost=D.hold.every(p=>p.c!==null)?D.hold.reduce((sum,p)=>sum+p.c,0):null;
     D.ord=result.orders.map(function(o){return {id:o.id,s:o.symbol,t:o.side==='BUY'?'买入':o.side==='SELL'?'卖出':o.side,q:Number(o.quantity),p:Number(o.price_cents)/100,a:Number(o.amount_usd_cents)/100,day:new Date(Date.parse(o.created_at)+288e5).toISOString().slice(0,10),d:new Date(o.created_at).toLocaleString('zh-CN',{timeZone:'Asia/Kuala_Lumpur',hour12:false}),st:'已成交',ty:'内部限价'}})
   }
   R();
+}
+let sellQuantity='1',pendingMobileSell=null;
+function sellSheet(){
+  const holding=pos(D.ov), available=holding?.available||0;
+  return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-modal="true" tabindex="-1" aria-label="卖出持仓">'+
+    '<div class="chh"><h3>卖出 '+esc(D.ov)+'</h3>'+chip('close','x','','关闭')+'</div>'+
+    '<p>可卖 '+available+' 股。按提交时的可用报价记账。</p>'+
+    '<label for="mobile-sell-qty">卖出股数</label><input id="mobile-sell-qty" inputmode="numeric" type="number" min="1" max="'+available+'" step="1" value="'+esc(sellQuantity)+'">'+
+    '<p id="mobile-sell-error" role="status"></p><button type="button" class="cta red" data-a="sell-submit"'+(!available||mobileOrderSending?' disabled':'')+'>确认卖出</button></div>';
+}
+async function submitMobileSell(button){
+  if(mobileOrderSending)return;
+  const holding=pos(D.ov),quantity=Number(sellQuantity);
+  const showError=message=>{const node=root.getElementById('mobile-sell-error');if(node)node.textContent=message;};
+  if(!holding||!Number.isSafeInteger(quantity)||quantity<1||quantity>holding.available){showError('请输入可卖股数范围内的整数');return;}
+  const token=localStorage.getItem('cncap.session');if(!token){location.assign('/login');return;}
+  const order={market:holding.market,symbol:holding.s,side:'SELL',quantity};
+  const fingerprint=JSON.stringify(order);
+  if(pendingMobileSell?.fingerprint!==fingerprint)pendingMobileSell={fingerprint,key:crypto.randomUUID()};
+  mobileOrderSending=true;button.disabled=true;showError('');
+  try{
+    const response=await fetch('/api/orders',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','Idempotency-Key':pendingMobileSell.key},body:JSON.stringify(order)});
+    if(response.status===401){location.assign('/login');return;}
+    const result=await response.json();
+    if(!response.ok){
+      showError(response.status===409?'可卖股数不足或仍在锁定期。':response.status===403?'该账户暂不能卖出。':'卖出未确认，请核对报价或稍后重试。');
+      return;
+    }
+    if(!result.order?.id)throw Error('Missing order receipt');
+    pendingMobileSell=null;D.sh=null;R();toast('卖出已记录');
+    syncMobileTrading().catch(()=>{});
+  }catch{showError('未收到订单回执，请用相同股数重试。');}
+  finally{mobileOrderSending=false;const current=root.querySelector('[data-a="sell-submit"]');if(current)current.disabled=false;}
 }
 async function submitMobileOrder(button){
   if(mobileOrderSending||!bok())return;
@@ -939,6 +972,8 @@ else if(a==='buy'){var ov=ordv();if(!ov.ok)return;D.sh='buy';D.rk=0;D.pdk=0;D.tp
 else if(a==='rfp'){Promise.allSettled([loadMobileCatalog(),syncMobileTrading(),window.CNProducts?.refresh()]);return}
 else if(a==='rfc'){refreshSupport();return}
 else if(a==='fav'){toggleMobileFavorite(t.dataset.market,v);return}
+else if(a==='sell-open'){sellQuantity='1';D.sh='sell'}
+else if(a==='sell-submit'){submitMobileSell(t);return}
 else if(a==='place'){submitMobileOrder(t);return}
 else if(a==='submit'){submitMobileCash(t);return}
 else if(a==='ksub'||a==='bsub'){submitProfile(a==='ksub'?'IDENTITY':'BANK',t);return}
@@ -960,7 +995,7 @@ else if(a==='qp')D.qty=String(Math.min(MAXQ,(parseInt(D.qty,10)||0)+1));
 else if(a==='qm')D.qty=String(Math.max(MQ(),(parseInt(D.qty,10)||MQ()+1)-1));
 else if(a==='exp'){exp();m='已导出已加载记录 · '+D.ord.length+' 笔'}
 R();if(m)toast(m)});
-root.addEventListener('input',function(e){var id=e.target.id;if(id==='amt'){D.amt=e.target.value;chk()}else if(id==='lp'){D.lp=e.target.value;tchk()}else if(id==='qty'){D.qty=e.target.value;tchk()}else if(id==='lu'||id==='lpw'){if(id==='lu')D.user=e.target.value;else D.lpw=e.target.value;var lg=root.getElementById('lg');if(lg)lg.disabled=!(D.user.trim()&&D.lpw)}else if(id==='tpw'){D.tpw=e.target.value.replace(/\D/g,'');var pb=root.getElementById('pl');if(pb)pb.disabled=!bok()}else if(id==='cm')D.dr=e.target.value;else if(id==='bk1'){D.bn=e.target.value;chkb()}else if(id==='bk2'){D.bc=e.target.value;chkb()}else if(id==='q'){D.q=e.target.value;root.getElementById('ml').innerHTML=mlist()}});
+root.addEventListener('input',function(e){var id=e.target.id;if(id==='mobile-sell-qty')sellQuantity=e.target.value;else if(id==='amt'){D.amt=e.target.value;chk()}else if(id==='lp'){D.lp=e.target.value;tchk()}else if(id==='qty'){D.qty=e.target.value;tchk()}else if(id==='lu'||id==='lpw'){if(id==='lu')D.user=e.target.value;else D.lpw=e.target.value;var lg=root.getElementById('lg');if(lg)lg.disabled=!(D.user.trim()&&D.lpw)}else if(id==='tpw'){D.tpw=e.target.value.replace(/\D/g,'');var pb=root.getElementById('pl');if(pb)pb.disabled=!bok()}else if(id==='cm')D.dr=e.target.value;else if(id==='bk1'){D.bn=e.target.value;chkb()}else if(id==='bk2'){D.bc=e.target.value;chkb()}else if(id==='q'){D.q=e.target.value;root.getElementById('ml').innerHTML=mlist()}});
 root.addEventListener('keydown',function(e){var k0=e.target;if(e.key==='Tab'){var dg0=A.querySelector('[role=dialog]');if(dg0){var fs=[].slice.call(dg0.querySelectorAll('button,input,[tabindex="0"]')).filter(function(x){return !x.disabled}),ix=fs.indexOf(root.activeElement);if(fs.length&&(e.shiftKey?ix<=0:ix===fs.length-1)){e.preventDefault();fs[e.shiftKey?fs.length-1:0].focus()}}}if((e.key==='Enter'||e.key===' ')&&k0.getAttribute&&k0.tagName==='DIV'&&k0.getAttribute('role')==='button'){e.preventDefault();k0.click();return}if(e.key==='Escape'&&!root.querySelector('dialog[open]')&&(D.sh||D.cs||D.rq!=null||D.ov||D.tab!=='home')){if(D.sh||D.cs||D.rq!=null){clean();D.sh=null;D.cs=0;D.rq=null}else if(D.ov)D.ov=null;else D.tab='home';R()}if(e.key==='Enter'){if(e.target.id==='lpw'){var lb=root.getElementById('lg');if(lb&&!lb.disabled)lb.click()}if(e.target.id==='amt'){var b=root.getElementById('sb');if(b&&!b.disabled)b.click()}if(e.target.id==='cm'){var s=root.getElementById('sd');if(s)s.click()}if(e.target.id==='bk1'||e.target.id==='bk2'){var bb=root.getElementById('bs');if(bb&&!bb.disabled)bb.click()}}});
 var py0=null,pd=0,sup=0,busy=0;
 root.addEventListener('click',function(e){if(sup){sup=0;e.stopPropagation();e.preventDefault()}},true);

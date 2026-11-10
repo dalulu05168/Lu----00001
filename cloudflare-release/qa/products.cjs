@@ -106,6 +106,7 @@ const adminPath='/api/admin/product-settlement',clientPath='/api/product-settlem
   await desktop.close();
   const mobile=await openPage('mobile',token);
   await mobile.locator('[data-a=tab][data-v=trade]').click();
+  await mobile.locator('[data-a=sec][data-v=IPO]').click();
   await mobile.locator('[data-a=managed-products]').click();
   const mp=mobile.locator('.ps-dialog');
   await write(mobile,mp.locator('form').filter({hasText:'提交基金赎回'}),{quantity:'0.5'});
@@ -117,14 +118,7 @@ const adminPath='/api/admin/product-settlement',clientPath='/api/product-settlem
   const scope=back.locator('#cn-overview-sub');await scope.waitFor();
   assert.equal(await scope.evaluate(el=>getComputedStyle(el).textAlignLast),'center');
   await back.locator('[data-p=cat]').click();
-  await back.locator('#cn-listing-add').click();
-  for(const id of ['cn-lm-type','cn-lm-market','cn-lm-status']){
-   const el=back.locator('#'+id);
-   const style=await el.evaluate(e=>{const s=getComputedStyle(e);return {h:e.clientHeight,font:parseFloat(s.fontSize),padding:parseFloat(s.paddingTop)+parseFloat(s.paddingBottom)}});
-   assert(style.h-style.padding>=style.font+8,JSON.stringify(style));
-   await el.selectOption({index:1});
-  }
-  await back.locator('#cn-lm-cancel').click();
+  assert.equal(await back.locator('#cn-listing-add').isVisible(),false);
   await back.locator('[data-product-settlement-open]').click();
   const panel=back.locator('.ps-dialog');
   const row=panel.locator('tr').filter({hasText:a}).filter({hasText:'保存配售'});

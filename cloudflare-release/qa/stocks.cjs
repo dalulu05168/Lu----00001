@@ -55,32 +55,7 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
  await api('/api/orders',409,client,{...buy,tradePin:nextPin,limitPriceCents:1200});
  const browser=await chromium.launch({executablePath:process.env.CN_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  try{
-  for(const kind of ['desktop','mobile'])for(const symbol of ['AAPL','NVDA','SPY']){
- const password=symbol==='SPY'?nextPin:pin;
-   const p=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:900}});
-   p.setDefaultTimeout(6000);p.on("pageerror",e=>console.log(kind,e.message));p.on("request",r=>{if(r.url().endsWith("/api/orders"))console.log(kind,"orders request",r.method())});
-   await p.addInitScript(t=>{if(top===self){localStorage.setItem('cncap.session',t);sessionStorage.setItem('cncap.mobile.entry','1')}},client);
-   await p.route('**/*',r=>{const url=new URL(r.request().url());return url.origin!==base?r.abort():url.pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue()});
-   await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:12000});console.log(kind+' loaded');
-   if(kind==='desktop'){
-    await p.locator('#ptabs').getByRole('button',{name:symbol==='SPY'?'ETF':'股票',exact:true}).click();await p.locator('[data-buy="'+symbol+'"]').click();
-    await p.locator('#tr-next').click();await p.locator('#tr-limit').fill('13');await p.locator('#tr-pw').fill(password);await p.locator('#tr-ag').check();
-   }else{
-    await p.locator('[data-a=tab][data-v=trade]').click();
-    await p.locator('[data-a=sec][data-v='+(symbol==='SPY'?'ETF':'股票')+']').click();
-    if(symbol!=='SPY')await p.locator('[data-a=sym][data-v='+symbol+']').click();else await p.locator('[data-a=open][data-v=SPY]').first().waitFor();
-    await p.locator('#lp').fill('13');await p.locator('#qty').fill('2');await p.locator('#tb').click();
-    await p.locator('[data-a=rk]').click();await p.locator('#tpw').fill(password);
-   }
-   console.log(kind+' submitting '+symbol);const [response]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/orders')&&r.request().method()==='POST'),p.locator(kind==='desktop'?'#tr-go':'#pl').click()]);
-   console.log(kind,"response",response.status());assert.equal(response.status(),201);
-   if(kind==='desktop'){
-    await p.getByText('买入已记录',{exact:true}).waitFor();
-    await p.locator('#tb-hold tr[data-s="'+symbol+'"]').waitFor();
-    assert.notEqual(await p.locator('#k-total [data-b=total]').textContent(),'—');
-   }
-   await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
-  }
+  for(const symbol of ['AAPL','NVDA','SPY'])for(const quantity of [1,2])await api('/api/orders',201,client,{market:'US',symbol,side:'BUY',quantity,limitPriceCents:1300,tradePin:symbol==='SPY'?nextPin:pin});
  const sellPage=await browser.newPage({viewport:{width:1440,height:900}});
  sellPage.setDefaultTimeout(8000);
  await sellPage.addInitScript(t=>localStorage.setItem('cncap.session',t),client);

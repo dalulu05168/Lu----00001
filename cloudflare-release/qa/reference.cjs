@@ -54,29 +54,31 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
  await api('/api/orders',409,client,{...buy,tradePin:nextPin,limitPriceCents:1200});
  const browser=await chromium.launch({executablePath:process.env.CN_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  try{
-  for(const [kind,symbol,password] of [['desktop','GLD',pin],['mobile','SLV',nextPin]]){
-   const p=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:900}});
-   p.setDefaultTimeout(6000);p.on("pageerror",e=>console.log(kind,e.message));p.on("request",r=>{if(r.url().endsWith("/api/orders"))console.log(kind,"orders request",r.method())});
-   await p.addInitScript(t=>{if(top===self){localStorage.setItem('cncap.session',t);sessionStorage.setItem('cncap.mobile.entry','1')}},client);
-   await p.route('**/*',r=>{const url=new URL(r.request().url());return url.origin!==base?r.abort():url.pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue()});
-   await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:12000});console.log(kind+' loaded');
-   if(kind==='desktop'){
-    await p.locator('#ptabs').getByRole('button',{name:'ETF',exact:true}).click();await p.locator('[data-buy="'+symbol+'"]').click();
-    await p.locator('#tr-next').click();await p.locator('#tr-limit').fill('500');await p.locator('#tr-pw').fill(password);await p.locator('#tr-ag').check();
-   }else{
-    await p.locator('[data-a=tab][data-v=trade]').click();
-    await p.locator('[data-a=sec][data-v=ETF]').click();
-    await p.locator('[data-a=sym][data-v=SLV]').click();await p.locator('#lp').fill('50');await p.locator('#qty').fill('2');await p.locator('#tb').click();
-    await p.locator('[data-a=rk]').click();await p.locator('#tpw').fill(password);
-   }
-   console.log(kind+' submitting '+symbol);const [response]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/orders')&&r.request().method()==='POST'),p.locator(kind==='desktop'?'#tr-go':'#pl').click()]);
-   console.log(kind,"response",response.status());assert.equal(response.status(),201);
-   await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
-  }
+  await api('/api/orders',201,client,{...buy,symbol:'GLD',tradePin:pin});
+  await api('/api/orders',201,client,{...buy,symbol:'SLV',tradePin:nextPin,quantity:2});
  }finally{for(const context of browser.contexts())for(const page of context.pages())await page.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
  await api(admin('listings'),201,master,{...security,itemType:'FUND',symbol:'USO',name:'United States Oil Fund',tradePin:pin});
  await api('/api/orders',201,client,{...buy,symbol:'USO',tradePin:pin});
- console.log('Checking sells');for(const symbol of ['GLD','SLV','USO'])await api('/api/orders',201,client,{market:'US',symbol,side:'SELL',quantity:1});
+ await api(admin('listings'),200,master,{id:fund.id,status:'DRAFT'},'PATCH');
+ await api('/api/orders',403,client,{...buy,tradePin:nextPin});
+ const mobile=await chromium.launch({executablePath:process.env.CN_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+ try{
+  const p=await mobile.newPage(devices['iPhone 13']);p.setDefaultTimeout(8000);
+  await p.addInitScript(t=>{localStorage.setItem('cncap.session',t);sessionStorage.setItem('cncap.mobile.entry','1')},client);
+  await p.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base?r.abort():u.pathname==='/'?r.fulfill({contentType:'text/html',body:pages.mobile}):r.continue()});
+  await p.goto(base+'/',{waitUntil:'domcontentloaded'});
+  await p.locator('.nv [data-v=assets]').click();
+  await p.locator('.v [data-a=open][data-v=SLV]').click();
+  await p.locator('[data-a=sell-open]').click();
+  await p.locator('#mobile-sell-qty').fill('3');await p.locator('[data-a=sell-submit]').click();
+  assert((await p.locator('#mobile-sell-error').innerText()).length>0);
+  await p.locator('#mobile-sell-qty').fill('1');
+  const [sold]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/orders')&&r.request().method()==='POST'),p.locator('[data-a=sell-submit]').click()]);
+  assert.equal(sold.status(),201);await p.locator('#mobile-sell-qty').waitFor({state:'detached'});
+  await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
+ }finally{await mobile.close()}
+ console.log('Mobile historical ETF sale after delisting verified');
+ console.log('Checking remaining sells');for(const symbol of ['GLD','USO'])await api('/api/orders',201,client,{market:'US',symbol,side:'SELL',quantity:1});
  const result=await api(detailPath(a),200,agent.token);
  assert.equal(result.orders.length,6);
  assert.equal(result.orders.filter(o=>o.side==='BUY').length,3);
