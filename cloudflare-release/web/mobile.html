@@ -36,6 +36,7 @@
  :host{--cn-safe-top:env(safe-area-inset-top,0px);--cn-header-height:52px}
  .cn-bell-mobile{position:absolute;z-index:6;top:calc(var(--cn-safe-top) + 6px);right:16px}
  .cn-bell-mobile .cn-bell{width:40px;height:40px}
+ :is(button,[role="button"]):not(:disabled):not([aria-disabled="true"]):active{filter:brightness(.83)}
  .cn-mobile-brand{position:absolute;z-index:6;top:calc(var(--cn-safe-top) + 3px);left:12px;width:56px;height:46px;object-fit:contain;pointer-events:none}
  :host(.emb){--cn-safe-top:48px}
  .app:has(.lv) ~ .cn-mobile-brand,.app:has(.lv) ~ .cn-bell-mobile{display:none}
@@ -1092,5 +1093,16 @@ mountApp(document.getElementById('host'),document.getElementById('css').textCont
  window.addEventListener('cn-open-product-settlement',open);
  document.addEventListener('click',e=>{if(e.target.closest('[data-product-settlement-open]'))open()});
 })();
-</script></body>
+</script><style>
+:is(button,[role="button"]):not(:disabled):not([aria-disabled="true"]):active{filter:brightness(.83)}
+</style>
+<script id="cn-mobile-touch-feedback">
+window.addEventListener('click', function(event) {
+  if (!event.isTrusted || event.detail === 0 || typeof navigator.vibrate !== 'function') return;
+  const control = event.composedPath().find(node => node?.matches?.('button,[role="button"],input[type="button"],input[type="submit"]'));
+  if (!control || control.matches(':disabled,[aria-disabled="true"]') || control.closest('[inert]')) return;
+  try { navigator.vibrate(18); } catch {}
+}, {capture:true, passive:true});
+</script>
+</body>
 </html>
