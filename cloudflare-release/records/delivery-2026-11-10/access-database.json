@@ -1,0 +1,272 @@
+{
+  "accounts": [
+    {
+      "id": "a6a3abe1-e49c-4899-b4fa-54d70339eaf6",
+      "user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T16:41:36.249Z"
+    },
+    {
+      "id": "422b7c6f-2bb8-484b-a568-9176f5c7106b",
+      "user_id": "59038480-0f4b-45d4-a6ed-8b7652443854",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T16:41:36.290Z"
+    },
+    {
+      "id": "d5e8af59-40a1-49fd-8cdc-f5c97bc8f513",
+      "user_id": "8339a64c-bfae-4e90-9634-9f8cd4829732",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T16:41:36.326Z"
+    },
+    {
+      "id": "eee62856-533f-437e-8c7c-9ea349c50600",
+      "user_id": "9aace21a-a2b4-4ac3-9ab7-d4ebf5c48907",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T16:41:36.359Z"
+    },
+    {
+      "id": "8dceba0f-9bdf-48e8-9bf9-5b386ac45951",
+      "user_id": "a922b575-1d06-47fd-820e-f31da4140eb9",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T16:41:36.739Z"
+    }
+  ],
+  "positions": [],
+  "orders": [],
+  "cash_ledger": [],
+  "admin_audit_log": [
+    {
+      "id": "e56cf3cb-a844-46b3-b78d-f1e87ca03ed0",
+      "admin_user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "admin.login",
+      "target": "qa-master@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:36.699Z"
+    },
+    {
+      "id": "8ba5c95b-5482-4f39-bb6b-8655bd9c7a81",
+      "admin_user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "admin_email": "MASTER",
+      "role": "MASTER",
+      "action": "subaccount.create",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": {
+        "inviteCode": "795425"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T16:41:36.749Z"
+    },
+    {
+      "id": "1b1941fb-02b2-4972-a43c-8ead331c444b",
+      "admin_user_id": null,
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.activate",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:36.784Z"
+    },
+    {
+      "id": "e3a87584-8229-4fdf-b5e3-6fb0ba6db065",
+      "admin_user_id": "a922b575-1d06-47fd-820e-f31da4140eb9",
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:36.819Z"
+    },
+    {
+      "id": "6c7fe329-1bdc-439a-87e7-ec0bd0838b1c",
+      "admin_user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "subaccount.login.restriction",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": {
+        "reason": "Acceptance login restriction",
+        "restricted": true
+      },
+      "ip": null,
+      "created_at": "2026-11-10T16:41:36.833Z"
+    },
+    {
+      "id": "84a45baf-7589-425a-adb6-263f39898e48",
+      "admin_user_id": null,
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": null,
+      "action": "admin.login.failed",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:36.842Z"
+    },
+    {
+      "id": "89fc5156-139d-46c6-b45e-cd60db2a5260",
+      "admin_user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "subaccount.login.restriction",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": {
+        "reason": "Acceptance restore",
+        "restricted": false
+      },
+      "ip": null,
+      "created_at": "2026-11-10T16:41:36.846Z"
+    },
+    {
+      "id": "e505f111-3e67-4c93-8a98-4a15b4f76edc",
+      "admin_user_id": "a922b575-1d06-47fd-820e-f31da4140eb9",
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:36.883Z"
+    },
+    {
+      "id": "fbe336da-9ec4-4d8e-9450-68f8d25d9777",
+      "admin_user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "subaccount.password.reset",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": {
+        "sessionsRevoked": true
+      },
+      "ip": null,
+      "created_at": "2026-11-10T16:41:36.919Z"
+    },
+    {
+      "id": "f6d024d7-8270-429c-8667-e74c45c22e29",
+      "admin_user_id": null,
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": null,
+      "action": "admin.login.failed",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:36.958Z"
+    },
+    {
+      "id": "f2bbab4e-539c-452b-a5f7-efe3d81f51be",
+      "admin_user_id": "a922b575-1d06-47fd-820e-f31da4140eb9",
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:36.994Z"
+    },
+    {
+      "id": "04297150-9bf2-42cd-8125-5235f6db12b9",
+      "admin_user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "subaccount.password.reset",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": {
+        "sessionsRevoked": true
+      },
+      "ip": null,
+      "created_at": "2026-11-10T16:41:38.760Z"
+    },
+    {
+      "id": "c4db1a9a-85d1-4b1c-b76f-07c7127f0f80",
+      "admin_user_id": "a922b575-1d06-47fd-820e-f31da4140eb9",
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:39.129Z"
+    },
+    {
+      "id": "560a633d-d27c-4969-945f-dbe7c4240ab3",
+      "admin_user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "subaccount.login.restriction",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": {
+        "reason": "Browser acceptance restriction",
+        "restricted": true
+      },
+      "ip": null,
+      "created_at": "2026-11-10T16:41:39.488Z"
+    },
+    {
+      "id": "6b8d32f3-0719-44e7-9cd7-c9084f28359d",
+      "admin_user_id": null,
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": null,
+      "action": "admin.login.failed",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:39.806Z"
+    },
+    {
+      "id": "09ee08ae-ed06-4fd2-a50d-1388c38246c5",
+      "admin_user_id": "95948533-c241-42f3-8a4a-03ee7774df87",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "subaccount.login.restriction",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": {
+        "reason": "Restore for rollback check",
+        "restricted": false
+      },
+      "ip": null,
+      "created_at": "2026-11-10T16:41:40.033Z"
+    },
+    {
+      "id": "99235ec0-ae44-45f7-88ab-4403030486a8",
+      "admin_user_id": "a922b575-1d06-47fd-820e-f31da4140eb9",
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:40.068Z"
+    },
+    {
+      "id": "c9e24082-316d-4eb6-af1b-627dc32f3db3",
+      "admin_user_id": "a922b575-1d06-47fd-820e-f31da4140eb9",
+      "admin_email": "qa-agent-access-1794328896640@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-access-1794328896640@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T16:41:40.145Z"
+    }
+  ],
+  "cash_requests": [],
+  "cn_fund_contracts": [],
+  "cn_bulk_order_terms": [],
+  "product_settlement_products": [],
+  "product_settlement_terms": [],
+  "product_settlement_orders": [],
+  "product_settlement_cash_holds": [],
+  "product_settlement_positions": [],
+  "product_settlement_cash_postings": [],
+  "product_ipo_allocations": [],
+  "product_settlement_movements": [],
+  "commodity_reference_order_prices": []
+}

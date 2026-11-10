@@ -1,0 +1,12 @@
+[
+  {
+    "kind": "desktop",
+    "frame": "https://www.tradingview-widget.com/embed-widget/advanced-chart/",
+    "painted": true
+  },
+  {
+    "kind": "mobile",
+    "frame": "https://www.tradingview-widget.com/embed-widget/advanced-chart/",
+    "painted": true
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "action": "admin.activate",
+    "count": 1
+  },
+  {
+    "action": "admin.login",
+    "count": 7
+  },
+  {
+    "action": "admin.login.failed",
+    "count": 3
+  },
+  {
+    "action": "subaccount.create",
+    "count": 1
+  },
+  {
+    "action": "subaccount.login.restriction",
+    "count": 4
+  },
+  {
+    "action": "subaccount.password.reset",
+    "count": 2
+  }
+]

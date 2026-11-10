@@ -1,0 +1,57 @@
+{
+  "sourceSha256": "a39f8d56f3cfdfb12caba9c633df38d6bf053f99ff5c030b14953791d3adc92e",
+  "sourceUnchanged": true,
+  "productionVersion": "4017327b-1716-4c69-88d7-6836f43d94f8",
+  "checkedAt": "2026-11-10T16:41:40.200Z",
+  "results": [
+    {
+      "name": "contracts",
+      "code": 0
+    },
+    {
+      "name": "charts",
+      "code": 0
+    },
+    {
+      "name": "product-browser",
+      "code": 0
+    },
+    {
+      "name": "products",
+      "code": 0
+    },
+    {
+      "name": "permissions",
+      "code": 0
+    },
+    {
+      "name": "registration",
+      "code": 0
+    },
+    {
+      "name": "stocks",
+      "code": 0
+    },
+    {
+      "name": "interface",
+      "code": 0
+    },
+    {
+      "name": "sessions",
+      "code": 0
+    },
+    {
+      "name": "reference",
+      "code": 0
+    },
+    {
+      "name": "forms",
+      "code": 0
+    },
+    {
+      "name": "access",
+      "code": 0
+    }
+  ],
+  "publishedVersion": "df3f7705-472c-4800-80d3-08adec63c1f7"
+}

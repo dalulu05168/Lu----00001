@@ -1,0 +1,98 @@
+{
+  "customer": "qa-kele-1794328842778@example.test",
+  "subaccount": "qa-agent-1794328842778-1@example.test",
+  "orders": [
+    {
+      "id": "b160afd5-a6a0-49f8-a12e-837297ecca0a",
+      "market": "US",
+      "symbol": "SPY",
+      "side": "SELL",
+      "quantity": "3",
+      "price_cents": "1233",
+      "amount_usd_cents": "3699",
+      "created_at": "2026-11-10T16:40:47.631Z"
+    },
+    {
+      "id": "2a687080-f87a-428b-9e2c-f14915f1d5ce",
+      "market": "US",
+      "symbol": "NVDA",
+      "side": "SELL",
+      "quantity": "3",
+      "price_cents": "1233",
+      "amount_usd_cents": "3699",
+      "created_at": "2026-11-10T16:40:47.622Z"
+    },
+    {
+      "id": "d86c9269-1be8-46b0-8ea2-c84ddba1cf82",
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "SELL",
+      "quantity": "3",
+      "price_cents": "1233",
+      "amount_usd_cents": "3699",
+      "created_at": "2026-11-10T16:40:45.481Z"
+    },
+    {
+      "id": "63ee39a7-5a84-4cd6-969a-992fd412742f",
+      "market": "US",
+      "symbol": "SPY",
+      "side": "BUY",
+      "quantity": "2",
+      "price_cents": "1234",
+      "amount_usd_cents": "2468",
+      "created_at": "2026-11-10T16:40:43.855Z"
+    },
+    {
+      "id": "000b541f-5ede-4444-9a81-68ed4b7aa5bd",
+      "market": "US",
+      "symbol": "SPY",
+      "side": "BUY",
+      "quantity": "1",
+      "price_cents": "1234",
+      "amount_usd_cents": "1234",
+      "created_at": "2026-11-10T16:40:43.817Z"
+    },
+    {
+      "id": "8852e2cb-d026-463a-81f9-e9b58e803e67",
+      "market": "US",
+      "symbol": "NVDA",
+      "side": "BUY",
+      "quantity": "2",
+      "price_cents": "1234",
+      "amount_usd_cents": "2468",
+      "created_at": "2026-11-10T16:40:43.780Z"
+    },
+    {
+      "id": "55f761ca-224b-4a76-9cc7-3e04126c2956",
+      "market": "US",
+      "symbol": "NVDA",
+      "side": "BUY",
+      "quantity": "1",
+      "price_cents": "1234",
+      "amount_usd_cents": "1234",
+      "created_at": "2026-11-10T16:40:43.740Z"
+    },
+    {
+      "id": "b118a0e2-5fa4-4cf3-a1e0-e0e8b8a8a08a",
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": "2",
+      "price_cents": "1234",
+      "amount_usd_cents": "2468",
+      "created_at": "2026-11-10T16:40:43.700Z"
+    },
+    {
+      "id": "ea17615c-1c77-47f5-98ee-43426e7e1a5d",
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": "1",
+      "price_cents": "1234",
+      "amount_usd_cents": "1234",
+      "created_at": "2026-11-10T16:40:43.631Z"
+    }
+  ],
+  "positions": [],
+  "balance": 99991
+}

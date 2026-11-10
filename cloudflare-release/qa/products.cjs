@@ -61,15 +61,18 @@ const adminPath='/api/admin/product-settlement',clientPath='/api/product-settlem
  const i=await clientPost(201,{...ipo,action:'IPO_SUBSCRIBE',quantity:'10'});
  const account=async()=> (await api('/api/account',200,token)).account.cashCents;
  assert.equal(await account(),90000);
+ assert.equal((await api('/api/account',200,token)).totalAssets,1000);
  await adminPost(200,{action:'draft-allocation',order:i.id,shares:'6'});
  await adminPost(409,{action:'review-allocation',order:i.id,shares:'7'});
  await adminPost(200,{action:'review-allocation',order:i.id,shares:'6'});
  await adminPost(200,{action:'review-allocation',order:i.id,shares:'6'});
  assert.equal(await account(),94000);
+ assert.equal((await api('/api/account',200,token)).totalAssets,1000);
  await clientPost(201,{...fund,action:'FUND_SUBSCRIBE',amount:'12500'});
  await clientPost(409,{...fund,action:'FUND_REDEEM',quantity:'11000000'});
  await clientPost(201,{...fund,action:'FUND_REDEEM',quantity:'2500000'});
  assert.equal(await account(),84625);
+ const assets=await api('/api/account',200,token);assert.equal(assets.totalAssets,1000);assert.equal(assets.account.settlementPositionValueCents,15375);
  const result=await api(clientPath,200,token);
  assert.equal(result.orders.length,3);
  assert.equal(result.positions.find(x=>x.kind==='IPO').quantity_micros,'6000000');

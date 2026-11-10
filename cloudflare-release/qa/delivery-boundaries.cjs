@@ -1,0 +1,51 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{randomUUID}=require('crypto'),{PGlite}=require('@electric-sql/pglite'),{pathToFileURL}=require('url');
+(async()=>{
+ const dir=fs.mkdtempSync(path.resolve('artifacts/delivery-boundaries-'));const pg=new PGlite(path.join(dir,'db'));await pg.waitReady;await pg.exec("CREATE TABLE schema_migrations(filename text PRIMARY KEY,applied_at timestamptz DEFAULT now())");
+ const files=fs.readdirSync('db');for(const f of [...files.filter(f=>/^\d/.test(f)).sort(),...files.filter(f=>f.startsWith('migration-')).sort(),'product-settlement-schema.sql','product-settlement-workflows.sql','commodity-reference-order-prices.sql'])await pg.exec(fs.readFileSync('db/'+f,'utf8').replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;/ig,''));
+ const db={query:(...x)=>pg.query(...x),connect:async()=>({query:(...x)=>pg.query(...x),release(){}})};
+ let source=fs.readFileSync('dist/worker.mjs','utf8').replace('import { handleAsNodeRequest } from "cloudflare:node";','');source+='\nexport {getAccountSnapshot,cnProductSave,cnProductList,cnFundSubscribe,cnSettleDueFunds,placeInternalOrder,createApi,hashPassword,productCash,listCustomerRequests,listAdminRequests};';
+ const runtime=path.join(dir,'runtime.mjs');fs.writeFileSync(runtime,source);const app=await import(pathToFileURL(runtime));
+ const uid=randomUUID(),aid=randomUUID();await pg.query('INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,$3)',[uid,'qa-tier@example.test',await app.hashPassword('FixturePass123456!')]);await pg.query('INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,100000000)',[aid,uid]);
+
+ const actor={userId:uid,role:'MASTER'},session={userId:uid,accountId:aid};
+ const fund=await app.cnProductSave(db,actor,{kind:'TERM_FUND',name:'Boundary Fund',status:'PUBLISHED',tiers:[{principalCents:10000000,holdingDays:7,profitBps:100}]});
+ const tier=(await app.cnProductList(db)).find(p=>p.id===fund.id).tiers[0];
+ const withdraw=randomUUID();
+ await pg.query("INSERT INTO cash_requests(id,account_id,user_id,kind,amount_cents,status) VALUES($1,$2,$3,'WITHDRAW',95000000,'PENDING')",[withdraw,aid,uid]);
+ await assert.rejects(app.placeInternalOrder(db,aid,'reserved-stock',{market:'US',symbol:'AAPL',side:'BUY',quantity:1,priceCents:6000000,fxUsdMicros:1000000},randomUUID()),/Insufficient available balance/);
+ await assert.rejects(app.cnFundSubscribe(db,session,{tierId:tier.id},'reserved-fund'),/Insufficient available balance/);
+ await assert.rejects(app.productCash(db,aid,-6000000n),/Insufficient available balance/);
+ assert.equal(Number((await pg.query('SELECT cash_cents FROM accounts WHERE id=$1',[aid])).rows[0].cash_cents),100000000);
+ await pg.query("UPDATE cash_requests SET status='REJECTED' WHERE id=$1",[withdraw]);
+ await pg.query("INSERT INTO cash_requests(id,account_id,user_id,kind,amount_cents,status) SELECT gen_random_uuid(),$1,$2,'DEPOSIT',100,'PENDING' FROM generate_series(1,120)",[aid,uid]);
+ assert.equal((await app.listCustomerRequests(db,aid)).length,121);
+ assert.equal((await app.listAdminRequests(db,actor)).length,121);
+
+ const input={market:'US',symbol:'AAPL',side:'BUY',quantity:1,priceCents:100,fxUsdMicros:1000000};
+ await app.placeInternalOrder(db,aid,'same-request',input,randomUUID());
+ await assert.rejects(app.placeInternalOrder(db,aid,'same-request',{...input,quantity:2},randomUUID()),/Idempotency payload mismatch/);
+ const saved=await app.cnProductSave(db,actor,{id:fund.id,version:fund.version,status:'ARCHIVED'});
+ assert.equal(saved.status,'ARCHIVED');
+ assert.equal((await app.cnProductList(db,true)).find(x=>x.id===fund.id).tiers.length,1);
+
+ let price=1000,offline=false;
+ const quote=async p=>{if(offline)throw Error('Quote unavailable');return {...p,name:'Apple',priceCents:price,timestampMs:Date.now()-60000}};
+ const bulk=await app.cnProductSave(db,actor,{kind:'BULK_STOCK',name:'Apple',symbol:'AAPL',market:'US',status:'PUBLISHED',discountBps:1000,holdingDays:0,minQuantity:1,tradePassword:'123456'},quote);
+ const server=app.createApi({db,resolveSession:async()=>session,resolveProductQuote:quote}).listen(0,'127.0.0.1');
+ await new Promise(r=>server.listening?r():server.once('listening',r));
+ const origin='http://127.0.0.1:'+server.address().port;
+ const call=async(path,body,key,status=200)=>{const r=await fetch(origin+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer fixture','Content-Type':'application/json',...(key?{'Idempotency-Key':key}:{})},body:body?JSON.stringify(body):undefined});const data=await r.json();assert.equal(r.status,status,JSON.stringify(data));return data};
+ const order={productId:bulk.id,quantity:1,side:'BUY',tradePassword:'123456',expectedVersion:bulk.version,expectedPriceCents:900};
+ const first=await call('/api/bulk-orders',order,'bulk-retry',201);
+ price=1100;const directory=await call('/api/catalog');assert.equal(directory.items.find(x=>x.symbol==='AAPL').lastPriceCents,1100);let catalog=await call('/api/products');
+ assert.equal(catalog.items.find(x=>x.id===bulk.id).referencePriceCents,1100);
+ offline=true;const retried=await call('/api/bulk-orders',order,'bulk-retry');
+ assert.equal(retried.order.id,first.order.id);
+ await call('/api/bulk-orders',{...order,quantity:2},'bulk-retry',409);
+ catalog=await call('/api/products');assert.equal(catalog.items.find(x=>x.id===bulk.id).referencePriceCents,null);
+ await call('/api/orders',{market:'US',symbol:'AAPL',side:'BUY',quantity:1},'same-request');
+ await call('/api/orders',{market:'US',symbol:'AAPL',side:'BUY',quantity:2},'same-request',409);
+ server.close();
+ fs.writeFileSync(path.join(dir,'results.json'),JSON.stringify({passed:true,withdrawalReservation:true,conflictingRetryRejected:true,replayDuringQuoteOutage:true,referenceRefresh:true,archivedFundTiersPreserved:true},null,2));
+ console.log(JSON.stringify({passed:true,evidence:dir}));await pg.close();
+})().catch(e=>{console.error(e.stack);process.exit(1)});

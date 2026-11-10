@@ -75,6 +75,7 @@ async function cnProductSave(db, actor, body, resolveQuote) {
   const image = body.image === undefined ? previous?.image_data || null : cnProductImage(body.image);
   let tiers = [], market = null, symbol = null, discount = 0, days = 0, minimum = 1, passwordHash = null, scheme = 'commodity', quote = null;
   if (kind === 'TERM_FUND') {
+    if(body.tiers===undefined&&previous){body={...body,tiers:(await db.query('SELECT principal_cents,holding_days,profit_bps FROM cn_fund_tiers WHERE product_id=$1 AND active ORDER BY created_at,id',[previous.id])).rows.map(t=>({principalCents:Number(t.principal_cents),holdingDays:t.holding_days,profitBps:t.profit_bps}))};}
     if (!Array.isArray(body.tiers) || body.tiers.length < 1 || body.tiers.length > 50) cnProductFail('At least one fund tier required');
     tiers = body.tiers.map(t => ({
       principal:cnProductInteger(t.principalCents,1,Number.MAX_SAFE_INTEGER,'tier amount'),
@@ -137,7 +138,8 @@ async function cnFundSubscribe(db, session, body, key) {
     if (!tier) cnProductFail('Fund tier unavailable',409);
     const principal = BigInt(tier.principal_cents), profit = (principal * BigInt(tier.profit_bps) + 5000n) / 10000n;
     const cash = BigInt(account.cash_cents);
-    if (cash < principal) cnProductFail('Insufficient available balance',409);
+    const frozen=BigInt(await pendingWithdrawCents(tx,session.accountId));
+    if (cash-frozen < principal) cnProductFail('Insufficient available balance',409);
     cnProductMoney(principal + profit);
     const balance = cnProductMoney(cash-principal), id = randomUUID();
     await tx.query('UPDATE accounts SET cash_cents=$2 WHERE id=$1',[session.accountId,balance]);
@@ -209,7 +211,15 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
     if (route==='/api/products' && req.method==='GET') {
       await cnSettleDueFunds(db,session.accountId);
       const contracts=(await db.query('SELECT * FROM cn_fund_contracts WHERE account_id=$1 ORDER BY subscribed_at DESC,id LIMIT 200',[session.accountId])).rows;
-      return send(res,200,{items:await cnProductList(db),contracts});
+      const items=await cnProductList(db);
+      for(let i=0;i<items.length;i+=4)await Promise.all(items.slice(i,i+4).filter(p=>p.kind==='BULK_STOCK').map(async p=>{
+        try{
+          const q=resolveQuote&&await resolveQuote(p);
+          if(!q||q.market!==p.market||q.symbol!==p.symbol||!Number.isSafeInteger(q.priceCents)||q.priceCents<=0||!Number.isFinite(q.timestampMs)||q.timestampMs>Date.now()+5000||Date.now()-q.timestampMs>5*86400000)throw Error('Invalid quote');
+          p.referencePriceCents=q.priceCents;p.referenceTimestamp=new Date(q.timestampMs).toISOString();p.quoteAvailable=true;
+        }catch{p.referencePriceCents=null;p.referenceTimestamp=null;p.quoteAvailable=false;}
+      }));
+      return send(res,200,{items,contracts});
     }
     if (route==='/api/products/quote' && req.method==='GET') {
       const row=(await db.query("SELECT market,symbol FROM cn_products WHERE id=$1 AND kind='BULK_STOCK' AND status='PUBLISHED'",[cnProductId(query.get('id'))])).rows[0];
@@ -223,6 +233,9 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
     }
     if (route==='/api/bulk-orders' && req.method==='POST') {
       const body=JSON.parse(await readBody(req,8192));
+      cnProductId(body?.productId);
+      const prior=await cnReplayInternalOrder(db,session.accountId,req.headers['idempotency-key'],{productId:body.productId,side:body.side||'BUY',quantity:body.quantity});
+      if(prior)return send(res,200,prior);
       const item=(await db.query("SELECT * FROM cn_products WHERE id=$1 AND kind='BULK_STOCK' AND status='PUBLISHED'",[cnProductId(body?.productId)])).rows[0];
       if (!item) cnProductFail('Product unavailable',409);
       const side=body.side||'BUY';if(!['BUY','SELL'].includes(side))cnProductFail('Invalid order side');

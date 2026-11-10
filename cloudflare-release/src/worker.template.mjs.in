@@ -6225,7 +6225,7 @@ __name(createCashRequest, "createCashRequest");
 async function listCustomerRequests(db, accountId) {
   const r = await db.query(
     `SELECT id,kind,amount_cents,status,method,note,reject_reason,created_at,reviewed_at,approved_at
-     FROM cash_requests WHERE account_id=$1 ORDER BY created_at DESC LIMIT 50`,
+     FROM cash_requests WHERE account_id=$1 ORDER BY created_at DESC,id DESC`,
     [accountId]
   );
   return r.rows.map((x2) => ({
@@ -6261,7 +6261,7 @@ async function listAdminRequests(db, actor, { status } = {}) {
      FROM cash_requests r JOIN app_users u ON u.id=r.user_id
      ${where}
      ORDER BY CASE r.status WHEN 'PENDING' THEN 0 WHEN 'REVIEWED' THEN 1 ELSE 2 END, r.created_at DESC
-     LIMIT 100`,
+`,
     params
   );
   return r.rows.map((x2) => ({
@@ -6526,15 +6526,13 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       return true;
     }
     if (route === "/api/catalog") {
-      const data = await db.query(`SELECT id,item_type,market,symbol,display_name
-        FROM listings WHERE status='PUBLISHED' ORDER BY created_at DESC LIMIT 100`);
-      response(res, 200, { items: data.rows.map((x2) => ({
-        id: x2.id,
-        itemType: x2.item_type,
-        market: x2.market,
-        symbol: x2.symbol,
-        name: x2.display_name
-      })) });
+      const data=await db.query("SELECT DISTINCT ON (market,symbol) id,item_type,market,symbol,display_name FROM (SELECT id,item_type,market,symbol,display_name,0 AS priority FROM listings WHERE status='PUBLISHED' UNION ALL SELECT id,'STOCK' AS item_type,market,symbol,name AS display_name,1 AS priority FROM cn_products WHERE kind='BULK_STOCK' AND status='PUBLISHED') sources ORDER BY market,symbol,priority DESC");
+      const items=data.rows.map(x=>({id:x.id,itemType:x.item_type,market:x.market,symbol:x.symbol,name:x.display_name}));
+      for(let i=0;i<items.length;i+=4)await Promise.all(items.slice(i,i+4).map(async item=>{
+        try{const q=resolveProductQuote&&await resolveProductQuote(item);if(q?.market===item.market&&q?.symbol===item.symbol&&Number.isSafeInteger(q.priceCents)&&q.priceCents>0&&Number.isFinite(q.timestampMs)&&q.timestampMs<=Date.now()+5000&&Date.now()-q.timestampMs<=5*86400000){item.lastPriceCents=q.priceCents;item.priceTimestamp=new Date(q.timestampMs).toISOString();}}
+        catch{}
+      }));
+      response(res,200,{items});
       return true;
     }
     const actor = await roleFor(db, session);
@@ -6593,7 +6591,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
         "events AS (SELECT 'doc:'||c.id||':'||d.kind||':'||extract(epoch from d.updated_at) AS id,'DOCUMENT' AS category,d.kind,d.status,d.updated_at AS at,c.email "+
         "FROM cn_profile_documents d JOIN clients c ON c.id=d.user_id WHERE $1='SUBADMIN' AND d.status='PENDING' "+
         "UNION ALL SELECT 'cash:'||r.id AS id,'CASH',r.kind,r.status,r.created_at,c.email FROM cash_requests r JOIN clients c ON c.id=r.user_id "+
-        "WHERE $1='SUBADMIN' OR r.status IN ('PENDING','REVIEWED') "+
+        "WHERE $1='MASTER' AND r.status IN ('PENDING','REVIEWED') "+
         "UNION ALL SELECT 'message:'||m.id,'SUPPORT','SUPPORT',NULL,m.created_at,c.email FROM cn_support_messages m JOIN clients c ON c.id=m.client_user_id WHERE $1='MASTER' AND m.sender_role='CLIENT') "+
         "SELECT id,category,kind,status,at,email FROM events ORDER BY at DESC,id DESC LIMIT 100",
         [actor.role,actor.userId]);
@@ -6878,6 +6876,13 @@ function applyOrder(account, order) {
 __name(applyOrder, "applyOrder");
 
 // src/order-service.mjs
+async function cnReplayInternalOrder(db,accountId,key,input){
+  if(typeof key!=='string'||key.length<8||key.length>128)cnProductFail('Invalid idempotency key',400);
+  const row=(await db.query('SELECT o.*,t.product_id AS bulk_product_id FROM orders o LEFT JOIN cn_bulk_order_terms t ON t.order_id=o.id WHERE o.account_id=$1 AND o.idempotency_key=$2',[accountId,key])).rows[0];
+  if(!row)return null;
+  if(row.side!==input.side||Number(row.quantity)!==input.quantity||(input.productId?row.bulk_product_id!==input.productId:row.market!==input.market||row.symbol!==input.symbol))cnProductFail('Idempotency payload mismatch',409);
+  return {replayed:true,order:{id:row.id,market:row.market,symbol:row.symbol,side:row.side,quantity:Number(row.quantity),priceCents:Number(row.price_cents),fxUsdMicros:Number(row.fx_usd_micros),amountCents:Number(row.amount_usd_cents)}};
+}
 async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
   if (typeof accountId !== "string" || !accountId) throw new Error("Account required");
   if (typeof key2 !== "string" || key2.length < 8 || key2.length > 128) throw new Error("Invalid idempotency key");
@@ -6891,6 +6896,8 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
     if (a2.rows.length !== 1) throw new Error("Account not found");
     const existing = await client.query("SELECT * FROM orders WHERE account_id=$1 AND idempotency_key=$2", [accountId, key2]);
     if (existing.rows.length) {
+      const prior=existing.rows[0];
+      if(prior.market!==input2.market||prior.symbol!==input2.symbol||prior.side!==input2.side||Number(prior.quantity)!==input2.quantity)cnProductFail('Idempotency payload mismatch',409);
       await client.query("COMMIT");
       transactionStarted = false;
       return { replayed: true, order: existing.rows[0] };
@@ -6906,6 +6913,11 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
       const t=input2.bulkTerms;
       const row=(await client.query("SELECT version,min_quantity FROM cn_products WHERE id=$1 AND status='PUBLISHED' AND kind='BULK_STOCK' AND market=$2 AND symbol=$3 FOR SHARE",[t.id,input2.market,input2.symbol])).rows[0];
       if(!row||row.version!==t.version||input2.quantity<row.min_quantity)cnProductFail('Product changed; reload and retry',409);
+    }
+    if(input2.side==='BUY'){
+      const frozen=await pendingWithdrawCents(client,accountId);
+      const amount=Math.round(input2.priceCents*input2.quantity*input2.fxUsdMicros/1000000);
+      if(account.cashCents-frozen<amount)cnProductFail('Insufficient available balance',409);
     }
     const updated = applyOrder(account, input2);
     const order = updated.orders[0];
@@ -7028,8 +7040,7 @@ async function getAccountSnapshot(db, accountId) {
           FROM orders o WHERE o.account_id=p.account_id AND o.market=p.market AND o.symbol=p.symbol AND o.side='BUY'
         ) buys
       ) c ON true
-      WHERE p.account_id=$1 AND p.quantity>0 ORDER BY p.market,p.symbol`, [accountId]),
-    db.query("SELECT id,market,symbol,side,quantity,price_cents,amount_usd_cents,created_at FROM orders WHERE account_id=$1 ORDER BY created_at DESC LIMIT 100", [accountId])
+      WHERE p.account_id=$1 AND p.quantity>0 ORDER BY p.market,p.symbol`, [accountId])
   ]);
   const history=[];
   let cursor=null;
@@ -7058,8 +7069,10 @@ async function getAccountSnapshot(db, accountId) {
       realizedCents+=Number(row.amount_usd_cents)-cost;
     }
   }
+  const reservedWithdrawalCents=await pendingWithdrawCents(db,accountId);
+  const extra=(await db.query("SELECT (SELECT COALESCE(SUM(amount_cents),0) FROM product_settlement_cash_holds WHERE account_id=$1 AND released_at IS NULL) AS ipo_reserved_cents,(SELECT COALESCE(SUM(FLOOR(p.quantity_micros::numeric*t.unit_price_micros/10000000000)),0) FROM product_settlement_positions p JOIN LATERAL (SELECT unit_price_micros FROM product_settlement_terms WHERE product_id=p.product_id AND reviewed_at IS NOT NULL AND effective_date<=current_date ORDER BY effective_date DESC,reviewed_at DESC,id DESC LIMIT 1) t ON true WHERE p.account_id=$1 AND p.quantity_micros>0) AS settlement_value_cents",[accountId])).rows[0];
   const statistics={tradeTotal:tradeCents/100,realizedPnl:realizedCents/100};
-  return { account: { id: a2.rows[0].id, cashCents: Number(a2.rows[0].cash_cents), activeFundPrincipalCents: Number(a2.rows[0].active_fund_principal_cents), currency: a2.rows[0].base_currency }, positions: p2.rows, orders: history.reverse(), ...statistics, disclosure: "Internal records only; no brokerage orders or real securities ownership." };
+  return { account: { id: a2.rows[0].id, cashCents: Number(a2.rows[0].cash_cents), activeFundPrincipalCents: Number(a2.rows[0].active_fund_principal_cents), currency: a2.rows[0].base_currency, reservedWithdrawalCents, availableCashCents:Math.max(0,Number(a2.rows[0].cash_cents)-reservedWithdrawalCents), ipoReservedCashCents:Number(extra.ipo_reserved_cents), settlementPositionValueCents:Number(extra.settlement_value_cents) }, positions: p2.rows, orders: history.reverse(), ...statistics, disclosure: "Internal records only; no brokerage orders or real securities ownership." };
 }
 __name(getAccountSnapshot, "getAccountSnapshot");
 
@@ -7168,6 +7181,7 @@ async function requireProductMaster(tx,actor){
 
 async function productCash(tx,account,delta){
  if(delta===0n)return null;
+ if(delta<0n){const frozen=await pendingWithdrawCents(tx,account);const row=await productOne(tx,'SELECT cash_cents FROM accounts WHERE id=$1 FOR UPDATE',[account]);if(BigInt(row.cash_cents)+delta<BigInt(frozen))cnProductFail('Insufficient available balance',409);}
  const balance=await productOne(tx,'UPDATE accounts SET cash_cents=cash_cents+$2 WHERE id=$1 AND cash_cents+$2>=0 RETURNING cash_cents',[account,delta.toString()],'Insufficient productCash');
  return productOne(tx,'INSERT INTO cash_ledger(account_id,delta_cents,balance_after_cents) VALUES($1,$2,$3) RETURNING id',[account,delta.toString(),balance.cash_cents]);
 }
@@ -7604,7 +7618,7 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
       try {
         await cnSettleDueFunds(db,session.accountId).catch(error=>console.error('Account maturity check failed',error.code||error.name));
         const snapshot=await getAccountSnapshot(db,session.accountId);
-        const baseAssetsCents=snapshot.account.cashCents+snapshot.account.activeFundPrincipalCents;
+        const baseAssetsCents=snapshot.account.cashCents+snapshot.account.activeFundPrincipalCents+snapshot.account.ipoReservedCashCents+snapshot.account.settlementPositionValueCents;
         const values=[];
         snapshot.valuationEstimated=false;
         for(let i=0;i<snapshot.positions.length;i+=4){
@@ -7659,6 +7673,8 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
       if (Object.keys(data).some((k) => !allowed.includes(k))) return send(res, 400, { error: "Unexpected fields" });
       const restrictions=await db.query("SELECT 1 FROM cn_client_controls WHERE user_id=$1 AND account_type='READ_ONLY'",[session.userId]);
       if(restrictions.rows.length)return send(res,403,{error:"Read-only account"});
+      const priorOrder=await cnReplayInternalOrder(db,session.accountId,key2,data);
+      if(priorOrder)return send(res,200,priorOrder);
       const useReference=data.market==='US'&&Object.hasOwn(commodityReferenceIds,data.symbol)&&typeof resolveCommodityReferencePrice==='function';
       if(useReference&&data.side==='BUY'){
         const listing=await db.query("SELECT 1 FROM listings WHERE market='US' AND symbol=$1 AND item_type='FUND' AND status='PUBLISHED'",[data.symbol]);
@@ -7767,7 +7783,7 @@ function createWorkerExecutionPricing(env, requestQuote=fetch, now=Date.now) {
 
 
 const commodityReferenceIds=Object.freeze({GLD:'US78463V1070',SLV:'US46428Q1094',USO:'US91232N2071'});
-const commodityReferenceMaxAge=24*60*60*1000;
+const commodityReferenceMaxAge=5*24*60*60*1000;
 function createInstrumentProfileLookup(env,request=fetch){
  const key=env.EULERPOOL_API_KEY;
  if(typeof key!=='string'||!key.trim())return undefined;
@@ -7900,6 +7916,8 @@ function harden(response2) {
 }
 __name(harden, "harden");
 var RATE_RULES = [
+  { bucket: "bulk-trade", method: "POST", path: "/api/bulk-orders", max: 30, windowMs: 60 * 1e3 },
+  { bucket: "legacy-trade", method: "POST", path: "/api/orders", max: 30, windowMs: 60 * 1e3 },
   { bucket: "login", method: "POST", path: "/api/auth/login", max: 10, windowMs: 5 * 60 * 1e3 },
   { bucket: "register", method: "POST", path: "/api/auth/register", max: 6, windowMs: 10 * 60 * 1e3 },
   { bucket: "admin-login", method: "POST", path: "/api/admin/login", max: 8, windowMs: 5 * 60 * 1e3 },

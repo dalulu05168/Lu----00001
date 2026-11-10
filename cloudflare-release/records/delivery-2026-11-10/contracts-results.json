@@ -1,0 +1,130 @@
+[
+  {
+    "route": "/api/admin/me",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/instrument-profile",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/products",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/product-settlement",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/subaccounts",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/clients",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/client-view",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/profile-documents",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/support",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/support/inbox",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/notifications",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/subaccounts/overview",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/funding-overview",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/commodity-drafts",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/listings",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/audit",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/password-resets",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/admin/requests",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/catalog",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/products",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/products/quote",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/fund-subscriptions",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/bulk-orders",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/product-settlement",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/orders",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/account",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/watchlist",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/requests",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/support",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/profile-documents",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/notifications",
+    "anonymous": 401
+  },
+  {
+    "route": "/api/withdrawal-pin",
+    "anonymous": 401
+  }
+]

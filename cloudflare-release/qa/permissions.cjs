@@ -97,6 +97,7 @@ async function sendCustomerMessage(browser,kind,token,message){
   await api(admin('profile-documents'),403,master);
   await api(admin('profile-documents'),403,master,{email:a,kind:'IDENTITY',status:'APPROVED',version:new Date().toISOString()},'PATCH');
   await api(admin('requests'),403,agentA.token);
+  assert(!(await api(admin('notifications'),200,agentA.token)).items.some(x=>x.category==='CASH'));
   console.log('Invitation scopes and unauthorized details, updates, approvals verified');
   const browser=await chromium.launch({executablePath:process.env.CN_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
   try{
@@ -204,7 +205,7 @@ async function sendCustomerMessage(browser,kind,token,message){
     assert.deepEqual((await api(detailPath(a),200,agentA.token)).support,[]);
     assert((await api(detailPath(a),200,master)).support.some(x=>x.body===messageA));
     const scopedNotices=(await api(admin('notifications'),200,agentA.token)).items;
-    assert(scopedNotices.some(x=>x.category==='CASH'&&x.email===a));
+    assert(!scopedNotices.some(x=>x.category==='CASH'));
     assert(scopedNotices.every(x=>x.category!=='SUPPORT'));
     const masterNotices=(await api(admin('notifications'),200,master)).items;
     assert(masterNotices.some(x=>x.category==='SUPPORT'&&x.email===a));
@@ -213,7 +214,8 @@ async function sendCustomerMessage(browser,kind,token,message){
     await sub.evaluate(()=>window.dispatchEvent(new Event('cn-notifications-refresh')));
     await waiting;
     await sub.locator('.cn-bell').click();
-    await sub.locator('.cn-notify[open]').getByText('提现申请',{exact:false}).first().waitFor();
+    await sub.locator('.cn-notify[open]').waitFor();
+    assert.equal(await sub.locator('.cn-notify[open]').getByText('提现申请',{exact:false}).count(),0);
     assert.equal(await sub.locator('.cn-notify[open]').getByText('客户发来客服消息',{exact:true}).count(),0);
     await sub.locator('.cn-notify[open]').getByRole('button',{name:'关闭'}).click();
     await owner.evaluate(()=>window.dispatchEvent(new Event('focus')));

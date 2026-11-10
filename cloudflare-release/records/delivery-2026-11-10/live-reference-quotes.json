@@ -1,0 +1,79 @@
+{
+  "checkedAt": "2026-11-10T16:29:34.817Z",
+  "results": [
+    {
+      "ok": true,
+      "symbol": "AAPL",
+      "market": "US",
+      "name": "Apple Inc",
+      "isin": "US0378331005",
+      "currency": "USD",
+      "timestampMs": 1794234600000,
+      "priceCents": 35069,
+      "loadedAt": 1794328172194,
+      "source": "EULERPOOL_REFERENCE"
+    },
+    {
+      "ok": true,
+      "symbol": "NVDA",
+      "market": "US",
+      "name": "NVIDIA Corp",
+      "isin": "US67066G1040",
+      "currency": "USD",
+      "timestampMs": 1794234600000,
+      "priceCents": 17867,
+      "loadedAt": 1794328172419,
+      "source": "EULERPOOL_REFERENCE"
+    },
+    {
+      "ok": true,
+      "symbol": "SPY",
+      "market": "US",
+      "name": "State Street SPDR S&P 500 ETF",
+      "isin": "US78462F1030",
+      "currency": "USD",
+      "timestampMs": 1794234600000,
+      "priceCents": 75269,
+      "loadedAt": 1794328173275,
+      "source": "EULERPOOL_REFERENCE"
+    },
+    {
+      "ok": true,
+      "symbol": "GLD",
+      "market": "US",
+      "name": "SPDR Gold Shares",
+      "isin": "US78463V1070",
+      "currency": "USD",
+      "timestampMs": 1794234600000,
+      "priceCents": 37953,
+      "loadedAt": 1794328173605,
+      "source": "EULERPOOL_REFERENCE"
+    },
+    {
+      "ok": true,
+      "symbol": "SLV",
+      "market": "US",
+      "name": "iShares Silver Trust",
+      "isin": "US46428Q1094",
+      "currency": "USD",
+      "timestampMs": 1794234600000,
+      "priceCents": 4814,
+      "loadedAt": 1794328174311,
+      "source": "EULERPOOL_REFERENCE"
+    },
+    {
+      "ok": true,
+      "symbol": "USO",
+      "market": "US",
+      "name": "United States Oil Fund, LP",
+      "isin": "US91232N2071",
+      "currency": "USD",
+      "timestampMs": 1794234600000,
+      "priceCents": 14266,
+      "loadedAt": 1794328174817,
+      "source": "EULERPOOL_REFERENCE"
+    }
+  ],
+  "previewVersion": "5fa39d43-9c0d-45af-a824-cc1662363828",
+  "productionVersion": "4017327b-1716-4c69-88d7-6836f43d94f8"
+}

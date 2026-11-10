@@ -1,0 +1,16 @@
+[
+  {
+    "kind": "desktop",
+    "email": "qa-form-desktop-1794328882761@example.test",
+    "balance": 40000,
+    "deposit": "238fab6a-79e8-40d9-9159-b2dd45fa61dd",
+    "withdrawal": "a0b31592-b686-4060-8f62-fcdaadab8446"
+  },
+  {
+    "kind": "mobile",
+    "email": "qa-form-mobile-1794328882761@example.test",
+    "balance": 40000,
+    "deposit": "8b2587bd-b46e-4e92-83c6-891f1103c425",
+    "withdrawal": "0a01a0b3-c169-4ab6-8012-06f735e98529"
+  }
+]

@@ -1,0 +1,154 @@
+{
+  "snapshot": {
+    "account": {
+      "id": "aec80bbd-0625-476f-9b44-c91748061f08",
+      "cashCents": 89382780,
+      "activeFundPrincipalCents": 10000000,
+      "currency": "USD",
+      "reservedWithdrawalCents": 0,
+      "availableCashCents": 89382780,
+      "ipoReservedCashCents": 0,
+      "settlementPositionValueCents": 0
+    },
+    "positions": [
+      {
+        "market": "US",
+        "symbol": "AAPL",
+        "quantity": "20",
+        "locked_quantity": "20",
+        "next_unlock_at": "2026-11-17T16:40:11.947Z",
+        "cost_cents": "617220"
+      }
+    ],
+    "orders": [
+      {
+        "id": "b5bba9bd-f93a-48be-8e31-5650259db425",
+        "market": "US",
+        "symbol": "AAPL",
+        "side": "BUY",
+        "quantity": "10",
+        "price_cents": "30861",
+        "amount_usd_cents": "308610",
+        "created_at": "2026-11-10T16:40:14.389Z"
+      },
+      {
+        "id": "0c5e9275-92c4-4772-ac1f-920cce4002b9",
+        "market": "US",
+        "symbol": "AAPL",
+        "side": "BUY",
+        "quantity": "10",
+        "price_cents": "30861",
+        "amount_usd_cents": "308610",
+        "created_at": "2026-11-10T16:40:11.947Z"
+      }
+    ],
+    "tradeTotal": 6172.2,
+    "realizedPnl": 0,
+    "disclosure": "Internal records only; no brokerage orders or real securities ownership.",
+    "valuationEstimated": false,
+    "totalAssets": 1000841.6
+  },
+  "products": {
+    "items": [
+      {
+        "id": "aaadba3d-0157-46a3-a6fe-ad3fd7b77090",
+        "kind": "BULK_STOCK",
+        "name": "Apple Inc",
+        "status": "PUBLISHED",
+        "version": 1,
+        "imageUrl": null,
+        "market": "US",
+        "symbol": "AAPL",
+        "discountBps": 1200,
+        "holdingDays": 7,
+        "minQuantity": 10,
+        "requiresPassword": true,
+        "referencePriceCents": 35069,
+        "referenceTimestamp": "2026-11-10T16:39:14.764Z",
+        "instrument": {
+          "name": "Apple Inc",
+          "market": "US",
+          "symbol": "AAPL",
+          "priceCents": 35069,
+          "timestampMs": 1794328749451
+        },
+        "createdAt": "2026-11-10T16:40:09.452Z",
+        "updatedAt": "2026-11-10T16:40:09.452Z",
+        "tiers": [],
+        "quoteAvailable": true
+      },
+      {
+        "id": "e11bd3fb-d15d-4cf8-b6d6-f8e8a4a0283c",
+        "kind": "TERM_FUND",
+        "name": "锟斤拷锟睫伙拷锟斤拷 QA",
+        "status": "PUBLISHED",
+        "version": 1,
+        "imageUrl": "/api/product-image?id=e11bd3fb-d15d-4cf8-b6d6-f8e8a4a0283c",
+        "market": null,
+        "symbol": null,
+        "discountBps": 0,
+        "holdingDays": 0,
+        "minQuantity": 1,
+        "requiresPassword": false,
+        "referencePriceCents": null,
+        "referenceTimestamp": null,
+        "instrument": null,
+        "createdAt": "2026-11-10T16:40:09.175Z",
+        "updatedAt": "2026-11-10T16:40:09.175Z",
+        "tiers": [
+          {
+            "id": "4400d0ed-d06c-45e5-9d39-206a4db08992",
+            "principalCents": 5000000,
+            "holdingDays": 7,
+            "profitBps": 100
+          },
+          {
+            "id": "e63afcf2-07d8-4680-a181-b484ad0e5804",
+            "principalCents": 10000000,
+            "holdingDays": 15,
+            "profitBps": 250
+          }
+        ]
+      }
+    ],
+    "contracts": [
+      {
+        "id": "87b3936c-a6e9-4c6a-a6b5-2f8cd8384ac1",
+        "account_id": "aec80bbd-0625-476f-9b44-c91748061f08",
+        "product_id": "e11bd3fb-d15d-4cf8-b6d6-f8e8a4a0283c",
+        "tier_id": "4400d0ed-d06c-45e5-9d39-206a4db08992",
+        "idempotency_key": "851e971a-edd7-4cda-9d55-e64b94b9f001",
+        "product_name": "锟斤拷锟睫伙拷锟斤拷 QA",
+        "principal_cents": "5000000",
+        "profit_cents": "50000",
+        "profit_bps": 100,
+        "holding_days": 7,
+        "status": "ACTIVE",
+        "subscribed_at": "2026-11-10T16:40:13.771Z",
+        "due_at": "2026-11-17T16:40:13.771Z",
+        "matured_at": null,
+        "debit_ledger_id": "23",
+        "return_ledger_id": null
+      },
+      {
+        "id": "d564ab76-eb12-42f6-a50f-4e8880763f7a",
+        "account_id": "aec80bbd-0625-476f-9b44-c91748061f08",
+        "product_id": "e11bd3fb-d15d-4cf8-b6d6-f8e8a4a0283c",
+        "tier_id": "4400d0ed-d06c-45e5-9d39-206a4db08992",
+        "idempotency_key": "35b48042-69b5-4009-b503-ae04567c4702",
+        "product_name": "锟斤拷锟睫伙拷锟斤拷 QA",
+        "principal_cents": "5000000",
+        "profit_cents": "50000",
+        "profit_bps": 100,
+        "holding_days": 7,
+        "status": "ACTIVE",
+        "subscribed_at": "2026-11-10T16:40:11.285Z",
+        "due_at": "2026-11-17T16:40:11.285Z",
+        "matured_at": null,
+        "debit_ledger_id": "21",
+        "return_ledger_id": null
+      }
+    ]
+  },
+  "errors": []
+}
