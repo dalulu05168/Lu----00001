@@ -43,6 +43,7 @@ async function setupPage(browser,token,viewport={width:1280,height:900}){
     await page.route(origin+'/**',async route=>{
       const url=new URL(route.request().url());
       if(url.pathname.startsWith('/api/'))return route.fulfill({response:await route.fetch({url:base+url.pathname+url.search})});
+      if(url.pathname==='/admin'||url.pathname==='/'){const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8');const pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);return route.fulfill({contentType:'text/html',body:pages.admin})}
       return route.continue();
     });
     await page.goto(origin+'/admin#cli');
@@ -51,7 +52,7 @@ async function setupPage(browser,token,viewport={width:1280,height:900}){
     await page.route(base+'/admin',route=>route.fulfill({contentType:'text/html',body:html}));
     await page.goto(base+'/admin#cli');
   }
-  await page.locator('#cn-client-refresh').waitFor();
+  await page.locator('#cn-client-refresh').waitFor({state:'attached'});
   return page;
 }
 

@@ -7011,7 +7011,7 @@ __name(logoutAccount, "logoutAccount");
 async function getAccountSnapshot(db, accountId) {
   const a2 = await db.query("SELECT id,cash_cents,base_currency,(SELECT COALESCE(SUM(principal_cents),0) FROM cn_fund_contracts WHERE account_id=accounts.id AND status=\'ACTIVE\') AS active_fund_principal_cents FROM accounts WHERE id=$1", [accountId]);
   if (a2.rows.length !== 1) throw new Error("Account not found");
-  const [p2, o] = await Promise.all([
+  const [p2] = await Promise.all([
     db.query(`SELECT p.market,p.symbol,p.quantity,
       COALESCE(l.locked,0) AS locked_quantity,l.next_unlock_at,
       CASE WHEN c.covered=p.quantity THEN c.cost END AS cost_cents
@@ -7031,7 +7031,35 @@ async function getAccountSnapshot(db, accountId) {
       WHERE p.account_id=$1 AND p.quantity>0 ORDER BY p.market,p.symbol`, [accountId]),
     db.query("SELECT id,market,symbol,side,quantity,price_cents,amount_usd_cents,created_at FROM orders WHERE account_id=$1 ORDER BY created_at DESC LIMIT 100", [accountId])
   ]);
-  return { account: { id: a2.rows[0].id, cashCents: Number(a2.rows[0].cash_cents), activeFundPrincipalCents: Number(a2.rows[0].active_fund_principal_cents), currency: a2.rows[0].base_currency }, positions: p2.rows, orders: o.rows, disclosure: "Internal records only; no brokerage orders or real securities ownership." };
+  const history=[];
+  let cursor=null;
+  for (;;) {
+    const page=await db.query("SELECT id,market,symbol,side,quantity,price_cents,amount_usd_cents,created_at FROM orders WHERE account_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)>($2::timestamptz,$3::uuid)) ORDER BY created_at,id LIMIT 500",[accountId,cursor?.created_at??null,cursor?.id??null]);
+    history.push(...page.rows);
+    if(page.rows.length<500)break;
+    cursor=page.rows[page.rows.length-1];
+  }
+  const lots=new Map();
+  let tradeCents=0,realizedCents=0;
+  for(const row of history){
+    tradeCents+=Number(row.amount_usd_cents);
+    const key=row.market+':'+row.symbol,queue=lots.get(key)||[];
+    lots.set(key,queue);
+    if(row.side==='BUY')queue.push({quantity:Number(row.quantity),cost:Number(row.amount_usd_cents)});
+    else if(row.side==='SELL'){
+      let remaining=Number(row.quantity),cost=0;
+      while(remaining>0&&queue.length){
+        const lot=queue[0],used=Math.min(remaining,lot.quantity);
+        const usedCost=used===lot.quantity?lot.cost:Math.round(lot.cost*used/lot.quantity);
+        cost+=usedCost;lot.cost-=usedCost;lot.quantity-=used;remaining-=used;
+        if(!lot.quantity)queue.shift();
+      }
+      if(remaining>0)throw Error('Incomplete cost history');
+      realizedCents+=Number(row.amount_usd_cents)-cost;
+    }
+  }
+  const statistics={tradeTotal:tradeCents/100,realizedPnl:realizedCents/100};
+  return { account: { id: a2.rows[0].id, cashCents: Number(a2.rows[0].cash_cents), activeFundPrincipalCents: Number(a2.rows[0].active_fund_principal_cents), currency: a2.rows[0].base_currency }, positions: p2.rows, orders: history.reverse(), ...statistics, disclosure: "Internal records only; no brokerage orders or real securities ownership." };
 }
 __name(getAccountSnapshot, "getAccountSnapshot");
 
@@ -7577,15 +7605,23 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
         await cnSettleDueFunds(db,session.accountId).catch(error=>console.error('Account maturity check failed',error.code||error.name));
         const snapshot=await getAccountSnapshot(db,session.accountId);
         const baseAssetsCents=snapshot.account.cashCents+snapshot.account.activeFundPrincipalCents;
-        if (!snapshot.positions.length) snapshot.totalAssets=baseAssetsCents/100;
-        else if (resolveProductQuote && snapshot.positions.length<=12) {
-          const values=await Promise.allSettled(snapshot.positions.map(async p=>{
-            const q=await resolveProductQuote(p);
-            if(!q||q.market!==p.market||q.symbol!==p.symbol||!Number.isSafeInteger(q.priceCents)||q.priceCents<=0)throw Error('Missing valuation quote');
-            return q.priceCents*Number(p.quantity);
+        const values=[];
+        snapshot.valuationEstimated=false;
+        for(let i=0;i<snapshot.positions.length;i+=4){
+          const batch=await Promise.all(snapshot.positions.slice(i,i+4).map(async p=>{
+            try{
+              const q=resolveProductQuote&&await resolveProductQuote(p);
+              if(!q||q.market!==p.market||q.symbol!==p.symbol||!Number.isSafeInteger(q.priceCents)||q.priceCents<=0)throw Error('Missing valuation quote');
+              return q.priceCents*Number(p.quantity);
+            }catch{
+              snapshot.valuationEstimated=true;
+              const last=snapshot.orders.find(o=>o.market===p.market&&o.symbol===p.symbol);
+              return last?Number(last.price_cents)*Number(p.quantity):p.cost_cents==null?null:Number(p.cost_cents);
+            }
           }));
-          if(values.every(x=>x.status==='fulfilled'))snapshot.totalAssets=(baseAssetsCents+values.reduce((n,x)=>n+x.value,0))/100;
+          values.push(...batch);
         }
+        snapshot.totalAssets=values.every(v=>v!==null)?(baseAssetsCents+values.reduce((n,v)=>n+v,0))/100:null;
         return send(res,200,snapshot);
       } catch {
         return send(res, 500, { error: "Internal server error" });

@@ -1003,7 +1003,7 @@ var DATA_READY=false,HAVE={};
 function sum(a,fn){return a.reduce(function(x,y){return x+fn(y)},0)}
 function safeTotal(a,key){if(!Array.isArray(a))return null;var n=0;for(var i=0;i<a.length;i++){var v=a[i]&&a[i][key];if(typeof v!=='number'||!isFinite(v))return null;n+=v}return n}
 function cost(){return HAVE.holds?safeTotal(DATA.holds,'c'):null}
-function traded(){return HAVE.orders?safeTotal(DATA.orders,'a'):null}
+function traded(){return HAVE.tradeTotal?DATA.tradeTotal:null}
 function realized(){return HAVE.realizedPnl&&typeof DATA.realizedPnl==='number'&&isFinite(DATA.realizedPnl)?DATA.realizedPnl:null}
 /* 余额和估值只接受已确认的服务端字段，不从申请或订单列表推测。 */
 function cash(){return HAVE.cashOverride&&typeof DATA.cashOverride==='number'&&isFinite(DATA.cashOverride)?DATA.cashOverride:null}
@@ -1021,7 +1021,7 @@ function $(id){return document.getElementById(id)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function stc(s){if(s.includes('未通过')||s.includes('驳回'))return 'rd';return s.indexOf('成功')>-1?'ok':s.indexOf('等待')>-1||s.indexOf('通过')>-1?'in':'wa'}
 function now(){return fmtT(Date.now())}
-function bind(){var m={valuationNote:HAVE.holds&&DATA.holds.length&&!HAVE.totalAssets?'部分持仓暂无有效报价':'现金 + 持仓估值 + 期限本金',cash:f(cash()),cost:f(cost()),traded:f(traded()),realized:f(realized()),total:f(totalAssets()),nord:HAVE.orders?DATA.orders.length:'—',nhold:HAVE.holds?DATA.holds.length:'—',nreq:HAVE.reqs?DATA.reqs.length:'—',acct:DATA_READY&&DATA.acct?'····'+DATA.acct:'—',sync:DATA_READY?DATA.sync:'未同步',src:DATA.src};
+function bind(){var m={valuationNote:DATA.valuationEstimated?'部分持仓按最近成交价估算':HAVE.holds&&DATA.holds.length&&!HAVE.totalAssets?'部分持仓暂无有效报价':'现金 + 持仓估值 + 期限本金',cash:f(cash()),cost:f(cost()),traded:f(traded()),realized:f(realized()),total:f(totalAssets()),nord:HAVE.orders?DATA.orders.length:'—',nhold:HAVE.holds?DATA.holds.length:'—',nreq:HAVE.reqs?DATA.reqs.length:'—',acct:DATA_READY&&DATA.acct?'····'+DATA.acct:'—',sync:DATA_READY?DATA.sync:'未同步',src:DATA.src};
  document.querySelectorAll('[data-b]').forEach(function(e){var v=m[e.dataset.b];if(v!=null)e.textContent=v})}
 
 /* ========== 渲染 ========== */
@@ -1441,13 +1441,13 @@ document.addEventListener('keydown',function(e){var t=e.target.tagName;
  if(e.key==='/'&&t!=='INPUT'&&t!=='TEXTAREA'&&t!=='SELECT'){e.preventDefault();document.querySelector('.sr').focus()}});
 
 /* ========== 数据加载（接入后端时设置 API） ========== */
-var KEYS=['acct','sync','cashOverride','realizedPnl','totalAssets','perm','names','sec','watch','fav','orders','holds','reqs','chat'];   /* 新增后台字段必须登记在这里，否则会被丢弃 */
+var KEYS=['acct','sync','cashOverride','realizedPnl','totalAssets','tradeTotal','valuationEstimated','perm','names','sec','watch','fav','orders','holds','reqs','chat'];   /* 新增后台字段必须登记在这里，否则会被丢弃 */
 function clean(v){if(Array.isArray(v))return v.map(clean);if(v&&typeof v==='object'){var o={};Object.keys(v).forEach(function(k){if(k==='__proto__'||k==='constructor'||k==='prototype')return;o[k]=clean(v[k])});return o}return v}
 function num(v,d){v=Number(v);return isFinite(v)?v:d}
 function normSec(m){var o={};Object.keys(m||{}).forEach(function(c){var x=m[c];if(!x||typeof x!=='object')return;
  var t=String(x.type||'股票');t=t==='STOCK'?'股票':t==='COMMODITY'?'大宗商品':t;var w=x.withdrawn===true;
  o[c]={type:t,name:x.name?String(x.name):'',discount:num(x.discount,0),days:Math.max(0,Math.floor(num(x.days,0))),min:Math.max(1,Math.floor(num(x.min!=null?x.min:x.minQty,1))),needPass:x.needPass===true||x.hasPass===true,visible:x.visible!==false&&!w,withdrawn:w}});return o}
-function safe(d){var o={};KEYS.forEach(function(k){if(!d||d[k]===undefined||d[k]===null)return;var v=d[k];if(['cashOverride','realizedPnl','totalAssets'].indexOf(k)>=0&&!(typeof v==='number'&&isFinite(v)))return;if(['watch','fav','orders','holds','reqs','chat'].indexOf(k)>=0&&!Array.isArray(v))return;if(['sec','names','perm'].indexOf(k)>=0&&(!v||typeof v!=='object'||Array.isArray(v)))return;o[k]=clean(v)});if(o.sec)o.sec=normSec(o.sec);if(o.perm)o.perm={withdraw:String(o.perm.withdraw||'')};return o}
+function safe(d){var o={};KEYS.forEach(function(k){if(!d||d[k]===undefined||d[k]===null)return;var v=d[k];if(['cashOverride','realizedPnl','totalAssets','tradeTotal'].indexOf(k)>=0&&!(typeof v==='number'&&isFinite(v)))return;if(['watch','fav','orders','holds','reqs','chat'].indexOf(k)>=0&&!Array.isArray(v))return;if(['sec','names','perm'].indexOf(k)>=0&&(!v||typeof v!=='object'||Array.isArray(v)))return;o[k]=clean(v)});if(o.sec)o.sec=normSec(o.sec);if(o.perm)o.perm={withdraw:String(o.perm.withdraw||'')};return o}
 var skActive=false,skStart=0,skTimer=0;
 function skSweep(){var el=Date.now()-skStart,d=el<800?'1.2s':el<2000?'1.6s':'2.1s';document.documentElement.style.setProperty('--skdur',d)}
 function reveal(){var el=Date.now()-skStart;if(el<150)return;var d=el<600?220:el<1500?340:520;

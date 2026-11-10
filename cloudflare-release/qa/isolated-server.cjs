@@ -48,7 +48,8 @@ const { Pool } = require('pg');
    return Response.json(url.includes('/profile/')?row.profile:[row.last]);
   },()=>Math.max(...rows.map(x=>x.last[0]))+1000);
  }
- const listener=app.createApi({db:pool,resolveSession:app.createSessionResolver(pool),resolveExecutionPrice:reference?undefined:async({side,symbol})=>['AAPL','NVDA','SPY'].includes(symbol)?{priceCents:side==='BUY'?1234:1233,fxUsdMicros:1000000,timestampMs:Date.now()}:null,resolveCommodityReferencePrice:reference,resolveProductQuote:async({symbol,market})=>({symbol,market,name:symbol==='AAPL'?'Apple Inc':'NVIDIA Corp',priceCents:35069,timestampMs:Date.now()-60000})}).listen(Number(process.env.CN_OPS_QA_PORT),'127.0.0.1',()=>console.log('Isolated local QA API ready'));
+ // Historical replay retains recorded prices; its execution clock is relative to this isolated run.
+ const listener=app.createApi({db:pool,resolveSession:app.createSessionResolver(pool),resolveExecutionPrice:reference?undefined:async({side,symbol})=>['AAPL','NVDA','SPY'].includes(symbol)?{priceCents:side==='BUY'?1234:1233,fxUsdMicros:1000000,timestampMs:Date.now()}:null,resolveCommodityReferencePrice:reference?async input=>({...await reference(input),timestampMs:Date.now()-60000}):undefined,resolveProductQuote:async({symbol,market})=>({symbol,market,name:symbol==='AAPL'?'Apple Inc':'NVIDIA Corp',priceCents:35069,timestampMs:Date.now()-60000})}).listen(Number(process.env.CN_OPS_QA_PORT),'127.0.0.1',()=>console.log('Isolated local QA API ready'));
  process.on('message',async()=>{
   listener.close();
   const audit=(await pool.query('SELECT action,count(*)::int AS count FROM admin_audit_log GROUP BY action ORDER BY action')).rows;

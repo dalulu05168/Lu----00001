@@ -542,7 +542,7 @@ return '<div class="bk" data-a="close"></div><div class="sh" role="dialog" aria-
 +'<div style="margin-top:8px"><div class="kv"><span>类型</span><span>'+(o.ty||'—')+'</span></div><div class="kv"><span>价格</span><span>$'+f(o.p)+'</span></div><div class="kv"><span>数量</span><span>'+o.q+' 股</span></div><div class="kv"><span>总额</span><span>$'+f(o.a)+'</span></div></div>'
 +'<div class="tl">'+L.map(function(x,i){return '<div class="'+S[i]+'">'+x+'<small>'+(i===0?o.d:S[i]==='d'?'已完成':S[i]==='a'?'进行中':'待处理')+'</small></div>'}).join('')+'</div>'
 +(s==='待成交'?'<div class="bn">撤销后，占用的可用资金会立即释放。</div><div class="two"><button class="cta gh" data-a="close">关闭</button><button class="cta red" data-a="cancelo">撤销订单</button></div>':'<button class="cta gh" data-a="close">关闭</button>')+'</div>'}
-function stats(){return bxs([['总资产',usd(D.totalAssets)],['持有中期限本金',usd(D.fundPrincipal)],['总成交额',usd(tot())],['已实现盈亏（FIFO）',usd(rpnl())],['持仓成本','$'+f(inv())],['订单',(D.auth&&D.ordersReady?D.ord.length:'—')+' · '+'—'],['账户','<span class="am">—</span>'],['最近同步',D.sync]])}
+function stats(){return bxs([[D.valuationEstimated?'总资产（部分按最近成交价估算）':'总资产',usd(D.totalAssets)],['持有中期限本金',usd(D.fundPrincipal)],['总成交额',usd(tot())],['已实现盈亏（FIFO）',usd(rpnl())],['持仓成本','$'+f(inv())],['订单',(D.auth&&D.ordersReady?D.ord.length:'—')+' · '+'—'],['账户','<span class="am">—</span>'],['最近同步',D.sync]])}
 function alloc(){var by={},t=0,CL={US:'#5b9cff',HK:'#ff6b5a',CN:'#ffb938',MY:'#d7ff00',RO:'#b58cff'};D.hold.forEach(function(h){var m=mkOf(h.s);by[m]=(by[m]||0)+h.c;t+=h.c});
 return '<div class="alloc">'+MK.map(function(k){return by[k]?'<i style="width:'+(by[k]/t*100)+'%;background:'+CL[k]+'"></i>':''}).join('')+'</div><div class="al">'+MK.map(function(k){return tg(k+' '+(D.auth&&D.accountReady&&t?((by[k]||0)/t*100).toFixed(1)+'%':'—'),MC[k])}).join('')+'</div>'}
 function rates(){return '<h3>汇率</h3><div class="bn">暂无可用汇率</div>'}
@@ -816,7 +816,7 @@ async function syncMobileTrading(){
   D.tc=pricing.pricingConnected===true;referenceSymbols=pricing.referenceSymbols||[];
   if(account.ok){
     const result=await account.json();
-    D.cash=result.account.cashCents/100;D.fundPrincipal=result.account.activeFundPrincipalCents/100;D.totalAssets=result.totalAssets;D.accountReady=true;D.ordersReady=true;
+    D.cash=result.account.cashCents/100;D.fundPrincipal=result.account.activeFundPrincipalCents/100;D.totalAssets=result.totalAssets;D.tradeTotal=result.tradeTotal;D.realizedPnl=result.realizedPnl;D.valuationEstimated=result.valuationEstimated;D.accountReady=true;D.ordersReady=true;
     D.sync=now();
     D.hold=result.positions.map(p=>({s:p.symbol,market:p.market,q:Number(p.quantity),available:Math.max(0,Number(p.quantity)-Number(p.locked_quantity)),unlock:p.next_unlock_at,c:p.cost_cents==null?null:Number(p.cost_cents)/100}));
     D.holdCost=D.hold.every(p=>p.c!==null)?D.hold.reduce((sum,p)=>sum+p.c,0):null;
