@@ -822,7 +822,7 @@ dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgb
 .order-head strong,.order-head small{display:block}
 .order-head small{margin-top:4px;color:var(--mut);font-size:11px}
 .order-refresh{flex:none;white-space:nowrap}
-#pn-order #ptabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.45fr) minmax(0,1fr);gap:3px;padding:4px;margin:10px 9px 0;border:1px solid var(--ln);border-radius:9px;background:#0d1012}
+#pn-order #ptabs{display:grid;grid-template-columns:minmax(0,1.45fr) repeat(2,minmax(0,1fr));gap:3px;padding:4px;margin:10px 9px 0;border:1px solid var(--ln);border-radius:9px;background:#0d1012}
 #pn-order #ptabs button{min-width:0;height:30px;padding:0 2px!important;white-space:nowrap;font-size:11px;line-height:1.2;border-radius:6px}
 #pn-order #ptabs button.on{background:rgba(25,191,189,.15);color:#6fe4e0}
 .order-products{min-height:0;overflow:auto;display:grid;gap:8px;padding:10px}
@@ -879,8 +879,8 @@ dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgb
 <div class="note">统计基于完整历史 <span data-b="nord">—</span> 笔；筛选、分页和导出仅作用于已加载记录。点击任意一行查看订单记录详情。时间均为 MYT（UTC+8）。</div>
 </div></div><div class="col cr"><div class="pn" id="pn-order">
 <header class="order-head"><div><strong>下单</strong><small>选择产品查看交易条件</small></div><button type="button" class="btn order-refresh" id="refprod">刷新</button></header>
-<div class="tabs" id="ptabs" aria-label="产品分类"><button class="on">股票</button><button>基金</button><button>IPO</button><button>大宗商品</button><button>ETF</button></div>
-<div id="pbody" class="order-products" aria-live="polite"><div class="order-empty"><b>暂无已发布股票</b><span>有新产品时会显示在这里。</span></div></div>
+<div class="tabs" id="ptabs" aria-label="产品分类"><button class="on">大宗交易</button><button>基金</button><button>IPO</button></div>
+<div id="pbody" class="order-products" aria-live="polite"><div class="order-empty"><b>暂无已发布大宗交易产品</b><span>有新产品时会显示在这里。</span></div></div>
 <div class="order-footer"><button type="button" class="btn" data-product-settlement-open><span>IPO 与普通基金</span><small>申购与赎回 ›</small></button></div>
 </div>
 <div class="pn fill" id="pn-watch">
@@ -1037,7 +1037,7 @@ function rReqs(){$('tb-req').innerHTML=DATA.reqs.map(function(r,i){return '<tr c
  $('req-empty').textContent=HAVE.reqs?'暂无申请记录':'数据未同步';$('req-empty').hidden=DATA.reqs.length>0}
 function rStat(){var g={};DATA.reqs.forEach(function(r){g[r.st]=(g[r.st]||0)+1});
  $('req-stat').innerHTML=Object.keys(g).map(function(k){return '<div class="kv"><span>'+esc(k)+'</span><span class="chip '+stc(k)+'">'+esc(g[k])+'</span></div>'}).join('')}
-var SEC='股票';
+var SEC='大宗交易';
 function rProd(){
  if(window.CNProducts&&CNProducts.renderClient($('pbody'),SEC))return;
  var body=$('pbody');

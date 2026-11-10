@@ -43,7 +43,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  const errors=[];
  async function page(kind,t){const p=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:1000}});p.setDefaultTimeout(12000);p.on('pageerror',e=>{errors.push(kind+': '+e.message);console.log('ERROR '+kind+' '+e.message)});await p.addInitScript(({t,kind})=>{localStorage.setItem(kind==='admin'?'cncap.admin.session':'cncap.session',t);sessionStorage.setItem('cncap.mobile.entry','1');sessionStorage.setItem('cncap.admin.entry','1')},{t,kind});await p.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base?r.abort():['/','/admin'].includes(u.pathname)?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue()});await p.goto(base+(kind==='admin'?'/admin':'/'),{waitUntil:'commit',timeout:30000});console.log('Opened '+kind);await p.waitForTimeout(1000);console.log('URL '+p.url());return p;}
  try{
- const p=await page('admin',master);await p.locator('[data-p=cat]').click();await p.locator('[data-cp=create][data-kind=TERM_FUND]').click();await p.locator('#cp-overlay [name=name]').fill('锟斤拷锟睫伙拷锟斤拷 QA');
+ const p=await page('admin',master);await p.locator('[data-p=cat]').click();assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locator('[data-cp=create][data-kind=TERM_FUND]').click();await p.locator('#cp-overlay [name=name]').fill('锟斤拷锟睫伙拷锟斤拷 QA');
  await p.locator('#cp-overlay [name=image]').setInputFiles({name:'fund.png',mimeType:'image/png',buffer:Buffer.from(image.split(',')[1],'base64')});
  await p.locator('[data-add-tier]').click();await p.locator('#cp-overlay [name=principal]').nth(1).fill('100000');await p.locator('#cp-overlay [name=days]').nth(1).fill('15');await p.locator('#cp-overlay [name=profit]').nth(1).fill('2.5');
  let [r]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/admin/products')&&r.request().method()==='POST'),p.locator('#cp-overlay [type=submit]').click()]);assert.equal(r.status(),201);await p.locator('#cp-overlay').waitFor({state:'detached'});
@@ -54,10 +54,11 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  for(const kind of ['desktop','mobile']){
  const p=await page(kind,client);
  if(kind==='mobile')await p.locator('[data-a=tab][data-v=trade]').click();
+ assert.deepEqual(await p.locator(kind==='mobile'?'.trade-tabs [data-a=sec]':'#ptabs button').allTextContents(),['\u5927\u5b97\u4ea4\u6613','\u57fa\u91d1','IPO']);
  await p.locator(kind==='mobile'?'[data-a=sec][data-v=\u57fa\u91d1]':'#ptabs button').filter({hasText:'\u57fa\u91d1'}).click();
  await p.locator('[data-cp=subscribe]').first().click();assert.equal(await p.locator('#cp-overlay input[type=password]').count(),0);
  [r]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/fund-subscriptions')&&r.request().method()==='POST'),p.locator('#cp-overlay [type=submit]').click()]);assert.equal(r.status(),201);await p.locator('#cp-overlay').waitFor({state:'detached'});
- await p.locator(kind==='mobile'?'[data-a=sec][data-v=\u5927\u5b97\u4ea4\u6613]':'#ptabs button:nth-child(4)').click();await p.locator('[data-cp=buy]').first().click();await p.locator('#cp-overlay [name=password]').fill('123456');
+ await p.locator(kind==='mobile'?'[data-a=sec][data-v=\u5927\u5b97\u4ea4\u6613]':'#ptabs button:first-child').click();await p.locator('[data-cp=buy]').first().click();await p.locator('#cp-overlay [name=password]').fill('123456');
  [r]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/bulk-orders')&&r.request().method()==='POST'),p.locator('#cp-overlay [type=submit]').click()]);assert.equal(r.status(),201);await p.locator('#cp-overlay').waitFor({state:'detached'});await p.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,kind+'-products.png'),fullPage:true});
  await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
  }

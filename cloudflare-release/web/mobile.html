@@ -409,7 +409,7 @@ var WF='<svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#fff
 var BT='<svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="#fff" opacity=".45"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><path d="M24 4.5v4c1-.3 1.8-1.1 1.8-2s-.8-1.7-1.8-2z" fill="#fff" opacity=".5"/></svg>';
 var D={cash:null,acct:'',hold:[],ord:[],req:[],chat:[],fav:[],kyc:{},ke:'',bn:'',bc:'',un:0,dr:'',ma:0,rq:null,
 sync:'—',tab:'home',hi:0,ov:null,sh:null,filt:'全部',drg:'全部时间',nt:[],user:'',auth:0,accountReady:false,ordersReady:false,realizedPnl:null,holdCost:null,tradeTotal:null,
-rg:'All',mode:'走势',mk:'US',q:'',qty:'1',lp:'',rk:0,od:null,tc:0,demo:0,sec:'股票',amt:'',sym:''};
+rg:'All',mode:'走势',mk:'US',q:'',qty:'1',lp:'',rk:0,od:null,tc:0,demo:0,sec:'大宗交易',amt:'',sym:''};
 /* Query parameters cannot enable fake trading or quote data. */
 /* Account data must come from an authenticated server, never localStorage. */
 function save(){}
@@ -608,7 +608,7 @@ FEAT=l.slice(0,3).map(function(k){return {s:k,p:null}});D.hi=0;if(!CFG[D.sym])D.
 if(window.CN)applyShared(CN.get());
 function chgtag(ch){var up=ch>=0;return '<span class="tg" style="background:'+(up?'rgba(52,209,122,.15)':'rgba(255,107,90,.15)')+';color:'+(up?'#34d17a':'#ff6b5a')+'">'+(up?'+':'−')+Math.abs(ch).toFixed(2)+'%</span>'}
 function heroCard(f){var px=D.tc&&f.p!=null;
-if(CFG[f.s])return '<button class="hero2" data-a="hgo" data-v="'+f.s+'"><div class="h2top">'+ic(f.s)+'<div class="h2t">开始交易<small>'+f.s+' · '+esc(NAME[f.s]||f.s)+' · 限价下单</small></div><span class="h2go">去下单 ›</span></div><div class="h2bot">'+'<div class="m">查看标的</div>'+'</div></button>';
+
 return '<button class="hero2" data-a="open" data-v="'+f.s+'"><div class="h2top">'+ic(f.s)+'<div class="h2t">'+f.s+'<small>'+esc(NAME[f.s]||f.s)+'</small></div><span class="h2go">查看 ›</span></div><div class="h2bot"><div class="m">暂无行情</div></div></button>'}
 function heroCarousel(){if(!FEAT.length)return '';var i=D.hi||0;return '<div class="cwrap"><div class="cvp"><div class="ctrack" id="ctrack" style="transform:translateX(-'+(i*100)+'%)">'+FEAT.map(function(f){return '<div class="cslide">'+heroCard(f)+'</div>'}).join('')+'</div><button class="carr carr-l'+(i>0?' show':'')+'" data-a="harr" data-v="-1" aria-label="上一个">‹</button><button class="carr carr-r'+(i<FEAT.length-1?' show':'')+'" data-a="harr" data-v="1" aria-label="下一个">›</button></div><div class="cdots">'+FEAT.map(function(f,j){return '<span class="cdot'+(j===i?' on':'')+'" role="button" tabindex="0" aria-label="第 '+(j+1)+' 张" data-a="hdot" data-v="'+j+'"></span>'}).join('')+'</div></div>'}
 function hslide(i){var tr=root.getElementById('ctrack');if(!tr)return;tr.style.transition='';tr.classList.remove('spring');D.hi=(i+FEAT.length)%FEAT.length;tr.style.transform='translateX(-'+(D.hi*100)+'%)';var ds=A.querySelectorAll('.cdot'),x;for(x=0;x<ds.length;x++)ds[x].classList.toggle('on',x===D.hi);var la=A.querySelector('.carr-l'),ra=A.querySelector('.carr-r');if(la)la.classList.toggle('show',D.hi>0);if(ra)ra.classList.toggle('show',D.hi<FEAT.length-1)}
@@ -636,18 +636,12 @@ return '<h2>行情'+tg('TradingView','b')+'</h2><div class="sr">'+SV.search+'<in
 +rates()}
 
 function trade(){
-var h='<div class="chips trade-tabs">'+['股票','基金','IPO','大宗交易','ETF'].map(function(x){return chip('sec',x,D.sec)}).join('')+chip('rfp','','','刷新').replace('t-m','t-c')+'</div>';
+if(!['大宗交易','基金','IPO'].includes(D.sec))D.sec='大宗交易';
+var h='<div class="chips trade-tabs">'+['大宗交易','基金','IPO'].map(function(x){return chip('sec',x,D.sec)}).join('')+chip('rfp','','','刷新').replace('t-m','t-c')+'</div>';
 if(window.CNProducts){const result=CNProducts.mobile(D.sec);if(result!==null)return h+result;}
 h+='<button type="button" class="chip t-a" data-a="managed-products">IPO 与普通基金</button>';
-const choices=Object.keys(CFG).filter(symbol=>CFG[symbol].type===(D.sec==='ETF'?'FUND':'STOCK'));
-if(D.sec!=='股票'&&D.sec!=='ETF'){
-   const items=publishedProducts.filter(row=>row.itemType===({基金:'FUND',IPO:'IPO',大宗商品:'COMMODITY'}[D.sec]));
-   h+=items.length?items.map(row=>'<div class="kv"><span>'+esc(row.symbol)+' · '+esc(row.name)+'</span><span>已发布</span></div>').join(''):'<div class="bn in">暂无已发布产品</div>';
- }
-else if(!choices.length)h+='<div class="bn in">暂无可交易标的</div>';
-else {if(!choices.includes(D.sym))D.sym=choices[0];h+=(choices.length>1?'<div class="chips">'+choices.map(function(x){return chip('sym',x,D.sym)}).join('')+'</div>':'')+'<div class="card" role="button" tabindex="0" data-a="open" data-v="'+D.sym+'" style="display:flex;gap:10px;align-items:center;flex:none">'+ic(D.sym)+'<div style="flex:1">'+D.sym+' · '+esc(NAME[D.sym]||D.sym)+'<small>'+D.sec+' · 点击查看行情</small></div>'+tg('优惠 '+CFG[D.sym].disc+'%','b')+'</div>'
-+'<div class="kv"><span>买入后持有</span><span>'+CFG[D.sym].hold+' 天</span></div><div class="kv"><span>最低买入数量</span><span>'+MQ()+' 股</span></div><div class="kv"><span>计价</span><span>USD</span></div>'
-+orderForm();}
+const items=publishedProducts.filter(row=>row.itemType==='IPO');
+h+=items.length?items.map(row=>'<div class="kv"><span>'+esc(row.symbol)+' · '+esc(row.name)+'</span><span>已发布</span></div>').join(''):'<div class="bn in">暂无已发布产品</div>';
 return '<div class="'+'tbox'+'">'+h+'<h3>自选'+tg(D.fav.length,'g')+'</h3>'+(D.fav.length?mobileFavorites.map(function(item){return row(item.symbol,'<div class="r m" style="margin-right:4px">'+item.market+'</div>'+star(item.symbol,item.market))}).join(''):'<div class="m" style="margin-bottom:4px">暂无自选 · 在「行情」点星标添加</div>')+'<h3>最近交易</h3>'+D.ord.map(ordRow).join('')+'</div>'}
 
 function orders(){
@@ -670,7 +664,7 @@ h+='<div data-live-chart style="height:340px;margin-bottom:10px"></div>';
 h+='<div style="margin-top:8px">';
 if(p)h+='<div class="kv"><span>持仓数量</span><span>'+p.q+' 股</span></div><div class="kv"><span>持仓成本</span><span>$'+f(p.c)+'</span></div><div class="kv"><span>成本均价</span><span>$'+f(p.c/p.q)+'</span></div>'+pnlKv(p)+lockKv(p);
 if(CFG[s])h+=cfgKv(CFG[s]);
-h+='</div><div class="bn">'+(D.tc?'暂无可用报价':'暂无可用报价')+' · 行情暂不可用</div><div class="two">'+(CFG[s]?'<button class="cta" data-a="gotrade" data-v="'+s+'">买入</button>':'<button class="cta off" data-a="msg" data-v="该标的暂未开放交易">买入</button>')+'<button class="cta red off" data-a="msg" data-v="'+(p?'暂无可卖出数量':'当前未持有该标的')+'">卖出</button></div>';
+h+='</div><div class="bn">'+(D.tc?'暂无可用报价':'暂无可用报价')+' · 行情暂不可用</div><div class="two">'+'<button class="cta" data-a="gotrade">查看大宗交易</button>'+'<button class="cta red off" data-a="msg" data-v="'+(p?'暂无可卖出数量':'当前未持有该标的')+'">卖出</button></div>';
 var o=D.ord.filter(function(x){return x.s===s});
 return h+'<h3>相关交易'+tg(o.length+' 笔','m')+'</h3>'+(o.length?o.map(ordRow).join(''):'<div class="ep">暂无该标的交易记录</div>')+rates()}
 
@@ -927,7 +921,7 @@ if(a==='login'){location.assign('/login');return}
 if(a==='msg'){toast(v);return}
 if(a==='managed-products'){window.dispatchEvent(new Event('cn-open-product-settlement'));return}
 if(a==='tab'){D.tab=v;D.ov=null}
-else if(a==='hgo'){if(v&&CFG[v]){D.sym=v;D.sec=CFG[v].type==='FUND'?'ETF':'股票'}D.tab='trade';D.ov=null}
+else if(a==='hgo'){D.sec='大宗交易';D.tab='trade';D.ov=null}
 else if(a==='chat'){D.cs=1;D.sh=null;D.un=0;refreshSupport()}
 else if(a==='ma')D.ma=!D.ma;
 else if(a==='rq')D.rq=+v;
@@ -954,7 +948,7 @@ else if(a==='pdk')D.pdk=D.pdk?0:1;
 else if(a==='logout'){const token=localStorage.getItem('cncap.session');localStorage.removeItem('cncap.session');localStorage.removeItem('cncap.user');sessionStorage.removeItem('cncap.mobile.entry');document.documentElement.style.visibility='hidden';if(token)fetch('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token},keepalive:true,signal:AbortSignal.timeout(2500)}).catch(()=>{}).finally(()=>location.replace('/login'));else location.replace('/login');return}
 else if(a==='reset'){try{localStorage.removeItem('cncap.v1')}catch(x){}location.reload();return}
 else if(a==='rk')D.rk=D.rk?0:1;
-else if(a==='gotrade'){if(v&&CFG[v])D.sym=v;D.tab='trade';D.ov=null}
+else if(a==='gotrade'){D.sec='大宗交易';D.tab='trade';D.ov=null}
 else if(a==='ord'){D.od=+v;D.sh='od'}
 else if(a==='filt')D.filt=v;
 else if(a==='drg')D.drg=v;
