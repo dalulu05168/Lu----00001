@@ -1,0 +1,4 @@
+/src/worker.template.mjs.in -text
+/web/*.html -text
+/web/*.png -text
+/screenshots/*.png -text

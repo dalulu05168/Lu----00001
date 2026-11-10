@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS password_reset_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES app_users(id), email text NOT NULL, status text NOT NULL, code_hash text, code_expires_at timestamptz, resolved_by uuid REFERENCES app_users(id), created_at timestamptz NOT NULL DEFAULT now(), resolved_at timestamptz, used_at timestamptz);

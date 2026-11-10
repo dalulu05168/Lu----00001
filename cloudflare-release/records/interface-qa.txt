@@ -1,0 +1,2 @@
+API: review lock, verified name, scoped funding and support passed
+Chrome: grouped clients, role approvals, linked funding filter, borderless mirror, persistent logo, Esc, approved forms and direct support passed

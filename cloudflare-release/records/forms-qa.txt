@@ -1,0 +1,36 @@
+desktop opening forms
+desktop uploading identity
+Submitting #f-id button[type=submit] /api/profile-documents 201
+Received /api/profile-documents 201
+Submitting #f-bank button[type=submit] /api/profile-documents 201
+Received /api/profile-documents 201
+Submitting #f-dep button[type=submit] /api/requests 201
+Received /api/requests 201
+desktop approving deposit
+Submitting #cash-set-pin /api/withdrawal-pin 200
+Received /api/withdrawal-pin 200
+desktop PIN response handled
+desktop PIN status displayed
+Submitting #f-dep button[type=submit] /api/requests 403
+Received /api/requests 403
+Submitting #f-dep button[type=submit] /api/requests 201
+Received /api/requests 201
+desktop identity/bank forms, deposit without PIN, wrong/correct withdrawal PIN and cash reconciliation passed
+mobile opening forms
+mobile uploading identity
+Submitting [data-a=ksub] /api/profile-documents 201
+Received /api/profile-documents 201
+Submitting #bs /api/profile-documents 201
+Received /api/profile-documents 201
+Submitting #sb /api/requests 201
+Received /api/requests 201
+mobile approving deposit
+Submitting #cash-set-pin /api/withdrawal-pin 200
+Received /api/withdrawal-pin 200
+mobile PIN response handled
+mobile PIN status displayed
+Submitting #sb /api/requests 403
+Received /api/requests 403
+Submitting #sb /api/requests 201
+Received /api/requests 201
+mobile identity/bank forms, deposit without PIN, wrong/correct withdrawal PIN and cash reconciliation passed

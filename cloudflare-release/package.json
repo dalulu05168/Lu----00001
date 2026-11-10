@@ -1,0 +1,18 @@
+{
+  "name": "cn-capital-cloudflare-release",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "test": "node scripts/acceptance.cjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16",
+    "@electric-sql/pglite-socket": "0.2.19",
+    "pg": "8.23.1",
+    "playwright": "1.65.0"
+  }
+}

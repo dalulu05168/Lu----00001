@@ -1,0 +1,96 @@
+{
+  "kind": "isolated historical replay",
+  "checkedAt": "2026-11-10T07:36:09.933Z",
+  "results": [
+    {
+      "symbol": "GLD",
+      "profile": {
+        "isin": "US78463V1070",
+        "symbol": "GLD",
+        "name": "SPDR Gold Shares",
+        "currency": "USD",
+        "exchangeRate": 1.116337,
+        "domicile": "US",
+        "isInverse": false,
+        "tickers": [
+          {
+            "ticker": "GLD",
+            "exchange": "amex"
+          },
+          {
+            "ticker": "0KZF.L",
+            "exchange": "london"
+          },
+          {
+            "ticker": "GQ9.MU",
+            "exchange": "munich"
+          }
+        ]
+      },
+      "last": [
+        1794234600000,
+        379.5299987792969
+      ]
+    },
+    {
+      "symbol": "SLV",
+      "profile": {
+        "isin": "US46428Q1094",
+        "symbol": "SLV",
+        "name": "iShares Silver Trust",
+        "currency": "USD",
+        "exchangeRate": 1.116337,
+        "domicile": "US",
+        "isInverse": false,
+        "tickers": [
+          {
+            "ticker": "SLV",
+            "exchange": "amex"
+          },
+          {
+            "ticker": "I6H.HM",
+            "exchange": "hamburg"
+          },
+          {
+            "ticker": "0JKC.L",
+            "exchange": "london"
+          },
+          {
+            "ticker": "I6H.MU",
+            "exchange": "munich"
+          }
+        ]
+      },
+      "last": [
+        1794234600000,
+        48.13999938964844
+      ]
+    },
+    {
+      "symbol": "USO",
+      "profile": {
+        "isin": "US91232N2071",
+        "symbol": "USO",
+        "name": "United States Oil Fund, LP",
+        "currency": "USD",
+        "exchangeRate": 1.116337,
+        "domicile": "US",
+        "isInverse": false,
+        "tickers": [
+          {
+            "ticker": "0LJ5.L",
+            "exchange": "london"
+          },
+          {
+            "ticker": "USO",
+            "exchange": "amex"
+          }
+        ]
+      },
+      "last": [
+        1794234600000,
+        142.66000366210938
+      ]
+    }
+  ]
+}

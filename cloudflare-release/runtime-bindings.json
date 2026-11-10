@@ -1,0 +1,52 @@
+{
+  "runtime": {
+    "assets": {
+      "serve_directly": false,
+      "raw_run_worker_first": true,
+      "base_path": "/"
+    },
+    "compatibility_date": "2026-11-08",
+    "compatibility_flags": [
+      "nodejs_compat"
+    ],
+    "usage_model": "standard"
+  },
+  "bindings": [
+    {
+      "type": "secret_text",
+      "name": "ADMIN_BOOTSTRAP_SECRET"
+    },
+    {
+      "type": "secret_text",
+      "name": "ADMIN_MASTER_EMAIL"
+    },
+    {
+      "type": "secret_text",
+      "name": "ADMIN_TOTP_ENCRYPTION_KEY"
+    },
+    {
+      "type": "assets",
+      "name": "ASSETS"
+    },
+    {
+      "type": "secret_text",
+      "name": "CN_PROFILE_ENCRYPTION_KEY"
+    },
+    {
+      "type": "plain_text",
+      "name": "COMMODITY_REFERENCE_EXECUTION_ENABLED"
+    },
+    {
+      "type": "secret_text",
+      "name": "DATABASE_URL"
+    },
+    {
+      "type": "secret_text",
+      "name": "EULERPOOL_API_KEY"
+    },
+    {
+      "type": "plain_text",
+      "name": "PGSSL"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+desktop registration form, automatic login and invite attribution passed
+mobile registration form, automatic login and invite attribution passed

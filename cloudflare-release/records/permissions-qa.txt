@@ -1,0 +1,5 @@
+Invitation scopes and unauthorized details, updates, approvals verified
+Owner-only browser list, five customer controls, session revocation, phone aspect and navigation verified
+Document queue, review images, reject reason, resubmit, masked bank, audit and conflict verified
+Master-only deposit and withdrawal review, filters and one ledger entry per request verified
+Desktop and mobile sent to master; master inbox, bell and reply passed; subaccount denied by API, list, detail and mirror

@@ -1,0 +1,1 @@
+{"folder":"C:\\Users\\mrmal\\AppData\\Local\\Temp\\cn-capital-handoff-a5cedc13\\cloudflare-release\\artifacts\\acceptance-xhwz77\\products","cashCents":85250,"orders":5,"positions":2}

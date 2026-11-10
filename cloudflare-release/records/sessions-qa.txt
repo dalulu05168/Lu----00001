@@ -1,0 +1,14 @@
+Deposit without PIN, insufficient balance, concurrent approval, ledger reconciliation and subadmin approval denial passed
+Registration, logout revocation, one-time password reset and balance persistence passed
+Order, cash and position reconciled
+Toggling POST
+Reloading
+failed /api/account net::ERR_ABORTED
+failed /api/watchlist net::ERR_ABORTED
+Toggling DELETE
+Mobile login, refresh revocation, watchlist add/relogin/remove passed
+failed /api/account net::ERR_ABORTED
+failed /api/watchlist net::ERR_ABORTED
+Mobile logout button revoked session and displayed login
+Mobile password recovery form and one-time administrator code passed
+Desktop login, cash/holding persistence, favorite reload and logout menu passed

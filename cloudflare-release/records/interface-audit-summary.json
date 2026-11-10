@@ -1,0 +1,22 @@
+[
+  {
+    "action": "admin.activate",
+    "count": 2
+  },
+  {
+    "action": "admin.login",
+    "count": 3
+  },
+  {
+    "action": "cash_request.approve",
+    "count": 3
+  },
+  {
+    "action": "cash_request.review",
+    "count": 3
+  },
+  {
+    "action": "subaccount.create",
+    "count": 3
+  }
+]

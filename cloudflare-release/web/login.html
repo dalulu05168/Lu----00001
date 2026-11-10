@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<!-- saved from url=(0080)file:///C:/Users/mrmal/Desktop/default-workspace/worker-deploy/assets/login.html -->
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05070c">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>CN Capital</title>
+<link rel="icon" href="./logo.png">
+<style>
+  :root{
+    --bg:#05070c; --bg2:#08111d; --pn:rgba(255,255,255,.045); --pn2:rgba(255,255,255,.07);
+    --ln:rgba(255,255,255,.10); --ln2:rgba(255,255,255,.18);
+    --tx:#eef2f7; --mut:#93a0b4; --gold:#e8c27a; --gold2:#f4dca8; --teal:#45e0d6;
+    --dn:#ff7a6a; --ok:#4fdd8f; --ink:#1a1206;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans SC","Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;font:14px/1.55 var(--font);color:var(--tx);
+    background:
+      radial-gradient(120% 90% at 15% 0%,#0d2145 0%,#081426 42%,var(--bg) 78%),
+      radial-gradient(90% 70% at 92% 100%,rgba(69,224,214,.10) 0%,rgba(69,224,214,0) 55%),
+      radial-gradient(80% 70% at 8% 100%,rgba(232,194,122,.10) 0%,rgba(232,194,122,0) 60%),
+      var(--bg);
+    overflow:hidden;
+  }
+  #bg{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;pointer-events:none}
+  .grid-lines{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(rgba(160,190,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(160,190,255,.045) 1px,transparent 1px);
+    background-size:72px 72px,72px 72px;mask-image:radial-gradient(120% 90% at 50% 0%,#000 30%,transparent 85%)}
+  .glow{position:fixed;width:620px;height:620px;border-radius:50%;filter:blur(90px);z-index:0;pointer-events:none;opacity:.35}
+  .glow.a{top:-260px;left:-180px;background:radial-gradient(circle,rgba(60,120,255,.55),transparent 65%)}
+  .glow.b{bottom:-300px;right:-200px;background:radial-gradient(circle,rgba(232,194,122,.35),transparent 65%)}
+
+  /* ---------- header ---------- */
+  .top{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 16px) 22px 0}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+  .brand img{width:30px;height:30px;object-fit:contain;display:block;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5))}
+  .lang{display:flex;gap:2px;padding:3px;border-radius:999px;border:1px solid var(--ln);background:rgba(255,255,255,.04)}
+  .lang button{border:0;background:transparent;color:var(--mut);font:12px inherit;padding:5px 11px;border-radius:999px;cursor:pointer}
+  .lang button.on{background:rgba(232,194,122,.16);color:var(--gold)}
+
+  /* ---------- splash ---------- */
+  #splash{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(120% 90% at 50% 30%,#08111d 0%,#05070c 70%);transition:opacity .55s ease,transform .55s ease}
+  #splash.gone{opacity:0;transform:scale(1.03);pointer-events:none}
+  .s-logo{width:104px;height:104px;border-radius:28px;display:grid;place-items:center;
+    border:1px solid rgba(232,194,122,.28);background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.02));
+    box-shadow:0 24px 70px rgba(0,0,0,.55),inset 0 0 40px rgba(232,194,122,.06)}
+  .s-logo img{width:64px;height:64px;object-fit:contain}
+  .s-name{margin-top:26px;font-size:20px;font-weight:600;letter-spacing:.34em;text-indent:.34em;color:#f4f7fb;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .s-sub{margin-top:10px;font-size:10px;letter-spacing:.52em;text-indent:.52em;color:var(--gold);opacity:.9}
+  .s-bar{width:132px;height:2px;margin-top:30px;border-radius:2px;background:rgba(255,255,255,.10);overflow:hidden}
+  .s-bar i{display:block;height:100%;width:40%;border-radius:2px;background:linear-gradient(90deg,rgba(232,194,122,0),var(--gold),rgba(232,194,122,0));animation:load 1.05s ease-in-out infinite}
+  @keyframes load{0%{transform:translateX(-120%)}100%{transform:translateX(330%)}}
+
+  /* ---------- stage / card ---------- */
+  .stage{position:relative;z-index:10;min-height:100%;display:flex;align-items:center;justify-content:center;
+    padding:calc(env(safe-area-inset-top,0px) + 72px) 20px calc(env(safe-area-inset-bottom,0px) + 28px);opacity:0;transition:opacity .5s ease}
+  body.ready .stage{opacity:1}
+  .card{width:100%;max-width:420px;padding:28px 24px 22px;border-radius:22px;position:relative;
+    border:1px solid var(--ln);background:linear-gradient(168deg,rgba(255,255,255,.075),rgba(255,255,255,.022));
+    box-shadow:0 30px 90px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter:blur(14px);animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+  .panel{animation:fadeDown .38s cubic-bezier(.2,.8,.2,1) both}
+  .card h1{margin:0;font-size:19px;font-weight:600;letter-spacing:.02em}
+  .card .sub{margin:7px 0 0;font-size:12px;color:var(--gold);letter-spacing:.12em}
+  .adm-badge{display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;padding:4px 10px;border-radius:999px;
+    font-size:11px;letter-spacing:.16em;color:var(--gold);border:1px solid rgba(232,194,122,.35);background:rgba(232,194,122,.08)}
+  .tabs{display:flex;gap:6px;margin:16px 0 18px;padding:4px;border-radius:12px;border:1px solid var(--ln);background:rgba(0,0,0,.28)}
+  .tabs button{flex:1;border:0;background:transparent;color:var(--mut);font:13px inherit;padding:9px 0;border-radius:9px;cursor:pointer;transition:background .2s,color .2s}
+  .tabs button.on{background:rgba(232,194,122,.14);color:var(--gold);font-weight:600}
+  form[hidden],.tabs[hidden]{display:none!important}
+  [hidden]{display:none!important}
+  .fld{margin-bottom:14px}
+  .fld>label{display:block;font-size:12px;color:var(--mut);margin:0 0 7px 2px}
+  .inp{display:flex;align-items:center;gap:2px;border:1px solid var(--ln);background:rgba(0,0,0,.32);border-radius:13px;transition:border-color .2s,box-shadow .2s}
+  .inp:focus-within{border-color:rgba(232,194,122,.55);box-shadow:0 0 0 3px rgba(232,194,122,.10)}
+  .inp .pf{display:flex;padding:0 4px 0 13px;color:var(--mut)}
+  .inp .pf svg{width:17px;height:17px}
+  .inp input{flex:1;width:100%;border:0;background:transparent;color:var(--tx);font:15px inherit;padding:13px 12px 13px 0;outline:0}
+  .inp input::placeholder{color:rgba(147,160,180,.55)}
+  .inp .eye{flex:none;border:0;background:transparent;color:var(--mut);cursor:pointer;padding:0 12px;display:flex}
+  .inp .eye svg{width:18px;height:18px}
+  .row{display:flex;align-items:center;justify-content:space-between;margin:2px 2px 16px;font-size:13px}
+  .rem{display:flex;align-items:center;gap:8px;color:var(--mut);cursor:pointer;user-select:none}
+  .rem input{position:absolute;opacity:0;pointer-events:none}
+  .rem i{width:17px;height:17px;border-radius:5px;border:1.5px solid rgba(160,190,255,.32);display:inline-flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s}
+  .rem input:checked+i{background:var(--gold);border-color:var(--gold)}
+  .rem input:checked+i::after{content:"";width:9px;height:5px;border:2px solid var(--ink);border-top:0;border-right:0;transform:rotate(-45deg) translateY(-1px)}
+  .link{border:0;background:transparent;color:var(--gold);font:13px inherit;cursor:pointer;padding:0}
+  .btn{width:100%;border:0;border-radius:13px;padding:14px;font:600 15px inherit;letter-spacing:.08em;color:var(--ink);
+    background:linear-gradient(135deg,var(--gold2),var(--gold));cursor:pointer;transition:transform .15s,box-shadow .2s,filter .2s;
+    box-shadow:0 10px 26px rgba(232,194,122,.22)}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 14px 32px rgba(232,194,122,.3)}
+  .btn:disabled{opacity:.62;cursor:default;transform:none;box-shadow:none}
+  .btn.load{position:relative;color:transparent}
+  .btn.load::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;
+    border:2px solid rgba(26,18,6,.25);border-top-color:var(--ink);animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ghost{width:100%;border:1px solid var(--ln);border-radius:13px;background:rgba(255,255,255,.03);color:var(--tx);font:14px inherit;padding:12px;cursor:pointer;transition:border-color .2s,background .2s}
+  .ghost:hover{border-color:rgba(232,194,122,.45);background:rgba(232,194,122,.06)}
+  .divider{display:flex;align-items:center;gap:12px;color:var(--mut);font-size:12px;margin:16px 0}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--ln)}
+  .err{min-height:18px;font-size:12px;color:var(--dn);margin:0 2px 8px}
+  .err.ok{color:var(--ok)}
+  .hint{font-size:11.5px;color:var(--mut);line-height:1.6;margin:0 0 12px}
+  .foot{margin-top:18px;text-align:center;font-size:11px;color:rgba(147,160,180,.72);line-height:1.8}
+  .foot b{color:var(--gold);font-weight:500}
+  .back{margin-top:12px;width:100%;border:0;background:transparent;color:var(--mut);font:12px inherit;cursor:pointer}
+  .step{display:flex;gap:6px;margin:0 0 16px}
+  .step i{height:3px;flex:1;border-radius:3px;background:rgba(255,255,255,.10)}
+  .step i.on{background:var(--gold)}
+  @media (max-width:480px){
+    body{overflow:auto}
+    .card{padding:24px 18px 18px;border-radius:18px}
+    .stage{padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001s!important;animation-iteration-count:1!important;transition:none!important}
+    #splash{display:none}
+    body.ready .stage{opacity:1}
+  }
+</style>
+<style id="cn-brand-entry-style">
+#cnsplash,#splash{display:none!important;pointer-events:none!important}
+.cn-unified-logo{width:36px;height:36px;object-fit:contain;display:block;flex:none}
+.cn-brand-entry{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;pointer-events:none;background:radial-gradient(ellipse at center,#16363b 0%,#0c141e 42%,#080c12 76%);animation:cn-entry-exit .78s ease-out both}
+.cn-brand-entry-mark{position:relative;display:grid;place-items:center;width:132px;height:132px}
+.cn-brand-entry-mark::before{content:"";position:absolute;inset:9px;border:1px solid #59d5d367;border-radius:50%;animation:cn-entry-ring .62s ease-out both}
+.cn-brand-entry img{width:112px;height:112px;object-fit:contain;filter:drop-shadow(0 0 18px #5ad1d14a);animation:cn-entry-mark .48s cubic-bezier(.2,.8,.25,1) both}
+@keyframes cn-entry-mark{from{opacity:0;transform:translateY(8px) scale(.86)}to{opacity:1;transform:none}}
+@keyframes cn-entry-ring{from{opacity:.75;transform:scale(.77)}to{opacity:0;transform:scale(1.3)}}
+@keyframes cn-entry-exit{0%,58%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}
+@media(prefers-reduced-motion:reduce){.cn-brand-entry{display:none!important}}
+</style><style id="cn-dark-autofill">.inp input{color:#fff;caret-color:#fff}.inp input:-webkit-autofill,.inp input:-webkit-autofill:hover,.inp input:-webkit-autofill:focus,.inp input:-webkit-autofill:active{-webkit-text-fill-color:#fff!important;caret-color:#fff;-webkit-box-shadow:0 0 0 1000px #101720 inset!important;box-shadow:0 0 0 1000px #101720 inset!important}.inp input:autofill{color:#fff!important;box-shadow:0 0 0 1000px #101720 inset!important}</style><style>.cn-login-centered-logo{display:block;object-fit:contain;width:110px;height:110px;margin:-12px auto 12px}.top{justify-content:flex-end}</style><style id="cn-login-layout">
+.card{padding:22px 24px 18px}
+.card .cn-login-centered-logo{width:84px;height:84px;margin:0 auto 6px}
+.card h1,.card .sub{text-align:center}
+.card .sub{margin-top:5px;letter-spacing:.04em}
+.tabs{margin:12px 0}
+.fld{margin-bottom:11px}
+.fld label{margin-bottom:5px}
+.inp input{font:inherit;font-size:16px;line-height:20px;min-width:0;padding:11px 10px 11px 0}
+.btn{font-family:inherit;font-size:15px;font-weight:600;min-height:44px;padding:11px 14px}
+.err:empty{min-height:0;margin:0}
+.foot{margin-top:12px}
+.panel{animation-duration:.24s}
+.card:has(#otpFld:not([hidden])) #loginForm{margin-top:16px}
+#otpFld .inp{border-color:rgba(232,194,122,.34)}
+@media(max-width:480px){
+ .top{padding:calc(env(safe-area-inset-top,0px) + 8px) 14px 0}
+ .stage{min-height:100dvh;padding:calc(env(safe-area-inset-top,0px) + 42px) 12px calc(env(safe-area-inset-bottom,0px) + 12px)}
+ .card{padding:14px 14px 12px}
+ .card .cn-login-centered-logo{width:62px;height:62px;margin-bottom:2px}
+ .tabs{margin:9px 0}
+ .fld{margin-bottom:9px}
+ .foot{margin-top:10px}
+}
+@media(max-width:360px),(max-width:480px) and (max-height:620px){
+ .card .cn-login-centered-logo{width:54px;height:54px}
+ .card h1{font-size:18px}
+ .fld{margin-bottom:7px}
+ .tabs{margin:8px 0}
+}
+@media(prefers-reduced-motion:reduce){.panel{animation:none}}
+</style></head>
+<body class="ready"><div class="cn-brand-entry" aria-hidden="true"><div class="cn-brand-entry-mark"><img src="./logo.png" alt="" width="112" height="112"></div></div>
+<canvas id="bg" aria-hidden="true" width="2880" height="1682"></canvas>
+<div class="grid-lines" aria-hidden="true"></div>
+<div class="glow a" aria-hidden="true"></div>
+<div class="glow b" aria-hidden="true"></div>
+
+<header class="top">
+  
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="zh" class="on">中</button>
+    <button type="button" data-lang="en">EN</button>
+  </div>
+</header>
+
+<div id="splash" aria-hidden="true" class="gone">
+  <div class="s-logo"><img src="./logo.png" alt=""></div>
+  <div class="s-name">CN CAPITAL</div>
+  <div class="s-sub">PRIVATE · TRADING</div>
+  <div class="s-bar"><i></i></div>
+</div>
+
+<main class="stage">
+  <section class="card" aria-live="polite"><img class="cn-login-centered-logo" src="/logo.png" alt="CN Capital" width="110" height="110">
+    <div id="admBadge" class="adm-badge" hidden="">ADMIN CONSOLE</div>
+    <h1 id="title">欢迎回来</h1>
+    <p class="sub" id="sub">登录您的 CN CAPITAL 账户</p>
+
+    <div class="tabs" id="tabs" role="tablist">
+      <button type="button" data-tab="login" class="on" role="tab" aria-selected="true">登录</button>
+      <button type="button" data-tab="register" role="tab" aria-selected="false">注册</button>
+    </div>
+
+    <form id="loginForm" novalidate="" class="panel">
+      <div class="fld">
+        <label for="email">邮箱</label>
+        <div class="inp">
+          <span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke-linecap="round"></path></svg></span>
+          <input id="email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="请输入邮箱">
+        </div>
+      </div>
+      <div class="fld">
+        <label for="password">密码</label>
+        <div class="inp">
+          <span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="10" width="16" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 018 0v3" stroke-linecap="round"></path></svg></span>
+          <input id="password" type="password" autocomplete="current-password" placeholder="请输入密码">
+          <button type="button" class="eye" id="pwToggle" aria-label="显示密码">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" stroke-linecap="round"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+      <div class="fld" id="otpFld" hidden="">
+        <label for="otp">2FA 动态码</label>
+        <div class="inp">
+          <span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="6" y="3" width="12" height="18" rx="2"></rect><path d="M10 17h4" stroke-linecap="round"></path></svg></span>
+          <input id="otp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 位数字" style="letter-spacing:.3em">
+        </div>
+      </div>
+      <div class="row" id="remRow">
+        <label class="rem"><input type="checkbox" id="remember" checked=""><i></i><span>记住我</span></label>
+        <button type="button" class="link" id="forgotLink">忘记密码？</button>
+      </div>
+      <div class="err" id="loginErr" role="alert"></div>
+      <button type="submit" class="btn" id="loginBtn">登 录</button>
+      <div class="divider"><span>或</span></div>
+      <button type="button" class="ghost" id="toRegister">注册账号</button>
+    </form>
+
+    <form id="registerForm" hidden="" novalidate="" class="panel">
+      <div class="fld">
+        <label for="regEmail">邮箱</label>
+        <div class="inp">
+          <span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke-linecap="round"></path></svg></span>
+          <input id="regEmail" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="请输入邮箱">
+        </div>
+      </div>
+      <div class="fld">
+        <label for="regPassword">密码（至少 12 位）</label>
+        <div class="inp">
+          <span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="10" width="16" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 018 0v3" stroke-linecap="round"></path></svg></span>
+          <input id="regPassword" type="password" autocomplete="new-password" placeholder="设置登录密码">
+        </div>
+      </div>
+      <div class="fld" id="inviteFld" hidden="">
+        <label for="inviteCode">邀请码</label>
+        <div class="inp">
+          <span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 9a2 2 0 002-2h14a2 2 0 002 2v0a2 2 0 000 6v0a2 2 0 00-2 2H5a2 2 0 00-2-2v0a2 2 0 000-6z" stroke-linejoin="round"></path><path d="M14 7v10" stroke-dasharray="2 2.2" stroke-linecap="round"></path></svg></span>
+          <input id="inviteCode" type="text" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="请输入 6 位邀请码">
+        </div>
+      </div>
+      <div class="err" id="regErr" role="alert"></div>
+      <button type="submit" class="btn" id="regBtn">注 册</button>
+      <button type="button" class="back" id="backToLogin">已有账号？返回登录</button>
+    </form>
+
+    <form id="forgotForm" hidden="" novalidate="" class="panel">
+      <div class="step" id="forgotStep"><i class="on"></i><i></i></div>
+      <div id="forgotStep1">
+        <p class="hint">输入注册邮箱提交重置申请，然后联系管理员获取 6 位重置码。</p>
+        <div class="fld">
+          <label for="forgotEmail">邮箱</label>
+          <div class="inp"><span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16v12H4z"></path><path d="M4 7l8 6 8-6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><input id="forgotEmail" type="email" autocomplete="username" placeholder="请输入注册邮箱"></div>
+        </div>
+        <div class="err" id="forgotErr" role="alert"></div>
+        <button type="submit" class="btn" id="forgotBtn">提交重置申请</button>
+      </div>
+      <div id="forgotStep2" hidden="">
+        <p class="hint">申请已提交。联系管理员获取 6 位重置码后，在下方设置新密码。</p>
+        <div class="fld">
+          <label for="resetEmail">邮箱</label>
+          <div class="inp"><span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16v12H4z"></path><path d="M4 7l8 6 8-6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><input id="resetEmail" type="email" autocomplete="username" placeholder="请输入注册邮箱"></div>
+        </div>
+        <div class="fld">
+          <label for="resetCode">6 位重置码</label>
+          <div class="inp"><span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 11V8a6 6 0 0112 0v3" stroke-linecap="round"></path><rect x="4" y="11" width="16" height="9" rx="2"></rect></svg></span><input id="resetCode" type="text" inputmode="numeric" maxlength="6" placeholder="管理员提供的 6 位数字" style="letter-spacing:.25em"></div>
+        </div>
+        <div class="fld">
+          <label for="newPassword">新密码（至少 12 位）</label>
+          <div class="inp"><span class="pf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="10" width="16" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 018 0v3" stroke-linecap="round"></path></svg></span><input id="newPassword" type="password" autocomplete="new-password" placeholder="设置新密码"></div>
+        </div>
+        <div class="err" id="resetErr" role="alert"></div>
+        <button type="submit" class="btn" id="resetBtn">重置密码</button>
+        <button type="button" class="back" id="forgotBack">返回登录</button>
+      </div>
+    </form>
+
+    <div class="foot"><b>256 位加密</b> · 安全连接<br>© 2026 CN Capital · 私密交易</div>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var params=new URLSearchParams(location.search);
+  var adminMode=location.hostname==="admin.maacropierce.com"||params.get("admin")==="1";
+  var next=params.get("next")||"";
+  if(location.hostname==="nuvexapro.com")try{history.replaceState(history.state,"","/")}catch(e){}
+  if(next && (next.charAt(0)!=="/" || next.charAt(1)==="/")) next="";
+
+  var $=function(id){return document.getElementById(id)};
+  var mobileEntry=!adminMode&&(navigator.userAgentData?.mobile||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
+  function done(nextUrl){if(mobileEntry)sessionStorage.setItem("cncap.mobile.entry","1");location.replace(nextUrl||(adminMode?"/admin":"/index.html"))}
+  function showError(el,msg,ok){el.textContent=msg||"";el.className="err"+(ok?" ok":"")}
+  function busy(btn,on,text){
+    if(!btn)return;
+    btn.disabled=!!on;
+    btn.classList.toggle("load",!!on);
+    if(text&&!on)btn.textContent=text;
+  }
+  function post(path,body){
+    return fetch(path,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})})
+      .then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}return {ok:r.ok,status:r.status,json:j,text:t}})})
+      .catch(function(){return {ok:false,status:0,json:null,text:""}});
+  }
+  function msgFor(res,fallback){
+    if(res.status===429)return "尝试过于频繁，请稍后再试";
+    if(res.status===503)return "服务暂不可用，请稍后再试";
+    if(res.json&&res.json.error)return res.json.error;
+    return fallback||"操作失败，请稍后再试";
+  }
+
+  /* ---------- admin mode setup ---------- */
+  if(adminMode){
+    document.title="CN Capital";
+    $("title").textContent="管理后台登录";
+    $("sub").textContent="管理员账号 · 需要 2FA 动态码";
+    $("tabs").hidden=true;
+    $("admBadge").hidden=false;
+    $("otpFld").hidden=false;
+    $("remRow").style.display="none";
+    $("toRegister").hidden=true;
+    var div=document.querySelector("#loginForm .divider");
+    if(div)div.style.display="none";
+  }
+
+  /* ---------- splash ---------- */
+  var splash=$("splash");
+  var splashDone=false;
+  function finishSplash(){
+    if(splashDone)return;
+    splashDone=true;
+    if(splash) splash.classList.add("gone");
+    document.body.classList.add("ready");
+    setTimeout(function(){if(!$("email")||!$("email").value){}try{$("email").focus({preventScroll:true})}catch(e){}},420);
+  }
+  setTimeout(finishSplash,1000);
+  if(splash)splash.addEventListener("click",finishSplash);
+  document.body.classList.add("ready");
+
+  /* ---------- tabs ---------- */
+  function switchPanel(name){
+    $("loginForm").hidden=name!=="login";
+    $("registerForm").hidden=name!=="register";
+    $("forgotForm").hidden=name!=="forgot";
+    $("tabs").hidden=adminMode?true:name==="forgot";
+    var tabs=$("tabs").querySelectorAll("button");
+    for(var i=0;i<tabs.length;i++)tabs[i].classList.toggle("on",tabs[i].getAttribute("data-tab")===name);
+    if(name==="register"){
+      $("title").textContent="创建账号";$("sub").textContent="填写信息，加入 CN CAPITAL";
+    }else if(name==="login"){
+      $("title").textContent=adminMode?"管理后台登录":"欢迎回来";
+      $("sub").textContent=adminMode?"管理员账号 · 需要 2FA 动态码":"登录您的 CN CAPITAL 账户";
+    }else{
+      $("title").textContent="找回密码";$("sub").textContent="通过管理员重置码设置新密码";
+    }
+    var active=name==="login"?$("loginForm"):name==="register"?$("registerForm"):$("forgotForm");
+    if(active){active.classList.remove("panel");void active.offsetWidth;active.classList.add("panel")}
+  }
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"&&(!$("registerForm").hidden||!$("forgotForm").hidden))switchPanel("login")});
+  $("tabs").addEventListener("click",function(e){
+    var b=e.target.closest("[data-tab]");if(!b)return;
+    switchPanel(b.getAttribute("data-tab"));
+    e.preventDefault();
+  });
+  $("toRegister").addEventListener("click",function(){switchPanel("register")});
+  if(params.get("register")==="1"&&!adminMode)switchPanel("register");
+  $("backToLogin").addEventListener("click",function(){switchPanel("login")});
+  $("forgotLink").addEventListener("click",function(){
+    switchPanel("forgot");
+    $("forgotEmail").value=$("email").value||"";
+    $("resetEmail").value=$("email").value||"";
+  });
+  $("forgotBack").addEventListener("click",function(){switchPanel("login")});
+
+  /* ---------- password visibility ---------- */
+  $("pwToggle").addEventListener("click",function(){
+    var p=$("password");p.type=p.type==="password"?"text":"password";
+    this.style.color=p.type==="text"?"var(--gold)":"";
+  });
+
+  /* ---------- login ---------- */
+  $("loginForm").addEventListener("submit",function(ev){
+    ev.preventDefault();
+    var err=$("loginErr"),email=($("email").value||"").trim(),password=$("password").value||"";
+    showError(err,"");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showError(err,"请输入有效的邮箱");return}
+    if(password.length<6){showError(err,"请输入密码");return}
+    var btn=$("loginBtn");busy(btn,true);
+    if(adminMode){
+      var otp=($("otp").value||"").replace(/\D/g,"");
+      if(!/^\d{6}$/.test(otp)){busy(btn,false);showError(err,"请输入 6 位 2FA 动态码");return}
+      post("/api/admin/login",{email:email,password:password,otp:otp}).then(function(res){
+        busy(btn,false);
+        if(res.ok&&res.json&&res.json.token){
+          try{localStorage.setItem("cncap.admin.session",res.json.token);localStorage.setItem("cncap.user",email)}catch(e){}
+          sessionStorage.setItem("cncap.admin.entry","1");done("/admin");return;
+        }
+        showError(err,res.status===401?"账号、密码或动态码不正确":msgFor(res,"登录失败"));
+      });
+      return;
+    }
+    post("/api/auth/login",{email:email,password:password,remember:$("remember").checked}).then(function(res){
+      busy(btn,false);
+      if(res.ok&&res.json&&res.json.token){
+        try{localStorage.setItem("cncap.session",res.json.token);localStorage.setItem("cncap.user",email)}catch(e){}
+        done(next||"/index.html");return;
+      }
+      showError(err,res.status===401?"账号或密码不正确":msgFor(res,"登录失败"));
+    });
+  });
+
+  /* ---------- register ---------- */
+  fetch("/api/registration-policy").then(function(r){return r.json()}).then(function(p){
+    if(p&&p.inviteRequired)$("inviteFld").hidden=false;
+  }).catch(function(){});
+  $("registerForm").addEventListener("submit",function(ev){
+    ev.preventDefault();
+    var err=$("regErr");
+    var email=($("regEmail").value||"").trim();
+    var password=$("regPassword").value||"";
+    var invite=($("inviteCode").value||"").trim();
+    var needInvite=!$("inviteFld").hidden;
+    showError(err,"");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showError(err,"请输入有效的邮箱");return}
+    if(password.length<12){showError(err,"密码至少 12 位");return}
+    if(needInvite&&!/^\d{6}$/.test(invite)){showError(err,"请输入 6 位邀请码");return}
+    var btn=$("regBtn");busy(btn,true);
+    var body={email:email,password:password};
+    if(invite)body.inviteCode=invite;
+    post("/api/auth/register",body).then(function(res){
+      if(!res.ok){busy(btn,false);showError(err,msgFor(res,"注册失败"));return null}
+      return post("/api/auth/login",{email:email,password:password,remember:true}).then(function(login){
+        busy(btn,false);
+        if(login.ok&&login.json&&login.json.token){
+          try{localStorage.setItem("cncap.session",login.json.token);localStorage.setItem("cncap.user",email)}catch(e){}
+          done("/index.html");return;
+        }
+        showError(err,"注册成功，请返回登录",true);
+        setTimeout(function(){switchPanel("login")},1200);
+      });
+    });
+  });
+
+  /* ---------- forgot password ---------- */
+  $("forgotForm").addEventListener("submit",function(ev){
+    ev.preventDefault();
+  });
+  $("forgotStep1").addEventListener("submit",function(ev){ev.preventDefault()});
+  $("forgotForm").querySelector("button[type=submit]");
+  $("forgotBtn").addEventListener("click",function(){
+    var err=$("forgotErr"),email=($("forgotEmail").value||"").trim();
+    showError(err,"");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showError(err,"请输入有效的邮箱");return}
+    var btn=this;busy(btn,true);
+    post("/api/auth/password-reset/request",{email:email}).then(function(res){
+      busy(btn,false);
+      if(res.ok){
+        $("resetEmail").value=email;
+        $("forgotStep1").hidden=true;$("forgotStep2").hidden=false;
+        var st=$("forgotStep").querySelectorAll("i");st[0].classList.remove("on");st[1].classList.add("on");
+        showError($("resetErr"),"申请已提交，请联系管理员获取重置码",true);
+        return;
+      }
+      showError(err,msgFor(res,"提交失败"));
+    });
+  });
+  $("resetBtn").addEventListener("click",function(){
+    var err=$("resetErr"),email=($("resetEmail").value||"").trim();
+    var code=($("resetCode").value||"").replace(/\D/g,"");
+    var pwd=$("newPassword").value||"";
+    if(!/^\d{6}$/.test(code)){showError(err,"请输入 6 位重置码");return}
+    if(pwd.length<12){showError(err,"新密码至少 12 位");return}
+    var btn=this;busy(btn,true);
+    post("/api/auth/password-reset/confirm",{email:email,code:code,newPassword:pwd}).then(function(res){
+      busy(btn,false);
+      if(res.ok){
+        showError(err,"密码已重置，请用新密码登录",true);
+        setTimeout(function(){switchPanel("login");$("email").value=email;$("password").value=""},1400);
+        return;
+      }
+      showError(err,msgFor(res,"重置失败"));
+    });
+  });
+
+  /* ---------- language ---------- */
+  var I={
+    zh:{login:"登 录",register:"注 册",tabsLogin:"登录",tabsRegister:"注册",secureLabel:"256 位加密 · 安全连接"},
+    en:{login:"SIGN IN",register:"REGISTER",tabsLogin:"Sign in",tabsRegister:"Register",secureLabel:"256-bit encrypted · secure connection"}
+  };
+  var lang="zh";
+  document.querySelectorAll("[data-lang]").forEach(function(b){
+    b.addEventListener("click",function(){
+      lang=b.getAttribute("data-lang")||"zh";
+      document.querySelectorAll("[data-lang]").forEach(function(x){x.classList.toggle("on",x===b)});
+      document.documentElement.lang=lang==="zh"?"zh-CN":"en";
+      $("loginBtn").textContent=I[lang].login;
+      $("regBtn").textContent=I[lang].register;
+      var tb=$("tabs").querySelectorAll("button");
+      tb[0].textContent=I[lang].tabsLogin;tb[1].textContent=I[lang].tabsRegister;
+      $("title").textContent=lang==="zh"?"欢迎回来":"Welcome back";
+      $("sub").textContent=lang==="zh"?"登录您的 CN CAPITAL 账户":"Sign in to your CN CAPITAL account";
+    });
+  });
+
+  (function(){
+    if(adminMode||mobileEntry)return;
+    var s=null;try{s=localStorage.getItem("cncap.session")}catch(e){}
+    if(!s)return;
+    fetch("/api/account",{headers:{Authorization:"Bearer "+s}}).then(function(r){
+      if(r.ok)done(next||"/index.html");
+    }).catch(function(){});
+  })();
+
+  /* ---------- background animation ---------- */
+  (function(){
+    var cv=$("bg");
+    if(!cv||!cv.getContext)return;
+    var ctx=cv.getContext("2d");
+    var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var W=0,H=0,dpr=1,stars=[],candles=[],raf=null;
+    function resized(){
+      dpr=Math.min(window.devicePixelRatio||1,2);
+      W=cv.clientWidth;H=cv.clientHeight;
+      cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+      stars=[];var n=Math.min(90,Math.round(W*H/26000));
+      for(var i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.3,a:Math.random()*.5+.15,vy:Math.random()*.12+.02});
+      candles=buildCandles();
+    }
+    function buildCandles(){
+      var out=[],count=Math.max(18,Math.round(W/52));
+      var y=H*0.62,seed=1;
+      function rnd(){seed=(seed*1103515245+12345)%2147483648;return seed/2147483648}
+      for(var i=0;i<count;i++){
+        var open=y,bw=Math.max(4,W/(count*2.6));
+        var close=open+(rnd()-.5)*54;
+        var high=Math.min(open,close)-rnd()*26, low=Math.max(open,close)+rnd()*26;
+        out.push({x:(i+.5)*(W/count),open:open,close:close,high:high,low:low,bw:bw,up:close<open});
+        y=close;
+      }
+      return out;
+    }
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      for(var i=0;i<stars.length;i++){
+        var s=stars[i];
+        ctx.globalAlpha=s.a;
+        ctx.fillStyle=i%7===0?"rgba(69,224,214,.65)":i%11===0?"rgba(232,194,122,.6)":"#cdd8ea";
+        ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();
+        if(!reduce){s.y-=s.vy;if(s.y<-4){s.y=H+4;s.x=Math.random()*W}}
+      }
+      ctx.globalAlpha=1;
+      for(var j=0;j<candles.length;j++){
+        var c=candles[j];
+        ctx.strokeStyle=c.up?"rgba(79,221,143,.22)":"rgba(255,123,106,.20)";
+        ctx.fillStyle=c.up?"rgba(79,221,143,.16)":"rgba(255,123,106,.14)";
+        ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(c.x,c.high);ctx.lineTo(c.x,c.low);ctx.stroke();
+        var top=Math.min(c.open,c.close),hgt=Math.max(2,Math.abs(c.close-c.open));
+        ctx.fillRect(c.x-c.bw/2,top,c.bw,hgt);
+      }
+      raf=requestAnimationFrame(draw);
+    }
+    resized();
+    if(reduce){draw();cancelAnimationFrame(raf);raf=null}
+    else draw();
+    window.addEventListener("resize",function(){resized();if(reduce)draw()},{passive:true});
+  })();
+})();
+</script>
+
+
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"2124808968d44a89a16cea09ab6039c5","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body></html>

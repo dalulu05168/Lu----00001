@@ -1,0 +1,26 @@
+desktop loaded
+desktop submitting AAPL
+desktop orders request POST
+desktop response 201
+desktop loaded
+desktop submitting NVDA
+desktop orders request POST
+desktop response 201
+desktop loaded
+desktop submitting SPY
+desktop orders request POST
+desktop response 201
+mobile loaded
+mobile submitting AAPL
+mobile orders request POST
+mobile response 201
+mobile loaded
+mobile submitting NVDA
+mobile orders request POST
+mobile response 201
+mobile loaded
+mobile submitting SPY
+mobile orders request POST
+mobile response 201
+Checking sells
+{"folder":"C:\\Users\\mrmal\\AppData\\Local\\Temp\\cn-capital-handoff-a5cedc13\\cloudflare-release\\artifacts\\acceptance-xhwz77\\stocks","orders":9,"balance":99991}

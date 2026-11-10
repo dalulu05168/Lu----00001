@@ -1,0 +1,15 @@
+{
+  "worker": "lu----00001",
+  "version": "1fcea65f-5360-4963-998c-c3a52a966ce6",
+  "sourceSha256": "c9bd58c5a061ca019207ec673e68c919ccbe49e9123f60d519cd3f2b787127da",
+  "domains": [
+    "nuvexapro.com",
+    "admin.maacropierce.com"
+  ],
+  "schemaApplied": [
+    "migration-admin-audit.sql"
+  ],
+  "paidQuotePending": true,
+  "baseVersion": "c49432a9-cef3-4cab-a928-69e48d5b2871",
+  "publishedAt": "2026-11-10T10:26:36.401Z"
+}

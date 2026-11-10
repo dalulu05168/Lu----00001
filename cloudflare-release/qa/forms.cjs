@@ -1,0 +1,111 @@
+
+const fs=require('node:fs'),assert=require('node:assert/strict'),{createHmac}=require('node:crypto');
+const {chromium,devices}=require('playwright');
+const base='http://127.0.0.1:'+(process.env.CN_OPS_QA_PORT||8844);
+const password='FixturePass123456!',stamp=Date.now(),a='qa-kele-'+stamp+'@example.test',b='qa-qixi-'+stamp+'@example.test';
+const image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1kAAAAASUVORK5CYII=';
+function otp(secret){
+  const bits=[...secret].map(c=>'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(c).toString(2).padStart(5,'0')).join('');
+  const time=Buffer.alloc(8);time.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));
+  const sum=createHmac('sha1',Buffer.from(bits.match(/.{8}/g).map(x=>parseInt(x,2)))).update(time).digest();
+  return String((sum.readUInt32BE(sum[19]&15)&0x7fffffff)%1000000).padStart(6,'0');
+}
+async function api(path,status,token,body,method=body?'POST':'GET'){
+  const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...((path==='/api/orders'||path==='/api/product-settlement')&&body?{'idempotency-key':require('node:crypto').randomUUID()}:{})},body:body?JSON.stringify(body):undefined});
+  const data=r.status===204?{}:await r.json();
+  assert.equal(r.status,status,path+' '+JSON.stringify(data.error));return data;
+}
+function admin(path){return '/api/admin/'+path}
+function reviewQuery(email,kind){return admin('profile-documents?')+new URLSearchParams({email,kind})}
+function detailPath(email){return admin('client-view?')+new URLSearchParams({email})}
+async function login(email){return (await api('/api/auth/login',200,null,{email,password})).token}
+async function createAgent(master,idx,client){
+  const email='qa-agent-'+stamp+'-'+idx+'@example.test';
+  const account=await api(admin('subaccounts'),201,master,{email,password});
+  const credentials={email,password,otp:otp(account.totpSecret)};
+  await api(admin('activate'),200,null,credentials);
+  const token=(await api(admin('login'),200,null,credentials)).token;
+  await api('/api/auth/register',201,null,{email:client,password,inviteCode:account.inviteCode});
+  return {token,email};
+}
+
+(async()=>{
+ const secret=JSON.parse(fs.readFileSync(process.env.CN_OPS_MASTER_FILE)).totpSecret;
+ const master=(await api(admin('login'),200,null,{email:'qa-master@example.test',password,otp:otp(secret)})).token;
+ const browser=await chromium.launch({executablePath:process.env.CN_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+ const records=[];let currentPage;
+ const file={name:'identity-fixture.png',mimeType:'image/png',buffer:Buffer.from(image.split(',')[1],'base64')};
+ async function open(kind,token){
+  const p=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:900}});
+  p.setDefaultTimeout(9000);currentPage=p;p.on('pageerror',e=>console.log('page error',e.message));
+  await p.addInitScript(({token})=>{localStorage.setItem('cncap.session',token);sessionStorage.setItem('cncap.mobile.entry','1')},{token});
+  const origin='https://nuvexapro.com';
+  await p.route(origin+'/**',async r=>{
+   const u=new URL(r.request().url());
+   if(u.pathname.startsWith('/api/')||u.pathname==='/health')return r.fulfill({response:await r.fetch({url:base+u.pathname+u.search})});
+   return r.continue();
+  });
+  await p.goto(origin+'/',{waitUntil:'domcontentloaded'});
+  if(kind==='mobile')await p.locator('[data-a=tab][data-v=assets]').click();
+  return p;
+ }
+ async function submit(p,selector,endpoint,status=201){
+  console.log('Submitting',selector,endpoint,status);
+  const [r]=await Promise.all([p.waitForResponse(x=>new URL(x.url()).pathname===endpoint&&x.request().method()==='POST',{timeout:12000}),p.locator(selector).click()]);
+  assert.equal(r.status(),status);console.log('Received',endpoint,r.status());if(endpoint==='/api/requests'&&status===201){
+   const body=r.request().postDataJSON();
+   const token=await p.evaluate(()=>localStorage.getItem('cncap.session'));
+   const rows=(await api('/api/requests',200,token)).items;
+   const item=rows.find(x=>x.kind===body.kind);
+   assert(item,'Submitted request not found in customer records');
+   return item;
+  }
+  return {};
+ }
+ try{
+  for(const kind of ['desktop','mobile']){
+   const email='qa-form-'+kind+'-'+stamp+'@example.test';
+   const owner=await createAgent(master,kind,email),token=await login(email),mobile=kind==='mobile';
+   console.log(kind,'opening forms');let p=await open(kind,token);
+   await p.locator(mobile?'[data-a=sheet][data-v=kyc]':'[data-open=m-id]:visible').first().click();
+   await p.locator('#kyc-full-name').fill('客户表单验收');
+   console.log(kind,'uploading identity');await p.locator(mobile?'#kf':'#up-f input').setInputFiles(file);
+   await p.locator(mobile?'#kb':'#up-b input').setInputFiles(file);
+   await submit(p,mobile?'[data-a=ksub]':'#f-id button[type=submit]','/api/profile-documents');
+   await p.keyboard.press('Escape');
+   await p.locator(mobile?'[data-a=sheet][data-v=bank]':'[data-open=m-bank]:visible').first().click();
+   await p.locator(mobile?'#bk1':'#bname').fill('Fixture Bank');
+   await p.locator(mobile?'#bk2':'#bno').fill('000000001234');
+   await submit(p,mobile?'#bs':'#f-bank button[type=submit]','/api/profile-documents');
+   await p.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
+   for(const type of ['IDENTITY','BANK']){
+    const review=await api(reviewQuery(email,type),200,owner.token);
+    await api(admin('profile-documents'),200,owner.token,{email,kind:type,status:'APPROVED',version:review.version},'PATCH');
+   }
+   p=await open(kind,token);
+   await p.locator(mobile?'[data-a=sheet][data-v=dep]':'[data-open=m-dep]:not([data-wd]):visible').first().click();
+   assert.equal(await p.locator(mobile?'#cash-withdraw-pin':'#dpw').isVisible(),false);
+   await p.locator(mobile?'#amt':'#damt').fill('500');
+   const dep=await submit(p,mobile?'#sb':'#f-dep button[type=submit]','/api/requests');
+   console.log(kind,'approving deposit');for(let step=0;step<2;step++)await api(admin('requests'),200,master,{id:dep.id,decision:'APPROVE'});
+   await p.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
+   p=await open(kind,token);
+   await p.locator(mobile?'[data-a=sheet][data-v=wd]':'[data-open=m-dep][data-wd]:visible').first().click();
+   await p.locator('details:has(#cash-set-pin) summary').click();
+   await p.locator('#cash-current-password').fill(password);
+   await p.locator('#cash-new-pin').fill('472863');
+   await submit(p,'#cash-set-pin','/api/withdrawal-pin',200);console.log(kind,'PIN response handled');await p.locator('#cash-pin-result').getByText('提款密码已设置',{exact:true}).waitFor();console.log(kind,'PIN status displayed');
+   await p.locator(mobile?'#amt':'#damt').fill('100');
+   const pin=p.locator(mobile?'#cash-withdraw-pin':'#dpw');
+   await pin.fill('000000');
+   await submit(p,mobile?'#sb':'#f-dep button[type=submit]','/api/requests',403);
+   await pin.fill('472863');
+   const wd=await submit(p,mobile?'#sb':'#f-dep button[type=submit]','/api/requests');
+   for(let step=0;step<2;step++)await api(admin('requests'),200,master,{id:wd.id,decision:'APPROVE'});
+   const state=await api('/api/account',200,token);assert.equal(state.account.cashCents,40000);
+   records.push({kind,email,balance:state.account.cashCents,deposit:dep.id,withdrawal:wd.id});
+   await p.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});await p.close();console.log(kind+' identity/bank forms, deposit without PIN, wrong/correct withdrawal PIN and cash reconciliation passed');
+  }
+ }finally{for(const context of browser.contexts())for(const page of context.pages())await page.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
+ fs.writeFileSync(require('path').join(process.env.CN_QA_SAVE_DIR,'results.json'),JSON.stringify(records,null,2));
+})().catch(e=>{console.error(e.stack);process.exitCode=1});

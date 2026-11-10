@@ -1,0 +1,10 @@
+desktop loaded
+desktop submitting GLD
+desktop orders request POST
+desktop response 201
+mobile loaded
+mobile submitting SLV
+mobile orders request POST
+mobile response 201
+Checking sells
+{"folder":"C:\\Users\\mrmal\\AppData\\Local\\Temp\\cn-capital-handoff-a5cedc13\\cloudflare-release\\artifacts\\acceptance-xhwz77\\reference","orders":6,"balance":95186}

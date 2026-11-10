@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-11-10T09:56:03.970Z",
+  "status": 200,
+  "productionVersion": "c49432a9-cef3-4cab-a928-69e48d5b2871",
+  "source": "Eulerpool ETF history",
+  "quotes": [
+    {
+      "symbol": "GLD",
+      "isin": "US78463V1070",
+      "price": 379.5299987792969,
+      "sourceTime": "2026-11-09T14:30:00.000Z",
+      "http": 200
+    },
+    {
+      "symbol": "SLV",
+      "isin": "US46428Q1094",
+      "price": 48.13999938964844,
+      "sourceTime": "2026-11-09T14:30:00.000Z",
+      "http": 200
+    },
+    {
+      "symbol": "USO",
+      "isin": "US91232N2071",
+      "price": 142.66000366210938,
+      "sourceTime": "2026-11-09T14:30:00.000Z",
+      "http": 200
+    }
+  ]
+}
