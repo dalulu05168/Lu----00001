@@ -7986,6 +7986,12 @@ const releaseWorker = {
   async scheduled(event,env,ctx){ctx.waitUntil(cnSettleDueFunds(createRequestScopedDb(env.DATABASE_URL)));},
   async fetch(request,env,ctx){
     const requestUrl=new URL(request.url);
+    if(requestUrl.hostname==="lu----00001.dalulu05168.workers.dev"&&
+       ["GET","HEAD"].includes(request.method)&&
+       ["/","/index.html","/mobile","/mobile.html","/cn-mobile.html","/cn-terminal.html","/login","/login.html"].includes(requestUrl.pathname)){
+      const path=["/login","/login.html"].includes(requestUrl.pathname)?"/login":"/";
+      return new Response(null,{status:302,headers:{Location:"https://nuvexapro.com"+path+requestUrl.search,"Cache-Control":"no-store"}});
+    }
     if(["nuvexapro.com","admin.maacropierce.com"].includes(requestUrl.hostname)&&requestUrl.pathname==="/logo.png"&&["GET","HEAD"].includes(request.method)){
       const logo=request.method==="HEAD"?null:Uint8Array.from(atob(replacementLogo),c=>c.charCodeAt(0));
       return harden(new Response(logo,{headers:{"Content-Type":"image/png","Cache-Control":"public, max-age=300"}}));
