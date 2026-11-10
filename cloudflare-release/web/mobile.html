@@ -33,12 +33,15 @@
 
 #favaa[hidden]{display:none!important}
 
- .cn-bell-mobile{position:absolute;z-index:6;top:calc(4px + env(safe-area-inset-top,0px));right:16px}
+ :host{--cn-safe-top:env(safe-area-inset-top,0px);--cn-header-height:52px}
+ .cn-bell-mobile{position:absolute;z-index:6;top:calc(var(--cn-safe-top) + 6px);right:16px}
  .cn-bell-mobile .cn-bell{width:40px;height:40px}
-.cn-mobile-brand{position:absolute;z-index:6;top:0;left:12px;width:56px;height:46px;object-fit:contain;pointer-events:none}
-:host(.emb) .cn-mobile-brand{top:45px}
-.app:has(.lv) ~ .cn-mobile-brand,.app:has(.lv) ~ .cn-bell-mobile{display:none}
- .app > .v{top:calc(44px + env(safe-area-inset-top,0px))}
+ .cn-mobile-brand{position:absolute;z-index:6;top:calc(var(--cn-safe-top) + 3px);left:12px;width:56px;height:46px;object-fit:contain;pointer-events:none}
+ :host(.emb){--cn-safe-top:48px}
+ .app:has(.lv) ~ .cn-mobile-brand,.app:has(.lv) ~ .cn-bell-mobile{display:none}
+ .app > .v,.app > .ptr{top:calc(var(--cn-safe-top) + var(--cn-header-height))}
+ .trade-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+ .trade-tabs [data-a="rfp"]{margin-inline-start:auto}
  .market-tv{height:300px;margin:10px 0;border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden}
 
 :host{display:block}
@@ -175,7 +178,6 @@ h2{font-size:21px;margin-bottom:8px;display:flex;align-items:center;gap:10px;fon
 .fab{bottom:calc(100px + env(safe-area-inset-bottom,0px))}
 .ts{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
 .sh{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
-@media(max-width:420px){:host(:not(.emb)) .sb{display:none}:host(:not(.emb)) .v{top:0;padding-top:calc(env(safe-area-inset-top,0px) + 12px)}:host(:not(.emb)) .ptr{top:env(safe-area-inset-top,0px)}}
 @supports(height:100dvh){.app{height:min(844px,100dvh)}@media(max-width:420px){:host(:not(.emb)) .app{height:100dvh}}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
@@ -633,8 +635,8 @@ return '<h2>行情'+tg('TradingView','b')+'</h2><div class="sr">'+SV.search+'<in
 +rates()}
 
 function trade(){
- if(window.CNProducts){const result=CNProducts.mobile(D.sec);if(result!==null)return '<h2>下单</h2><div class="chips">'+['股票','基金','IPO','大宗交易','ETF'].map(x=>chip('sec',x,D.sec)).join('')+'</div>'+result;}
-var h='<h2>下单'+tg('大宗交易','b')+'<span style="flex:1"></span>'+chip('rfp','','','刷新产品').replace('t-m','t-c')+'</h2><div class="chips">'+['股票','基金','IPO','大宗交易','ETF'].map(function(x){return chip('sec',x,D.sec)}).join('')+'</div>';
+var h='<div class="chips trade-tabs">'+['股票','基金','IPO','大宗交易','ETF'].map(function(x){return chip('sec',x,D.sec)}).join('')+chip('rfp','','','刷新').replace('t-m','t-c')+'</div>';
+if(window.CNProducts){const result=CNProducts.mobile(D.sec);if(result!==null)return h+result;}
 h+='<button type="button" class="chip t-a" data-a="managed-products">IPO 与普通基金</button>';
 const choices=Object.keys(CFG).filter(symbol=>CFG[symbol].type===(D.sec==='ETF'?'FUND':'STOCK'));
 if(D.sec!=='股票'&&D.sec!=='ETF'){
@@ -916,7 +918,7 @@ else if(a==='sheet'){clean();D.sh=v;D.amt='';D.rq=null;if(v==='nt')D.nt.forEach(
 else if(a==='close'){clean();D.sh=null}
 else if(a==='amt'){D.amt=v;var inp=root.getElementById('amt');inp.value=v;chk();inp.focus();return}
 else if(a==='buy'){var ov=ordv();if(!ov.ok)return;D.sh='buy';D.rk=0;D.pdk=0;D.tpw=''}
-else if(a==='rfp'){Promise.allSettled([loadMobileCatalog(),syncMobileTrading()]);return}
+else if(a==='rfp'){Promise.allSettled([loadMobileCatalog(),syncMobileTrading(),window.CNProducts?.refresh()]);return}
 else if(a==='rfc'){refreshSupport();return}
 else if(a==='fav'){toggleMobileFavorite(t.dataset.market,v);return}
 else if(a==='place'){submitMobileOrder(t);return}
