@@ -1,0 +1,25 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{randomUUID}=require('crypto'),{PGlite}=require('@electric-sql/pglite'),{pathToFileURL}=require('url');
+(async()=>{
+ const dir=fs.mkdtempSync(path.resolve('artifacts/configurable-'));const pg=new PGlite(path.join(dir,'db'));await pg.waitReady;await pg.exec("CREATE TABLE schema_migrations(filename text PRIMARY KEY,applied_at timestamptz DEFAULT now())");
+ const files=fs.readdirSync('db');for(const f of [...files.filter(f=>/^\d/.test(f)).sort(),...files.filter(f=>f.startsWith('migration-')).sort(),'product-settlement-schema.sql','product-settlement-workflows.sql','commodity-reference-order-prices.sql'])await pg.exec(fs.readFileSync('db/'+f,'utf8').replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;/ig,''));
+ const db={query:(...x)=>pg.query(...x),connect:async()=>({query:(...x)=>pg.query(...x),release(){}})};
+ let source=fs.readFileSync('dist/worker.mjs','utf8').replace('import { handleAsNodeRequest } from "cloudflare:node";','');source+='\nexport {cnProductSave,cnProductList,cnFundSubscribe,cnSettleDueFunds,placeInternalOrder,createApi,hashPassword};';
+ const runtime=path.join(dir,'runtime.mjs');fs.writeFileSync(runtime,source);const app=await import(pathToFileURL(runtime));
+ const uid=randomUUID(),aid=randomUUID();await pg.query('INSERT INTO app_users(id,email,password_hash) VALUES($1,$2,$3)',[uid,'qa-tier@example.test',await app.hashPassword('FixturePass123456!')]);await pg.query('INSERT INTO accounts(id,user_id,cash_cents) VALUES($1,$2,100000000)',[aid,uid]);
+ const actor={userId:uid,role:'MASTER'},session={userId:uid,accountId:aid};const quote=async({symbol,market})=>({symbol,market,name:'Apple Inc',priceCents:35069,timestampMs:Date.now()-60000});
+ let fund=await app.cnProductSave(db,actor,{kind:'TERM_FUND',name:'多档期限基金',status:'PUBLISHED',tiers:[{principalCents:5000000,holdingDays:7,profitBps:100},{principalCents:10000000,holdingDays:15,profitBps:250}]},quote);
+ let list=await app.cnProductList(db);let tiers=list.find(x=>x.id===fund.id).tiers;assert.equal(tiers.length,2);
+ const first=await app.cnFundSubscribe(db,session,{tierId:tiers[0].id},'subscribe-first');await app.cnFundSubscribe(db,session,{tierId:tiers[1].id},'subscribe-second');assert.equal((await app.cnFundSubscribe(db,session,{tierId:tiers[0].id},'subscribe-first')).replayed,true);
+ assert.equal(Number((await pg.query('SELECT cash_cents FROM accounts WHERE id=$1',[aid])).rows[0].cash_cents),85000000);
+ await app.cnProductSave(db,actor,{id:fund.id,version:fund.version,kind:'TERM_FUND',name:'修改后档位',status:'PUBLISHED',tiers:[{principalCents:1000000,holdingDays:30,profitBps:900}]},quote);
+ await pg.query("UPDATE cn_fund_contracts SET due_at=now()-interval '1 second'");assert.equal((await app.cnSettleDueFunds(db)).settled,2);assert.equal((await app.cnSettleDueFunds(db)).settled,0);
+ assert.equal(Number((await pg.query('SELECT cash_cents FROM accounts WHERE id=$1',[aid])).rows[0].cash_cents),100300000);
+ const bulk=await app.cnProductSave(db,actor,{kind:'BULK_STOCK',name:'Apple Inc',market:'US',symbol:'AAPL',status:'PUBLISHED',discountBps:1200,holdingDays:7,minQuantity:10,tradePassword:'123456'},quote);
+ const input={market:'US',symbol:'AAPL',side:'BUY',quantity:10,priceCents:30861,fxUsdMicros:1000000,bulkTerms:{id:bulk.id,version:bulk.version,minimum:10,holdingDays:7,discountBps:1200,referencePrice:35069,referenceTimestamp:new Date().toISOString()}};
+ await app.placeInternalOrder(db,aid,'bulk-first',input,randomUUID());assert.equal((await app.placeInternalOrder(db,aid,'bulk-first',input,randomUUID())).replayed,true);
+ await assert.rejects(app.placeInternalOrder(db,aid,'bulk-sell', {...input,side:'SELL',bulkTerms:undefined,priceCents:35069},randomUUID()),/holding period/);
+ await assert.rejects(app.placeInternalOrder(db,aid,'bulk-minimum',{...input,quantity:9},randomUUID()),/Product changed/);
+ await pg.query("UPDATE cn_bulk_order_terms SET locked_until=now()-interval '1 second'");await app.placeInternalOrder(db,aid,'bulk-sell',{...input,side:'SELL',bulkTerms:undefined,priceCents:35069},randomUUID());
+ assert.equal(Number((await pg.query('SELECT quantity FROM positions WHERE account_id=$1',[aid])).rows[0].quantity),0);
+ const report={passed:true,checkedAt:new Date().toISOString(),funds:(await pg.query('SELECT product_name,principal_cents,profit_cents,status,holding_days FROM cn_fund_contracts')).rows,orders:(await pg.query('SELECT market,symbol,side,quantity,price_cents FROM orders')).rows,ledger:(await pg.query('SELECT delta_cents,balance_after_cents FROM cash_ledger ORDER BY id')).rows};fs.writeFileSync(path.join(dir,'results.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({passed:true,evidence:dir,contracts:report.funds.length,orders:report.orders.length}));await pg.close();
+})().catch(e=>{console.error(e.stack);process.exit(1)});

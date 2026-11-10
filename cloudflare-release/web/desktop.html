@@ -1054,6 +1054,7 @@ function rStat(){var g={};DATA.reqs.forEach(function(r){g[r.st]=(g[r.st]||0)+1})
  $('req-stat').innerHTML=Object.keys(g).map(function(k){return '<div class="kv"><span>'+esc(k)+'</span><span class="chip '+stc(k)+'">'+esc(g[k])+'</span></div>'}).join('')}
 var SEC='股票';
 function rProd(){
+ if(window.CNProducts&&CNProducts.renderClient($('pbody'),SEC))return;
  var body=$('pbody');
  var items=Object.entries(DATA.sec||{}).filter(function([,item]){return item&&item.visible!==false&&(item.type||'股票')===SEC});
  if(!items.length){
@@ -1478,7 +1479,7 @@ function showSkeleton(){
 function clearSnapshot(){DATA_READY=false;HAVE={};DATA.cashOverride=null;DATA.realizedPnl=null;DATA.totalAssets=null;DATA.orders=[];DATA.holds=[];DATA.reqs=[];DATA.sec={};DATA.watch=[];DATA.fav=[];DATA.chat=[];DATA.acct='';DATA.sync='未同步'}
 function loadData(){if(!API){clearSnapshot();renderAll();return Promise.resolve()}
  clearSnapshot();showSkeleton();
- return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(r.status===401){localStorage.removeItem('cncap.session');location.replace('/login');throw new Error('Session expired')}if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){var v=safe(d);if(Number.isSafeInteger(d?.account?.cashCents))v.cashOverride=d.account.cashCents/100;if(Array.isArray(d.orders))v.orders=d.orders.map(function(row){return {id:row.id,s:row.symbol,t:row.side==="BUY"?"买入":"卖出",p:Number(row.price_cents)/100,q:Number(row.quantity),a:Number(row.amount_usd_cents)/100,d:new Date(row.created_at).toLocaleString()}});HAVE={};Object.keys(v).forEach(function(k){HAVE[k]=true});Object.assign(DATA,v);DATA_READY=Object.keys(HAVE).length>0;renderAll();return refreshDesktopRequests()}).catch(function(){clearSnapshot();toast('数据加载失败');renderAll()})}
+ return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(r.status===401){localStorage.removeItem('cncap.session');location.replace('/login');throw new Error('Session expired')}if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){var v=safe(d);if(d?.account?.id){v.acct=d.account.id;v.sync="已同步";}if(Number.isSafeInteger(d?.account?.cashCents))v.cashOverride=d.account.cashCents/100;if(Array.isArray(d.orders))v.orders=d.orders.map(function(row){return {id:row.id,s:row.symbol,t:row.side==="BUY"?"买入":"卖出",p:Number(row.price_cents)/100,q:Number(row.quantity),a:Number(row.amount_usd_cents)/100,d:new Date(row.created_at).toLocaleString()}});HAVE={};Object.keys(v).forEach(function(k){HAVE[k]=true});Object.assign(DATA,v);DATA_READY=Object.keys(HAVE).length>0;renderAll();return refreshDesktopRequests()}).catch(function(){clearSnapshot();toast('数据加载失败');renderAll()})}
 
 /* ========== 图表（Canvas，高清渲染） ========== */
 var UP='#4fdd8f',DN='#ff5b50',FF='12px Inter,"Noto Sans SC",sans-serif';

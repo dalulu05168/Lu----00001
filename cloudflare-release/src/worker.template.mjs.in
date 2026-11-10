@@ -6449,7 +6449,7 @@ async function decryptProfileDocument(ciphertext,userId,kind){
   const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv,additionalData:new TextEncoder().encode(userId+":"+kind)},key,encrypted);
   return JSON.parse(new TextDecoder().decode(plain));
 }
-async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrument) {
+async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrument, resolveProductQuote) {
   if (!route.startsWith("/api/admin/") && route !== "/api/catalog") return false;
   const allowed = {
     "/api/admin/login": ["POST"],
@@ -6457,6 +6457,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
     "/api/admin/activate": ["POST"],
     "/api/admin/me": ["GET"],
     "/api/admin/instrument-profile": ["GET"],
+    "/api/admin/products": ["GET","POST","PATCH"],
     "/api/admin/product-settlement": ["GET","POST"],
     "/api/admin/subaccounts": ["GET", "POST", "PATCH"],
     "/api/admin/clients": ["GET", "PATCH"],
@@ -6544,6 +6545,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
     if(actor.role==="SUBADMIN"&&!["/api/admin/me","/api/admin/clients","/api/admin/notifications","/api/admin/client-view","/api/admin/funding-overview","/api/admin/profile-documents","/api/admin/audit"].includes(route)){
       response(res,403,{error:"Master permission required"});return true;
     }
+    if(route==="/api/admin/products"){await cnProductsRoute(req,res,route,db,session,actor,resolveProductQuote);return true;}
     if(route==="/api/admin/instrument-profile"){
       const query=new URL(req.url,"http://localhost").searchParams;
       const symbol=query.get('symbol')||'',market=query.get('market')||'',kind=query.get('kind')||'';
@@ -6895,6 +6897,16 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
     }
     const p2 = await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1", [accountId]);
     const account = { cashCents: Number(a2.rows[0].cash_cents), positions: Object.fromEntries(p2.rows.map((r) => [r.market + ":" + r.symbol, Number(r.quantity)])), orders: [] };
+    if(input2.side==='SELL'){
+      const locked=await client.query("SELECT COALESCE(sum(quantity),0) AS qty FROM cn_bulk_order_terms WHERE account_id=$1 AND market=$2 AND symbol=$3 AND locked_until>now()",[accountId,input2.market,input2.symbol]);
+      const available=(account.positions[input2.market+':'+input2.symbol]||0)-Number(locked.rows[0].qty);
+      if(input2.quantity>available)cnProductFail('Shares still within holding period',409);
+    }
+    if(input2.bulkTerms){
+      const t=input2.bulkTerms;
+      const row=(await client.query("SELECT version,min_quantity FROM cn_products WHERE id=$1 AND status='PUBLISHED' AND kind='BULK_STOCK' AND market=$2 AND symbol=$3 FOR SHARE",[t.id,input2.market,input2.symbol])).rows[0];
+      if(!row||row.version!==t.version||input2.quantity<row.min_quantity)cnProductFail('Product changed; reload and retry',409);
+    }
     const updated = applyOrder(account, input2);
     const order = updated.orders[0];
     const position = updated.positions[order.market + ":" + order.symbol];
@@ -6913,6 +6925,10 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
       "INSERT INTO cash_ledger(account_id,order_id,delta_cents,balance_after_cents) VALUES($1,$2,$3,$4)",
       [accountId, newOrderId, order.side === "BUY" ? -order.amountCents : order.amountCents, updated.cashCents]
     );
+    if(input2.bulkTerms){
+      const t=input2.bulkTerms;
+      await client.query("INSERT INTO cn_bulk_order_terms(order_id,product_id,product_version,account_id,market,symbol,quantity,reference_price_cents,reference_timestamp,discount_bps,holding_days,locked_until) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,now()+$11::integer*interval '24 hours')",[newOrderId,t.id,t.version,accountId,input2.market,input2.symbol,input2.quantity,t.referencePrice,t.referenceTimestamp,t.discountBps,t.holdingDays]);
+    }
     if(input2.referenceSource)await client.query("INSERT INTO commodity_reference_order_prices(order_id,source,source_timestamp) VALUES($1,$2,$3)",[newOrderId,input2.referenceSource,input2.referenceTimestamp]);
     await client.query("COMMIT");
     transactionStarted = false;
@@ -6925,6 +6941,8 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
   }
 }
 __name(placeInternalOrder, "placeInternalOrder");
+
+__CN_PRODUCTS__
 
 // src/account-service.mjs
 import { randomUUID as randomUUID3 } from "node:crypto";
@@ -7312,7 +7330,7 @@ async function productSettlementRoute(req,res,route,db,session,actor){
  }
 }
 
-function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutionPrice, resolveCommodityReferencePrice, lookupInstrument, maxBodyBytes = 8192 }) {
+function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutionPrice, resolveCommodityReferencePrice, resolveProductQuote, lookupInstrument, maxBodyBytes = 8192 }) {
   if (!db || typeof resolveSession !== "function") throw new Error("Missing dependencies");
   return createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
@@ -7327,7 +7345,7 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
         return send(res, 404, { error: "Not found" });
       }
     }
-    if (["/health", "/api/health"].includes(url.pathname) && req.method === "GET") return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: typeof resolveExecutionPrice === "function", referenceSymbols: resolveCommodityReferencePrice ? Object.keys(commodityReferenceIds) : [] });
+    if (["/health", "/api/health"].includes(url.pathname) && req.method === "GET") return send(res, 200, { status: "alive", brokerConnected: false, pricingConnected: typeof resolveExecutionPrice === "function" || typeof resolveProductQuote === "function", referenceSymbols: resolveCommodityReferencePrice ? Object.keys(commodityReferenceIds) : [] });
     if (["/ready", "/api/ready"].includes(url.pathname) && req.method === "GET") {
       try {
         if (!await isDatabaseReady(db)) return send(res, 503, { status: "not_ready", database: "schema_missing", brokerConnected: false });
@@ -7337,11 +7355,12 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
       }
     }
     const route = url.pathname;
-    if (await handleAdminApi(req, res, route, db, resolveSession, lookupInstrument)) return;
+    if(route==="/api/product-image" && req.method==="GET")return cnProductsRoute(req,res,route,db,null,null,resolveProductQuote);
+    if (await handleAdminApi(req, res, route, db, resolveSession, lookupInstrument, resolveProductQuote)) return;
     const authPath = ["/api/auth/register", "/api/auth/login", "/api/auth/password-reset/request", "/api/auth/password-reset/confirm"].includes(route);
     const isAuthRoute = authPath && req.method === "POST";
     if (authPath && !isAuthRoute) return send(res, 405, { error: "Method not allowed" });
-    const isProtected = ["/api/product-settlement","/api/orders", "/api/account", "/api/auth/logout", "/api/watchlist", "/api/requests", "/api/support", "/api/profile-documents", "/api/notifications", "/api/withdrawal-pin"].includes(route);
+    const isProtected = ["/api/products","/api/products/quote","/api/fund-subscriptions","/api/bulk-orders","/api/product-settlement","/api/orders", "/api/account", "/api/auth/logout", "/api/watchlist", "/api/requests", "/api/support", "/api/profile-documents", "/api/notifications", "/api/withdrawal-pin"].includes(route);
     if (!isAuthRoute && !isProtected) return send(res, 404, { error: "Not found" });
     if (route === "/api/orders" && req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
     if (route === "/api/account" && req.method !== "GET") return send(res, 405, { error: "Method not allowed" });
@@ -7392,6 +7411,8 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
       return send(res, 401, { error: "Authentication failed" });
     }
     if (!session?.accountId) return send(res, 401, { error: "Authentication required" });
+    if(["/api/products","/api/products/quote","/api/fund-subscriptions","/api/bulk-orders"].includes(route))return cnProductsRoute(req,res,route,db,session,null,resolveProductQuote);
+    if(route==="/api/account")await cnSettleDueFunds(db,session.accountId);
     if (route === "/api/withdrawal-pin") {
       if(!["GET","POST"].includes(req.method))return send(res,405,{error:"Method not allowed"});
       try{
@@ -7578,7 +7599,7 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
       if(useReference){
         const listing=await db.query("SELECT 1 FROM listings WHERE market='US' AND symbol=$1 AND item_type='FUND' AND status='PUBLISHED'",[data.symbol]);
         if(listing.rows.length!==1)return send(res,403,{error:'Reference ETF is not published'});
-      }else if(typeof resolveExecutionPrice!=='function')return send(res,503,{error:"Verified market pricing unavailable"});
+      }else if(typeof resolveExecutionPrice!=='function'&&!(resolveProductQuote&&data.market==="US"))return send(res,503,{error:"Verified market pricing unavailable"});
       if(data.limitPriceCents!==undefined||data.tradePin!==undefined){
         if(data.market!=="US"||data.side!=="BUY"||!Number.isSafeInteger(data.limitPriceCents)||data.limitPriceCents<=0||typeof data.tradePin!=="string"||!/^\d{6}$/.test(data.tradePin))
           return send(res,400,{error:"Invalid limit order"});
@@ -7586,8 +7607,11 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
         if(item.rows.length!==1||!await verifyPassword("trade-pin:"+data.tradePin,item.rows[0].purchase_password_hash))
           return send(res,403,{error:"Invalid trading password"});
       }
-      const verified=useReference?await resolveCommodityReferencePrice(data.symbol):await resolveExecutionPrice({market:data.market,symbol:data.symbol,side:data.side,quantity:data.quantity});
-      if (!verified || !Number.isSafeInteger(verified.priceCents) || verified.priceCents <= 0 || !Number.isSafeInteger(verified.fxUsdMicros) || verified.fxUsdMicros <= 0 || !Number.isFinite(verified.timestampMs) || Date.now() - verified.timestampMs > (useReference?commodityReferenceMaxAge:60000) || verified.timestampMs > Date.now() + 5e3)
+      const useDelayed=!useReference&&typeof resolveExecutionPrice!=="function";
+      if(useDelayed&&data.side==="BUY"&&data.tradePin===undefined)return send(res,400,{error:"Trading password required"});
+      const orderInstrument={market:data.market,symbol:data.symbol,side:data.side,quantity:data.quantity};
+      const verified=useReference?await resolveCommodityReferencePrice(data.symbol):useDelayed?{...await resolveProductQuote(orderInstrument),fxUsdMicros:1000000}:await resolveExecutionPrice(orderInstrument);
+      if (!verified || !Number.isSafeInteger(verified.priceCents) || verified.priceCents <= 0 || !Number.isSafeInteger(verified.fxUsdMicros) || verified.fxUsdMicros <= 0 || !Number.isFinite(verified.timestampMs) || Date.now() - verified.timestampMs > (useReference?commodityReferenceMaxAge:useDelayed?5*86400000:60000) || verified.timestampMs > Date.now() + 5e3)
         return send(res, 503, { error: "Verified market pricing unavailable" });
       if(data.limitPriceCents!==undefined&&verified.priceCents>data.limitPriceCents)return send(res,409,{error:"Quote exceeds buy limit"});
       const result = await placeInternalOrder(db, session.accountId, key2, {
@@ -7602,6 +7626,7 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
       }, createId());
       return send(res, result.replayed ? 200 : 201, result);
     } catch (err) {
+      if (err.statusCode === 409) return send(res,409,{error:err.message});
       if (err.statusCode === 413) return send(res, 413, { error: "Request too large" });
       if (err instanceof SyntaxError) return send(res, 400, { error: "Invalid JSON" });
       if (/quote|pricing|entitlement|instrument|FX rate/i.test(err.message ?? "")) return send(res, 503, { error: "Verified market pricing unavailable" });
@@ -7767,7 +7792,7 @@ function ensureServer(env) {
   if (server) return server;
   const db = createRequestScopedDb(env.DATABASE_URL);
   const resolveSession = createSessionResolver(db);
-  server = createApi({ db, resolveSession, resolveExecutionPrice: createEulerpoolExecutionPricing(env), resolveCommodityReferencePrice:createCommodityReferencePrice(env), lookupInstrument:createInstrumentProfileLookup(env) });
+  server = createApi({ db, resolveSession, resolveExecutionPrice: createEulerpoolExecutionPricing(env), resolveCommodityReferencePrice:createCommodityReferencePrice(env), lookupInstrument:createInstrumentProfileLookup(env), resolveProductQuote:createProductQuote(env) });
   server.listen(API_PORT);
   return server;
 }
@@ -7931,6 +7956,7 @@ const replacementPages = __CN_PAGES__;
 const replacementLogo = __CN_LOGO__;
 const releaseWorker = {
   ...worker_default,
+  async scheduled(event,env,ctx){ctx.waitUntil(cnSettleDueFunds(createRequestScopedDb(env.DATABASE_URL)));},
   async fetch(request,env,ctx){
     const requestUrl=new URL(request.url);
     if(["nuvexapro.com","admin.maacropierce.com"].includes(requestUrl.hostname)&&requestUrl.pathname==="/logo.png"&&["GET","HEAD"].includes(request.method)){
