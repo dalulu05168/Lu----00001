@@ -1,0 +1,38 @@
+[
+  {
+    "action": "admin.activate",
+    "count": 1
+  },
+  {
+    "action": "admin.login",
+    "count": 2
+  },
+  {
+    "action": "cash_request.approve",
+    "count": 1
+  },
+  {
+    "action": "cash_request.review",
+    "count": 1
+  },
+  {
+    "action": "fund.mature",
+    "count": 1
+  },
+  {
+    "action": "fund.mature.failed",
+    "count": 1
+  },
+  {
+    "action": "fund.mature.retry",
+    "count": 1
+  },
+  {
+    "action": "product.save",
+    "count": 1
+  },
+  {
+    "action": "subaccount.create",
+    "count": 1
+  }
+]

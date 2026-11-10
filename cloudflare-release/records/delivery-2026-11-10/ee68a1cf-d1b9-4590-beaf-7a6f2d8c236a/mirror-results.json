@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "mirrorBrowserBuy": true,
+  "masterSell": true,
+  "scopeIsolation": true,
+  "subaccountFundsDenied": true,
+  "auditFailureRollback": true,
+  "snapshot": {
+    "account": {
+      "id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "cashCents": 104208,
+      "activeFundPrincipalCents": 0,
+      "currency": "USD",
+      "reservedWithdrawalCents": 0,
+      "availableCashCents": 104208,
+      "ipoReservedCashCents": 0,
+      "settlementPositionValueCents": 0
+    },
+    "positions": [],
+    "orders": [
+      {
+        "id": "36cab72b-2bb5-48b6-90e6-0a95f5c9377f",
+        "market": "US",
+        "symbol": "AAPL",
+        "side": "SELL",
+        "quantity": "1",
+        "price_cents": "35069",
+        "amount_usd_cents": "35069",
+        "created_at": "2026-11-10T17:36:16.282Z"
+      },
+      {
+        "id": "e583304b-9f67-47f2-a3bc-1498bb7ea979",
+        "market": "US",
+        "symbol": "AAPL",
+        "side": "BUY",
+        "quantity": "1",
+        "price_cents": "30861",
+        "amount_usd_cents": "30861",
+        "created_at": "2026-11-10T17:36:15.761Z"
+      }
+    ],
+    "tradeTotal": 659.3,
+    "realizedPnl": 42.08,
+    "disclosure": "Internal records only; no brokerage orders or real securities ownership.",
+    "valuationEstimated": false,
+    "totalAssets": 1042.08
+  }
+}

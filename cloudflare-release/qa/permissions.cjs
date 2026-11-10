@@ -37,7 +37,7 @@ async function setupPage(browser,token,viewport={width:1280,height:900}){
   const page=await browser.newPage({viewport,reducedMotion:'reduce'});
   page.setDefaultTimeout(9000);
   page.on('pageerror',error=>console.log('browser:',error.message));
-  await page.addInitScript(value=>{localStorage.setItem('cncap.admin.session',value);sessionStorage.setItem('cncap.admin.entry','1')},token);
+  await page.addInitScript(value=>{if(top!==self)return;localStorage.setItem('cncap.admin.session',value);sessionStorage.setItem('cncap.admin.entry','1')},token);
   if(process.env.CN_OPS_LIVE_UI==='1'){
     const origin='https://admin.maacropierce.com';
     await page.route(origin+'/**',async route=>{

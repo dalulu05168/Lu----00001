@@ -201,8 +201,8 @@ h2{font-size:21px;margin-bottom:8px;display:flex;align-items:center;gap:10px;fon
 (function(){
  const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n};
  const icon='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 20a2 2 0 0 0 4 0"/></svg>';
- const label={DEPOSIT:'充值申请',WITHDRAW:'提现申请',IDENTITY:'身份资料',BANK:'银行卡资料'};
- const states={PENDING:'待审核',REVIEWED:'审核中',APPROVED:'已通过',REJECTED:'未通过'};
+ const label={DEPOSIT:'充值申请',WITHDRAW:'提现申请',IDENTITY:'身份资料',BANK:'银行卡资料',TERM_FUND:'基金到期',IPO:'IPO 配售',MUTUAL_FUND:'基金订单',FUND_FAILURE:'基金返还异常'};
+ const states={PENDING:'待审核',REVIEWED:'审核中',APPROVED:'已通过',REJECTED:'未通过',MATURED:'已返还',SETTLED:'已完成',CANCELLED:'已取消',FAILED:'待处理'};
  const time=new Intl.DateTimeFormat('zh-CN',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Kuala_Lumpur'});
  function mount(host,{admin=false,onOpen}={}){
    const token=()=>localStorage.getItem(admin?'cncap.admin.session':'cncap.session');
@@ -1027,6 +1027,7 @@ if(customerToken)fetch('/api/account',{headers:{Authorization:'Bearer '+customer
  const bellHost=document.createElement('div');bellHost.className='cn-bell-mobile';root.append(bellHost);
  CNNotify.mount(bellHost,{onOpen(item){
    D.ov=null;D.sh=null;D.rq=null;D.cs=0;D.tab='assets';
+   if(item.category==='PRODUCT'){D.tab='trade';D.sec=item.kind==='TERM_FUND'?'基金':'IPO';R();if(item.kind==='TERM_FUND')window.CNProducts?.refresh();else window.dispatchEvent(new Event('cn-open-product-settlement'));return}
    if(item.category==='SUPPORT'){D.cs=1;D.un=0;R();refreshSupport();return}
    if(item.category==='DOCUMENT'){D.sh=item.kind==='BANK'?'bank':'kyc';refreshProfileStatus().catch(()=>{});}
    else refreshMobileRequests();

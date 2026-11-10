@@ -1,0 +1,344 @@
+{
+  "accounts": [
+    {
+      "id": "49ca71db-e7a9-4241-af03-a019a3d91656",
+      "user_id": "2abcca40-b5c7-454d-ad85-15090626d7cd",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:37:36.980Z"
+    },
+    {
+      "id": "cc56c4a9-ebfd-4701-b513-177a473f13d1",
+      "user_id": "8474b0f3-5ac6-45e7-86da-21f4ca1f653f",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:37:37.026Z"
+    },
+    {
+      "id": "60f3b5d7-bfe7-4bcb-9fd6-3dae3fc8d277",
+      "user_id": "c8ba7c79-4ad4-49b3-8c8d-a329c2b3486a",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:37:37.061Z"
+    },
+    {
+      "id": "25ab8632-b3fa-45ea-9e95-9aee844a9b56",
+      "user_id": "326d9b70-d1c9-431f-855b-c3351d189982",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:37:37.095Z"
+    },
+    {
+      "id": "6642709e-c8c9-45c1-bb3c-5bade69dac39",
+      "user_id": "305fcbb2-f9b9-4554-85ed-30125d7bd790",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:37:37.513Z"
+    },
+    {
+      "id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "user_id": "1f3fd8f6-4bf6-44dd-9981-c25164d7fd6b",
+      "base_currency": "USD",
+      "cash_cents": 95186,
+      "created_at": "2026-11-10T17:37:37.630Z"
+    }
+  ],
+  "positions": [
+    {
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "market": "US",
+      "symbol": "SLV",
+      "quantity": 1
+    },
+    {
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "market": "US",
+      "symbol": "GLD",
+      "quantity": 0
+    },
+    {
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "market": "US",
+      "symbol": "USO",
+      "quantity": 0
+    }
+  ],
+  "orders": [
+    {
+      "id": "5337bf36-403f-4c90-a57a-a828433d2664",
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "idempotency_key": "c63b44cd-93b9-42e5-9c02-df8c76ff2628",
+      "market": "US",
+      "symbol": "GLD",
+      "side": "BUY",
+      "quantity": 1,
+      "price_cents": 37953,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 37953,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:37:38.459Z"
+    },
+    {
+      "id": "cfe6a993-c52c-4fb3-90e4-b0a6258f4fad",
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "idempotency_key": "295fa1fb-0284-4c1c-9cc9-0d0eb3f6132a",
+      "market": "US",
+      "symbol": "SLV",
+      "side": "BUY",
+      "quantity": 2,
+      "price_cents": 4814,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 9628,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:37:38.537Z"
+    },
+    {
+      "id": "4eebf3e3-fc46-4969-af19-0cb796155664",
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "idempotency_key": "30916162-3d83-4901-aeb6-2abeecbe7fd3",
+      "market": "US",
+      "symbol": "USO",
+      "side": "BUY",
+      "quantity": 1,
+      "price_cents": 14266,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 14266,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:37:38.797Z"
+    },
+    {
+      "id": "f34b8bd4-0cc8-4546-ba08-6790d704806e",
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "idempotency_key": "f7d40fa1-0d71-45df-abff-569e5d78205b",
+      "market": "US",
+      "symbol": "SLV",
+      "side": "SELL",
+      "quantity": 1,
+      "price_cents": 4814,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 4814,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:37:41.914Z"
+    },
+    {
+      "id": "848eea3a-f100-4956-8b04-af0d00db7c8b",
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "idempotency_key": "53c265dd-8eba-4e0c-b8ae-b5219d5ec048",
+      "market": "US",
+      "symbol": "GLD",
+      "side": "SELL",
+      "quantity": 1,
+      "price_cents": 37953,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 37953,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:37:42.261Z"
+    },
+    {
+      "id": "3d076228-0c0b-428a-ab9c-d9e05c293c9f",
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "idempotency_key": "c5695348-13b9-4b6a-88bc-3e77be018653",
+      "market": "US",
+      "symbol": "USO",
+      "side": "SELL",
+      "quantity": 1,
+      "price_cents": 14266,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 14266,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:37:42.277Z"
+    }
+  ],
+  "cash_ledger": [
+    {
+      "id": 1,
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "order_id": null,
+      "delta_cents": 100000,
+      "balance_after_cents": 100000,
+      "created_at": "2026-11-10T17:37:37.745Z"
+    },
+    {
+      "id": 2,
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "order_id": "5337bf36-403f-4c90-a57a-a828433d2664",
+      "delta_cents": -37953,
+      "balance_after_cents": 62047,
+      "created_at": "2026-11-10T17:37:38.459Z"
+    },
+    {
+      "id": 3,
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "order_id": "cfe6a993-c52c-4fb3-90e4-b0a6258f4fad",
+      "delta_cents": -9628,
+      "balance_after_cents": 52419,
+      "created_at": "2026-11-10T17:37:38.537Z"
+    },
+    {
+      "id": 4,
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "order_id": "4eebf3e3-fc46-4969-af19-0cb796155664",
+      "delta_cents": -14266,
+      "balance_after_cents": 38153,
+      "created_at": "2026-11-10T17:37:38.797Z"
+    },
+    {
+      "id": 5,
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "order_id": "f34b8bd4-0cc8-4546-ba08-6790d704806e",
+      "delta_cents": 4814,
+      "balance_after_cents": 42967,
+      "created_at": "2026-11-10T17:37:41.914Z"
+    },
+    {
+      "id": 6,
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "order_id": "848eea3a-f100-4956-8b04-af0d00db7c8b",
+      "delta_cents": 37953,
+      "balance_after_cents": 80920,
+      "created_at": "2026-11-10T17:37:42.261Z"
+    },
+    {
+      "id": 7,
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "order_id": "3d076228-0c0b-428a-ab9c-d9e05c293c9f",
+      "delta_cents": 14266,
+      "balance_after_cents": 95186,
+      "created_at": "2026-11-10T17:37:42.277Z"
+    }
+  ],
+  "admin_audit_log": [
+    {
+      "id": "eb94c7b4-e40e-4802-ace5-6ddbe294aa64",
+      "admin_user_id": "2abcca40-b5c7-454d-ad85-15090626d7cd",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "admin.login",
+      "target": "qa-master@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:37:37.467Z"
+    },
+    {
+      "id": "35c1c9af-f9d0-491c-ab61-bb88c5d0b3d9",
+      "admin_user_id": "2abcca40-b5c7-454d-ad85-15090626d7cd",
+      "admin_email": "MASTER",
+      "role": "MASTER",
+      "action": "subaccount.create",
+      "target": "qa-agent-1794332257402-1@example.test",
+      "detail": {
+        "inviteCode": "080288"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:37:37.522Z"
+    },
+    {
+      "id": "40866362-d98d-4aa9-8504-7a2924379d90",
+      "admin_user_id": null,
+      "admin_email": "qa-agent-1794332257402-1@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.activate",
+      "target": "qa-agent-1794332257402-1@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:37:37.560Z"
+    },
+    {
+      "id": "579effaa-2c5c-4bb4-aeaa-cac635d1cd7c",
+      "admin_user_id": "305fcbb2-f9b9-4554-85ed-30125d7bd790",
+      "admin_email": "qa-agent-1794332257402-1@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-1794332257402-1@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:37:37.598Z"
+    },
+    {
+      "id": "4add0269-aa91-449b-b49a-a9588ade0946",
+      "admin_user_id": "2abcca40-b5c7-454d-ad85-15090626d7cd",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "9ee5f6dd-e415-4860-b3e9-3d5030ee0a8a",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:37:37.737Z"
+    },
+    {
+      "id": "6411dfa0-98cf-4b5f-8ee8-2dc50e0fcf14",
+      "admin_user_id": "2abcca40-b5c7-454d-ad85-15090626d7cd",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "9ee5f6dd-e415-4860-b3e9-3d5030ee0a8a",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:37:37.757Z"
+    }
+  ],
+  "cash_requests": [
+    {
+      "id": "9ee5f6dd-e415-4860-b3e9-3d5030ee0a8a",
+      "account_id": "e0534c3f-ed82-4cb9-92fd-76b749a98445",
+      "user_id": "1f3fd8f6-4bf6-44dd-9981-c25164d7fd6b",
+      "kind": "DEPOSIT",
+      "amount_cents": 100000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "2abcca40-b5c7-454d-ad85-15090626d7cd",
+      "approved_by": "2abcca40-b5c7-454d-ad85-15090626d7cd",
+      "reviewed_at": "2026-11-10T17:37:37.735Z",
+      "approved_at": "2026-11-10T17:37:37.745Z",
+      "created_at": "2026-11-10T17:37:37.725Z"
+    }
+  ],
+  "cn_fund_contracts": [],
+  "cn_bulk_order_terms": [],
+  "product_settlement_products": [],
+  "product_settlement_terms": [],
+  "product_settlement_orders": [],
+  "product_settlement_cash_holds": [],
+  "product_settlement_positions": [],
+  "product_settlement_cash_postings": [],
+  "product_ipo_allocations": [],
+  "product_settlement_movements": [],
+  "commodity_reference_order_prices": [
+    {
+      "order_id": "5337bf36-403f-4c90-a57a-a828433d2664",
+      "source": "EULERPOOL_ETF_HISTORY",
+      "source_timestamp": "2026-11-10T17:36:38.458Z"
+    },
+    {
+      "order_id": "cfe6a993-c52c-4fb3-90e4-b0a6258f4fad",
+      "source": "EULERPOOL_ETF_HISTORY",
+      "source_timestamp": "2026-11-10T17:36:38.536Z"
+    },
+    {
+      "order_id": "4eebf3e3-fc46-4969-af19-0cb796155664",
+      "source": "EULERPOOL_ETF_HISTORY",
+      "source_timestamp": "2026-11-10T17:36:38.796Z"
+    },
+    {
+      "order_id": "f34b8bd4-0cc8-4546-ba08-6790d704806e",
+      "source": "EULERPOOL_ETF_HISTORY",
+      "source_timestamp": "2026-11-10T17:36:41.914Z"
+    },
+    {
+      "order_id": "848eea3a-f100-4956-8b04-af0d00db7c8b",
+      "source": "EULERPOOL_ETF_HISTORY",
+      "source_timestamp": "2026-11-10T17:36:42.261Z"
+    },
+    {
+      "order_id": "3d076228-0c0b-428a-ab9c-d9e05c293c9f",
+      "source": "EULERPOOL_ETF_HISTORY",
+      "source_timestamp": "2026-11-10T17:36:42.276Z"
+    }
+  ]
+}

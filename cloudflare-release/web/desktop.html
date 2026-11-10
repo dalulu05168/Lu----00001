@@ -669,8 +669,8 @@ header.top .cn-unified-logo{width:50px;height:50px;object-fit:contain;display:bl
 (function(){
  const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n};
  const icon='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 20a2 2 0 0 0 4 0"/></svg>';
- const label={DEPOSIT:'充值申请',WITHDRAW:'提现申请',IDENTITY:'身份资料',BANK:'银行卡资料'};
- const states={PENDING:'待审核',REVIEWED:'审核中',APPROVED:'已通过',REJECTED:'未通过'};
+ const label={DEPOSIT:'充值申请',WITHDRAW:'提现申请',IDENTITY:'身份资料',BANK:'银行卡资料',TERM_FUND:'基金到期',IPO:'IPO 配售',MUTUAL_FUND:'基金订单',FUND_FAILURE:'基金返还异常'};
+ const states={PENDING:'待审核',REVIEWED:'审核中',APPROVED:'已通过',REJECTED:'未通过',MATURED:'已返还',SETTLED:'已完成',CANCELLED:'已取消',FAILED:'待处理'};
  const time=new Intl.DateTimeFormat('zh-CN',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Kuala_Lumpur'});
  function mount(host,{admin=false,onOpen}={}){
    const token=()=>localStorage.getItem(admin?'cncap.admin.session':'cncap.session');
@@ -1641,6 +1641,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 
  CNNotify.mount(document.getElementById('cn-bell-host'),{onOpen(item){
+  if(item.category==='PRODUCT'){
+    if(item.kind==='TERM_FUND'){document.querySelector('[data-p="trade"]')?.click();[...document.querySelectorAll('#ptabs button')].find(b=>b.textContent==='基金')?.click();window.CNProducts?.refresh();}
+    else window.dispatchEvent(new Event('cn-open-product-settlement'));
+    return;
+  }
   if(item.category==='SUPPORT'){const b=document.getElementById('csbtn');if(b.getAttribute('aria-expanded')!=='true')b.click()}
   else if(item.category==='DOCUMENT'){document.querySelector('[data-open="'+(item.kind==='BANK'?'m-bank':'m-id')+'"]').click()}
   else{document.querySelector('[data-p="acct"]').click();window.dispatchEvent(new Event('cn-requests-refresh'))}

@@ -8,8 +8,8 @@ const report=JSON.parse(fs.readFileSync(path.join(run,'results.json'),'utf8'));
 const manifest=require('../release-manifest.json');
 assert.equal(report.sourceSha256,manifest.sourceSha256,'Tests must match the released source');
 assert.equal(report.sourceUnchanged,true);
-assert(report.results.length>=12&&report.results.every(x=>x.code===0),'Every required suite must pass in this run');
-const target=path.join(root,'records','delivery-2026-11-10');fs.mkdirSync(target,{recursive:true});
+assert(report.results.length>=14&&report.results.every(x=>x.code===0),'Every required suite must pass in this run');
+const target=path.join(root,'records','delivery-2026-11-10',manifest.version);fs.mkdirSync(target,{recursive:true});
 for(const result of report.results){
 const dir=path.join(run,result.name);
 for(const file of ['qa.log','audit-summary.json','results.json','http-results.json'])if(fs.existsSync(path.join(dir,file)))fs.copyFileSync(path.join(dir,file),path.join(target,result.name+'-'+file));

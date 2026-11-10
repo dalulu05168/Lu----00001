@@ -5994,10 +5994,10 @@ __name(listSubadmins, "listSubadmins");
 async function listClients(db, actor) {
   const params = actor.role === "MASTER" ? [] : [actor.userId];
   const where = actor.role === "MASTER" ? "" : "AND i.subadmin_user_id=$1";
-  const r = await db.query(`SELECT u.id,u.email,i.subadmin_user_id,owner.email AS subadmin_email,u.created_at,p.account_type,p.login_policy,p.withdraw_policy,p.vip_level,p.loan_policy FROM app_users u
+  const r = await cnPagedQuery(db,`SELECT u.id,u.email,i.subadmin_user_id,owner.email AS subadmin_email,u.created_at,p.account_type,p.login_policy,p.withdraw_policy,p.vip_level,p.loan_policy FROM app_users u
     LEFT JOIN client_links c ON c.user_id=u.id LEFT JOIN invite_codes i ON i.id=c.invite_code_id
     LEFT JOIN app_users owner ON owner.id=i.subadmin_user_id LEFT JOIN cn_client_controls p ON p.user_id=u.id
-    WHERE NOT EXISTS (SELECT 1 FROM admin_roles ar WHERE ar.user_id=u.id) ${where} ORDER BY COALESCE(c.created_at,u.created_at) DESC LIMIT 500`, params);
+    WHERE NOT EXISTS (SELECT 1 FROM admin_roles ar WHERE ar.user_id=u.id) ${where} ORDER BY COALESCE(c.created_at,u.created_at) DESC,u.id`, params);
   return r.rows;
 }
 __name(listClients, "listClients");
@@ -6458,10 +6458,12 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
     "/api/admin/me": ["GET"],
     "/api/admin/instrument-profile": ["GET"],
     "/api/admin/products": ["GET","POST","PATCH"],
+    "/api/admin/fund-settlement": ["GET","POST"],
     "/api/admin/product-settlement": ["GET","POST"],
     "/api/admin/subaccounts": ["GET", "POST", "PATCH"],
     "/api/admin/clients": ["GET", "PATCH"],
     "/api/admin/client-view": ["GET"],
+    "/api/admin/client-action": ["POST"],
     "/api/admin/profile-documents": ["GET", "PATCH"],
     "/api/admin/support": ["GET", "POST"],
     "/api/admin/support/inbox": ["GET"],
@@ -6540,7 +6542,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       response(res, 403, { error: "Administrator 2FA session required" });
       return true;
     }
-    if(actor.role==="SUBADMIN"&&!["/api/admin/me","/api/admin/clients","/api/admin/notifications","/api/admin/client-view","/api/admin/funding-overview","/api/admin/profile-documents","/api/admin/audit"].includes(route)){
+    if(actor.role==="SUBADMIN"&&!["/api/admin/me","/api/admin/clients","/api/admin/notifications","/api/admin/client-view","/api/admin/client-action","/api/admin/funding-overview","/api/admin/profile-documents","/api/admin/audit"].includes(route)){
       response(res,403,{error:"Master permission required"});return true;
     }
     if(route==="/api/admin/products"){await cnProductsRoute(req,res,route,db,session,actor,resolveProductQuote);return true;}
@@ -6592,6 +6594,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
         "FROM cn_profile_documents d JOIN clients c ON c.id=d.user_id WHERE $1='SUBADMIN' AND d.status='PENDING' "+
         "UNION ALL SELECT 'cash:'||r.id AS id,'CASH',r.kind,r.status,r.created_at,c.email FROM cash_requests r JOIN clients c ON c.id=r.user_id "+
         "WHERE $1='MASTER' AND r.status IN ('PENDING','REVIEWED') "+
+        "UNION ALL SELECT 'fund-failure:'||c.id,'PRODUCT','FUND_FAILURE','FAILED',MAX(a.created_at),u.email FROM cn_fund_contracts c JOIN accounts ac ON ac.id=c.account_id JOIN app_users u ON u.id=ac.user_id JOIN admin_audit_log a ON a.target=c.id::text AND a.action='fund.mature.failed' WHERE $1='MASTER' AND c.status='ACTIVE' AND c.due_at<=now() GROUP BY c.id,u.email "+
         "UNION ALL SELECT 'message:'||m.id,'SUPPORT','SUPPORT',NULL,m.created_at,c.email FROM cn_support_messages m JOIN clients c ON c.id=m.client_user_id WHERE $1='MASTER' AND m.sender_role='CLIENT') "+
         "SELECT id,category,kind,status,at,email FROM events ORDER BY at DESC,id DESC LIMIT 100",
         [actor.role,actor.userId]);
@@ -6646,12 +6649,12 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       response(res,200,{email:sub.email,note:sub.note||"",clients:count.rows[0].clients,totals:totals.rows[0],items:rows.rows,page,pageSize});return true;
     }
     if (route === "/api/admin/support/inbox") {
-      const r=await db.query(
+      const r=await cnPagedQuery(db,
         "SELECT u.email,inbound.id AS message_id,inbound.created_at FROM app_users u "+
         "LEFT JOIN client_links l ON l.user_id=u.id LEFT JOIN invite_codes i ON i.id=l.invite_code_id "+
         "JOIN LATERAL (SELECT m.id,m.created_at FROM cn_support_messages m WHERE m.client_user_id=u.id AND m.sender_role='CLIENT' ORDER BY m.created_at DESC,m.id DESC LIMIT 1) inbound ON true "+
         "WHERE ($1='MASTER' OR i.subadmin_user_id=$2) AND NOT EXISTS(SELECT 1 FROM admin_roles a WHERE a.user_id=u.id) "+
-        "ORDER BY inbound.created_at DESC,inbound.id DESC LIMIT 200",
+        "ORDER BY inbound.created_at DESC,inbound.id DESC",
         [actor.role,actor.userId]
       );
       response(res,200,{items:r.rows});return true;
@@ -6670,7 +6673,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
         const r=await db.query("INSERT INTO cn_support_messages(id,client_user_id,sender_user_id,sender_role,body) VALUES($1,$2,$3,$4,$5) RETURNING id,body,sender_role,created_at",[randomUUID(),id,actor.userId,actor.role,message]);
         response(res,201,r.rows[0]); return true;
       }
-      const r=await db.query("SELECT id,body,sender_role,created_at FROM cn_support_messages WHERE client_user_id=$1 ORDER BY created_at DESC,id DESC LIMIT 200",[id]);
+      const r=await cnPagedQuery(db,"SELECT id,body,sender_role,created_at FROM cn_support_messages WHERE client_user_id=$1 ORDER BY created_at DESC,id DESC",[id]);
       response(res,200,{items:r.rows.reverse()}); return true;
     }
     if (route === "/api/admin/commodity-drafts") {
@@ -6697,10 +6700,10 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       if(actor.role!=="SUBADMIN"){response(res,403,{error:"Assigned subadmin required"});return true}
       const query=new URL(req.url,"http://localhost").searchParams;
       if(req.method==="GET"&&!query.has("email")){
-        const r=await db.query(
+        const r=await cnPagedQuery(db,
           "SELECT u.email,d.kind,d.status,d.bank_last4,d.updated_at FROM cn_profile_documents d "+
           "JOIN app_users u ON u.id=d.user_id JOIN client_links l ON l.user_id=u.id JOIN invite_codes i ON i.id=l.invite_code_id "+
-          "WHERE i.subadmin_user_id=$1 AND d.status='PENDING' ORDER BY d.updated_at LIMIT 100",[actor.userId]);
+          "WHERE i.subadmin_user_id=$1 AND d.status='PENDING' ORDER BY d.updated_at,d.user_id,d.kind",[actor.userId]);
         response(res,200,{items:r.rows});return true;
       }
       const data=req.method==="PATCH"?await input(req):Object.fromEntries(query);
@@ -6734,6 +6737,54 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       if(!/^[a-f0-9]{64}$/i.test(hex||"")){response(res,503,{error:"Profile encryption unavailable"});return true}
       const doc=await decryptProfileDocument(row.ciphertext,userId,kind);
       response(res,200,{version:row.updated_at,kind,document:kind==="IDENTITY"?{front:doc.front,back:doc.back,fullName:doc.fullName||""}:{bankName:doc.bankName,last4:row.bank_last4}});return true;
+    }
+    if(route==='/api/admin/fund-settlement'){
+      if(actor.role!=='MASTER'){response(res,403,{error:'Master permission required'});return true;}
+      if(req.method==='POST'){
+        const data=await input(req);cnProductId(data.id);
+        const result=await cnSettleFundContract(db,data.id);
+        await audit(db,{userId:actor.userId,role:actor.role,action:'fund.mature.retry',target:data.id});
+        response(res,200,{settled:result});return true;
+      }
+      const result=await cnPagedQuery(db,"SELECT c.id,c.product_name,c.principal_cents,c.profit_cents,c.due_at,u.email,count(a.id)::int AS attempts,MAX(a.created_at) AS last_failure FROM cn_fund_contracts c JOIN accounts ac ON ac.id=c.account_id JOIN app_users u ON u.id=ac.user_id JOIN admin_audit_log a ON a.target=c.id::text AND a.action='fund.mature.failed' WHERE c.status='ACTIVE' AND c.due_at<=now() GROUP BY c.id,u.email ORDER BY c.due_at,c.id");
+      response(res,200,{items:result.rows});return true;
+    }
+    if(route==='/api/admin/client-action'){
+      const data=JSON.parse(await readBody(req,6*1024*1024));
+      const email=getEmail(data.email),method=data.method||'GET',path=data.path;
+      if(typeof path!=='string'||!path.startsWith('/')||path.startsWith('//')||path.length>512)return response(res,400,{error:'Invalid delegated path'}),true;
+      const url=new URL(path,'https://customer.invalid');
+      const permitted={
+        '/health':['GET'],'/api/account':['GET'],'/api/catalog':['GET'],'/api/products':['GET'],'/api/products/quote':['GET'],
+        '/api/fund-subscriptions':['POST'],'/api/bulk-orders':['POST'],'/api/orders':['POST'],
+        '/api/product-settlement':['GET','POST'],'/api/watchlist':['GET','POST','DELETE'],
+        '/api/profile-documents':['GET','POST'],'/api/requests':['GET','POST'],'/api/notifications':['GET'],
+        '/api/support':['GET','POST'],'/api/withdrawal-pin':['GET']
+      };
+      if(url.origin!=='https://customer.invalid'||!permitted[url.pathname]?.includes(method))return response(res,403,{error:'Delegated action forbidden'}),true;
+      if(actor.role!=='MASTER'&&(url.pathname==='/api/support'||url.pathname==='/api/requests'&&method!=='GET'))return response(res,403,{error:'Master permission required'}),true;
+      const tx=await db.connect();
+      try{
+        await tx.query('BEGIN');
+        const target=(await tx.query("SELECT u.id,a.id AS account_id FROM app_users u JOIN accounts a ON a.user_id=u.id LEFT JOIN client_links l ON l.user_id=u.id LEFT JOIN invite_codes i ON i.id=l.invite_code_id WHERE u.email=$1 AND NOT EXISTS(SELECT 1 FROM admin_roles ar WHERE ar.user_id=u.id) AND ($2='MASTER' OR i.subadmin_user_id=$3)",[email,actor.role,actor.userId])).rows[0];
+        if(!target){await tx.query('ROLLBACK');response(res,404,{error:'Customer not found'});return true;}
+        let savepointIndex=0;
+        const proxy={query:(...args)=>tx.query(...args),connect:async()=>{
+          const name='delegate_'+(++savepointIndex);
+          return {query:(sql,args)=>sql==='BEGIN'?tx.query('SAVEPOINT '+name):sql==='COMMIT'?tx.query('RELEASE SAVEPOINT '+name):sql==='ROLLBACK'?tx.query('ROLLBACK TO SAVEPOINT '+name).then(()=>tx.query('RELEASE SAVEPOINT '+name)):tx.query(sql,args),release(){}};
+        }};
+        let status=500,body='',headers={};
+        const output={writeHead(code,value){status=code;headers=value||{};},end(value){body=value?Buffer.from(value).toString('utf8'):'';}};
+        const delegated={url:url.pathname+url.search,method,headers:{authorization:'Bearer delegated','idempotency-key':data.key},body:data.payload};
+        const supportReply=actor.role==='MASTER'&&url.pathname==='/api/support'&&method==='POST';
+        if(supportReply){delegated.url='/api/admin/support';delegated.body={email,message:data.payload?.message};}
+        await createApiHandler({db:proxy,resolveSession:async()=>supportReply?({userId:actor.userId,adminVerified:true}):({userId:target.id,accountId:target.account_id}),lookupInstrument,resolveProductQuote})(delegated,output);
+        if(status>=400){await tx.query('ROLLBACK');res.writeHead(status,headers);res.end(body);return true;}
+        if(method!=='GET')await tx.query("INSERT INTO admin_audit_log(admin_user_id,admin_email,role,action,target,detail,ip) VALUES($1,$2,$3,'client.delegated.action',$4,$5::jsonb,$6)",[actor.userId,null,actor.role,email,JSON.stringify({method,path:url.pathname,idempotencyKey:data.key||null,productId:data.payload?.productId||data.payload?.product||null,side:data.payload?.side||null,quantity:data.payload?.quantity||null}),clientIp(req)]);
+        if(actor.role!=='MASTER'&&url.pathname==='/api/notifications'){const parsed=JSON.parse(body);parsed.items=parsed.items.filter(x=>x.category!=='SUPPORT');body=JSON.stringify(parsed);}
+        await tx.query('COMMIT');res.writeHead(status,headers);res.end(body);return true;
+      }catch(error){await tx.query('ROLLBACK');throw error;}
+      finally{await tx.release();}
     }
     if(route==="/api/admin/client-view"){
       const email=getEmail(new URL(req.url,"http://localhost").searchParams.get("email"));
@@ -7334,14 +7385,14 @@ async function productSettlementRoute(req,res,route,db,session,actor){
    const catalog=await db.query("SELECT DISTINCT ON (p.id) p.id,p.kind,p.symbol,p.display_name,p.unit_name,t.id AS terms_id,t.effective_date,t.unit_price_micros::text FROM product_settlement_products p JOIN product_settlement_terms t ON t.product_id=p.id WHERE t.reviewed_at IS NOT NULL AND t.effective_date<=current_date AND p.kind IN ('IPO','MUTUAL_FUND') ORDER BY p.id,t.effective_date DESC");
    if(actor){
     const [terms,orders]=await Promise.all([
-     db.query('SELECT t.id,t.product_id,p.symbol,t.effective_date,t.unit_price_micros::text,t.reviewed_at FROM product_settlement_terms t JOIN product_settlement_products p ON p.id=t.product_id ORDER BY t.entered_at DESC LIMIT 200'),
-     db.query("SELECT o.id,o.status,u.email,p.symbol,o.requested_quantity_micros::text,a.quantity_micros::text AS allocation_micros FROM product_settlement_orders o JOIN product_settlement_products p ON p.id=o.product_id JOIN accounts c ON c.id=o.account_id JOIN app_users u ON u.id=c.user_id LEFT JOIN product_ipo_allocations a ON a.order_id=o.id WHERE p.kind='IPO' ORDER BY o.created_at DESC LIMIT 200")
+     cnPagedQuery(db,'SELECT t.id,t.product_id,p.symbol,t.effective_date,t.unit_price_micros::text,t.reviewed_at FROM product_settlement_terms t JOIN product_settlement_products p ON p.id=t.product_id ORDER BY t.entered_at DESC,t.id'),
+     cnPagedQuery(db,"SELECT o.id,o.status,u.email,p.symbol,o.requested_quantity_micros::text,a.quantity_micros::text AS allocation_micros FROM product_settlement_orders o JOIN product_settlement_products p ON p.id=o.product_id JOIN accounts c ON c.id=o.account_id JOIN app_users u ON u.id=c.user_id LEFT JOIN product_ipo_allocations a ON a.order_id=o.id WHERE p.kind='IPO' ORDER BY o.created_at DESC,o.id")
     ]);
     const products=await db.query("SELECT id,symbol,display_name FROM product_settlement_products WHERE kind IN ('IPO','MUTUAL_FUND') ORDER BY symbol");
     return send(res,200,{catalog:catalog.rows,terms:terms.rows,orders:orders.rows,products:products.rows});
    }
    const [orders,positions]=await Promise.all([
-    db.query('SELECT o.*,p.symbol,p.display_name FROM product_settlement_orders o JOIN product_settlement_products p ON p.id=o.product_id WHERE o.account_id=$1 ORDER BY o.created_at DESC LIMIT 200',[session.accountId]),
+    cnPagedQuery(db,'SELECT o.*,p.symbol,p.display_name FROM product_settlement_orders o JOIN product_settlement_products p ON p.id=o.product_id WHERE o.account_id=$1 ORDER BY o.created_at DESC,o.id',[session.accountId]),
     db.query('SELECT h.quantity_micros::text,p.symbol,p.display_name,p.kind FROM product_settlement_positions h JOIN product_settlement_products p ON p.id=h.product_id WHERE h.account_id=$1 AND h.quantity_micros>0 ORDER BY p.symbol',[session.accountId])
    ]);
    return send(res,200,{catalog:catalog.rows,orders:orders.rows,positions:positions.rows});
@@ -7388,9 +7439,9 @@ async function productSettlementRoute(req,res,route,db,session,actor){
  }
 }
 
-function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutionPrice, resolveCommodityReferencePrice, resolveProductQuote, lookupInstrument, maxBodyBytes = 8192 }) {
+function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveExecutionPrice, resolveCommodityReferencePrice, resolveProductQuote, lookupInstrument, maxBodyBytes = 8192 }) {
   if (!db || typeof resolveSession !== "function") throw new Error("Missing dependencies");
-  return createServer(async (req, res) => {
+  return async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     if (req.method === "GET" && ["/", "/index.html", "/app.mjs", "/styles.css", "/admin.html", "/admin.mjs", "/admin.css", "/market-allocation.mjs", "/catalog-instruments.mjs", "/stock-chart.mjs", "/cn-terminal.html", "/cn-mobile.html", "/cn-design-client.mjs", "/cn-login.css", "/cn-admin.html", "/cn-terminal-bridge.mjs", "/cn-admin-bridge.mjs", "/cn-entry-redirect.mjs", "/cn-admin-entry-redirect.mjs"].includes(url.pathname)) {
       const file = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
@@ -7503,6 +7554,8 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
           "WITH events AS (SELECT 'doc:'||kind||':'||extract(epoch from updated_at) AS id,'DOCUMENT' AS category,kind,status,updated_at AS at "+
           "FROM cn_profile_documents WHERE user_id=$1 "+
           "UNION ALL SELECT 'cash:'||id||':'||status,'CASH',kind,status,COALESCE(approved_at,reviewed_at,created_at) FROM cash_requests WHERE user_id=$1 AND account_id=$2 "+
+          "UNION ALL SELECT 'fund:'||id,'PRODUCT','TERM_FUND','MATURED',matured_at FROM cn_fund_contracts WHERE account_id=$2 AND status='MATURED' "+
+          "UNION ALL SELECT 'settlement:'||o.id,'PRODUCT',p.kind,o.status,COALESCE(o.settled_at,o.created_at) FROM product_settlement_orders o JOIN product_settlement_products p ON p.id=o.product_id WHERE o.account_id=$2 AND o.status IN ('SETTLED','REJECTED','CANCELLED') "+
           "UNION ALL SELECT 'message:'||id,'SUPPORT','SUPPORT',NULL,created_at FROM cn_support_messages WHERE client_user_id=$1 AND sender_role IN ('MASTER','SUBADMIN')) "+
           "SELECT id,category,kind,status,at FROM events ORDER BY at DESC,id DESC LIMIT 100",
           [session.userId,session.accountId]);
@@ -7578,7 +7631,7 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
           const r=await db.query("INSERT INTO cn_support_messages(id,client_user_id,sender_user_id,sender_role,body) VALUES($1,$2,$2,'CLIENT',$3) RETURNING id,body,sender_role,created_at",[createId(),session.userId,message]);
           return send(res,201,r.rows[0]);
         }
-        const r=await db.query("SELECT id,body,sender_role,created_at FROM cn_support_messages WHERE client_user_id=$1 ORDER BY created_at DESC,id DESC LIMIT 200",[session.userId]);
+        const r=await cnPagedQuery(db,"SELECT id,body,sender_role,created_at FROM cn_support_messages WHERE client_user_id=$1 ORDER BY created_at DESC,id DESC",[session.userId]);
         return send(res,200,{items:r.rows.reverse()});
       }catch(err){
         if(err instanceof SyntaxError) return send(res,400,{error:"Invalid JSON"});
@@ -7713,8 +7766,9 @@ function createApi({ db, resolveSession, createId = randomUUID4, resolveExecutio
       const status = errorStatus(err.message ?? "");
       return send(res, status, { error: status === 500 ? "Internal server error" : err.message });
     }
-  });
+  };
 }
+function createApi(options){return createServer(createApiHandler(options));}
 __name(createApi, "createApi");
 
 // worker.mjs

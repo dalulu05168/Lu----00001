@@ -16,7 +16,7 @@ await p.screenshot({path:require('path').join(dir,kind+'.png'),fullPage:true});a
 assert.equal(new Set(results.map(x=>x.icon)).size,1);
 for(const origin of ['https://nuvexapro.com','https://admin.maacropierce.com']){
 assert.equal((await (await fetch(origin+'/ready')).json()).database,'connected');
-for(const [route,method] of [['/api/account','GET'],['/api/products','GET'],['/api/bulk-orders','POST'],['/api/admin/clients','GET'],['/api/admin/requests','GET']]){const status=(await fetch(origin+route,{method})).status;const crossHost=origin==='https://nuvexapro.com'&&route.startsWith('/api/admin/');assert(crossHost?[401,404].includes(status):status===401,origin+route+' '+status);}
+for(const [route,method] of [['/api/account','GET'],['/api/products','GET'],['/api/bulk-orders','POST'],['/api/admin/clients','GET'],['/api/admin/requests','GET'],['/api/admin/client-action','POST'],['/api/admin/fund-settlement','GET']]){const status=(await fetch(origin+route,{method})).status;const crossHost=origin==='https://nuvexapro.com'&&route.startsWith('/api/admin/');assert(crossHost?[401,404].includes(status):status===401,origin+route+' '+status);}
 }
 fs.writeFileSync(require('path').join(dir,'results.json'),JSON.stringify({passed:true,version:require('../release-manifest.json').version,results},null,2));console.log(JSON.stringify({passed:true,evidence:dir,version:require('../release-manifest.json').version}));
 })().catch(e=>{console.error(e.stack);process.exitCode=1});

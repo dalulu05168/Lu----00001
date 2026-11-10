@@ -1,0 +1,60 @@
+{
+  "accounts": [
+    {
+      "id": "5b6663ed-94d5-46e8-8cf8-31d3de14d7e7",
+      "user_id": "6f5bd21e-4fe8-41b4-aede-898d444a7416",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:21.036Z"
+    },
+    {
+      "id": "02eb4b00-87e8-4191-8dc0-21848795ca13",
+      "user_id": "9768934e-2cff-41a7-a611-7aec74774b39",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:21.081Z"
+    },
+    {
+      "id": "762f22e3-8d54-493e-8c2f-71ab5fb93def",
+      "user_id": "0254ba10-e924-442a-86ec-cd69cb95d63a",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:21.117Z"
+    },
+    {
+      "id": "27835d84-132c-4253-a4aa-973765a403ba",
+      "user_id": "e3eed73d-5ac9-4ff1-8eec-7c0b1ab05635",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:21.153Z"
+    }
+  ],
+  "positions": [],
+  "orders": [],
+  "cash_ledger": [],
+  "admin_audit_log": [
+    {
+      "id": "61d95abb-0962-418b-bd84-e4135e069c5c",
+      "admin_user_id": "6f5bd21e-4fe8-41b4-aede-898d444a7416",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "admin.login",
+      "target": "qa-master@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:21.501Z"
+    }
+  ],
+  "cash_requests": [],
+  "cn_fund_contracts": [],
+  "cn_bulk_order_terms": [],
+  "product_settlement_products": [],
+  "product_settlement_terms": [],
+  "product_settlement_orders": [],
+  "product_settlement_cash_holds": [],
+  "product_settlement_positions": [],
+  "product_settlement_cash_postings": [],
+  "product_ipo_allocations": [],
+  "product_settlement_movements": [],
+  "commodity_reference_order_prices": []
+}

@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "contracts": 205,
+  "failures": 105,
+  "healthyContractsNotBlocked": 100,
+  "settledExactlyOnce": 205,
+  "clients": 551,
+  "products": 131,
+  "supportMessages": 250
+}

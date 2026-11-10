@@ -1,0 +1,1277 @@
+{
+  "accounts": [
+    {
+      "id": "cf5fe621-c6a5-402f-aaae-e35de91f545b",
+      "user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:28.255Z"
+    },
+    {
+      "id": "f684bd57-e4ac-4516-942b-73976838cf7b",
+      "user_id": "7d6eec9d-6866-4c43-9517-0260594123b2",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:28.299Z"
+    },
+    {
+      "id": "539313b0-7bc0-4a64-9923-5eb0aaceb57c",
+      "user_id": "23fee60b-3290-415f-b612-4f9cd3418b12",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:28.332Z"
+    },
+    {
+      "id": "0a9d12de-0e14-4f54-9b19-5960e246064b",
+      "user_id": "25c8ce83-10d6-4adf-8311-b412af743aad",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:28.368Z"
+    },
+    {
+      "id": "80808b43-001f-4411-9592-eae7f32afaa5",
+      "user_id": "c37a8cfd-f6eb-4bb5-9d3a-f881575f7736",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:28.749Z"
+    },
+    {
+      "id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "base_currency": "USD",
+      "cash_cents": 89382780,
+      "created_at": "2026-11-10T17:36:28.864Z"
+    }
+  ],
+  "positions": [
+    {
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "market": "US",
+      "symbol": "AAPL",
+      "quantity": 20
+    }
+  ],
+  "orders": [
+    {
+      "id": "9367668f-5329-481b-97c2-85504597df29",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "idempotency_key": "bb3a7860-80a4-4fa5-9cde-ee4eadf52b50",
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": 10,
+      "price_cents": 30861,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 308610,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:36:34.445Z"
+    },
+    {
+      "id": "0c01ac64-0603-4f29-9ff4-5eef3291b320",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "idempotency_key": "88da08da-88c8-4223-b39f-074c1bc803d5",
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": 10,
+      "price_cents": 30861,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 308610,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:36:36.545Z"
+    }
+  ],
+  "cash_ledger": [
+    {
+      "id": 1,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 5000000,
+      "created_at": "2026-11-10T17:36:28.979Z"
+    },
+    {
+      "id": 2,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 10000000,
+      "created_at": "2026-11-10T17:36:29.002Z"
+    },
+    {
+      "id": 3,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 15000000,
+      "created_at": "2026-11-10T17:36:29.023Z"
+    },
+    {
+      "id": 4,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 20000000,
+      "created_at": "2026-11-10T17:36:29.042Z"
+    },
+    {
+      "id": 5,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 25000000,
+      "created_at": "2026-11-10T17:36:29.060Z"
+    },
+    {
+      "id": 6,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 30000000,
+      "created_at": "2026-11-10T17:36:29.077Z"
+    },
+    {
+      "id": 7,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 35000000,
+      "created_at": "2026-11-10T17:36:29.093Z"
+    },
+    {
+      "id": 8,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 40000000,
+      "created_at": "2026-11-10T17:36:29.110Z"
+    },
+    {
+      "id": 9,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 45000000,
+      "created_at": "2026-11-10T17:36:29.127Z"
+    },
+    {
+      "id": 10,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 50000000,
+      "created_at": "2026-11-10T17:36:29.144Z"
+    },
+    {
+      "id": 11,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 55000000,
+      "created_at": "2026-11-10T17:36:29.159Z"
+    },
+    {
+      "id": 12,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 60000000,
+      "created_at": "2026-11-10T17:36:29.177Z"
+    },
+    {
+      "id": 13,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 65000000,
+      "created_at": "2026-11-10T17:36:29.194Z"
+    },
+    {
+      "id": 14,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 70000000,
+      "created_at": "2026-11-10T17:36:29.212Z"
+    },
+    {
+      "id": 15,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 75000000,
+      "created_at": "2026-11-10T17:36:29.231Z"
+    },
+    {
+      "id": 16,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 80000000,
+      "created_at": "2026-11-10T17:36:29.249Z"
+    },
+    {
+      "id": 17,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 85000000,
+      "created_at": "2026-11-10T17:36:29.266Z"
+    },
+    {
+      "id": 18,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 90000000,
+      "created_at": "2026-11-10T17:36:29.281Z"
+    },
+    {
+      "id": 19,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 95000000,
+      "created_at": "2026-11-10T17:36:29.297Z"
+    },
+    {
+      "id": 20,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": 5000000,
+      "balance_after_cents": 100000000,
+      "created_at": "2026-11-10T17:36:29.314Z"
+    },
+    {
+      "id": 21,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": -5000000,
+      "balance_after_cents": 95000000,
+      "created_at": "2026-11-10T17:36:33.793Z"
+    },
+    {
+      "id": 22,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": "9367668f-5329-481b-97c2-85504597df29",
+      "delta_cents": -308610,
+      "balance_after_cents": 94691390,
+      "created_at": "2026-11-10T17:36:34.445Z"
+    },
+    {
+      "id": 23,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": null,
+      "delta_cents": -5000000,
+      "balance_after_cents": 89691390,
+      "created_at": "2026-11-10T17:36:36.291Z"
+    },
+    {
+      "id": 24,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "order_id": "0c01ac64-0603-4f29-9ff4-5eef3291b320",
+      "delta_cents": -308610,
+      "balance_after_cents": 89382780,
+      "created_at": "2026-11-10T17:36:36.545Z"
+    }
+  ],
+  "admin_audit_log": [
+    {
+      "id": "c6f46d65-a2e2-4462-8574-4e391a659af6",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "admin.login",
+      "target": "qa-master@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:28.706Z"
+    },
+    {
+      "id": "7917508c-0593-4f4e-9fb8-d99f39e0f9eb",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": "MASTER",
+      "role": "MASTER",
+      "action": "subaccount.create",
+      "target": "qa-agent-1794332188646-1@example.test",
+      "detail": {
+        "inviteCode": "675453"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:28.758Z"
+    },
+    {
+      "id": "05d56bcb-865a-477f-bcd3-c29575400d79",
+      "admin_user_id": null,
+      "admin_email": "qa-agent-1794332188646-1@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.activate",
+      "target": "qa-agent-1794332188646-1@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:28.794Z"
+    },
+    {
+      "id": "7a8c9d27-a291-4b9e-8cac-4e0ae58d2c56",
+      "admin_user_id": "c37a8cfd-f6eb-4bb5-9d3a-f881575f7736",
+      "admin_email": "qa-agent-1794332188646-1@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-1794332188646-1@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:28.832Z"
+    },
+    {
+      "id": "6110bbe3-a575-4ecf-b795-e12cfa4dec15",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "d0f51a94-b6d6-4253-b3d4-8a2635ab2769",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:28.975Z"
+    },
+    {
+      "id": "719deff4-4f96-4771-a642-725a1fdf289a",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "d0f51a94-b6d6-4253-b3d4-8a2635ab2769",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:28.985Z"
+    },
+    {
+      "id": "c35f2c84-a688-4bba-a7a9-98a2221b6f03",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "6005b867-25b8-4a7e-9376-c2d79dc494f2",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:28.997Z"
+    },
+    {
+      "id": "1f8aff13-06af-4ea7-bf58-87bf4c3fa480",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "6005b867-25b8-4a7e-9376-c2d79dc494f2",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.006Z"
+    },
+    {
+      "id": "009eded8-6230-4861-aa57-53e1f151b5d0",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "3a804752-40af-4ae6-87f9-556ac9c6551c",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.018Z"
+    },
+    {
+      "id": "9890600d-cb8e-4d58-a6e2-d630981c5ee8",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "3a804752-40af-4ae6-87f9-556ac9c6551c",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.027Z"
+    },
+    {
+      "id": "f225424d-a3c5-443a-b86a-76318f035cd7",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "6ca26a7d-3644-4cee-928c-83d34531b6a0",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.038Z"
+    },
+    {
+      "id": "a965867e-3725-4986-b308-a33ef1e802e2",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "6ca26a7d-3644-4cee-928c-83d34531b6a0",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.046Z"
+    },
+    {
+      "id": "925cd977-f0e7-453e-8132-5abf3cc54f93",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "f394fdbf-0c25-4b57-95a4-b66a27fd0a7b",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.057Z"
+    },
+    {
+      "id": "02a1b140-4243-4a67-bede-1666a2f14657",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "f394fdbf-0c25-4b57-95a4-b66a27fd0a7b",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.064Z"
+    },
+    {
+      "id": "06f86685-e645-4abc-9d32-a9f5c7d9508d",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "e008db2e-a970-4fc3-85e6-e6b1f097374d",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.074Z"
+    },
+    {
+      "id": "3cddc282-b357-4c63-9b52-e56b7c11c9e6",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "e008db2e-a970-4fc3-85e6-e6b1f097374d",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.080Z"
+    },
+    {
+      "id": "a2b1ceb3-2547-4d0f-84f6-f9fd26fcd6d1",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "0a584d32-b24f-4ad4-8772-f3e261a3d7d4",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.090Z"
+    },
+    {
+      "id": "db87ff39-4f59-4c80-94b1-b2b0b27340b5",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "0a584d32-b24f-4ad4-8772-f3e261a3d7d4",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.096Z"
+    },
+    {
+      "id": "9842bf13-58f4-4506-b59b-78381c47829e",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "875aa3e1-aeb2-42bd-9207-d83bf6869af7",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.107Z"
+    },
+    {
+      "id": "550a977b-a0de-4548-9032-6dfe85d9d16f",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "875aa3e1-aeb2-42bd-9207-d83bf6869af7",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.113Z"
+    },
+    {
+      "id": "d4f4dbc8-78db-4402-bbfe-ddd64d3f07d1",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "6e45eb61-0dca-4c71-b4cf-f75b5adb2757",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.123Z"
+    },
+    {
+      "id": "61490fdd-0a4e-46f6-afd7-91346d9c6e87",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "6e45eb61-0dca-4c71-b4cf-f75b5adb2757",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.130Z"
+    },
+    {
+      "id": "2a168b3b-1367-4884-b376-dc366b0c7e43",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "7f8734e1-7191-441f-a4cb-846d0ac6573a",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.141Z"
+    },
+    {
+      "id": "a50a893f-173d-4425-a85a-f5cabaccb7f3",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "7f8734e1-7191-441f-a4cb-846d0ac6573a",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.147Z"
+    },
+    {
+      "id": "8199af4b-cb5c-44da-b9a6-55330b777fff",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "faefe508-28a9-4ed7-9567-4f4d51ec545d",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.156Z"
+    },
+    {
+      "id": "80d5cfa7-16c3-4de1-ba6a-40efe4e0fb74",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "faefe508-28a9-4ed7-9567-4f4d51ec545d",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.162Z"
+    },
+    {
+      "id": "ac0ef650-51f1-4794-b262-921a3d24fe06",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "c9618d54-add1-4284-bd96-d232ac6673b1",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.174Z"
+    },
+    {
+      "id": "ba16b45b-a0c8-49ae-b448-c570d24d60bd",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "c9618d54-add1-4284-bd96-d232ac6673b1",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.180Z"
+    },
+    {
+      "id": "f6de686f-c34d-46f5-bff4-24b3f6bec766",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "a78c9ea5-d1f8-43f1-8d83-fdb09ca318ba",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.191Z"
+    },
+    {
+      "id": "817b40a9-8a5b-4e72-9b96-695493d78aff",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "a78c9ea5-d1f8-43f1-8d83-fdb09ca318ba",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.197Z"
+    },
+    {
+      "id": "d109299e-e320-45b7-b333-dcbc370b7f7c",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "beb194b8-a1c7-4540-8ef2-cc24bd215c09",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.208Z"
+    },
+    {
+      "id": "cce0d53c-6f88-4948-9158-0a104ad6c51d",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "beb194b8-a1c7-4540-8ef2-cc24bd215c09",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.217Z"
+    },
+    {
+      "id": "627038f6-a221-42c1-82fa-75a8acfa928d",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "da96c430-fc6d-45a5-9014-8b26d3ee664f",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.227Z"
+    },
+    {
+      "id": "92d093ac-7851-43f7-828d-20d9f8c30133",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "da96c430-fc6d-45a5-9014-8b26d3ee664f",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.234Z"
+    },
+    {
+      "id": "cb759104-5ed0-487d-a723-5569bd7b9575",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "d449b613-e9f6-45a8-b9ee-e7e875a1c09d",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.244Z"
+    },
+    {
+      "id": "7ac71d93-9817-446d-a7ef-66606f52a81a",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "d449b613-e9f6-45a8-b9ee-e7e875a1c09d",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.252Z"
+    },
+    {
+      "id": "c5a16311-39a3-4223-aa69-ab1cdd3f1222",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "2c77b9d5-f6e4-440c-a1ae-2a6c8a3ffd12",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.262Z"
+    },
+    {
+      "id": "30d3564e-fada-4a2a-8c5d-ffb0f621195b",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "2c77b9d5-f6e4-440c-a1ae-2a6c8a3ffd12",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.269Z"
+    },
+    {
+      "id": "7335216b-1224-4f93-b3f9-d14ea20d75d3",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "288e54ac-a958-43eb-a517-acca7c53d0ce",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.278Z"
+    },
+    {
+      "id": "c1026f0c-581c-4735-a42b-bb76b80d207a",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "288e54ac-a958-43eb-a517-acca7c53d0ce",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.285Z"
+    },
+    {
+      "id": "b00eb9dd-aef6-4fe6-9af2-7b6f043cd934",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "cc83dd1e-a888-4904-bc50-c8e567a1892c",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.294Z"
+    },
+    {
+      "id": "e5d746df-4f31-4a1e-94a2-a3f9313c2e6b",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "cc83dd1e-a888-4904-bc50-c8e567a1892c",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.300Z"
+    },
+    {
+      "id": "5a33086b-1ae7-436f-a3b8-a7f1cbf1c468",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "6619070b-2dae-43b4-a021-be09befa3914",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.311Z"
+    },
+    {
+      "id": "6c7d5c8d-4dc6-4f1f-b8c1-021e67c3dbe7",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "6619070b-2dae-43b4-a021-be09befa3914",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:29.316Z"
+    },
+    {
+      "id": "6e49ebb4-6af9-4b7a-be15-db5a6fcb0f89",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "product.save",
+      "target": "5b21bbed-9257-4a46-9d6f-fa8c14881c0d",
+      "detail": {
+        "kind": "TERM_FUND",
+        "status": "PUBLISHED",
+        "version": 1
+      },
+      "ip": null,
+      "created_at": "2026-11-10T17:36:31.893Z"
+    },
+    {
+      "id": "3c232fc4-d476-4a1d-8b2c-c75ebaed5b8f",
+      "admin_user_id": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "product.save",
+      "target": "a8b8ca52-1670-413f-82e3-53bc83b79b9d",
+      "detail": {
+        "kind": "BULK_STOCK",
+        "status": "PUBLISHED",
+        "version": 1
+      },
+      "ip": null,
+      "created_at": "2026-11-10T17:36:32.159Z"
+    }
+  ],
+  "cash_requests": [
+    {
+      "id": "d0f51a94-b6d6-4253-b3d4-8a2635ab2769",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:28.972Z",
+      "approved_at": "2026-11-10T17:36:28.979Z",
+      "created_at": "2026-11-10T17:36:28.962Z"
+    },
+    {
+      "id": "288e54ac-a958-43eb-a517-acca7c53d0ce",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.277Z",
+      "approved_at": "2026-11-10T17:36:29.281Z",
+      "created_at": "2026-11-10T17:36:29.272Z"
+    },
+    {
+      "id": "6005b867-25b8-4a7e-9376-c2d79dc494f2",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:28.995Z",
+      "approved_at": "2026-11-10T17:36:29.002Z",
+      "created_at": "2026-11-10T17:36:28.989Z"
+    },
+    {
+      "id": "3a804752-40af-4ae6-87f9-556ac9c6551c",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.016Z",
+      "approved_at": "2026-11-10T17:36:29.023Z",
+      "created_at": "2026-11-10T17:36:29.010Z"
+    },
+    {
+      "id": "6ca26a7d-3644-4cee-928c-83d34531b6a0",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.036Z",
+      "approved_at": "2026-11-10T17:36:29.042Z",
+      "created_at": "2026-11-10T17:36:29.030Z"
+    },
+    {
+      "id": "cc83dd1e-a888-4904-bc50-c8e567a1892c",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.293Z",
+      "approved_at": "2026-11-10T17:36:29.297Z",
+      "created_at": "2026-11-10T17:36:29.288Z"
+    },
+    {
+      "id": "f394fdbf-0c25-4b57-95a4-b66a27fd0a7b",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.056Z",
+      "approved_at": "2026-11-10T17:36:29.060Z",
+      "created_at": "2026-11-10T17:36:29.050Z"
+    },
+    {
+      "id": "e008db2e-a970-4fc3-85e6-e6b1f097374d",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.073Z",
+      "approved_at": "2026-11-10T17:36:29.077Z",
+      "created_at": "2026-11-10T17:36:29.068Z"
+    },
+    {
+      "id": "0a584d32-b24f-4ad4-8772-f3e261a3d7d4",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.089Z",
+      "approved_at": "2026-11-10T17:36:29.093Z",
+      "created_at": "2026-11-10T17:36:29.084Z"
+    },
+    {
+      "id": "6619070b-2dae-43b4-a021-be09befa3914",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.309Z",
+      "approved_at": "2026-11-10T17:36:29.314Z",
+      "created_at": "2026-11-10T17:36:29.305Z"
+    },
+    {
+      "id": "875aa3e1-aeb2-42bd-9207-d83bf6869af7",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.106Z",
+      "approved_at": "2026-11-10T17:36:29.110Z",
+      "created_at": "2026-11-10T17:36:29.100Z"
+    },
+    {
+      "id": "6e45eb61-0dca-4c71-b4cf-f75b5adb2757",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.122Z",
+      "approved_at": "2026-11-10T17:36:29.127Z",
+      "created_at": "2026-11-10T17:36:29.116Z"
+    },
+    {
+      "id": "7f8734e1-7191-441f-a4cb-846d0ac6573a",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.139Z",
+      "approved_at": "2026-11-10T17:36:29.144Z",
+      "created_at": "2026-11-10T17:36:29.134Z"
+    },
+    {
+      "id": "faefe508-28a9-4ed7-9567-4f4d51ec545d",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.155Z",
+      "approved_at": "2026-11-10T17:36:29.159Z",
+      "created_at": "2026-11-10T17:36:29.150Z"
+    },
+    {
+      "id": "c9618d54-add1-4284-bd96-d232ac6673b1",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.172Z",
+      "approved_at": "2026-11-10T17:36:29.177Z",
+      "created_at": "2026-11-10T17:36:29.166Z"
+    },
+    {
+      "id": "a78c9ea5-d1f8-43f1-8d83-fdb09ca318ba",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.189Z",
+      "approved_at": "2026-11-10T17:36:29.194Z",
+      "created_at": "2026-11-10T17:36:29.185Z"
+    },
+    {
+      "id": "beb194b8-a1c7-4540-8ef2-cc24bd215c09",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.207Z",
+      "approved_at": "2026-11-10T17:36:29.212Z",
+      "created_at": "2026-11-10T17:36:29.201Z"
+    },
+    {
+      "id": "da96c430-fc6d-45a5-9014-8b26d3ee664f",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.225Z",
+      "approved_at": "2026-11-10T17:36:29.231Z",
+      "created_at": "2026-11-10T17:36:29.221Z"
+    },
+    {
+      "id": "d449b613-e9f6-45a8-b9ee-e7e875a1c09d",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.242Z",
+      "approved_at": "2026-11-10T17:36:29.249Z",
+      "created_at": "2026-11-10T17:36:29.238Z"
+    },
+    {
+      "id": "2c77b9d5-f6e4-440c-a1ae-2a6c8a3ffd12",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "user_id": "23acf708-09b1-41ac-a7d2-fbf9223c2e67",
+      "kind": "DEPOSIT",
+      "amount_cents": 5000000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "approved_by": "518812d8-7a66-476a-b9ae-86c27c66a4a5",
+      "reviewed_at": "2026-11-10T17:36:29.260Z",
+      "approved_at": "2026-11-10T17:36:29.266Z",
+      "created_at": "2026-11-10T17:36:29.255Z"
+    }
+  ],
+  "cn_fund_contracts": [
+    {
+      "id": "19a68a12-75bb-47ec-9b80-b2c2089cdc90",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "product_id": "5b21bbed-9257-4a46-9d6f-fa8c14881c0d",
+      "tier_id": "34bbd496-5eba-410c-917a-669f87481e04",
+      "idempotency_key": "c5c2dca4-7b7b-48bf-8dd4-8278a40cb776",
+      "product_name": "锟斤拷锟睫伙拷锟斤拷 QA",
+      "principal_cents": 5000000,
+      "profit_cents": 50000,
+      "profit_bps": 100,
+      "holding_days": 7,
+      "status": "ACTIVE",
+      "subscribed_at": "2026-11-10T17:36:33.793Z",
+      "due_at": "2026-11-17T17:36:33.793Z",
+      "matured_at": null,
+      "debit_ledger_id": 21,
+      "return_ledger_id": null
+    },
+    {
+      "id": "467e4a84-984e-4b58-b9a8-f47266012924",
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "product_id": "5b21bbed-9257-4a46-9d6f-fa8c14881c0d",
+      "tier_id": "34bbd496-5eba-410c-917a-669f87481e04",
+      "idempotency_key": "5430a4e2-36ae-4a12-9a7a-c264964c21e0",
+      "product_name": "锟斤拷锟睫伙拷锟斤拷 QA",
+      "principal_cents": 5000000,
+      "profit_cents": 50000,
+      "profit_bps": 100,
+      "holding_days": 7,
+      "status": "ACTIVE",
+      "subscribed_at": "2026-11-10T17:36:36.291Z",
+      "due_at": "2026-11-17T17:36:36.291Z",
+      "matured_at": null,
+      "debit_ledger_id": 23,
+      "return_ledger_id": null
+    }
+  ],
+  "cn_bulk_order_terms": [
+    {
+      "order_id": "9367668f-5329-481b-97c2-85504597df29",
+      "product_id": "a8b8ca52-1670-413f-82e3-53bc83b79b9d",
+      "product_version": 1,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "market": "US",
+      "symbol": "AAPL",
+      "quantity": 10,
+      "reference_price_cents": 35069,
+      "reference_timestamp": "2026-11-10T17:35:34.444Z",
+      "discount_bps": 1200,
+      "holding_days": 7,
+      "locked_until": "2026-11-17T17:36:34.445Z",
+      "created_at": "2026-11-10T17:36:34.445Z"
+    },
+    {
+      "order_id": "0c01ac64-0603-4f29-9ff4-5eef3291b320",
+      "product_id": "a8b8ca52-1670-413f-82e3-53bc83b79b9d",
+      "product_version": 1,
+      "account_id": "2b91ee1c-575f-40ea-be82-b4779f96704b",
+      "market": "US",
+      "symbol": "AAPL",
+      "quantity": 10,
+      "reference_price_cents": 35069,
+      "reference_timestamp": "2026-11-10T17:35:36.544Z",
+      "discount_bps": 1200,
+      "holding_days": 7,
+      "locked_until": "2026-11-17T17:36:36.545Z",
+      "created_at": "2026-11-10T17:36:36.545Z"
+    }
+  ],
+  "product_settlement_products": [],
+  "product_settlement_terms": [],
+  "product_settlement_orders": [],
+  "product_settlement_cash_holds": [],
+  "product_settlement_positions": [],
+  "product_settlement_cash_postings": [],
+  "product_ipo_allocations": [],
+  "product_settlement_movements": [],
+  "commodity_reference_order_prices": []
+}

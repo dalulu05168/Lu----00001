@@ -422,8 +422,8 @@ header.top .cn-unified-logo{width:50px;height:50px;object-fit:contain;display:bl
 (function(){
  const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n};
  const icon='<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 20a2 2 0 0 0 4 0"/></svg>';
- const label={DEPOSIT:'充值申请',WITHDRAW:'提现申请',IDENTITY:'身份资料',BANK:'银行卡资料'};
- const states={PENDING:'待审核',REVIEWED:'审核中',APPROVED:'已通过',REJECTED:'未通过'};
+ const label={DEPOSIT:'充值申请',WITHDRAW:'提现申请',IDENTITY:'身份资料',BANK:'银行卡资料',TERM_FUND:'基金到期',IPO:'IPO 配售',MUTUAL_FUND:'基金订单',FUND_FAILURE:'基金返还异常'};
+ const states={PENDING:'待审核',REVIEWED:'审核中',APPROVED:'已通过',REJECTED:'未通过',MATURED:'已返还',SETTLED:'已完成',CANCELLED:'已取消',FAILED:'待处理'};
  const time=new Intl.DateTimeFormat('zh-CN',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Kuala_Lumpur'});
  function mount(host,{admin=false,onOpen}={}){
    const token=()=>localStorage.getItem(admin?'cncap.admin.session':'cncap.session');
@@ -2569,6 +2569,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
 
     q('#cn-support-open').addEventListener('click',openInbox);
     CNNotify.mount(q('#cn-bell-host'),{admin:true,onOpen(item,role){
+      if(item.kind==='FUND_FAILURE'){window.dispatchEvent(new Event('cn-open-fund-failures'));return;}
       if(item.category==='SUPPORT'){openChat(item.email);return}
       if(item.category==='CASH'&&role==='SUBADMIN'){openClient(item.email,false);return}
       q('[data-p="appr"]').click();
@@ -2589,49 +2590,69 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
   function mountMirror(body,data){
     const frame=node('iframe','','ops-frame');
     frame.title='客户手机 App 镜像';
-    frame.setAttribute('sandbox','allow-scripts');
-    frame.referrerPolicy='no-referrer';
-    const snapshot=JSON.stringify(data).replace(/</g,'\\u003c');
-    const initialize=function(snapshot){
-      const storage=seed=>{
-        const entries=new Map(seed);
-        return {getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,String(value)),removeItem:key=>entries.delete(key)};
-      };
-      Object.defineProperty(window,'localStorage',{value:storage([['cncap.session','mirror'],['cncap.user',snapshot.email]])});
+    frame.setAttribute('sandbox','allow-scripts allow-forms');frame.referrerPolicy='no-referrer';
+    const channel=crypto.randomUUID(),isMaster=me.role==='MASTER';
+    const initialize=function(email,channel,isMaster){
+      const storage=seed=>{const entries=new Map(seed);return {getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,String(value)),removeItem:key=>entries.delete(key)}};
+      Object.defineProperty(window,'localStorage',{value:storage([['cncap.session','mirror'],['cncap.user',email]])});
       Object.defineProperty(window,'sessionStorage',{value:storage([['cncap.mobile.entry','1']])});
-      const paths={
-        '/api/account':snapshot,'/api/requests':{items:snapshot.requests},
-        '/api/profile-documents':{items:snapshot.documents},'/api/watchlist':{items:snapshot.watchlist},
-        '/api/catalog':{items:snapshot.catalog},'/api/support':{items:snapshot.support},
-        '/health':{pricingConnected:false}
+      const pending=new Map();
+      window.fetch=async(input,options={})=>{
+        const url=new URL(typeof input==='string'?input:input.url,'https://admin.maacropierce.com');
+        if(url.origin!=='https://admin.maacropierce.com')throw Error('External request forbidden');
+        const id=crypto.randomUUID(),method=(options.method||input?.method||'GET').toUpperCase();
+        const headers=new Headers(options.headers||input?.headers),raw=options.body;
+        let payload;
+        if(raw!==undefined)payload=typeof raw==='string'?JSON.parse(raw):raw;
+        return new Promise((resolve,reject)=>{
+          const timer=setTimeout(()=>{pending.delete(id);reject(Error('Request timed out'))},45000);
+          pending.set(id,{resolve,reject,timer});
+          parent.postMessage({type:'cn-mirror-request',channel,id,path:url.pathname+url.search,method,payload,key:headers.get('idempotency-key')},'*');
+        });
       };
-      window.fetch=async(input,options)=>{
-        if((options?.method||input?.method||'GET').toUpperCase()!=='GET')return new Response(null,{status:403});
-        const path=new URL(typeof input==='string'?input:input.url,'https://admin.maacropierce.com').pathname;
-        return Response.json(paths[path]||{items:[]});
-      };
-      window.addEventListener('click',event=>{
-        const source=event.composedPath().find(element=>element?.dataset?.a);
-        if(!source||!['logout','place','submit','ksub','bsub','fav','send','qa','cancelo'].includes(source.dataset.a))return;
-        event.preventDefault();event.stopImmediatePropagation();
-        const root=source.getRootNode();
-        const message=root.querySelector('[data-mirror-status]')||document.createElement('output');
-        message.setAttribute('data-mirror-status','');message.setAttribute('role','status');
-        message.textContent='客户管理操作请使用上方「管理客户」。';
-        message.style.cssText='position:fixed;z-index:9999;bottom:72px;left:12px;right:12px;text-align:center;padding:8px;border-radius:8px;background:#242b1c;color:white';
-        if(!message.isConnected)root.append(message);
-        setTimeout(()=>message.remove(),2500);
+      addEventListener('message',event=>{
+        const msg=event.data;if(event.source!==parent||msg?.channel!==channel||msg.type!=='cn-mirror-response')return;
+        const item=pending.get(msg.id);if(!item)return;clearTimeout(item.timer);pending.delete(msg.id);
+        item.resolve(new Response(msg.status===204?null:msg.body,{status:msg.status,headers:{'content-type':'application/json'}}));
+      });
+      addEventListener('click',event=>{
+        const control=event.composedPath().find(x=>x?.dataset?.a==='logout');
+        if(control){event.preventDefault();event.stopImmediatePropagation();parent.postMessage({type:'cn-mirror-close',channel},'*');}
       },true);
+      addEventListener('keydown',event=>{
+        if(event.key!=='Escape'||document.getElementById('cp-overlay')||document.querySelector('dialog[open]'))return;
+        const root=document.getElementById('host')?.shadowRoot;
+        const close=root?.querySelector('.sh [data-a="close"],.bk[data-a="close"]');
+        if(close){close.click();return;}
+        parent.postMessage({type:'cn-mirror-close',channel},'*');
+      });
+      document.addEventListener('DOMContentLoaded',()=>{
+        const patch=document.createElement('style');patch.textContent='html,body{height:100%;overflow:hidden}';
+        document.head.append(patch);
+      });
     };
-    const boot='('+initialize.toString()+')('+snapshot+');';
-    const policy="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob: https://admin.maacropierce.com; connect-src 'none'; form-action 'none'; base-uri 'none'";
-    const template=me.role==='MASTER'?MIRROR_TEMPLATE:MIRROR_TEMPLATE.replace('<style id="css" type="text/plain">','<style id="css" type="text/plain">[data-a="chat"],.mirror-support-heading{display:none!important}');
-    const mirrorLayout=':host{position:relative;--cn-header-height:52px;--cn-safe-top:env(safe-area-inset-top,0px)}:host(:not(.emb)) .app{height:100dvh!important}:host .app>.v,:host .app>.ptr{top:calc(var(--cn-safe-top) + var(--cn-header-height));overscroll-behavior-y:contain}:host .cn-mobile-brand{top:calc(var(--cn-safe-top) + 3px)}:host .sh{max-height:calc(100% - 8px);overflow-y:auto;overscroll-behavior:contain}';
-    frame.srcdoc=template.replace(/(<style id="css" type="text\/plain">)([\s\S]*?)(<\/style>)/i,(_,open,css,close)=>open+css+mirrorLayout+close).replace(/<head>/i,'<head><meta http-equiv="Content-Security-Policy" content="'+policy+'"><script>'+boot+'</scr'+'ipt>');
-    body.append(frame);
+    const boot='('+initialize.toString()+')('+JSON.stringify(data.email).replace(/</g,'\\u003c')+','+JSON.stringify(channel)+','+isMaster+');';
+    const policy="default-src 'none'; script-src 'unsafe-inline' https://s3.tradingview.com; style-src 'unsafe-inline'; img-src data: blob: https://admin.maacropierce.com; frame-src about: https://*.tradingview.com https://*.tradingview-widget.com; connect-src 'none'; form-action 'none'; base-uri 'none'";
+    const roleCSS=isMaster?'':'[data-a="chat"],.mirror-support-heading,[data-a="sheet"][data-v="dep"],[data-a="sheet"][data-v="wd"]{display:none!important}';
+    const mirrorLayout=':host{position:relative;--cn-header-height:52px;--cn-safe-top:0px}:host(:not(.emb)) .app{height:100dvh!important}:host .app>.v,:host .app>.ptr{top:var(--cn-header-height)}:host .sh{max-height:calc(100% - 8px);overflow-y:auto}'+roleCSS;
+    frame.srcdoc=MIRROR_TEMPLATE.replace(/(<style id="css" type="text\/plain">)([\s\S]*?)(<\/style>)/i,(_,open,css,close)=>open+css+mirrorLayout+close).replace(/<head>/i,'<head><meta http-equiv="Content-Security-Policy" content="'+policy+'"><script>'+boot+'</scr'+'ipt>').replaceAll('./logo.png','https://admin.maacropierce.com/logo.png');
     const controller=new AbortController();
+    window.addEventListener('message',async event=>{
+      if(event.source!==frame.contentWindow||!frame.isConnected)return;
+      const msg=event.data;
+      if(msg==='cn-mirror-escape'&&dialog.open){dialog.close();return;}
+      if(!msg||msg.channel!==channel)return;
+      if(msg.type==='cn-mirror-close'){dialog.close();return;}
+      if(msg.type!=='cn-mirror-request'||typeof msg.id!=='string')return;
+      let status=503,responseBody=JSON.stringify({error:'Delegated service unavailable'});
+      try{
+        const response=await fetch('/api/admin/client-action',{method:'POST',headers:{Authorization:'Bearer '+localStorage.getItem('cncap.admin.session'),'Content-Type':'application/json'},body:JSON.stringify({email:data.email,path:msg.path,method:msg.method,payload:msg.payload,key:msg.key})});
+        status=response.status;responseBody=await response.text();
+      }catch{}
+      if(frame.isConnected)frame.contentWindow.postMessage({type:'cn-mirror-response',channel,id:msg.id,status,body:responseBody},'*');
+    },{signal:controller.signal});
     dialog.addEventListener('close',()=>controller.abort(),{once:true});
-    window.addEventListener('message',event=>{if(event.source===frame.contentWindow&&event.data==='cn-mirror-escape'&&frame.isConnected&&dialog.open)dialog.close();},{signal:controller.signal});
+    body.append(frame);
   }
 
   document.addEventListener('DOMContentLoaded',()=>install().catch(()=>{

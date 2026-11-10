@@ -1,0 +1,95 @@
+{
+  "customer": "qa-kele-1794332257402@example.test",
+  "subaccount": "qa-agent-1794332257402-1@example.test",
+  "orders": [
+    {
+      "id": "3d076228-0c0b-428a-ab9c-d9e05c293c9f",
+      "market": "US",
+      "symbol": "USO",
+      "side": "SELL",
+      "quantity": "1",
+      "price_cents": "14266",
+      "amount_usd_cents": "14266",
+      "created_at": "2026-11-10T17:37:42.277Z"
+    },
+    {
+      "id": "848eea3a-f100-4956-8b04-af0d00db7c8b",
+      "market": "US",
+      "symbol": "GLD",
+      "side": "SELL",
+      "quantity": "1",
+      "price_cents": "37953",
+      "amount_usd_cents": "37953",
+      "created_at": "2026-11-10T17:37:42.261Z"
+    },
+    {
+      "id": "f34b8bd4-0cc8-4546-ba08-6790d704806e",
+      "market": "US",
+      "symbol": "SLV",
+      "side": "SELL",
+      "quantity": "1",
+      "price_cents": "4814",
+      "amount_usd_cents": "4814",
+      "created_at": "2026-11-10T17:37:41.914Z"
+    },
+    {
+      "id": "4eebf3e3-fc46-4969-af19-0cb796155664",
+      "market": "US",
+      "symbol": "USO",
+      "side": "BUY",
+      "quantity": "1",
+      "price_cents": "14266",
+      "amount_usd_cents": "14266",
+      "created_at": "2026-11-10T17:37:38.797Z"
+    },
+    {
+      "id": "cfe6a993-c52c-4fb3-90e4-b0a6258f4fad",
+      "market": "US",
+      "symbol": "SLV",
+      "side": "BUY",
+      "quantity": "2",
+      "price_cents": "4814",
+      "amount_usd_cents": "9628",
+      "created_at": "2026-11-10T17:37:38.537Z"
+    },
+    {
+      "id": "5337bf36-403f-4c90-a57a-a828433d2664",
+      "market": "US",
+      "symbol": "GLD",
+      "side": "BUY",
+      "quantity": "1",
+      "price_cents": "37953",
+      "amount_usd_cents": "37953",
+      "created_at": "2026-11-10T17:37:38.459Z"
+    }
+  ],
+  "positions": [
+    {
+      "market": "US",
+      "symbol": "SLV",
+      "quantity": "1",
+      "locked_quantity": "0",
+      "next_unlock_at": null,
+      "cost_cents": "4814"
+    }
+  ],
+  "balance": 95186,
+  "source": "Eulerpool ETF historical reference",
+  "sourceRecords": [
+    {
+      "symbol": "GLD",
+      "timestamp": "2026-11-09T14:30:00.000Z",
+      "price": 379.5299987792969
+    },
+    {
+      "symbol": "SLV",
+      "timestamp": "2026-11-09T14:30:00.000Z",
+      "price": 48.13999938964844
+    },
+    {
+      "symbol": "USO",
+      "timestamp": "2026-11-09T14:30:00.000Z",
+      "price": 142.66000366210938
+    }
+  ]
+}

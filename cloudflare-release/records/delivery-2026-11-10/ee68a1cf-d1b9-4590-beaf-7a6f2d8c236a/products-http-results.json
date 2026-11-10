@@ -1,0 +1,106 @@
+{
+  "customer": "qa-kele-1794332199610@example.test",
+  "subaccount": "qa-agent-1794332199610-1@example.test",
+  "cashCents": 85250,
+  "orders": [
+    {
+      "id": "259fd598-b31a-4048-8e50-5264cad33105",
+      "account_id": "22fe45ce-f8b3-4a6f-8abb-bf44e67bf1ce",
+      "product_id": "e2d603a2-806e-4152-a468-e4f020494459",
+      "terms_id": "ca68af8d-477b-430f-895e-0c678c82b234",
+      "idempotency_key": "cebc6182-1476-4a33-9893-92a082f33531",
+      "action": "REDEEM",
+      "status": "SETTLED",
+      "requested_quantity_micros": "500000",
+      "requested_amount_cents": null,
+      "settled_quantity_micros": "500000",
+      "settled_amount_cents": "625",
+      "created_at": "2026-11-10T17:36:42.343Z",
+      "settled_at": "2026-11-10T17:36:42.343Z",
+      "symbol": "QAFUND",
+      "display_name": "QAFUND"
+    },
+    {
+      "id": "3baa1c42-fc5a-488a-b4cd-ed6220c64abe",
+      "account_id": "22fe45ce-f8b3-4a6f-8abb-bf44e67bf1ce",
+      "product_id": "16b63ac0-cd92-4692-9512-873c09c21b1e",
+      "terms_id": "e47ebb65-d3cc-47d0-acfb-e0011f07614b",
+      "idempotency_key": "aaf2c8d8-ae99-492e-8e52-918b48adda4b",
+      "action": "SUBSCRIBE",
+      "status": "SETTLED",
+      "requested_quantity_micros": "1000000",
+      "requested_amount_cents": "1000",
+      "settled_quantity_micros": "0",
+      "settled_amount_cents": "0",
+      "created_at": "2026-11-10T17:36:41.455Z",
+      "settled_at": "2026-11-10T17:36:43.068Z",
+      "symbol": "QAIPO",
+      "display_name": "QAIPO"
+    },
+    {
+      "id": "73e78bca-030a-48f5-891f-4b245f0ff37e",
+      "account_id": "22fe45ce-f8b3-4a6f-8abb-bf44e67bf1ce",
+      "product_id": "e2d603a2-806e-4152-a468-e4f020494459",
+      "terms_id": "ca68af8d-477b-430f-895e-0c678c82b234",
+      "idempotency_key": "48e5f640-b1c9-43c1-95a9-acb7f7dbd1e5",
+      "action": "REDEEM",
+      "status": "SETTLED",
+      "requested_quantity_micros": "2500000",
+      "requested_amount_cents": null,
+      "settled_quantity_micros": "2500000",
+      "settled_amount_cents": "3125",
+      "created_at": "2026-11-10T17:36:40.297Z",
+      "settled_at": "2026-11-10T17:36:40.297Z",
+      "symbol": "QAFUND",
+      "display_name": "QAFUND"
+    },
+    {
+      "id": "8b404c6f-1687-4c50-abd2-cfae7f5c0a6a",
+      "account_id": "22fe45ce-f8b3-4a6f-8abb-bf44e67bf1ce",
+      "product_id": "e2d603a2-806e-4152-a468-e4f020494459",
+      "terms_id": "ca68af8d-477b-430f-895e-0c678c82b234",
+      "idempotency_key": "06c92fad-47df-41cf-a648-2041cbb4ee03",
+      "action": "SUBSCRIBE",
+      "status": "SETTLED",
+      "requested_quantity_micros": null,
+      "requested_amount_cents": "12500",
+      "settled_quantity_micros": "10000000",
+      "settled_amount_cents": "12500",
+      "created_at": "2026-11-10T17:36:40.281Z",
+      "settled_at": "2026-11-10T17:36:40.281Z",
+      "symbol": "QAFUND",
+      "display_name": "QAFUND"
+    },
+    {
+      "id": "7d77674c-1e95-4385-b7dc-4c02907457f4",
+      "account_id": "22fe45ce-f8b3-4a6f-8abb-bf44e67bf1ce",
+      "product_id": "16b63ac0-cd92-4692-9512-873c09c21b1e",
+      "terms_id": "e47ebb65-d3cc-47d0-acfb-e0011f07614b",
+      "idempotency_key": "63c327cc-2f03-4b44-aa7e-a48568c98a47",
+      "action": "SUBSCRIBE",
+      "status": "SETTLED",
+      "requested_quantity_micros": "10000000",
+      "requested_amount_cents": "10000",
+      "settled_quantity_micros": "6000000",
+      "settled_amount_cents": "6000",
+      "created_at": "2026-11-10T17:36:40.201Z",
+      "settled_at": "2026-11-10T17:36:40.247Z",
+      "symbol": "QAIPO",
+      "display_name": "QAIPO"
+    }
+  ],
+  "positions": [
+    {
+      "quantity_micros": "7000000",
+      "symbol": "QAFUND",
+      "display_name": "QAFUND",
+      "kind": "MUTUAL_FUND"
+    },
+    {
+      "quantity_micros": "6000000",
+      "symbol": "QAIPO",
+      "display_name": "QAIPO",
+      "kind": "IPO"
+    }
+  ]
+}

@@ -1,3 +1,11 @@
+async function cnPagedQuery(db,sql,params=[]){
+  const rows=[];let offset=0;
+  for(;;){
+    const page=await db.query(sql+' LIMIT $'+(params.length+1)+' OFFSET $'+(params.length+2),[...params,200,offset]);
+    rows.push(...page.rows);if(page.rows.length<200)break;offset+=page.rows.length;
+  }
+  return {rows};
+}
 const CN_PRODUCT_MAX = BigInt(Number.MAX_SAFE_INTEGER);
 function cnProductFail(message, statusCode = 400) {
   throw Object.assign(new Error(message), {statusCode});
@@ -32,7 +40,7 @@ async function cnProductTransaction(db, work) {
 function cnProductPublic(row) {
   return {
     id:row.id, kind:row.kind, name:row.name, status:row.status, version:row.version,
-    imageUrl:row.image_data ? '/api/product-image?id=' + row.id : null,
+    imageUrl:(row.image_data||row.has_image) ? '/api/product-image?id=' + row.id : null,
     market:row.market, symbol:row.symbol, discountBps:row.discount_bps,
     holdingDays:row.holding_days, minQuantity:row.min_quantity,
     requiresPassword:Boolean(row.trade_password_hash),
@@ -42,7 +50,7 @@ function cnProductPublic(row) {
   };
 }
 async function cnProductList(db, admin = false) {
-  const products = (await db.query("SELECT * FROM cn_products WHERE ($1 OR status='PUBLISHED') ORDER BY created_at DESC,id LIMIT 100", [admin])).rows;
+  const products = (await cnPagedQuery(db,"SELECT id,kind,name,status,version,market,symbol,discount_bps,holding_days,min_quantity,trade_password_hash,reference_price_cents,reference_timestamp,instrument_info,created_at,updated_at,(image_data IS NOT NULL) AS has_image FROM cn_products WHERE ($1 OR status='PUBLISHED') ORDER BY created_at DESC,id", [admin])).rows;
   const tiers = (await db.query("SELECT t.* FROM cn_fund_tiers t JOIN cn_products p ON p.id=t.product_id WHERE t.active AND ($1 OR p.status='PUBLISHED') ORDER BY t.principal_cents,t.holding_days", [admin])).rows;
   return products.map(row => ({
     ...cnProductPublic(row),
@@ -164,14 +172,21 @@ async function cnSettleFundContract(db, id) {
     return true;
   });
 }
-async function cnSettleDueFunds(db, accountId = null) {
-  const due = (await db.query("SELECT id FROM cn_fund_contracts WHERE status='ACTIVE' AND due_at<=now() AND ($1::uuid IS NULL OR account_id=$1) ORDER BY due_at,id LIMIT 100",[accountId])).rows;
-  let settled=0;
-  for (const row of due) {
-    try { if (await cnSettleFundContract(db,row.id)) settled++; }
-    catch (error) { console.error('Fund settlement failed',row.id,error.code||error.name); }
+async function cnSettleDueFunds(db,accountId=null){
+  let cursor=null,settled=0,failed=0;
+  const cutoff=new Date().toISOString();
+  for(;;){
+    const due=(await db.query("SELECT id,due_at FROM cn_fund_contracts WHERE status='ACTIVE' AND due_at<=$2 AND ($1::uuid IS NULL OR account_id=$1) AND ($3::timestamptz IS NULL OR (due_at,id)>($3::timestamptz,$4::uuid)) ORDER BY due_at,id LIMIT 100",[accountId,cutoff,cursor?.due_at??null,cursor?.id??null])).rows;
+    for(const row of due){
+      try{if(await cnSettleFundContract(db,row.id))settled++;}
+      catch(error){
+        failed++;console.error('Fund settlement failed',row.id,error.code||error.name);
+        try{await db.query("INSERT INTO admin_audit_log(role,action,target,detail) VALUES('SYSTEM','fund.mature.failed',$1,$2::jsonb)",[row.id,JSON.stringify({code:String(error.code||error.name||'Error').slice(0,80)})]);}catch{console.error('Fund failure audit unavailable',row.id)}
+      }
+    }
+    if(due.length<100)break;cursor=due[due.length-1];
   }
-  return {settled};
+  return {settled,failed};
 }
 async function cnProductCustomer(db, session, write=true) {
   if (!session?.accountId || (await db.query('SELECT 1 FROM admin_roles WHERE user_id=$1',[session.userId])).rows.length) cnProductFail('Customer account required',403);
@@ -210,7 +225,7 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
     await cnProductCustomer(db,session,req.method!=='GET');
     if (route==='/api/products' && req.method==='GET') {
       await cnSettleDueFunds(db,session.accountId);
-      const contracts=(await db.query('SELECT * FROM cn_fund_contracts WHERE account_id=$1 ORDER BY subscribed_at DESC,id LIMIT 200',[session.accountId])).rows;
+      const contracts=(await cnPagedQuery(db,'SELECT * FROM cn_fund_contracts WHERE account_id=$1 ORDER BY subscribed_at DESC,id',[session.accountId])).rows;
       const items=await cnProductList(db);
       for(let i=0;i<items.length;i+=4)await Promise.all(items.slice(i,i+4).filter(p=>p.kind==='BULK_STOCK').map(async p=>{
         try{

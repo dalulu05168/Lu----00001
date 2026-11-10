@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "checkedAt": "2026-11-10T17:38:22.929Z",
+  "funds": [
+    {
+      "product_name": "多档期限基金",
+      "principal_cents": 10000000,
+      "profit_cents": 250000,
+      "status": "MATURED",
+      "holding_days": 15
+    },
+    {
+      "product_name": "多档期限基金",
+      "principal_cents": 5000000,
+      "profit_cents": 50000,
+      "status": "MATURED",
+      "holding_days": 7
+    }
+  ],
+  "orders": [
+    {
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": 10,
+      "price_cents": 30861
+    },
+    {
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "SELL",
+      "quantity": 10,
+      "price_cents": 35069
+    }
+  ],
+  "ledger": [
+    {
+      "delta_cents": -5000000,
+      "balance_after_cents": 95000000
+    },
+    {
+      "delta_cents": -10000000,
+      "balance_after_cents": 85000000
+    },
+    {
+      "delta_cents": 10250000,
+      "balance_after_cents": 95250000
+    },
+    {
+      "delta_cents": 5050000,
+      "balance_after_cents": 100300000
+    },
+    {
+      "delta_cents": -308610,
+      "balance_after_cents": 99991390
+    },
+    {
+      "delta_cents": 350690,
+      "balance_after_cents": 100342080
+    }
+  ]
+}

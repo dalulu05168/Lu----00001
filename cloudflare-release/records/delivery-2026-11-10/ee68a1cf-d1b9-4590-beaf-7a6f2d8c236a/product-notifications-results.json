@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "masterFailureBell": true,
+  "manualRetry": true,
+  "fundNoticeBothClients": true,
+  "ipoNoticeBothClients": true
+}

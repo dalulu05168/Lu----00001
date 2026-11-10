@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "withdrawalReservation": true,
+  "conflictingRetryRejected": true,
+  "replayDuringQuoteOutage": true,
+  "referenceRefresh": true,
+  "archivedFundTiersPreserved": true
+}

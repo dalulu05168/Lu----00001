@@ -1,0 +1,365 @@
+{
+  "accounts": [
+    {
+      "id": "6ffb1317-f678-4c9c-a98f-ae62a0a86c88",
+      "user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:13.430Z"
+    },
+    {
+      "id": "bd3d1cc5-827b-445e-ae88-66210152ddd5",
+      "user_id": "865ff669-ecb8-4f93-ae4c-050dd00b8651",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:13.474Z"
+    },
+    {
+      "id": "e9937778-6f22-4283-9a69-a05a3170d47e",
+      "user_id": "c0dbed66-e96e-417d-bbc9-d4015a875391",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:13.507Z"
+    },
+    {
+      "id": "37557a89-7b86-4e08-9f3f-2ab8633239ab",
+      "user_id": "6457045f-7dca-415d-bc02-6309042367f3",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:13.539Z"
+    },
+    {
+      "id": "07aaa0b8-8e6f-4fe5-b1eb-ab2e2442a2bb",
+      "user_id": "23c23abc-23ee-4bc0-9d77-4dbd1082beb8",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:13.916Z"
+    },
+    {
+      "id": "b9a12646-425e-45a0-a8c7-56ccc0a82b3e",
+      "user_id": "3052aee4-25a8-4d3d-9152-cc2b56038de9",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:14.072Z"
+    },
+    {
+      "id": "9291d3ca-3c5d-4527-a0d0-2b50eed3195e",
+      "user_id": "faa5dd4a-e9c5-4385-8367-8a2193f3df87",
+      "base_currency": "USD",
+      "cash_cents": 0,
+      "created_at": "2026-11-10T17:36:14.183Z"
+    },
+    {
+      "id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "user_id": "19b1c610-392f-4563-b694-197967f5469b",
+      "base_currency": "USD",
+      "cash_cents": 104208,
+      "created_at": "2026-11-10T17:36:14.030Z"
+    }
+  ],
+  "positions": [
+    {
+      "account_id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "market": "US",
+      "symbol": "AAPL",
+      "quantity": 0
+    }
+  ],
+  "orders": [
+    {
+      "id": "e583304b-9f67-47f2-a3bc-1498bb7ea979",
+      "account_id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "idempotency_key": "a0daed83-d3c8-4090-9380-bc81994ab0e9",
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": 1,
+      "price_cents": 30861,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 30861,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:36:15.761Z"
+    },
+    {
+      "id": "36cab72b-2bb5-48b6-90e6-0a95f5c9377f",
+      "account_id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "idempotency_key": "mirror-sell",
+      "market": "US",
+      "symbol": "AAPL",
+      "side": "SELL",
+      "quantity": 1,
+      "price_cents": 35069,
+      "fx_usd_micros": 1000000,
+      "amount_usd_cents": 35069,
+      "execution_type": "INTERNAL_ONLY",
+      "created_at": "2026-11-10T17:36:16.282Z"
+    }
+  ],
+  "cash_ledger": [
+    {
+      "id": 1,
+      "account_id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "order_id": null,
+      "delta_cents": 100000,
+      "balance_after_cents": 100000,
+      "created_at": "2026-11-10T17:36:14.279Z"
+    },
+    {
+      "id": 2,
+      "account_id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "order_id": "e583304b-9f67-47f2-a3bc-1498bb7ea979",
+      "delta_cents": -30861,
+      "balance_after_cents": 69139,
+      "created_at": "2026-11-10T17:36:15.761Z"
+    },
+    {
+      "id": 3,
+      "account_id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "order_id": "36cab72b-2bb5-48b6-90e6-0a95f5c9377f",
+      "delta_cents": 35069,
+      "balance_after_cents": 104208,
+      "created_at": "2026-11-10T17:36:16.282Z"
+    }
+  ],
+  "admin_audit_log": [
+    {
+      "id": "68e682c1-2e4e-42cb-8abd-bcac1c0e9688",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": "qa-master@example.test",
+      "role": "MASTER",
+      "action": "admin.login",
+      "target": "qa-master@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:13.871Z"
+    },
+    {
+      "id": "399d455e-a8ec-49b3-a300-142dec802d0d",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": "MASTER",
+      "role": "MASTER",
+      "action": "subaccount.create",
+      "target": "qa-agent-1794332173809-1@example.test",
+      "detail": {
+        "inviteCode": "529003"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:13.923Z"
+    },
+    {
+      "id": "3a03000e-bb7b-4162-a51b-97bd1e93f81c",
+      "admin_user_id": null,
+      "admin_email": "qa-agent-1794332173809-1@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.activate",
+      "target": "qa-agent-1794332173809-1@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:13.959Z"
+    },
+    {
+      "id": "70b10a23-df9b-4a60-8771-f545bca12b32",
+      "admin_user_id": "23c23abc-23ee-4bc0-9d77-4dbd1082beb8",
+      "admin_email": "qa-agent-1794332173809-1@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-1794332173809-1@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:13.997Z"
+    },
+    {
+      "id": "94c3cbde-8221-47a1-ad91-091882342f20",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": "MASTER",
+      "role": "MASTER",
+      "action": "subaccount.create",
+      "target": "qa-agent-1794332173809-2@example.test",
+      "detail": {
+        "inviteCode": "707004"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:14.077Z"
+    },
+    {
+      "id": "e78116cc-6fea-4ff7-9b55-35a9d9cdcaf7",
+      "admin_user_id": null,
+      "admin_email": "qa-agent-1794332173809-2@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.activate",
+      "target": "qa-agent-1794332173809-2@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:14.112Z"
+    },
+    {
+      "id": "6f576b0c-5767-4821-9f8e-c68e46e38907",
+      "admin_user_id": "3052aee4-25a8-4d3d-9152-cc2b56038de9",
+      "admin_email": "qa-agent-1794332173809-2@example.test",
+      "role": "SUBADMIN",
+      "action": "admin.login",
+      "target": "qa-agent-1794332173809-2@example.test",
+      "detail": null,
+      "ip": "",
+      "created_at": "2026-11-10T17:36:14.149Z"
+    },
+    {
+      "id": "2d6021f1-fbff-4e54-8cd4-9ca8db1ce855",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.review",
+      "target": "da3ee67d-4e7f-4b6c-933d-74a11219b866",
+      "detail": {
+        "status": "REVIEWED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:14.275Z"
+    },
+    {
+      "id": "071ee082-4be1-49cd-861b-8ca716847d88",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "cash_request.approve",
+      "target": "da3ee67d-4e7f-4b6c-933d-74a11219b866",
+      "detail": {
+        "status": "APPROVED"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:14.285Z"
+    },
+    {
+      "id": "1ccc9dba-5036-4314-92e1-7cea31d48361",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "product.save",
+      "target": "4aabe31f-ce07-4815-8469-022385e26c98",
+      "detail": {
+        "kind": "BULK_STOCK",
+        "status": "PUBLISHED",
+        "version": 1
+      },
+      "ip": null,
+      "created_at": "2026-11-10T17:36:14.319Z"
+    },
+    {
+      "id": "9f10f100-b62f-4fc6-8e06-940d766fa0da",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "client.delegated.action",
+      "target": "x</script><script>window.cntest=1</script>1794332173809@example.test",
+      "detail": {
+        "path": "/api/support",
+        "side": null,
+        "method": "POST",
+        "quantity": null,
+        "productId": null,
+        "idempotencyKey": null
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:14.344Z"
+    },
+    {
+      "id": "fbbbdee8-4789-4b5e-a1b7-956a30743502",
+      "admin_user_id": "23c23abc-23ee-4bc0-9d77-4dbd1082beb8",
+      "admin_email": null,
+      "role": "SUBADMIN",
+      "action": "client.delegated.action",
+      "target": "x</script><script>window.cntest=1</script>1794332173809@example.test",
+      "detail": {
+        "path": "/api/bulk-orders",
+        "side": "BUY",
+        "method": "POST",
+        "quantity": 1,
+        "productId": "4aabe31f-ce07-4815-8469-022385e26c98",
+        "idempotencyKey": "a0daed83-d3c8-4090-9380-bc81994ab0e9"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:15.761Z"
+    },
+    {
+      "id": "4d60dcc0-29a1-4ef6-af61-7159f30d8966",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "client.delegated.action",
+      "target": "x</script><script>window.cntest=1</script>1794332173809@example.test",
+      "detail": {
+        "path": "/api/orders",
+        "side": "SELL",
+        "method": "POST",
+        "quantity": 1,
+        "productId": null,
+        "idempotencyKey": "mirror-sell"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:16.282Z"
+    },
+    {
+      "id": "fb612412-bd96-4ff6-ac4a-2333237b9883",
+      "admin_user_id": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "admin_email": null,
+      "role": "MASTER",
+      "action": "client.delegated.action",
+      "target": "x</script><script>window.cntest=1</script>1794332173809@example.test",
+      "detail": {
+        "path": "/api/orders",
+        "side": "SELL",
+        "method": "POST",
+        "quantity": 1,
+        "productId": null,
+        "idempotencyKey": "mirror-sell"
+      },
+      "ip": "",
+      "created_at": "2026-11-10T17:36:16.293Z"
+    }
+  ],
+  "cash_requests": [
+    {
+      "id": "da3ee67d-4e7f-4b6c-933d-74a11219b866",
+      "account_id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "user_id": "19b1c610-392f-4563-b694-197967f5469b",
+      "kind": "DEPOSIT",
+      "amount_cents": 100000,
+      "method": null,
+      "note": null,
+      "status": "APPROVED",
+      "reject_reason": null,
+      "reviewed_by": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "approved_by": "7792e546-2374-44ee-ad07-ec436a71232d",
+      "reviewed_at": "2026-11-10T17:36:14.273Z",
+      "approved_at": "2026-11-10T17:36:14.279Z",
+      "created_at": "2026-11-10T17:36:14.265Z"
+    }
+  ],
+  "cn_fund_contracts": [],
+  "cn_bulk_order_terms": [
+    {
+      "order_id": "e583304b-9f67-47f2-a3bc-1498bb7ea979",
+      "product_id": "4aabe31f-ce07-4815-8469-022385e26c98",
+      "product_version": 1,
+      "account_id": "4817a6c9-29ca-427c-9df0-17b996c62029",
+      "market": "US",
+      "symbol": "AAPL",
+      "quantity": 1,
+      "reference_price_cents": 35069,
+      "reference_timestamp": "2026-11-10T17:35:15.797Z",
+      "discount_bps": 1200,
+      "holding_days": 0,
+      "locked_until": "2026-11-10T17:36:15.761Z",
+      "created_at": "2026-11-10T17:36:15.761Z"
+    }
+  ],
+  "product_settlement_products": [],
+  "product_settlement_terms": [],
+  "product_settlement_orders": [],
+  "product_settlement_cash_holds": [],
+  "product_settlement_positions": [],
+  "product_settlement_cash_postings": [],
+  "product_ipo_allocations": [],
+  "product_settlement_movements": [],
+  "commodity_reference_order_prices": []
+}
