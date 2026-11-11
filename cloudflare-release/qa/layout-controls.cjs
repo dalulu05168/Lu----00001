@@ -77,6 +77,33 @@ assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locat
  const avatar=await mobile.locator('.profile .avatar').evaluate(el=>{const outer=el.getBoundingClientRect(),inner=el.querySelector('span').getBoundingClientRect();return {width:outer.width,height:outer.height,dx:(inner.left+inner.width/2)-(outer.left+outer.width/2),dy:(inner.top+inner.height/2)-(outer.top+outer.height/2),color:getComputedStyle(el).color}});
  assert(Math.abs(avatar.width-56)<0.1);assert(Math.abs(avatar.height-56)<0.1);assert(Math.abs(avatar.dx)<1&&Math.abs(avatar.dy)<1);assert.equal(await mobile.locator('nav [data-go=mine]>span').innerText(),'N');
  await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-profile-brand.png'),fullPage:true});
+ // Exercise every shared list family, including long names, at narrow phone widths.
+ for(const kind of ['IPO','MUTUAL_FUND']){
+  const product=await api(admin('product-settlement'),201,master,{action:'create',kind,symbol:kind==='IPO'?'LAYOUTIPO':'LAYOUTFUND',name:'长期客户产品资料名称排版验收 '+kind});
+  const terms=await api(admin('product-settlement'),201,master,{action:'enter-price',product:product.id,date:new Date().toISOString().slice(0,10),price:'1234567'});
+  await api(admin('product-settlement'),200,master,{action:'review-price',terms:terms.id,price:'1234567'});
+ }
+ const listChecks=[];
+ async function inspectLists(label,width){
+  await mobile.locator('main').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))});
+  const rows=await mobile.locator('main .menulink').evaluateAll(elements=>elements.map(el=>{const box=el.getBoundingClientRect(),title=el.querySelector('b'),t=title?.getBoundingClientRect(),tail=el.lastElementChild?.getBoundingClientRect();return {card:el.classList.contains('panel'),padding:parseFloat(getComputedStyle(el).paddingLeft),color:title?getComputedStyle(title).color:null,contained:!t||t.left>=box.left+16&&t.right<=box.right-16,noOverlap:!t||!tail||el.lastElementChild===title||t.right<=tail.left+1,overflow:el.scrollWidth>el.clientWidth+1};}));
+  assert(rows.length>0,label+' list missing');for(const row of rows){assert.equal(row.color,'rgb(36, 54, 75)');assert(!row.overflow&&row.noOverlap,label+' clipped/overlapping');if(row.card){assert.equal(row.padding,18);assert(row.contained,label+' missing card gutters')}}
+  assert(!await mobile.evaluate(()=>document.documentElement.scrollWidth>innerWidth),label+' page overflow');
+  listChecks.push({label,width,rows:rows.length});await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'list-'+label+'-'+width+'.png')});
+ }
+ for(const width of [320,390,412]){
+  await mobile.setViewportSize({width,height:844});
+  for(const route of ['documents','products','ipo','mutual-funds']){
+   await mobile.locator('nav [data-go=mine]').click();
+   if(route==='documents'){await mobile.locator('[data-business=notifications].notification').click();await mobile.locator('[data-notification][data-business=documents]').first().click();}
+   else await mobile.locator('.menulink[data-business="'+route+'"]').click();
+   await mobile.locator('main .menulink').first().waitFor();await inspectLists(route,width);
+   if(route==='products'){await mobile.locator('[data-product]').filter({hasText:'客户期限基金'}).click();await mobile.locator('[data-tier]').first().waitFor();await inspectLists('fund-tiers',width);}
+  }
+  await mobile.locator('nav [data-go=mine]').click();await inspectLists('account-menu',width);
+ }
+ fs.writeFileSync(path.join(process.env.CN_QA_SAVE_DIR,'shared-list-checks.json'),JSON.stringify(listChecks,null,2));
+ await mobile.locator('nav [data-go=mine]').click();
  await mobile.locator('[data-business=ipo]').click();await mobile.getByRole('heading',{name:'IPO申购',exact:true}).waitFor();
  await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-ipo.png'),fullPage:true});
  await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=products]').click();await mobile.locator('[data-product]').filter({hasText:'AAPL'}).click();await mobile.locator('[data-business=bulk-buy]').click();await mobile.locator('[name=tradePassword]').waitFor();

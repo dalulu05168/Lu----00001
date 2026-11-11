@@ -9,7 +9,7 @@ export function createBusiness({api,state,esc,display,time,render,refresh,reset,
  const mutual=createMutualFunds({api,state,esc,display,time,render,refresh,reset,back,friendly});
  const data={products:{items:[],contracts:[]},requests:[],documents:[],support:[],notifications:[],pin:null,loading:false,error:'',success:'',selected:null,quote:null,key:null,requestFingerprint:null,review:null,draft:''};
  const routes=new Set(['products','product','fund-confirm','bulk-order','fund-records','funding','requests','documents','identity','bank','pin','support','notifications']);
- const statuses={PENDING:'待审核',APPROVED:'已审核',REJECTED:'已拒绝',ACTIVE:'持有中',MATURED:'已到期',PAID:'已完成',CANCELLED:'已取消'};
+ const statuses={PENDING:'待审核',APPROVED:'审核通过',REJECTED:'审核未通过',ACTIVE:'持有中',MATURED:'已到期',PAID:'已完成',CANCELLED:'已取消'};
  const status=s=>statuses[s]||s||'未提供';
  const field=(label,name,type='text',attrs='')=>`<label class="formfield">${label}<input name="${name}" type="${type}" ${attrs}></label>`;
  const form=(name,body,button='提交申请')=>`<form data-business-form="${name}" class="panel">${body}<button class="primary" ${state.busy?'disabled':''}>${state.busy?'处理中…':button}</button></form>`;

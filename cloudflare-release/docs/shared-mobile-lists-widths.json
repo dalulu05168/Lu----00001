@@ -1,0 +1,92 @@
+[
+  {
+    "label": "documents",
+    "width": 320,
+    "rows": 2
+  },
+  {
+    "label": "products",
+    "width": 320,
+    "rows": 5
+  },
+  {
+    "label": "fund-tiers",
+    "width": 320,
+    "rows": 2
+  },
+  {
+    "label": "ipo",
+    "width": 320,
+    "rows": 1
+  },
+  {
+    "label": "mutual-funds",
+    "width": 320,
+    "rows": 1
+  },
+  {
+    "label": "account-menu",
+    "width": 320,
+    "rows": 14
+  },
+  {
+    "label": "documents",
+    "width": 390,
+    "rows": 2
+  },
+  {
+    "label": "products",
+    "width": 390,
+    "rows": 5
+  },
+  {
+    "label": "fund-tiers",
+    "width": 390,
+    "rows": 2
+  },
+  {
+    "label": "ipo",
+    "width": 390,
+    "rows": 1
+  },
+  {
+    "label": "mutual-funds",
+    "width": 390,
+    "rows": 1
+  },
+  {
+    "label": "account-menu",
+    "width": 390,
+    "rows": 14
+  },
+  {
+    "label": "documents",
+    "width": 412,
+    "rows": 2
+  },
+  {
+    "label": "products",
+    "width": 412,
+    "rows": 5
+  },
+  {
+    "label": "fund-tiers",
+    "width": 412,
+    "rows": 2
+  },
+  {
+    "label": "ipo",
+    "width": 412,
+    "rows": 1
+  },
+  {
+    "label": "mutual-funds",
+    "width": 412,
+    "rows": 1
+  },
+  {
+    "label": "account-menu",
+    "width": 412,
+    "rows": 14
+  }
+]

@@ -41,3 +41,15 @@ html body .notification-chevron{font-size:22px;line-height:1;color:#52677d}
 html body .nav button{color:#52677d}
 html body .nav button.active{color:#1659aa}
 html body .verified{color:#52677d;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+/* Shared list contract: standalone cards keep gutters; nested rows inherit theirs. */
+html body .menulink{min-height:56px;gap:12px;color:#24364b}
+html body .menulink>b,html body .menulink>.stockname{min-width:0;flex:1;overflow-wrap:anywhere}
+html body .menulink b{font-size:15px;font-weight:600;line-height:1.5;color:#24364b}
+html body .menulink b>small{display:block;margin-top:6px;font-weight:400}
+html body .menulink small,html body .menulink em{color:#52677d;font-size:13px;line-height:1.5}
+html body .menulink>small{flex-shrink:0;text-align:right}
+html body .menulink>span:last-child:not(.qicon):not(.stockname):not(.notification-copy):not(.notification-trailing){max-width:45%;text-align:right;overflow-wrap:anywhere}
+html body .panel.menulink{padding:18px;border:1px solid #dce5ee;border-radius:18px;background:#fff;min-height:76px}
+html body .content>.menulink{padding:18px;margin:12px 0;border:1px solid #dce5ee;border-radius:18px;background:#fff}
+html body .content>h1{font-size:24px;line-height:1.4;font-weight:650;color:#172332;margin:0 0 20px}
+html body .sub,html body .data-row span:first-child,html body .quote-metrics small{color:#52677d}
