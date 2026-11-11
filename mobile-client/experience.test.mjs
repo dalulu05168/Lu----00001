@@ -1,3 +1,4 @@
+import {backgroundRefreshSafe} from './experience.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {verifiedName,notificationTarget,readIds,chartSymbol,createExperience} from './experience.mjs';
@@ -41,4 +42,28 @@ test('expired catalog must not hide historical IPO orders',async()=>{
   const ipo=createIpo({api:{request:async()=>({catalog:[],orders:[{kind:'IPO',symbol:'PASTIPO',product_id:'no-longer-listed',status:'SETTLED',requested_quantity_micros:'2000000',requested_amount_cents:'2500'},{kind:'MUTUAL_FUND',symbol:'FUND_ONLY'}],positions:[]})},state,esc:String,display:String,time:String,render(){},refresh:async()=>{},reset(){},back:()=>'',friendly:e=>e.message});
   await ipo.enter('ipo-records');const html=ipo.view('ipo-records');assert.ok(html.includes('PASTIPO'));assert.ok(!html.includes('FUND_ONLY'));assert.ok(!html.includes('暂无申购记录'));
  }finally{globalThis.window=original;}
+});
+
+test('background refresh never redraws editing or confirmation screens',()=>{
+ const state={authenticated:true,busy:false,loading:false,page:'support'};
+ const doc={hidden:false,activeElement:null,querySelectorAll:()=>[]};
+ assert.equal(backgroundRefreshSafe(state,doc),true);
+ for(const tagName of ['INPUT','SELECT','TEXTAREA']){doc.activeElement={tagName};assert.equal(backgroundRefreshSafe(state,doc),false);}
+ doc.activeElement=null;doc.querySelectorAll=()=>[{type:'text',value:'unsent draft'}];assert.equal(backgroundRefreshSafe(state,doc),false);
+ doc.querySelectorAll=()=>[{type:'file',files:[{}]}];assert.equal(backgroundRefreshSafe(state,doc),false);
+ doc.querySelectorAll=()=>[];
+ for(const page of ['fund-confirm','bulk-order','ipo-detail','identity','bank','pin','funding'])assert.equal(backgroundRefreshSafe({...state,page},doc),false);
+ for(const patch of [{busy:true},{loading:true},{authenticated:false}])assert.equal(backgroundRefreshSafe({...state,...patch},doc),false);
+ doc.hidden=true;assert.equal(backgroundRefreshSafe(state,doc),false);
+});
+test('focus and online polling serialize background refresh and skip hidden state',async()=>{
+ const originals={window:globalThis.window,document:globalThis.document};let release,calls=0,background=0;const events={};
+ globalThis.window={addEventListener(n,f){events[n]=f;}};
+ globalThis.document={hidden:false,addEventListener(){},querySelector:()=>null};
+ const state={authenticated:true,epoch:1,page:'support',busy:false,notifications:[]};
+ const c=createExperience({api:{request:async()=>{calls++;await new Promise(r=>release=r);return {scope:'x',items:[]};}},state,business:{setNotifications(){}},render(){},reset(){},onRestore:async()=>{},onBackground:async()=>{background++;},storage:{getItem:()=>null}});
+ try{
+  events.focus();events.online();assert.equal(calls,1);release();await new Promise(r=>setTimeout(r,0));assert.equal(background,1);
+  globalThis.document.hidden=true;events.online();assert.equal(calls,1);
+ }finally{c.stop();globalThis.window=originals.window;globalThis.document=originals.document;}
 });

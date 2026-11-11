@@ -1,4 +1,4 @@
-import {createExperience,verifiedName} from './experience.mjs';
+import {createExperience,verifiedName,backgroundRefreshSafe} from './experience.mjs';
 import {createBusiness} from './business.mjs';
 import {createApi,ApiError,cents,amount,quote,instrumentKey} from './api.mjs';
 const api=createApi();
@@ -40,6 +40,17 @@ function render(){if(!state.authenticated){root.innerHTML=loginView();experience
 function updateCount(){let el=document.getElementById('result-count');if(el)el.textContent=filtered().length+' 只';}
 async function loadResource(name){let epoch=state.epoch;try{let data=await (name==='documents'?api.request('/api/profile-documents'):api[name]());if(epoch!==state.epoch)return;if(name==='catalog'||name==='watchlist')state[name]=Array.isArray(data.items)?data.items:[];else if(name==='documents')state.documents=Array.isArray(data.items)?data.items:[];else if(name==='announcements')state.announcement=data.item??null;else state.account=data;delete state.errors[name];}catch(e){if(epoch!==state.epoch)return;if(e.status===401){reset('会话已过期，请重新登录。');return;}state.errors[name]=friendly(e);} }
 async function refresh(){let epoch=state.epoch;state.loading=true;state.error='';render();await Promise.all(['account','catalog','watchlist','announcements','documents'].map(loadResource));if(epoch===state.epoch){state.loading=false;render();}}
+let backgroundPending=false;
+async function backgroundRefresh(){
+ if(backgroundPending||!state.authenticated||document.hidden||state.busy||state.loading)return;
+ backgroundPending=true;const epoch=state.epoch,page=state.page;
+ try{
+  await Promise.all(['account','catalog','watchlist','announcements','documents'].map(loadResource));
+  if(epoch!==state.epoch||!state.authenticated||state.page!==page||!backgroundRefreshSafe(state))return;
+  if(['support','requests','fund-records','ipo-records','notifications','documents'].includes(page))await business.load(page);
+  else if(['home','market','star','mine','trade','position','announcements'].includes(page))render();
+ }finally{backgroundPending=false;}
+}
 function reset(message=''){experience?.stop();business?.clear();state.epoch++;api.clear();Object.assign(state,{authenticated:false,documents:[],notifications:[],notificationScope:'',notificationError:'',account:null,catalog:[],watchlist:[],announcement:null,selected:null,query:'',market:'ALL',page:'home',loading:false,busy:false,error:message,errors:{}});render();}
 function friendly(e){return ({'Invalid credentials':'邮箱或密码错误','Authentication required':'请重新登录','Failed to fetch':'接口连接失败，请检查本地隔离服务','Watchlist limit reached':'自选数量已达上限'})[e.message]||e.message||'请求失败，请重试';}
 root.addEventListener('submit',async e=>{if(e.target.id==='auth-form'){e.preventDefault();await submitAuth(e.target);return;}if(e.target.dataset.businessForm){e.preventDefault();await business.submit(e.target);return;}if(e.target.id!=='login-form')return;e.preventDefault();let data=new FormData(e.target),epoch=++state.epoch;state.email=String(data.get('email')).trim();state.busy=true;state.error='';state.authNotice='';render();try{await api.login(state.email,String(data.get('password')));if(epoch!==state.epoch)return;state.authenticated=true;state.page='home';state.busy=false;await refresh();}catch(err){if(epoch===state.epoch){state.busy=false;state.error=friendly(err);render();}}});
@@ -61,6 +72,6 @@ root.addEventListener('click',async e=>{let b=e.target.closest('button');if(!b||
 window.addEventListener('pagehide',()=>{api.leave();state.authenticated=false;});
 window.addEventListener('pageshow',e=>{if(e.persisted)reset('请重新登录。');});
 business=createBusiness({api,state,esc,display,time,render,refresh,reset,back,friendly});
-experience=createExperience({api,state,business,render,reset,onRestore:async page=>{if(business.owns(page))await business.load(page);}});
+experience=createExperience({api,state,business,render,reset,onBackground:backgroundRefresh,onRestore:async page=>{if(business.owns(page))await business.load(page);}});
 if(mirror?.email&&typeof api.adoptMirror==='function'){api.adoptMirror(window.CN_MIRROR_CONTEXT.email);state.authenticated=true;state.email=window.CN_MIRROR_CONTEXT.email;refresh();}else render();
 
