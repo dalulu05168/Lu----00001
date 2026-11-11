@@ -1228,10 +1228,10 @@ body:has(#p-market.show) header.top .tn.on::after { background: #1255a5; }
 
 <!-- 客服弹窗 -->
 <div class="cp" id="cp" role="dialog" aria-label="客户客服">
-<div class="ph"><div>客户客服</div><small class="cs"><span class="dot" style="margin:0"></span>消息仅在当前页面显示</small><div class="al"><button class="btn" id="csref">刷新</button></div><div class="ar"><button class="btn" id="csx" aria-label="关闭">关闭</button></div></div>
+<div class="ph"><div>客户客服</div><small class="cs"><span class="dot" style="margin:0"></span>在线客服</small><div class="al"><button class="btn" id="csref">刷新</button></div><div class="ar"><button class="btn" id="csx" aria-label="关闭">关闭</button></div></div>
 <div class="msgs" id="msgs"></div>
 <div class="qk" id="qk"><button type="button" data-q="充值多久到账">充值多久到账</button><button type="button" data-q="身份资料进度">身份资料进度</button><button type="button" data-q="提现问题">提现问题</button><button type="button" data-q="订单状态">订单状态</button></div>
-<form class="cin" id="f-chat"><input id="cmsg" autocomplete="off" placeholder="输入消息（仅当前页面显示）"><button class="btn p" type="submit">发送</button></form>
+<form class="cin" id="f-chat"><input id="cmsg" autocomplete="off" placeholder="输入消息"><button class="btn p" type="submit">发送</button></form>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">数据加载失败</div>
@@ -1739,10 +1739,29 @@ function desktopFileData(file){
 async function desktopSubmit(path,body){
  const token=localStorage.getItem('cncap.session');
  if(!token){location.assign('/login');return null}
+ if(path==='/api/requests')return desktopRecoverableWrite(path,body,token);
  const response=await fetch(path,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
  if(response.status===401){location.assign('/login');return null}
  if(!response.ok){const data=await response.json().catch(()=>({}));throw Object.assign(Error('HTTP '+response.status),{code:data.error})}
  return response.json();
+}
+async function desktopRecoverableWrite(path,body,token){
+ const hash=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))).map(x=>x.toString(16).padStart(2,'0')).join('');
+ const slot='cn.desktop.pending.'+await hash(token)+'.'+path;
+ const digest=await hash(JSON.stringify(body));
+ let record=JSON.parse(sessionStorage.getItem(slot)||'null');
+ if(record&&record.digest!==digest){
+  const response=await fetch('/api/order-results?key='+encodeURIComponent(record.key),{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+  if(response.ok&&(await response.json()).found){sessionStorage.removeItem(slot);throw Error('上一笔提交已确认，请核对记录后重新提交。')}
+  throw Error('上一笔提交结果尚未确认，请按原内容重试并核对记录。');
+ }
+ record=record||{key:crypto.randomUUID(),digest};
+ sessionStorage.setItem(slot,JSON.stringify(record));
+ const response=await fetch(path,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','Idempotency-Key':record.key},body:JSON.stringify(body)});
+ const result=await response.json();
+ if(response.ok||(response.status>=400&&response.status<500&&![408,429].includes(response.status)))sessionStorage.removeItem(slot);
+ if(!response.ok)throw Object.assign(Error('HTTP '+response.status),{code:result.error});
+ return result;
 }
 function desktopFormSubmit(form,work,onError){
  if(form.dataset.submitting)return;
@@ -1847,7 +1866,8 @@ async function supportRequest(message){
   if(!token){location.assign('/login');return null}
   const headers={Authorization:'Bearer '+token};
   if(message)headers['Content-Type']='application/json';
-  const r=await fetch('/api/support',{method:message?'POST':'GET',headers:headers,body:message?JSON.stringify({message:message}):undefined,cache:'no-store'});
+  if(message)return desktopRecoverableWrite('/api/support',{message:message},token);
+  const r=await fetch('/api/support',{method:'GET',headers:headers,cache:'no-store'});
   if(r.status===401){location.assign('/login');return null}
   if(!r.ok)throw Error('Support HTTP '+r.status);
   return r.json();

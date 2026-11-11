@@ -2868,7 +2868,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       if(msg.type==='cn-mirror-close'){dialog.close();return;}
       if(msg.type!=='cn-mirror-request'||typeof msg.id!=='string')return;
 if(msg.path==='/__mirror_pending'){
-        try{const record=msg.payload?.record;if(record!==null&&(!record||!['/api/bulk-orders','/api/fund-subscriptions','/api/product-settlement'].includes(record.path)||!/^[a-f0-9]{64}$/.test(record.digest)||typeof record.key!=='string'||record.key.length>128))throw Error('Invalid pending record');if(record===null)localStorage.removeItem(pendingStorageKey);else localStorage.setItem(pendingStorageKey,JSON.stringify({path:record.path,digest:record.digest,key:record.key}));frame.contentWindow.postMessage({type:'cn-mirror-response',channel,id:msg.id,status:200,body:'{}'},'*');}catch{frame.contentWindow.postMessage({type:'cn-mirror-response',channel,id:msg.id,status:503,body:'{}'},'*');}return;
+        try{const record=msg.payload?.record;if(record!==null&&(!record||!['/api/bulk-orders','/api/fund-subscriptions','/api/product-settlement','/api/requests','/api/support'].includes(record.path)||!/^[a-f0-9]{64}$/.test(record.digest)||typeof record.key!=='string'||record.key.length>128))throw Error('Invalid pending record');if(record===null)localStorage.removeItem(pendingStorageKey);else localStorage.setItem(pendingStorageKey,JSON.stringify({path:record.path,digest:record.digest,key:record.key}));frame.contentWindow.postMessage({type:'cn-mirror-response',channel,id:msg.id,status:200,body:'{}'},'*');}catch{frame.contentWindow.postMessage({type:'cn-mirror-response',channel,id:msg.id,status:503,body:'{}'},'*');}return;
       }
       let status=503,responseBody=JSON.stringify({error:'Delegated service unavailable'});
       try{
@@ -3099,6 +3099,7 @@ if(msg.path==='/__mirror_pending'){
  document.addEventListener('click',e=>{if(e.target.closest('[data-product-settlement-open]'))open()});
 })();
 </script></body></html>
+
 
 
 

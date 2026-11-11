@@ -56,38 +56,28 @@ const {chromium,devices}=require('playwright');
 const browser=await chromium.launch({executablePath:process.env.CN_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
 try {
  const page=await browser.newPage(devices['iPhone 13']);page.setDefaultTimeout(10000);page.on('requestfailed',r=>{if(r.url().includes('/api/'))console.log('failed',new URL(r.url()).pathname,r.failure()?.errorText)});
- await page.route(base+'/**',r=>r.request().resourceType()==='document'?r.fulfill({contentType:'text/html',body:new URL(r.request().url()).pathname==='/login'?pages.login:pages.mobile}):r.continue());
- async function login(){await page.locator('#email').fill(email);await page.locator('#password').fill(change.newPassword);await page.locator('#loginBtn').click();await page.locator('[data-a=tab][data-v=market]').click();}
- await page.goto(base+'/login');await login();
- const star=page.locator('[data-a=fav][data-market=US][data-v=AAPL]').first();
- async function toggle(method){const [r]=await Promise.all([page.waitForResponse(x=>x.url().endsWith('/api/watchlist')&&x.request().method()===method),star.click()]);a.equal(r.status(),200)}
- console.log('Toggling POST');await toggle('POST');await page.locator('[data-a=fav][data-v=AAPL].on').first().waitFor();
- const prior=await page.evaluate(()=>localStorage.getItem('cncap.session'));
- console.log('Reloading');const revoked=page.waitForResponse(r=>r.url().endsWith('/api/auth/logout')&&r.status()===204);
- await page.reload();await page.locator('#loginBtn').waitFor();await revoked;
- await api('/api/account',401,null,prior);
- await login();await page.locator('[data-a=fav][data-v=AAPL].on').first().waitFor();
- console.log('Toggling DELETE');await toggle('DELETE');await page.locator('[data-a=fav][data-v=AAPL].on').first().waitFor({state:'hidden'});
- console.log('Mobile login, refresh revocation, watchlist add/relogin/remove passed');
- await page.locator('[data-a=tab][data-v=assets]').click();
- await page.locator('[data-a=sheet][data-v=set]').first().click();
- const old=await page.evaluate(()=>localStorage.getItem('cncap.session'));
- await page.locator('[data-a=logout]').click();
- await page.locator('#loginBtn').waitFor();
- await api('/api/account',401,null,old);
- console.log('Mobile logout button revoked session and displayed login');
- await page.locator('#forgotLink').click();
- await page.locator('#forgotEmail').fill(email);
- await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/auth/password-reset/request')&&r.status()===202),page.locator('#forgotBtn').click()]);
- const request=(await api('/api/admin/password-resets',200,null,master)).items.find(x=>x.email===email&&x.status==='PENDING');
- a(request);
- const issued=await api('/api/admin/password-resets',200,{requestId:request.id},master);
- const thirdPassword='BrowserResetFixture8642!';
- await page.locator('#resetCode').fill(issued.code);
- await page.locator('#newPassword').fill(thirdPassword);
- await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/auth/password-reset/confirm')&&r.status()===200),page.locator('#resetBtn').click()]);
- await page.locator('#loginBtn').waitFor();
- console.log('Mobile password recovery form and one-time administrator code passed');
+ await page.route(base+'/**',r=>r.request().resourceType()==='document'?r.fulfill({contentType:'text/html',body:pages.mobile}):r.continue());
+ let mobileToken;
+ async function login(){await page.locator('[name=email]').fill(email);await page.locator('[name=password]').fill(change.newPassword);const response=page.waitForResponse(r=>r.url().endsWith('/api/auth/login')&&r.ok());await page.locator('#login-form button').click();mobileToken=(await(await response).json()).token;await page.locator('nav [data-go=market]').click();await page.locator('[data-instrument="US:AAPL"]').first().click();}
+ await page.goto(base+'/');await login();
+ const star=page.locator('[data-action=watch]');
+ async function toggle(method){console.log('Current mobile toggle '+method);const [r]=await Promise.all([page.waitForResponse(x=>x.url().endsWith('/api/watchlist')&&x.request().method()===method),star.click()]);a.equal(r.status(),200)}
+ await toggle('POST');await star.getByText('★ 移出自选',{exact:true}).waitFor();
+ const prior=mobileToken;
+ await page.reload();await page.locator('#login-form').waitFor();await api('/api/account',401,null,prior);
+ await login();await star.getByText('★ 移出自选',{exact:true}).waitFor();
+ await toggle('DELETE');await star.getByText('☆ 加入自选',{exact:true}).waitFor();
+ console.log('Current mobile login, refresh revocation, watchlist add/relogin/remove passed');
+ await page.locator('nav [data-go=mine]').click();const old=mobileToken;
+ await page.locator('[data-action=logout]').click();await page.locator('#login-form').waitFor();await api('/api/account',401,null,old);
+ await page.locator('[data-auth=request]').click();await page.locator('[name=email]').fill(email);
+ await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/auth/password-reset/request')&&r.status()===202),page.locator('#auth-form button').click()]);
+ await page.locator('#auth-form button:not([disabled])').waitFor();
+ const request=(await api('/api/admin/password-resets',200,null,master)).items.find(x=>x.email===email&&x.status==='PENDING');a(request);
+ const issued=await api('/api/admin/password-resets',200,{requestId:request.id},master),thirdPassword='BrowserResetFixture8642!';
+ await page.locator('[data-auth=confirm]').click();await page.locator('[name=code]').fill(issued.code);await page.locator('[name=password]').fill(thirdPassword);
+ await Promise.all([page.waitForResponse(r=>r.url().endsWith('/api/auth/password-reset/confirm')&&r.status()===200),page.locator('#auth-form button').click()]);
+ await page.locator('#login-form').waitFor();console.log('Current mobile logout and one-time password recovery passed');
  const desktop=await browser.newPage();
  await desktop.route(base+'/**',r=>r.request().resourceType()==='document'?r.fulfill({contentType:'text/html',body:new URL(r.request().url()).pathname==='/login'?pages.login:pages.desktop}):r.continue());
  await desktop.goto(base+'/login');
@@ -114,4 +104,4 @@ try {
 
 await api('/api/requests',403,{kind:'DEPOSIT',amountCents:100},subToken);
 await api('/api/requests',403,{kind:'WITHDRAW',amountCents:100,withdrawalPin:'472863'},subToken);
-})().catch(e=>{console.error(e.message);process.exitCode=1});
+})().catch(e=>{console.error(e.stack);process.exitCode=1});

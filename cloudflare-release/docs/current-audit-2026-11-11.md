@@ -10,13 +10,13 @@
 
 | 能力 | 共用接口 | 当前事实和缺口 |
 | --- | --- | --- |
-| 账户/持仓/成交 | GET /api/account | 同一数据库；手机主要登录后/手动刷新，后台变更后的自动同步待修 |
+| 账户/持仓/成交 | GET /api/account | 同一数据库；手机可见页轮询及 focus/online 刷新已隔离验证，编辑表单受保护；生产待发布 |
 | 产品/期限基金/大宗 | /api/products、/api/fund-subscriptions、/api/bulk-orders | 服务器规则与订单键；隔离链路通过，未等同生产真实报价通过 |
 | IPO | /api/product-settlement | 申购预留、配售、退款与历史隔离通过；历史按订单kind保留 |
-| 自选 | /api/watchlist | 共用持久化，跨设备无需另建表；自动刷新待补 |
-| 公告/资料 | /api/announcements、/api/profile-documents | 共用接口，审核锁定；手机后台刷新待补 |
-| 资金申请 | /api/requests | 有提款密码、余额、冻结及重复审批保护；申请提交缺少服务端幂等协议 |
-| 客服 | /api/support | 总账户统一处理；客户发送缺少服务端幂等协议，重复发送风险仍未关闭 |
+| 自选 | /api/watchlist | 共用持久化，跨设备无需另建表；手机自动刷新已接入，生产待发布 |
+| 公告/资料 | /api/announcements、/api/profile-documents | 共用接口，审核锁定；手机后台刷新已隔离验证，生产待发布 |
+| 资金申请 | /api/requests | 有提款密码、余额、冻结及重复审批保护；申请提交幂等回执已本地修复，桌面/手机重试验证通过，生产迁移待核对 |
+| 客服 | /api/support | 总账户统一处理；客户发送幂等回执已本地修复并验证；总账户回复恢复仍待补 |
 | 通知 | /api/notifications | 手机15秒轮询、scope已读、隐藏暂停和错误退避；本地标记不等于跨设备已读同步 |
 | App镜像 | /api/admin/client-action | 共用客户业务与归属权限、操作审计；不传客户真实token |
 | 行情 | createProductQuote / TradingView | 展示与成交价分离；现价格适配器仅US，60秒缓存、5天过期上限，不足以认定全市场实时行情架构完成 |
@@ -32,3 +32,7 @@
 ## 未验收
 
 正式数据库逐表结构、真实客户跨端业务写入、物理iPhone/Android、压力及备份恢复。不得标为已完成。旧docs报告保留历史，不用历史生产版本替代当前版本验收。
+
+## 后续阶段记录
+
+后台刷新与写入恢复的具体改动和证据分别见 background-sync-acceptance.md、write-recovery-acceptance.md。当前版本仍为候选，不代表整体可交付或已经上线。

@@ -11,6 +11,16 @@ async function api(path,status,data,token){const r=await fetch(base+path,{method
  try{for(const [kind,opts] of [['desktop',{}],['mobile',devices['iPhone 13']]]){
   const p=await browser.newPage(opts);const customer='qa-register-'+kind+'-'+stamp+'@example.test';
   await p.route(base+'/**',r=>{const path=new URL(r.request().url()).pathname;if(path==='/api/registration-policy')return r.fulfill({json:{inviteRequired:true}});if(r.request().resourceType()==='document')return r.fulfill({contentType:'text/html',body:path==='/login'?pages.login:pages[kind]});return r.continue()});
+  if(kind==='mobile'){
+   await p.goto(base+'/');await p.locator('[data-auth=register]').click();
+   await p.locator('[name=email]').fill(customer);await p.locator('[name=password]').fill(password);await p.locator('[name=inviteCode]').fill(agent.inviteCode);
+   const response=p.waitForResponse(r=>r.url().endsWith('/api/auth/register'));await p.locator('#auth-form button').click();a.equal((await response).status(),201);
+   await p.locator('#login-form').waitFor();
+   await p.locator('[name=password]').fill(password);await p.locator('#login-form button').click();await p.locator('nav [data-go=mine]').waitFor();
+   const clients=(await api('/api/admin/clients',200,null,agentToken)).items;a(clients.some(x=>x.email===customer));
+   console.log('Current mobile registration, explicit login and invite attribution passed');
+   await p.unrouteAll({behavior:'ignoreErrors'});await p.close();continue;
+  }
   await p.goto(base+'/login');
   await p.locator('[data-tab=register]').click();await p.locator('#regEmail').fill(customer);await p.locator('#regPassword').fill(password);await p.locator('#inviteCode').fill(agent.inviteCode);
   const [r]=await Promise.all([p.waitForResponse(x=>x.url().endsWith('/api/auth/register'),{timeout:8000}),p.locator('#regBtn').click()]);a.equal(r.status(),201);

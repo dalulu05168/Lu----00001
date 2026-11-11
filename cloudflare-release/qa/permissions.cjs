@@ -64,6 +64,7 @@ async function sendCustomerMessage(browser,kind,token,message){
     const origin=live?'https://nuvexapro.com':base;
     if(live)await page.route(origin+'/**',async route=>{
       const url=new URL(route.request().url());
+      if(url.pathname==='/'){const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8');const pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);return route.fulfill({contentType:'text/html',body:pages[kind]})}
       return url.pathname.startsWith('/api/')?route.fulfill({response:await route.fetch({url:base+url.pathname+url.search})}):route.continue();
     });
     else{
@@ -71,9 +72,13 @@ async function sendCustomerMessage(browser,kind,token,message){
       await page.route(base+'/',route=>route.fulfill({contentType:'text/html',body:pages[kind]}));
     }
     await page.goto(origin+'/');
-    await page.locator(mobile?'[data-a=chat]':'#csbtn').first().click();
-    await page.locator(mobile?'#cm':'#cmsg').fill(message);
-    await expectButtonResult(page,page.locator(mobile?'#sd':'#f-chat button[type=submit]'),'/api/support',201,'POST');
+    if(mobile){
+      await page.locator('[name=email]').fill(b);await page.locator('[name=password]').fill(password);
+      await page.locator('#login-form button').click();await page.locator('nav [data-go=mine]').click();
+      await page.locator('[data-business=support]').click();
+    }else await page.locator('#csbtn').click();
+    await page.locator(mobile?'[name=message]':'#cmsg').fill(message);
+    await expectButtonResult(page,page.locator(mobile?'form button':'#f-chat button[type=submit]'),'/api/support',201,'POST');
   }finally{await page.unrouteAll({behavior:'ignoreErrors'});await page.close()}
 }
 (async()=>{

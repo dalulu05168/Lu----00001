@@ -6183,7 +6183,16 @@ async function pendingWithdrawCents(db, accountId, excludeId = null) {
   return Number(r.rows[0].total);
 }
 __name(pendingWithdrawCents, "pendingWithdrawCents");
-async function createCashRequest(db, { accountId, userId, kind, amountCents, method, note }) {
+async function cnClaimWrite(tx,userId,route,key,body){
+ if(key===undefined)return null;
+ if(typeof key!=='string'||key.length<8||key.length>128)throw Object.assign(Error('Invalid idempotency key'),{statusCode:400});
+ await tx.query('INSERT INTO cn_write_receipts(user_id,route,request_key,request_body) VALUES($1,$2,$3,$4::jsonb) ON CONFLICT DO NOTHING',[userId,route,key,JSON.stringify(body)]);
+ const row=(await tx.query('SELECT request_body=$4::jsonb AS matches,response_body FROM cn_write_receipts WHERE user_id=$1 AND route=$2 AND request_key=$3 FOR UPDATE',[userId,route,key,JSON.stringify(body)])).rows[0];
+ if(!row?.matches)throw Object.assign(Error('Idempotency key conflicts with request'),{statusCode:409});
+ return row.response_body?{...row.response_body,replayed:true}:null;
+}
+async function cnFinishWrite(tx,userId,route,key,result){if(key!==undefined)await tx.query('UPDATE cn_write_receipts SET response_body=$4::jsonb WHERE user_id=$1 AND route=$2 AND request_key=$3',[userId,route,key,JSON.stringify(result)]);}
+async function createCashRequest(db, { accountId, userId, kind, amountCents, method, note, requestKey }) {
   if (!REQUEST_KINDS.includes(kind)) invalid2("Invalid request kind");
   const amount = normalizeAmount(amountCents);
   const bounds = BOUNDS[kind];
@@ -6194,6 +6203,7 @@ async function createCashRequest(db, { accountId, userId, kind, amountCents, met
   const client = await db.connect();
   try {
     await client.query("BEGIN");
+    const replay=await cnClaimWrite(client,userId,'/api/requests',requestKey,{accountId,kind,amountCents:amount,method:method??null,note:note??null});if(replay){await client.query('COMMIT');return replay;}
     const documents=await client.query("SELECT count(*)::int AS approved FROM cn_profile_documents WHERE user_id=$1 AND status='APPROVED'",[userId]);
     if(documents.rows[0].approved!==2)invalid2("Identity and bank approval required");
     const account = await client.query("SELECT cash_cents FROM accounts WHERE id=$1 FOR UPDATE", [accountId]);
@@ -6211,8 +6221,8 @@ async function createCashRequest(db, { accountId, userId, kind, amountCents, met
        VALUES($1,$2,$3,$4,$5,$6,$7,'PENDING')`,
       [id, accountId, userId, kind, amount, method ?? null, note ?? null]
     );
-    await client.query("COMMIT");
-    return { id, kind, amountCents: amount, status: "PENDING" };
+    const result={id,kind,amountCents:amount,status:'PENDING'};await cnFinishWrite(client,userId,'/api/requests',requestKey,result);
+    await client.query('COMMIT');return result;
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {
     });
@@ -7523,7 +7533,7 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
             await confirmPasswordReset(db, { email: body.email, code: body.code, newPassword: body.newPassword });
             return send(res, 200, { reset: true });
           } catch (err) {
-            if (err.statusCode === 400) return send(res, 400, { error: err.message });
+            if ([400,409].includes(err.statusCode)) return send(res, err.statusCode, { error: err.message });
             throw err;
           }
         }
@@ -7556,7 +7566,7 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
       if(req.method!=='GET')return send(res,405,{error:'Method not allowed'});
       const key=new URL(req.url,'http://localhost').searchParams.get('key');
       if(typeof key!=='string'||key.length<8||key.length>128)return send(res,400,{error:'Invalid idempotency key'});
-      const rows=await db.query("SELECT id::text,'ORDER' AS kind FROM orders WHERE account_id=$1 AND idempotency_key=$2 UNION ALL SELECT id::text,'FUND' AS kind FROM cn_fund_contracts WHERE account_id=$1 AND idempotency_key=$2 UNION ALL SELECT id::text,'IPO' AS kind FROM product_settlement_orders WHERE account_id=$1 AND idempotency_key=$2",[session.accountId,key]);
+      const rows=await db.query("SELECT id::text,'ORDER' AS kind FROM orders WHERE account_id=$1 AND idempotency_key=$2 UNION ALL SELECT id::text,'FUND' AS kind FROM cn_fund_contracts WHERE account_id=$1 AND idempotency_key=$2 UNION ALL SELECT id::text,'IPO' AS kind FROM product_settlement_orders WHERE account_id=$1 AND idempotency_key=$2 UNION ALL SELECT response_body->>'id' AS id,'WRITE' AS kind FROM cn_write_receipts WHERE user_id=(SELECT user_id FROM accounts WHERE id=$1) AND request_key=$2 AND response_body IS NOT NULL",[session.accountId,key]);
       return send(res,200,{found:rows.rows.length>0,items:rows.rows});
     }
     if(["/api/products","/api/products/quote","/api/fund-subscriptions","/api/bulk-orders"].includes(route))return cnProductsRoute(req,res,route,db,session,null,resolveProductQuote);
@@ -7672,14 +7682,15 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
           const data=JSON.parse(await readBody(req,maxBodyBytes));
           const message=typeof data?.message==="string"?data.message.trim():"";
           if(!message||message.length>4000) return send(res,400,{error:"Invalid message"});
-          const r=await db.query("INSERT INTO cn_support_messages(id,client_user_id,sender_user_id,sender_role,body) VALUES($1,$2,$2,'CLIENT',$3) RETURNING id,body,sender_role,created_at",[createId(),session.userId,message]);
-          return send(res,201,r.rows[0]);
+          const result=await withProductTransaction(db,async tx=>{const key=req.headers['idempotency-key'];const replay=await cnClaimWrite(tx,session.userId,'/api/support',key,{message});if(replay)return replay;const r=await tx.query("INSERT INTO cn_support_messages(id,client_user_id,sender_user_id,sender_role,body) VALUES($1,$2,$2,'CLIENT',$3) RETURNING id,body,sender_role,created_at",[createId(),session.userId,message]);await cnFinishWrite(tx,session.userId,'/api/support',key,r.rows[0]);return r.rows[0];});
+          return send(res,201,result);
         }
         const r=await cnPagedQuery(db,"SELECT id,body,sender_role,created_at FROM cn_support_messages WHERE client_user_id=$1 ORDER BY created_at DESC,id DESC",[session.userId]);
         return send(res,200,{items:r.rows.reverse()});
       }catch(err){
         if(err instanceof SyntaxError) return send(res,400,{error:"Invalid JSON"});
         if(err.statusCode===413) return send(res,413,{error:"Request too large"});
+        if([400,409].includes(err.statusCode))return send(res,err.statusCode,{error:err.message});
         return send(res,500,{error:"Internal server error"});
       }
     }
@@ -7703,11 +7714,11 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
           const confirmed=await db.query("UPDATE cn_withdrawal_pins SET failed_attempts=0,blocked_until=NULL WHERE user_id=$1 AND pin_hash=$2 AND (blocked_until IS NULL OR blocked_until<=now()) RETURNING user_id",[session.userId,hash]);
           if(!confirmed.rows.length)return send(res,409,{error:"Withdrawal password changed or locked"});
         }
-        const created = await createCashRequest(db, { accountId: session.accountId, userId: session.userId, kind: body.kind, amountCents: body.amountCents, method: body.method, note: body.note });
+        const created = await createCashRequest(db, { accountId: session.accountId, userId: session.userId, kind: body.kind, amountCents: body.amountCents, method: body.method, note: body.note, requestKey:req.headers["idempotency-key"] });
         return send(res, 201, created);
       } catch (err) {
         if (err instanceof SyntaxError) return send(res, 400, { error: "Invalid JSON" });
-        if (err.statusCode === 400) return send(res, 400, { error: err.message });
+        if ([400,409].includes(err.statusCode)) return send(res, err.statusCode, { error: err.message });
         return send(res, 500, { error: "Internal server error" });
       }
     }
@@ -8209,6 +8220,7 @@ export { releaseWorker as default };
   *)
 */
 //# sourceMappingURL=worker.js.map
+
 
 
 

@@ -1,0 +1,47 @@
+{
+  "sourceSha256": "b0894289ce933e19b6ace762d3ff5a81f5aa3cc83fabbc2f850e5bf6b6a3172d",
+  "sourceUnchanged": true,
+  "checkedAt": "2026-11-11T01:06:07.138Z",
+  "results": [
+    {
+      "name": "products",
+      "code": 0
+    },
+    {
+      "name": "forms",
+      "code": 0
+    },
+    {
+      "name": "permissions",
+      "code": 0
+    },
+    {
+      "name": "contracts",
+      "code": 0
+    },
+    {
+      "name": "write-receipts",
+      "code": 0
+    },
+    {
+      "name": "sessions",
+      "code": 0
+    },
+    {
+      "name": "stocks",
+      "code": 0
+    },
+    {
+      "name": "registration",
+      "code": 0
+    },
+    {
+      "name": "mirror",
+      "code": 0
+    }
+  ],
+  "baselineProductionVersion": "bea31227-64c7-4cbe-8141-01862b6b7edf",
+  "published": false,
+  "physicalDeviceVerified": false,
+  "registrationFollowup": "acceptance-GNEwOx: current mobile registration, explicit login and invite attribution passed"
+}

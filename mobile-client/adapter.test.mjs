@@ -2,6 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createApi,cents,amount,quote} from './api.mjs';
 import {toCents,discountedCents,createBusiness} from './business.mjs';
+import {decimalUnits} from './mutual-funds.mjs';
+
+test('mutual fund amounts and redemption units preserve exact integer scales',()=>{
+ assert.equal(decimalUnits('12.50',2),'1250');
+ assert.equal(decimalUnits('0.000001',6),'1');
+ assert.equal(decimalUnits('7.5',6),'7500000');
+ for(const value of ['0','-1','1e3','1.005','Infinity'])assert.throws(()=>decimalUnits(value,2));
+ assert.throws(()=>decimalUnits('0.0000001',6));
+});
 
 test('uncertain order key survives a new client instance and clears after replay',async()=>{
  const original=globalThis.sessionStorage,store=new Map();globalThis.sessionStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
