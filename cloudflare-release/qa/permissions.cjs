@@ -141,7 +141,7 @@ async function sendCustomerMessage(browser,kind,token,message){
     const iframe=sub.locator('dialog[open] iframe');
     await iframe.waitFor();
     const size=await iframe.evaluate(frame=>{const r=frame.getBoundingClientRect();return [r.width,r.height,frame.closest('dialog').getBoundingClientRect().bottom,innerHeight]});
-    assert(size[1]>400);assert(size[2]<=size[3]);assert(size[0]<=390);
+    assert(size[1]>400);assert(size[2]<=size[3]);assert(size[0]>=470&&size[0]<=480);
     const frame=sub.frameLocator('dialog[open] iframe');
     await frame.locator('nav [data-go=mine]').click();await frame.getByText(a,{exact:false}).first().waitFor();
     assert.equal(await frame.getByRole('button',{name:'客服',exact:true}).count(),0);
@@ -150,7 +150,7 @@ async function sendCustomerMessage(browser,kind,token,message){
     await sub.keyboard.press('Escape');await clientRow(sub,a).getByRole('button',{name:'客户详情'}).click();
     await detail.getByText('账户权限与 VIP').waitFor();
     await detail.getByRole('button',{name:'关闭',exact:true}).click();
-    console.log('Owner-only browser list, five customer controls, session revocation, phone aspect and navigation verified');
+    console.log('Owner-only browser list, five customer controls, session revocation, wider mirror bounds and navigation verified');
     await sub.locator('[data-p=appr]').click();
     const docDetail=sub.locator('#cn-doc-detail');
     await sub.locator('#cn-doc-rows').getByText(a,{exact:true}).first().waitFor();

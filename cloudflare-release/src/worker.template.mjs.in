@@ -6796,7 +6796,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       if(typeof path!=='string'||!path.startsWith('/')||path.startsWith('//')||path.length>512)return response(res,400,{error:'Invalid delegated path'}),true;
       const url=new URL(path,'https://customer.invalid');
       const permitted={
-        '/health':['GET'],'/api/account':['GET'],'/api/order-results':['GET'],'/api/catalog':['GET'],'/api/products':['GET'],'/api/products/quote':['GET'],
+        '/health':['GET'],'/api/announcements':['GET'],'/api/account':['GET'],'/api/order-results':['GET'],'/api/catalog':['GET'],'/api/products':['GET'],'/api/products/quote':['GET'],
         '/api/fund-subscriptions':['POST'],'/api/bulk-orders':['POST'],'/api/orders':['POST'],
         '/api/product-settlement':['GET','POST'],'/api/watchlist':['GET','POST','DELETE'],
         '/api/profile-documents':['GET','POST'],'/api/requests':['GET','POST'],'/api/notifications':['GET'],

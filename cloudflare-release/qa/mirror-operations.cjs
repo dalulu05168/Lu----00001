@@ -82,6 +82,10 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  await act(owner.token,403,{path:'/api/support',method:'GET'});
  await act(owner.token,400,{path:'https://example.com/',method:'GET'});
  const response=await act(master,201,{path:'/api/support',method:'POST',payload:{message:'Master mirror response'}});assert.equal(response.sender_role,'MASTER');
+ await act(owner.token,200,{path:'/api/announcements',method:'GET'});
+ await act(master,200,{path:'/api/announcements',method:'GET'});
+ await act(other.token,404,{path:'/api/announcements',method:'GET'});
+ await act(owner.token,403,{path:'/api/announcements',method:'POST',payload:{title:'denied'}});
  const initial=await act(owner.token,200,{path:'/api/account',method:'GET'});assert.equal(initial.account.cashCents,100000);
  const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8'),pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);
  const livePolicy=(await fetch('https://admin.maacropierce.com/')).headers.get('content-security-policy');
@@ -94,7 +98,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
   page.on('response',async r=>{if(r.url().endsWith('/api/admin/client-action')&&r.request().postDataJSON()?.method==='POST')console.log('mirror mutation',r.status(),await r.text())});
   await page.goto(base+'/admin#cli',{waitUntil:'domcontentloaded'});
   const row=page.locator('#t-cli tbody tr').filter({hasText:a});await row.getByRole('button',{name:'App 镜像',exact:true}).click();
-  const frame=page.frameLocator('dialog[open] iframe');assert.equal(await frame.locator('body').evaluate(()=>window.cntest),undefined);await frame.locator('nav [data-go=mine]').click();await frame.locator('[data-business=products]').click();await frame.locator('[data-product]').first().click();
+  const frame=page.frameLocator('dialog[open] iframe');await frame.locator('h1').first().waitFor();assert.equal(await frame.getByText('Delegated action forbidden',{exact:false}).count(),0);const mirrorBox=await page.locator('dialog[open] iframe').boundingBox();assert(mirrorBox.width>=470,'Desktop mirror should be wider than a height-scaled phone');assert.equal(await frame.locator('body').evaluate(()=>window.cntest),undefined);await frame.locator('nav [data-go=mine]').click();await frame.locator('[data-business=products]').click();await frame.locator('[data-product]').first().click();
   await frame.locator('[data-business=bulk-buy]').click();await frame.locator('[name=quantity]').fill('1');
   await frame.locator('[name=tradePassword]').fill('123456');
   await frame.locator('form button').click();await frame.getByRole('alert').waitFor();

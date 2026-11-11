@@ -52,7 +52,7 @@ async function backgroundRefresh(){
  }finally{backgroundPending=false;}
 }
 function reset(message=''){experience?.stop();business?.clear();state.epoch++;api.clear();Object.assign(state,{authenticated:false,documents:[],notifications:[],notificationScope:'',notificationError:'',account:null,catalog:[],watchlist:[],announcement:null,selected:null,query:'',market:'ALL',page:'home',loading:false,busy:false,error:message,errors:{}});render();}
-function friendly(e){return ({'Invalid credentials':'邮箱或密码错误','Authentication required':'请重新登录','Failed to fetch':'接口连接失败，请检查本地隔离服务','Watchlist limit reached':'自选数量已达上限'})[e.message]||e.message||'请求失败，请重试';}
+function friendly(e){return ({'Delegated action forbidden':'此操作暂不可用，请刷新后重试','Invalid credentials':'邮箱或密码错误','Authentication required':'请重新登录','Failed to fetch':'接口连接失败，请检查本地隔离服务','Watchlist limit reached':'自选数量已达上限'})[e.message]||e.message||'请求失败，请重试';}
 function showBusinessFeedback(){
  const result=root.querySelector('main > :is(.resultbox,.error-box)');
  if(!result)return;
