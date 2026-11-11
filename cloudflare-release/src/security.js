@@ -18,7 +18,9 @@ async function cnRateLimit(db,rule,request,now=Date.now()){
  const digest=value=>createHash('sha256').update(value).digest('hex');
  const ip=request.headers.get('cf-connecting-ip')||'unknown';
  const dimensions=[['ip',digest(ip),rule.max]];
- const auth=request.headers.get('authorization')||'';
+ const scope=rule.path.startsWith('/api/admin/')||request.headers.get('x-cn-session-scope')==='admin'?'admin':'client';
+ const cookie=cnCookieToken(request.headers.get('cookie'),cnCookieName(scope));
+ const auth=request.headers.get('x-cn-session-mode')==='cookie'&&cookie?'Bearer '+cookie:request.headers.get('authorization')||(cookie?'Bearer '+cookie:'');
  if(auth.startsWith('Bearer ')&&auth.length<=263)dimensions.push(['session',digest(auth),rule.subjectMax]);
  if(rule.email){
   const length=Number(request.headers.get('content-length')||0);
@@ -45,7 +47,7 @@ function cnRecentAdminVerification(session,now=Date.now()){
 function cnSensitiveAdminWrite(route,method){
  return ['POST','PATCH','DELETE'].includes(method)&&!['/api/admin/login','/api/admin/bootstrap','/api/admin/activate','/api/admin/reauth','/api/admin/support','/api/admin/client-action','/api/admin/subaccounts/overview'].includes(route);
 }
-async function cnReauthenticate(db,session,rawToken,credentials,ip){
+async function cnReauthenticate(db,session,rawToken,credentials,ip,rotate=false){
  const r=await db.query(`SELECT u.password_hash,a.totp_secret_ciphertext,a.role FROM app_users u JOIN admin_roles a ON a.user_id=u.id
    WHERE u.id=$1 AND a.twofa_confirmed_at IS NOT NULL AND a.login_restricted_at IS NULL`,[session.userId]);
  const row=r.rows[0];
@@ -56,9 +58,16 @@ async function cnReauthenticate(db,session,rawToken,credentials,ip){
  const tx=await db.connect();
  try{await tx.query('BEGIN');
   const updated=await tx.query(`UPDATE user_sessions SET admin_verified_at=now() WHERE token_hash=$1 AND user_id=$2 AND revoked_at IS NULL AND expires_at>now()
-    AND NOT EXISTS(SELECT 1 FROM admin_roles WHERE user_id=$2 AND login_restricted_at IS NOT NULL) RETURNING user_id`,[sessionTokenHash(rawToken),session.userId]);
+    AND NOT EXISTS(SELECT 1 FROM admin_roles WHERE user_id=$2 AND login_restricted_at IS NOT NULL) RETURNING user_id,account_id,expires_at`,[sessionTokenHash(rawToken),session.userId]);
   if(updated.rows.length!==1){await tx.query('ROLLBACK');return false;}
   await tx.query("INSERT INTO admin_audit_log(admin_user_id,role,action,ip) VALUES($1,$2,'admin.reauth',$3)",[session.userId,row.role,ip]);
-  await tx.query('COMMIT');return true;
+  let result=true;
+  if(rotate){
+   const row=updated.rows[0],expiresAt=new Date(row.expires_at);
+   const token=await createSession(tx,{userId:row.user_id,accountId:row.account_id,expiresAt,adminVerified:true});
+   await tx.query('UPDATE user_sessions SET revoked_at=now() WHERE token_hash=$1',[sessionTokenHash(rawToken)]);
+   result={verified:true,token,expiresAt:expiresAt.toISOString(),role:r.rows[0].role};
+  }
+  await tx.query('COMMIT');return result;
  }catch(e){await tx.query('ROLLBACK');throw e;}finally{tx.release();}
 }

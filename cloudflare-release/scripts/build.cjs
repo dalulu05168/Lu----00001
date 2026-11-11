@@ -13,12 +13,16 @@ for(const name of ['desktop','admin','login'])pages[name]=pages[name].replace('<
 const productUI=fs.readFileSync(path.join(root,'web/products-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace(/<\/body>/i,()=>'<script>'+productUI+'</script></body>');
 const mirrorPage=require('./mobile-bundle.cjs')(path.resolve(root,'../mobile-client'),{production:true}).replace('</head>',()=>'<script>'+newsUI+'</script></head>');
-pages.mobile=mirrorPage;
+const browserTransport=fs.readFileSync(path.join(root,'web/session-transport.js'),'utf8');
+function browserSessionPage(html,admin){return html.replace(/<head>/i,()=>'<head><script>'+browserTransport.replace('__CN_BROWSER_ADMIN__',String(admin))+'</script>');}
+for(const kind of ['desktop','login','admin'])pages[kind]=browserSessionPage(pages[kind],kind==='admin'||kind==='login');
+pages.login=pages.login.replace("const scope=true?'admin':'client';","const scope=location.hostname==='admin.maacropierce.com'||new URLSearchParams(location.search).has('admin')?'admin':'client';");
+pages.mobile=browserSessionPage(mirrorPage,false);
 assert(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/.test(pages.admin),'Mirror template missing');
 pages.admin=pages.admin.replace(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/,()=> 'const MIRROR_TEMPLATE = '+JSON.stringify(mirrorPage).replace(/</g,'\\u003c')+';');
 const logo = fs.readFileSync(path.join(root,'web','logo.png')).toString('base64');
 const source = fs.readFileSync(path.join(root,'src','worker.template.mjs.in'),'utf8')
- .replace('__CN_SECURITY__', () => fs.readFileSync(path.join(root,'src/security.js'),'utf8')).replace('__CN_PRODUCTS__', () => fs.readFileSync(path.join(root,'src/products/service.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/products/quote.js'),'utf8')).replace('__CN_PAGES__', () => JSON.stringify(pages)).replace('__CN_LOGO__', () => JSON.stringify(logo));
+ .replace('__CN_BROWSER_SESSIONS__', () => fs.readFileSync(path.join(root,'src/browser-sessions.js'),'utf8')).replace('__CN_SECURITY__', () => fs.readFileSync(path.join(root,'src/security.js'),'utf8')).replace('__CN_PRODUCTS__', () => fs.readFileSync(path.join(root,'src/products/service.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/products/quote.js'),'utf8')).replace('__CN_PAGES__', () => JSON.stringify(pages)).replace('__CN_LOGO__', () => JSON.stringify(logo));
 assert(!source.includes('__CN_PAGES__') && !source.includes('__CN_LOGO__'));
 const sha256 = createHash('sha256').update(source).digest('hex');
 if(process.argv.includes('--record')){manifest.sourceSha256=sha256;fs.writeFileSync(path.join(root,'release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');} else assert.equal(sha256,manifest.sourceSha256,'Source differs from recorded production release');

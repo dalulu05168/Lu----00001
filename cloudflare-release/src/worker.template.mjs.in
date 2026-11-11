@@ -6380,6 +6380,7 @@ __name(reviewCashRequest, "reviewCashRequest");
 
 // src/admin-http.mjs
 function response(res, status, value) {
+  value=cnBrowserSessionResult(res,status,value);
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
   res.end(JSON.stringify(value));
 }
@@ -6569,8 +6570,8 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
     }
     if(route==='/api/admin/reauth'){
       const data=await input(req);
-      const verified=await cnReauthenticate(db,session,authorization.slice(7),data,clientIp(req));
-      response(res,verified?200:401,verified?{verified:true}:{error:'Invalid verification credentials'});return true;
+      const verified=await cnReauthenticate(db,session,authorization.slice(7),data,clientIp(req),req.headers['x-cn-session-mode']==='cookie');
+      response(res,verified?200:401,verified?(verified===true?{verified:true}:verified):{error:'Invalid verification credentials'});return true;
     }
     if(cnSensitiveAdminWrite(route,req.method)&&!cnRecentAdminVerification(session)){
       response(res,428,{error:'Recent admin verification required'});return true;
@@ -7239,6 +7240,7 @@ __name(removeWatchlistItem, "removeWatchlistItem");
 
 // src/http-api.mjs
 function send(res, status, data) {
+  data=cnBrowserSessionResult(res,status,data);
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
   res.end(status === 204 ? void 0 : JSON.stringify(data));
 }
@@ -7517,6 +7519,7 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
       }
     }
     const route = url.pathname;
+    if(!cnPrepareBrowserSession(req,res,route))return;
     if(route==="/api/product-image" && req.method==="GET")return cnProductsRoute(req,res,route,db,null,null,resolveProductQuote);
     if (await handleAdminApi(req, res, route, db, resolveSession, lookupInstrument, resolveProductQuote)) return;
     const authPath = ["/api/auth/register", "/api/auth/login", "/api/auth/password-reset/request", "/api/auth/password-reset/confirm"].includes(route);
@@ -8036,6 +8039,7 @@ function harden(response2) {
 }
 __name(harden, "harden");
 __CN_SECURITY__
+__CN_BROWSER_SESSIONS__
 var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);

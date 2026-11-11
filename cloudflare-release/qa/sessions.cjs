@@ -58,7 +58,7 @@ try {
  const page=await browser.newPage(devices['iPhone 13']);page.setDefaultTimeout(10000);page.on('requestfailed',r=>{if(r.url().includes('/api/'))console.log('failed',new URL(r.url()).pathname,r.failure()?.errorText)});
  await page.route(base+'/**',r=>r.request().resourceType()==='document'?r.fulfill({contentType:'text/html',body:pages.mobile}):r.continue());
  let mobileToken;
- async function login(){await page.locator('[name=email]').fill(email);await page.locator('[name=password]').fill(change.newPassword);const response=page.waitForResponse(r=>r.url().endsWith('/api/auth/login')&&r.ok());await page.locator('#login-form button').click();mobileToken=(await(await response).json()).token;await page.locator('nav [data-go=market]').click();await page.locator('[data-instrument="US:AAPL"]').first().click();}
+ async function login(){await page.locator('[name=email]').fill(email);await page.locator('[name=password]').fill(change.newPassword);const response=page.waitForResponse(r=>r.url().endsWith('/api/auth/login')&&r.ok());await page.locator('#login-form button').click();await response;mobileToken=(await page.context().cookies()).find(c=>c.name==='__Host-cn-client')?.value;a(mobileToken);await page.locator('nav [data-go=market]').click();await page.locator('[data-instrument="US:AAPL"]').first().click();}
  await page.goto(base+'/');await login();
  const star=page.locator('[data-action=watch]');
  async function toggle(method){console.log('Current mobile toggle '+method);const [r]=await Promise.all([page.waitForResponse(x=>x.url().endsWith('/api/watchlist')&&x.request().method()===method),star.click()]);a.equal(r.status(),200)}
@@ -88,7 +88,8 @@ try {
  await select.locator('option[value$=":AAPL"]').waitFor({state:'attached'});
  await select.selectOption({label:await select.locator('option[value$=":AAPL"]').first().textContent()});
  const ds=desktop.locator('#market-toggle-favorite');
- const fresh=await desktop.evaluate(()=>localStorage.getItem('cncap.session'));
+ a.equal(await desktop.evaluate(()=>localStorage.getItem('cncap.session')),'cn-cookie-session');
+ const fresh=(await desktop.context().cookies()).find(c=>c.name==='__Host-cn-client')?.value;a(fresh);
  a.equal((await api('/api/account',200,null,fresh)).account.cashCents,2532);
  await Promise.all([desktop.waitForResponse(r=>r.url().endsWith('/api/watchlist')&&r.request().method()==='POST'),ds.click()]);
  await desktop.reload();

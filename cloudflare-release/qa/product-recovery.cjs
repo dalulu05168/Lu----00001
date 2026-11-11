@@ -24,7 +24,7 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
    if(fault&&u.pathname===fault.path&&req.method()==='POST'){
     const body=req.postDataJSON();if(!fault.action||body.action===fault.action){fault.keys.push(req.headers()['idempotency-key']);
      if(fault.phase===0){const committed=await route.fetch();assert.equal(committed.status(),201);fault.order=await committed.json();fault.phase++;return route.fulfill({status:503,json:{error:'Isolated response lost after commit'}})}
-     if(fault.phase===1){const revoked=await fetch(base+'/api/auth/logout',{method:'POST',headers:{Authorization:req.headers().authorization}});assert.equal(revoked.status,204);fault.phase++;return route.fulfill({status:401,json:{error:'Session expired'}})}
+     if(fault.phase===1){const revoked=await fetch(base+'/api/auth/logout',{method:'POST',headers:{...(req.headers().authorization?{Authorization:req.headers().authorization}:{}),...(req.headers().cookie?{Cookie:req.headers().cookie,'X-CN-Session-Mode':'cookie'}:{})}});assert.equal(revoked.status,204);fault.phase++;return route.fulfill({status:401,json:{error:'Session expired'}})}
      const replay=await route.fetch();const data=await replay.json();assert.equal(replay.status(),fault.kind==='TERM'?200:201);assert.equal(data.contract?.id||data.id,fault.order.contract?.id||fault.order.id,'Recovery must return the original committed order');fault.replay=data;fault.phase++;return route.fulfill({response:replay});
     }
    }return route.continue();

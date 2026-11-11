@@ -38,7 +38,7 @@ export function createApi(fetcher=globalThis.fetch){
     async login(email,password){const result=await request('/api/auth/login',{method:'POST',body:{email,password,remember:false},anonymous:true});if(typeof result.token!=='string'||!result.token)throw new ApiError('登录响应缺少会话');token=result.token;scope=email.trim().toLowerCase();return result;},
     clear(){token=null;},
     async logout(){try{if(token)await request('/api/auth/logout',{method:'POST'})}finally{token=null;}},
-    leave(){if(token){fetcher('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token},keepalive:true,credentials:'omit'}).catch(()=>{});token=null;}},
+    leave(){if(token){fetcher('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token,'X-CN-Session-Close':'background'},keepalive:true,credentials:'omit'}).catch(()=>{});token=null;}},
     account:()=>request('/api/account'),catalog:()=>request('/api/catalog'),watchlist:()=>request('/api/watchlist'),announcements:()=>request('/api/announcements'),
     watch:(item,add)=>request('/api/watchlist',{method:add?'POST':'DELETE',body:{market:item.market,symbol:item.symbol}})
   };

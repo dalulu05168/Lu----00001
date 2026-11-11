@@ -30,6 +30,10 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
  const attempts=await Promise.all(Array.from({length:12},(_,i)=>app.cnRateLimit(db,rule,request('198.51.100.'+i,'TARGET@EXAMPLE.TEST'))));assert.equal(attempts.filter(x=>x.status===200).length,8);assert.equal(attempts.filter(x=>x.status===429).length,4);
  for(let i=0;i<30;i++)assert.equal((await app.cnRateLimit(db,rule,request('203.0.113.50','rotating'+i+'@example.test'))).status,200);
  assert.equal((await app.cnRateLimit(db,rule,request('203.0.113.50','last@example.test'))).status,429);
+ const cookieRule=app.matchRule('/api/requests','POST'),cookieIdentity='A'.repeat(43);
+ for(let i=0;i<30;i++)assert.equal((await app.cnRateLimit(db,cookieRule,new Request(base+'/api/requests',{method:'POST',headers:{'cf-connecting-ip':'192.0.2.'+i,Cookie:'__Host-cn-client='+cookieIdentity,'X-CN-Session-Mode':'cookie'},body:'{}'}))).status,200);
+ assert.equal((await app.cnRateLimit(db,cookieRule,new Request(base+'/api/requests',{method:'POST',headers:{'cf-connecting-ip':'192.0.2.99',Cookie:'__Host-cn-client='+cookieIdentity,'X-CN-Session-Mode':'cookie'},body:'{}'}))).status,429);
+ checks.push('Cookie-mode writes remain subject to cross-IP per-session rate limits');
  const fail=await app.cnRateLimit({query:async()=>{throw Error('Database unavailable')}},rule,request('192.0.2.1','fail@example.test'));assert.equal(fail.status,503);
  const oversized=await app.cnRateLimit(db,rule,new Request(base,{method:'POST',body:JSON.stringify({email:'a'.repeat(9000)})}));assert.equal(oversized.status,413);
  const stored=await db.query('SELECT ip FROM auth_attempts');assert(stored.rows.every(r=>/^[0-9a-f]{64}$/.test(r.ip)));

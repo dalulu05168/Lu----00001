@@ -60,7 +60,7 @@ async function createAgent(master,idx,client){
   const [r]=await Promise.all([p.waitForResponse(x=>new URL(x.url()).pathname===endpoint&&x.request().method()==='POST',{timeout:12000}),p.locator(selector).click()]);
   assert.equal(r.status(),status);console.log('Received',endpoint,r.status());if(endpoint==='/api/requests'&&status===201){
    const body=r.request().postDataJSON();
-   const token=(r.request().headers().authorization||'').replace(/^Bearer /,'');
+   const token=(r.request().headers().authorization||'').replace(/^Bearer /,'')||(await p.context().cookies()).find(c=>c.name==='__Host-cn-client')?.value;assert(token,'Customer credential unavailable in isolated browser context');
    const rows=(await api('/api/requests',200,token)).items;
    const item=rows.find(x=>x.kind===body.kind);
    assert(item,'Submitted request not found in customer records');
