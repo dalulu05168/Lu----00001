@@ -185,7 +185,7 @@ h2{font-size:21px;margin-bottom:8px;display:flex;align-items:center;gap:10px;fon
 .v.page-enter{animation:cn-page-enter .29s cubic-bezier(.22,.9,.26,1) both}
 @keyframes cn-page-enter{from{opacity:.52;transform:translateY(-7px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.v.page-enter{animation:none}}
-</style>
+.cn-bulletin{margin-bottom:16px;padding:12px 14px;border-radius:14px;border:1px solid #425064;background:#151e2b;color:#f3f5f8}.cn-bulletin[hidden]{display:none}.cn-bulletin time{display:block;font-size:11px;color:#a8b9d0;margin-top:4px}.cn-bulletin p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;margin-top:8px}.v [data-a=news]{border-radius:999px;padding:8px 16px;margin-bottom:12px;min-height:36px;border:1px solid #425064;background:#172232;color:#d6e9ff;text-align:center}</style>
 <style id="cn-brand-entry-style">
 #cnsplash,#splash{display:none!important;pointer-events:none!important}
 .cn-unified-logo{width:36px;height:36px;object-fit:contain;display:block;flex:none}
@@ -633,7 +633,7 @@ function mlist(){var q=D.q.trim().toLowerCase(),L=(CAT[D.mk]||[]).filter(functio
 return L.length?L.map(function(s){return row(s,'<div class="r m" style="margin-right:4px">'+(Number.isSafeInteger(publishedQuotes[s]?.price)?'$'+f(publishedQuotes[s].price/100)+'<small>'+esc(stampQuote(publishedQuotes[s].timestamp))+'</small>':'—')+'</div>'+star(s))}).join(''):'<div class="ep">'+(q?'无匹配的代码或公司':D.mk+' 市场暂无已发布标的')+'</div>'}
 function market(){
 return '<h2>行情'+tg('TradingView','b')+'</h2><div class="sr">'+SV.search+'<input id="q" placeholder="搜索代码或公司" value="'+esc(D.q)+'" autocomplete="off"></div>'
-+'<div class="chips">'+MK.map(function(x){return chip('mk',x,D.mk)}).join('')+'</div><div data-live-chart class="market-tv"></div><div id="ml">'+mlist()+'</div>'
++'<button class="btn" type="button" data-a="news">市场新闻</button><div class="chips">'+MK.map(function(x){return chip('mk',x,D.mk)}).join('')+'</div><div data-live-chart class="market-tv"></div><div id="ml">'+mlist()+'</div>'
 +rates()}
 
 function trade(){
@@ -661,7 +661,7 @@ return '<h2>账户与客服</h2><div class="card" style="cursor:default;flex:non
 
 function detail(s){
 var p=pos(s),aa=s==='AA',h='<div class="dh"><button class="cb" data-a="back" aria-label="返回">'+SV.back+'</button><div class="t">'+s+' · '+esc(NAME[s]||s)+'</div>'+star(s)+'</div>';
-h+='<div data-live-chart style="height:340px;margin-bottom:10px"></div>';
+h+='<button class="btn" type="button" data-a="news" data-v="'+esc(s)+'">相关新闻</button><div data-live-chart style="height:340px;margin-bottom:10px"></div>';
 h+='<div style="margin-top:8px">';
 if(p)h+='<div class="kv"><span>持仓数量</span><span>'+p.q+' 股</span></div><div class="kv"><span>持仓成本</span><span>$'+f(p.c)+'</span></div><div class="kv"><span>成本均价</span><span>$'+f(p.c/p.q)+'</span></div>'+pnlKv(p)+lockKv(p);
 if(CFG[s])h+=cfgKv(CFG[s]);
@@ -734,6 +734,7 @@ var T=[['home','首页','g'],['market','行情','b'],['trade','交易','a'],['or
 var nv=D.ov?'':'<div class="nv">'+T.map(function(t){return '<button class="t-'+t[2]+(D.tab===t[0]?' on':'')+'" data-a="tab" data-v="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>';
 A.className='app'+(!D.ov&&D.tab==='home'?' g':'');
 A.innerHTML='<div class="ptr" id="ptr"></div><div class="v'+(entering?' page-enter':'')+'">'+body+'</div>'+nv+(D.sh?sheet():'')+(!D.ov&&!D.sh&&!D.cs&&D.rq==null?'<button class="fab t-c" data-a="chat">客服'+(D.un?'<span class="bd">'+D.un+'</span>':'')+'</button>':'')+(D.cs?chatSheet():'')+(D.rq!=null?reqSheet():'')+'<div class="ts" id="ts" aria-hidden="true"></div>';
+if(bulletin&&D.tab==='home'&&!D.ov)A.querySelector('.v').prepend(bulletin);
 if(key===lastKey)A.querySelector('.v').scrollTop=y;lastKey=key;
 
 if(D.ov==='AA')bindChart();
@@ -950,6 +951,7 @@ root.addEventListener('click',function(e){
 const setup=e.target.closest('#cash-set-pin');if(setup){saveCashPin(root,setup);return}
 var t=e.target.closest('[data-a]');if(!t)return;var a=t.dataset.a,v=t.dataset.v,m='';
   if(['cancelo'].indexOf(a)>=0){toast('暂不可用，未执行操作');return;}
+if(a==='news'){const symbol=v||'';const item=symbol?CNChart.choice(marketForSymbol(symbol),symbol,NAME[symbol]):null;CNNews.open(item?.tv||'','dark');return}
 if(a==='register'){location.assign('/login?register=1');return}
 if(a==='login'){location.assign('/login');return}
 if(a==='msg'){toast(v);return}
@@ -1024,6 +1026,7 @@ if(customerToken)fetch('/api/account',{headers:{Authorization:'Bearer '+customer
 
  R();
  const logo=document.createElement('img');logo.className='cn-mobile-brand';logo.src='./logo.png';logo.alt='CN Capital';root.append(logo);
+ var bulletin=document.createElement('section');bulletin.className='cn-bulletin';bulletin.hidden=true;A.querySelector('.v')?.prepend(bulletin);CNNews.mountBulletin(bulletin);
  const bellHost=document.createElement('div');bellHost.className='cn-bell-mobile';root.append(bellHost);
  CNNotify.mount(bellHost,{onOpen(item){
    D.ov=null;D.sh=null;D.rq=null;D.cs=0;D.tab='assets';

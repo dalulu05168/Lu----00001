@@ -54,6 +54,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  for(const kind of ['desktop','mobile']){
  const p=await page(kind,client);
  if(kind==='mobile')await p.locator('[data-a=tab][data-v=trade]').click();
+ else await p.locator('header [data-p=trade]').click();
  assert.deepEqual(await p.locator(kind==='mobile'?'.trade-tabs [data-a=sec]':'#ptabs button').allTextContents(),['\u5927\u5b97\u4ea4\u6613','\u57fa\u91d1','IPO']);
  await p.locator(kind==='mobile'?'[data-a=sec][data-v=\u57fa\u91d1]':'#ptabs button').filter({hasText:'\u57fa\u91d1'}).click();
  await p.locator('[data-cp=subscribe]').first().click();assert.equal(await p.locator('#cp-overlay input[type=password]').count(),0);

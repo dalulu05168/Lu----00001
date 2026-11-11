@@ -152,7 +152,7 @@ async function page(browser,kind,token,email){
   assert.equal(await owner.locator('#t-cli > table tbody tr').filter({hasText:b}).count(),0);
   await row.getByRole('button',{name:'App 镜像'}).click();
   const frame=owner.frameLocator('.ops-phone iframe');
-  await frame.locator('.cn-mobile-brand').waitFor();
+  await frame.locator('.wordmark').waitFor();
   assert.equal(await owner.locator('.ops-device').count(),0);
   await owner.keyboard.press('Escape');
   await owner.locator('.ops-phone').waitFor({state:'hidden'});
@@ -172,8 +172,10 @@ async function page(browser,kind,token,email){
   }
   await m.getByRole('button',{name:'消息通知，有未读消息'}).click();
   await m.getByRole('dialog',{name:'客户客服'}).waitFor();await m.locator('#msgs').getByText('客户客服回复验收').waitFor();
+  await d.locator('#balchip').click();
+  await d.locator('[data-account-section=funds]').click();
   for(const kind of ['m-id','m-bank']){
-   await d.locator('[data-open='+kind+']').first().click();
+   await d.locator('#account-funds [data-open='+kind+']').click();
    await d.locator('#'+kind).getByText('已提交并审核通过。如需更改，请联系在线客服。',{exact:true}).waitFor();
    assert.equal(await d.locator('#'+kind+' button[type=submit]:enabled:visible').count(),0);
    await d.keyboard.press('Escape');
@@ -184,3 +186,4 @@ async function page(browser,kind,token,email){
   console.log('Chrome: grouped clients, role approvals, linked funding filter, borderless mirror, persistent logo, Esc, approved forms and direct support passed');
  }finally{for(const context of browser.contexts())for(const page of context.pages())await page.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
+

@@ -41,12 +41,12 @@ async function createAgent(master,idx,client){
   await p.addInitScript(({token})=>{localStorage.setItem('cncap.session',token);sessionStorage.setItem('cncap.mobile.entry','1')},{token});
   const origin='https://nuvexapro.com';
   await p.route(origin+'/**',async r=>{
-   const u=new URL(r.request().url());
+   const u=new URL(r.request().url());if(u.pathname==='/'){const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8');const pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);return r.fulfill({contentType:'text/html',body:pages[kind]});}
    if(u.pathname.startsWith('/api/')||u.pathname==='/health')return r.fulfill({response:await r.fetch({url:base+u.pathname+u.search})});
    return r.continue();
   });
   await p.goto(origin+'/',{waitUntil:'domcontentloaded'});
-  if(kind==='mobile')await p.locator('[data-a=tab][data-v=assets]').click();
+  if(kind==='mobile')await p.locator('[data-a=tab][data-v=assets]').click();else{await p.locator('.tn[data-p=acct]').click();await p.locator('[data-account-section=funds]').click();}
   return p;
  }
  async function submit(p,selector,endpoint,status=201){
@@ -90,7 +90,7 @@ async function createAgent(master,idx,client){
    console.log(kind,'approving deposit');for(let step=0;step<2;step++)await api(admin('requests'),200,master,{id:dep.id,decision:'APPROVE'});
    await p.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
    p=await open(kind,token);
-   await p.locator(mobile?'[data-a=sheet][data-v=wd]':'[data-open=m-dep][data-wd]:visible').first().click();
+   await p.locator(mobile?'[data-a=sheet][data-v=wd]':'[data-open=m-dep]:visible').first().click();if(!mobile)await p.locator('#dtype').selectOption({label:'提现申请'});
    await p.locator('details:has(#cash-set-pin) summary').click();
    await p.locator('#cash-current-password').fill(password);
    await p.locator('#cash-new-pin').fill('472863');
@@ -109,3 +109,6 @@ async function createAgent(master,idx,client){
  }finally{for(const context of browser.contexts())for(const page of context.pages())await page.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
  fs.writeFileSync(require('path').join(process.env.CN_QA_SAVE_DIR,'results.json'),JSON.stringify(records,null,2));
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
+
+
+

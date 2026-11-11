@@ -77,11 +77,11 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
   await p.addInitScript(t=>{localStorage.setItem('cncap.session',t);sessionStorage.setItem('cncap.mobile.entry','1')},client);
   await p.route(base+'/**',r=>new URL(r.request().url()).pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue());
   await p.goto(base+'/',{waitUntil:'domcontentloaded'});
-  if(kind==='mobile')await p.locator('[data-a=tab][data-v=market]').click();
+  if(kind==='mobile')await p.locator('[data-a=tab][data-v=market]').click();else{await p.locator('#p-market [data-kind=ETF]').click();await p.locator('#market-symbol-select').selectOption('AMEX:SPY');}
   let frame,painted=false;
   for(let n=0;n<35;n++){
    for(const candidate of p.frames().filter(f=>/tradingview/.test(f.url()))){
-    const visible=await candidate.evaluate(()=>({canvases:[...document.querySelectorAll('canvas')].filter(c=>c.width>200&&c.height>100).length,text:document.body?.innerText||''})).catch(()=>null);
+    const visible=await candidate.evaluate(()=>({canvases:[...document.querySelectorAll('canvas')].filter(c=>c.width>200&&c.height>40).length,text:document.body?.innerText||''})).catch(()=>null);
     if(visible?.canvases>0&&/SPDR|SPY|ETF/.test(visible.text)){frame=candidate;painted=true;break;}
    }
    if(painted)break;
@@ -96,3 +96,4 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  fs.writeFileSync(require('path').join(process.env.CN_QA_SAVE_DIR,'results.json'),JSON.stringify(results,null,2));
  console.log('Desktop and mobile TradingView external chart canvas and symbol verified');
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
+

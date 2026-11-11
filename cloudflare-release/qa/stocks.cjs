@@ -61,7 +61,7 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
  await sellPage.addInitScript(t=>localStorage.setItem('cncap.session',t),client);
  await sellPage.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base?r.abort():u.pathname==='/'?r.fulfill({contentType:'text/html',body:pages.desktop}):r.continue()});
  await sellPage.goto(base+'/',{waitUntil:'domcontentloaded'});
- await sellPage.locator('#tb-hold tr[data-s=AAPL]').click();
+ await sellPage.locator('.tn[data-p=acct]').click();await sellPage.locator('[data-account-section=holdings]').click();await sellPage.locator('#tb-hold tr[data-s=AAPL]').click();
  await sellPage.locator('#tq').fill('3');
  await sellPage.locator('#tr-next').click();
  await sellPage.locator('#tr-ag').check();
@@ -86,3 +86,4 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
  fs.writeFileSync(path.join(process.env.CN_QA_SAVE_DIR,'results.json'),JSON.stringify({customer:a,subaccount:agent.email,orders:result.orders,positions:result.positions,balance:result.account.cashCents},null,2));
  console.log(JSON.stringify({folder:process.env.CN_QA_SAVE_DIR,orders:result.orders.length,balance:result.account.cashCents}));
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
+

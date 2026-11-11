@@ -1,0 +1,69 @@
+/* Shared controls for the white desktop customer and administrator interfaces. */
+html body :is(.btn,.mb,.ps-dialog button,.cp-dialog button,.cn-notify-close){border-radius:999px;min-height:36px;height:auto;padding:7px 18px;line-height:1.4;text-align:center;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+html body :is(.btn,.mb,.ps-dialog button,.cp-dialog button):disabled{cursor:not-allowed;opacity:.5}
+html body :is(.btn,.mb,.cp-dialog button):focus-visible{outline:2px solid #1255a5;outline-offset:3px}
+html body :is(.approval-actions .btn,.approval-toolbar .btn){border-radius:999px}
+html body :is(.mask .dlg,.ops-dialog:not(.ops-phone),.ps-dialog,.cp-dialog,.md){border-radius:20px;border-color:#d2dce9;box-shadow:0 22px 65px #20365126;font-size:14px}
+html body :is(.mask .dlg,.ops-dialog:not(.ops-phone),.ps-dialog,.cp-dialog,.md) :is(h2,h3){line-height:1.45;overflow-wrap:anywhere}
+html body :is(.ops-dialog:not(.ops-phone),.ps-dialog,.cp-dialog,.md) :is(input,select,textarea){font-size:14px;line-height:1.5;min-height:38px}
+html body :is(.ops-dialog:not(.ops-phone) .ops-heading,.mh,.cp-dialog>header,.ps-dialog>header,.mask .dlg>.ph){position:relative;min-height:64px;padding:18px 72px;text-align:center;justify-content:center;background:#fff;border-bottom:1px solid #e0e7f0}
+html body :is(.ops-dialog:not(.ops-phone) .ops-heading,.mh,.cp-dialog>header,.ps-dialog>header) :is(h2,h3){margin:0;font-size:22px;font-weight:650!important;text-align:center}
+html body .ops-dialog:not(.ops-phone) .ops-heading>div:first-child{flex:1;min-width:0}
+html body :is(.ops-dialog:not(.ops-phone) .ops-heading,.mh,.cp-dialog>header,.ps-dialog>header,.mask .dlg>.ph)>:is(button,.mx){position:absolute;right:16px;top:16px;min-height:32px;margin:0}
+html body .mask .dlg>.ph>.ar{position:absolute;right:16px;top:16px;margin:0}
+html body .mask .dlg>.ph{flex-wrap:wrap;gap:4px}
+html body .mask .dlg>.ph>small{flex-basis:100%;margin:0;text-align:center}
+html body .ops-dialog-sub{font-size:13px;color:#526277;margin-top:4px}
+html body .cp-dialog{padding:0;overflow:auto;width:min(800px,calc(100vw - 32px));max-height:calc(100dvh - 40px)}
+html body .cp-dialog>:not(header){margin:20px 24px}
+html body .ops-phone .ops-heading{padding:0;min-height:0;background:transparent;border:0}
+html body .ops-phone .ops-heading>div>button{min-height:30px;padding:4px 12px}
+#market-news{height:480px}
+#market-news[hidden],.cn-bulletin[hidden]{display:none!important}
+#cn-bulletin{margin:18px 24px 0}
+html body #p-market .desktop-section-tabs button,html body .desktop-section-tabs button{min-height:36px;padding:7px 18px}
+.cn-task-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px}
+.cn-task{border:1px solid #dfe6ef;border-radius:16px;background:#f7faff;color:#172332;padding:14px 18px;display:grid;grid-template-columns:1fr auto;text-align:left;gap:5px;cursor:pointer}
+.cn-task:hover{background:#edf4ff;border-color:#acc9ea}
+.cn-task strong{font-size:26px;color:#1255a5;font-weight:650!important;grid-column:2;grid-row:1/3}
+.cn-task small{color:#526277}
+.cn-client-timeline{list-style:none;padding:0;margin:12px 0}
+.cn-client-timeline li{position:relative;border-left:2px solid #d7e6fa;padding:0 0 18px 20px;margin-left:6px;overflow-wrap:anywhere}
+.cn-client-timeline li::before{content:"";position:absolute;left:-5px;top:5px;width:8px;height:8px;border-radius:50%;background:#2874c8}
+.cn-client-timeline time{display:block;color:#526277;font-size:12px;margin-bottom:3px}
+.cn-client-timeline strong{font-weight:600!important}
+.cn-client-timeline p{white-space:pre-wrap;color:#526277;margin:4px 0 0}
+@media(max-width:700px){html body :is(.ops-dialog:not(.ops-phone),.ps-dialog,.cp-dialog){width:calc(100vw - 20px);max-height:calc(100dvh - 20px)}.cn-task-grid{grid-template-columns:1fr}.cn-task{min-height:75px}html body :is(.ops-dialog:not(.ops-phone) .ops-heading,.mh,.cp-dialog>header,.ps-dialog>header){padding-inline:65px}html body .ops-dialog:not(.ops-phone) .ops-heading h2{font-size:19px}html body .cp-dialog>:not(header){margin:16px}.approval-toolbar select{max-width:100%}}
+
+html.cn-light-login body .card .btn{min-height:48px}
+
+html body :is(.btn,.mb,.cp-dialog button):hover{transform:none;box-shadow:none}
+html body .ops-body form>label>input{display:block;width:100%;margin-top:6px;border-radius:10px}
+html body .ops-body form>.ops-actions{justify-content:flex-end;margin-top:16px}
+html body .ops-summary .ops-kv{display:grid;grid-template-columns:1fr;align-content:start;gap:4px}
+html body .ops-summary .ops-kv>:first-child{white-space:nowrap;color:#526277;font-size:12px}
+html body .ops-summary .ops-kv>:last-child{text-align:left;overflow-wrap:anywhere}
+html body .ops-dialog:not(.ops-phone) label{font-size:13px}
+
+/* White control palette shared by the desktop client, admin and login. */
+html body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif}
+html body :is(.btn,.mb,.ibtn,[data-sub-client],[data-sub-overview]){background:#f5f8fc;color:#24364b;border:1px solid #d6e1ef;font-size:14px;font-weight:500;line-height:1.5}
+html body :is(.btn,.mb,.ibtn,[data-sub-client],[data-sub-overview]):hover{background:#eaf2ff;color:#1255a5;border-color:#b7cfee}
+html body :is(.btn.p,.btn.primary,.mb.on,.btn.on){background:#1659aa;color:#fff;border-color:#1659aa}
+html body :is(.btn,.mb,.ibtn):disabled{background:#edf2f8;color:#63748b;border-color:#d6e1ef;opacity:1}
+html body :is(.sub-note-panel,.sub-ledger){background:#fff;color:#24364b;border-color:#d6e1ef}
+html.cn-light-login{color-scheme:light}
+html.cn-light-login body .inp{background:#f5f8fc;border:1px solid #d6e1ef;box-shadow:none}
+html.cn-light-login body .inp:focus-within{border-color:#6f9fd9;box-shadow:0 0 0 3px #1659aa18}
+html.cn-light-login body .inp input{background:transparent!important;color:#24364b!important;-webkit-text-fill-color:#24364b!important;caret-color:#1659aa;font-size:16px;line-height:1.5;min-width:0}
+html.cn-light-login body .inp input::placeholder{color:#77869b;-webkit-text-fill-color:#77869b;opacity:1}
+html.cn-light-login body .inp input:is(:-webkit-autofill,:autofill){-webkit-text-fill-color:#24364b!important;box-shadow:0 0 0 1000px #f5f8fc inset!important;caret-color:#1659aa}
+html.cn-light-login body :is(.adm-hint,.card label){color:#52657d}
+html body :is(.cp-dialog,.cp-dialog.cp-customer){background:#fff;color:#24364b;border-color:#d6e1ef;--cp-accent:#1659aa}
+html body .cp-dialog :is(input,select,textarea){background:#f5f8fc!important;color:#24364b!important;border-color:#d6e1ef;font-family:inherit;font-size:16px;line-height:1.5;min-height:44px}
+html body .cp-dialog :is(label,.cp-muted,.cp-terms span){color:#52677d}
+html body .cp-dialog :is(footer,.cp-tier-edit){border-color:#d6e1ef}
+html body .cn-products :is(.cp-muted,.cp-empty,.cp-terms span){color:#52677d}
+html body .cn-products :is(.cp-card,.cp-tier){border-color:#d6e1ef}
+html body .cn-products button{border-radius:999px;background:#f5f8fc;color:#24364b;border-color:#d6e1ef}
+html body :is(.cn-products,.cp-dialog) .cp-primary{background:#1659aa;color:#fff;border-color:#1659aa}

@@ -1,0 +1,78 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{createHmac}=require('node:crypto');
+const {chromium,devices}=require('playwright');
+const base='http://127.0.0.1:'+process.env.CN_OPS_QA_PORT,password='FixturePass123456!';
+const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').match(/const replacementPages = (.+);/)[1]);
+function otp(secret){const bits=[...secret].map(c=>'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(c).toString(2).padStart(5,'0')).join(''),time=Buffer.alloc(8);time.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const h=createHmac('sha1',Buffer.from(bits.match(/.{8}/g).map(x=>parseInt(x,2)))).update(time).digest();return String((h.readUInt32BE(h[19]&15)&0x7fffffff)%1000000).padStart(6,'0')}
+async function api(route,status,token,body,method=body?'POST':'GET'){const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body?JSON.stringify(body):undefined});const data=r.status===204?{}:await r.json();assert.equal(r.status,status,route+' '+JSON.stringify(data));return data}
+(async()=>{
+ const secret=JSON.parse(fs.readFileSync(process.env.CN_OPS_MASTER_FILE)).totpSecret;
+ const master=(await api('/api/admin/login',200,null,{email:'qa-master@example.test',password,otp:otp(secret)})).token;
+ const email='experience-'+Date.now()+'@example.test',sub=await api('/api/admin/subaccounts',201,master,{email:'agent-'+email,password});
+ const credentials={email:'agent-'+email,password,otp:otp(sub.totpSecret)};
+ await api('/api/admin/activate',200,null,credentials);
+ const agent=(await api('/api/admin/login',200,null,credentials)).token;
+ await api('/api/auth/register',201,null,{email,password,inviteCode:sub.inviteCode});
+ const customer=(await api('/api/auth/login',200,null,{email,password})).token;
+ await api('/api/announcements',401);
+ await api('/api/admin/announcements',403,agent);
+ await api('/api/admin/announcements',403,agent,{action:'publish',version:'',title:'Forbidden',body:'Forbidden'});
+ const initial=await api('/api/admin/announcements',200,master);
+ await api('/api/admin/announcements',400,master,{action:'publish',version:initial.version,title:'',body:'Invalid'});
+ const title='服务时间通知',body='今日服务正常。\n请通过在线客服查询。';
+ const published=await api('/api/admin/announcements',200,master,{action:'publish',version:initial.version,title,body});
+ await api('/api/admin/announcements',409,master,{action:'withdraw',version:initial.version});
+ assert.equal((await api('/api/announcements',200,customer)).item.body,body);
+ await api('/api/admin/clients',200,agent,{email,field:'vip_level',value:'VIP1',reason:'升级服务'},'PATCH');
+ const detail=await api('/api/admin/client-view?email='+encodeURIComponent(email),200,agent);
+ assert(detail.registeredAt);assert(detail.history.some(row=>row.reason==='升级服务'));
+ await api('/api/support',201,customer,{message:'新闻与客服测试'});
+ const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+ const errors=[];
+ async function page(kind,token){const page=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:900},reducedMotion:'reduce'});page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(kind+': '+e.message));await page.addInitScript(({kind,token,email})=>{if(top!==self)return;localStorage.setItem(kind==='admin'?'cncap.admin.session':'cncap.session',token);localStorage.setItem('cncap.user',email);sessionStorage.setItem('cncap.admin.entry','1');sessionStorage.setItem('cncap.mobile.entry','1')},{kind,token,email});await page.route(base+'/**',route=>{const u=new URL(route.request().url());if(route.request().resourceType()==='document'&&['/','/admin'].includes(u.pathname))return route.fulfill({contentType:'text/html; charset=utf-8',body:pages[kind]});if(u.pathname==='/logo.png')return route.fulfill({contentType:'image/png',body:Buffer.from(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').match(/const replacementLogo = "([^"]+)";/)[1],'base64')});return route.continue()});await page.goto(base+(kind==='admin'?'/admin':'/'),{waitUntil:'domcontentloaded'});return page}
+ try{
+  const owner=await page('admin',master);
+  await owner.locator('#cn-admin-tasks').getByText('未读客服会话').waitFor();
+  await owner.locator('.cn-task').filter({hasText:'未读客服会话'}).click();
+  await owner.locator('dialog[open]').getByText(email,{exact:true}).waitFor();
+  await owner.keyboard.press('Escape');
+  await owner.getByRole('button',{name:'平台公告',exact:true}).click();
+  const modal=owner.locator('dialog[open]');await modal.locator('input').fill('平台维护安排');await modal.locator('textarea').fill('请留意账户通知。');
+  await modal.getByRole('button',{name:'发布公告',exact:true}).click();await modal.getByText('公告已发布',{exact:true}).waitFor();
+  await owner.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'announcement-editor.png')});await owner.keyboard.press('Escape');
+  const subordinate=await page('admin',agent);
+  await subordinate.locator('.cn-task').filter({hasText:'身份资料待审核'}).click();
+  await subordinate.locator('#cn-doc-approval').waitFor();assert.equal(await subordinate.locator('#cn-doc-kind').inputValue(),'IDENTITY');
+  assert.equal(await subordinate.getByRole('button',{name:'平台公告',exact:true}).count(),0);
+  await subordinate.locator('[data-p=cli]').click();
+  await subordinate.getByRole('button',{name:'客户详情',exact:true}).first().click();
+  await subordinate.locator('.cn-client-timeline').getByText('agent-'+email+' · 升级服务',{exact:true}).waitFor();
+  await subordinate.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'client-timeline.png')});
+  await subordinate.keyboard.press('Escape');
+  const desktop=await page('desktop',customer);
+  await desktop.locator('#cn-bulletin').getByText('平台维护安排',{exact:true}).waitFor();
+  await desktop.locator('[data-market-side=news]').click();
+  await desktop.locator('#market-news iframe').waitFor();
+  let newsFrame;
+  for(let i=0;i<30;i++){newsFrame=desktop.frames().find(f=>/widgetembed.*timeline|timeline\//.test(f.url()));if(newsFrame)break;await desktop.waitForTimeout(1000)}
+  assert(newsFrame,'TradingView news iframe must load');
+  await newsFrame.locator('a[href*="/news/"]').first().waitFor({timeout:20000});
+  await desktop.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'desktop-news.png')});
+  await desktop.locator('#p-market [data-kind=STOCK]').click();
+  await desktop.locator('#market-symbol-select').selectOption('NASDAQ:AAPL');
+  assert.equal(await desktop.locator('#market-news').getAttribute('data-news-key'),'NASDAQ:AAPL|light');
+  await desktop.locator('#market-news iframe').waitFor();
+  const mobile=await page('mobile',customer);
+  await mobile.getByText('平台维护安排',{exact:true}).waitFor();
+  await mobile.locator('[data-a=tab][data-v=market]').click();await mobile.locator('[data-a=news]').click();
+  await mobile.locator('.cn-news-dialog[open] iframe').waitFor();
+  await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-news.png')});
+  const box=await mobile.locator('.cn-news-dialog').boundingBox();assert.equal(Math.round(box.width),390);
+  await mobile.getByRole('button',{name:'关闭新闻'}).click();await mobile.locator('.cn-news-dialog').waitFor({state:'detached'});
+  await mobile.locator('[data-a=tab][data-v=home]').click();await mobile.getByText('平台维护安排',{exact:true}).waitFor();
+  assert.deepEqual(errors,[]);
+ }finally{await browser.close()}
+ assert((await api('/api/admin/audit',200,master)).items.some(item=>item.action==='announcement.publish'&&item.admin_email==='qa-master@example.test'));
+ const current=await api('/api/admin/announcements',200,master);assert.notEqual(current.version,published.version);
+ await api('/api/admin/announcements',200,master,{action:'withdraw',version:current.version});assert.equal((await api('/api/announcements',200,customer)).item,null);
+ console.log('Announcement publication, withdrawal, concurrent edit guard, role restrictions, timeline, tasks, desktop TV news content and mobile full-screen news passed');
+})().catch(error=>{console.error(error.stack);process.exitCode=1});

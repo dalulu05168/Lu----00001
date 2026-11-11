@@ -281,6 +281,8 @@ body,button,input,select,textarea{font-family:var(--cn-font)}</style>
 <style id="cn-brand-entry-style">
 #cnsplash,#splash{display:none!important;pointer-events:none!important}
 header.top .cn-unified-logo{width:50px;height:50px;object-fit:contain;display:block;flex:none}
+header.top .brand{width:50px;height:50px;background:#fff;border-radius:8px}
+header.top .cn-unified-logo{filter:brightness(0)}
 .cn-brand-entry{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;pointer-events:none;background:radial-gradient(ellipse at center,#16363b 0%,#0c141e 42%,#080c12 76%);animation:cn-entry-exit .78s ease-out both}
 .cn-brand-entry-mark{position:relative;display:grid;place-items:center;width:132px;height:132px}
 .cn-brand-entry-mark::before{content:"";position:absolute;inset:9px;border:1px solid #59d5d367;border-radius:50%;animation:cn-entry-ring .62s ease-out both}
@@ -517,6 +519,95 @@ dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgb
 :is(.ops-heading,.cn-notify-head,.ps-dialog>header,.dlg>.ph,.cp>.ph){background:linear-gradient(180deg,rgba(255,255,255,.045),transparent);border-bottom:1px solid var(--ln,rgba(255,255,255,.13))}
 .ops-phone .ops-heading{background:none;border:0}
 .ps-dialog>header{padding-bottom:10px}
+</style><style id="cn-admin-light">
+:root{color-scheme:light;--bg:#f4f7fb;--pn:#fff;--pn2:#f4f7fb;--ln:#e0e7f0;--ln2:#d2dce9;--tx:#172332;--mut:#526277;--ac:#1255a5;--acb:#e7f0ff;--up:#087047;--dn:#ae353c;--am:#865700;--bl:#1255a5;--gold:#946315;--ink:#fff;--field:#f7f9fc;--cn-modal-top:#fff;--cn-modal-bottom:#fff;--cn-modal-glow:transparent}
+body[data-m]{background:var(--bg);font-size:14px}
+body *{scrollbar-color:#bbc8d9 transparent}
+body header.top{background:#fff;grid-template-columns:auto minmax(0,1fr) auto;gap:24px;height:64px;padding-inline:24px;backdrop-filter:none}
+header.top .brand{background:transparent;padding:0;box-shadow:none;border:0}
+body .nav{justify-content:flex-start;height:100%}
+body .tn{position:relative;height:100%;border:0;border-radius:0;font-size:14px;padding-inline:14px}
+body .tn.on{background:transparent;color:var(--ac);font-weight:650!important}
+.tn.on::after{content:"";position:absolute;bottom:0;left:14px;right:14px;height:3px;border-radius:3px 3px 0 0;background:var(--ac)}
+body .av{background:#e7f0ff;color:var(--ac);border-color:#d5e4fa}
+body .grid{padding-top:24px;gap:16px}
+body :is(.pn,.sc,.sc.gold,.tip,.toast,.dr,.ops-dialog,.cn-notify,.ps-dialog,.mask .dlg,.cp,.cp-dialog,.md){color:var(--tx);background:#fff;border-color:var(--ln2)}
+body :is(.pn,.sc){border-radius:12px}
+body :is(.pn,.sc):hover{transform:none;box-shadow:none}
+body .sc.gold{background:#eef5ff;border-color:#c5d9f6}
+body :is(.tip,.toast,.dr,.ops-dialog,.cn-notify,.ps-dialog,.mask .dlg,.cp,.md){box-shadow:0 14px 40px #253d6326}
+body :is(.ph,.mh,.mf,.ops-heading,.cn-notify-head,.ps-dialog>header){background:#fff;border-color:var(--ln)}
+body :is(.ops-card,.ops-summary,.cn-notify-row,.cn-notify-close,.fd,.bub){background:#f7f9fc;border-color:var(--ln2);color:var(--tx)}
+body :is(.fd:hover,.fd:focus-within,.bub.me,.cn-notify-row:hover){background:#edf4ff}
+body :is(.cn-notify-state,.cn-notify-row small,.ph small){color:var(--mut)}
+body .ops-danger{color:var(--dn);border-color:#ecc5c7}
+body :is(.btn,.seg,.ps-dialog button,input,select,textarea,.ops-dialog :is(select,textarea)){background-color:var(--field);border-color:var(--ln2);color:var(--tx)}
+body :is(.btn,.ps-dialog button):hover{background:#eaf2fd;border-color:#a7bfdf}
+body :is(.btn.p,.seg button.on){background:var(--ac);color:#fff;border-color:var(--ac)}
+body .btn.p:hover{background:#0c4385}
+body select option{background:#fff;color:var(--tx)}
+body :is(input,select,textarea):focus{border-color:#548dcd;box-shadow:0 0 0 3px #1255a520}
+body :is(th,td,.kv){border-color:var(--ln)}
+body th{background:#f5f8fc;color:#41536a;font-size:12px;font-weight:600!important}
+body tbody tr:hover{background:#f2f7fd}
+body .in{color:#1255a5;background:#e7f0ff}
+body .alloc{background:#e8eef6}
+body .hide .amt,body.hide .amt{text-shadow:0 0 9px #172332b0}
+body :is(.mo,.mask.open){background:#17233266;backdrop-filter:blur(4px)}
+body dialog::backdrop{background:#17233266!important;backdrop-filter:blur(4px)!important}
+body #cn-listing-modal>.md{background:#fff!important}
+body #cn-listing-modal :is(input,select){color:var(--tx)}
+body :is(#cn-listing-modal select,#cn-overview-sub){color-scheme:light}
+body :is(.detail-card,.chat-log,.chat-msg,.cp-dialog .cp-card){background:#f7f9fc;border-color:var(--ln)}
+body .chat-msg.admin{background:#e7f0ff;border-color:#c5d9f6}
+body .cp-dialog{--cp-accent:#1255a5;box-shadow:0 14px 40px #253d6326}
+body .cp-dialog :is(input,select,textarea,button){background:#f7f9fc;color:var(--tx);border-color:var(--ln2)}
+body .cp-dialog .cp-primary{background:var(--ac);color:#fff}
+body .cp-dialog :is(label,.cp-muted,.cp-empty,.cp-terms span){color:var(--mut)}
+body .cp-overlay{background:#17233266;backdrop-filter:blur(4px)}
+body .sw2 s{background:#d2dce9}
+body .sw2 input:checked+s{background:var(--ac)}
+body .mb.p:hover{background:#0c4385}
+body .mb.dg{color:#fff}
+body #cn-lm-err{color:var(--dn)}
+body .ops-phone .ops-heading{background:transparent}
+body .cn-brand-entry{background:#f4f7fb}
+body .cn-brand-entry img{filter:brightness(0)}
+.approval-page{min-width:0}
+.approval-heading{margin-bottom:18px}
+.approval-heading h1{margin:0;font-size:27px;letter-spacing:-.02em;font-weight:700!important}
+.approval-heading p{margin:3px 0;color:var(--mut)}
+.approval-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 16px;padding:12px 0}
+.approval-summary div{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;padding:0 16px;border-right:1px solid var(--ln)}
+.approval-summary div:last-child{border:0}
+.approval-summary dt{color:var(--mut)}
+.approval-summary dd{margin:0;font-size:16px;font-weight:650!important}
+.approval-split{display:grid;grid-template-columns:minmax(0,3fr) minmax(300px,2fr);gap:16px;align-items:start}
+.approval-toolbar .bar{justify-content:flex-end}
+.approval-toolbar select{max-width:185px}
+.approval-table{overflow:auto;max-height:64dvh}
+.approval-table th{position:sticky;top:0;z-index:1}
+body .approval-table .approval-selected{background:#e7f0ff}
+.approval-link{border:0;background:none;padding:3px 0;color:var(--ac);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.approval-detail .ph{overflow-wrap:anywhere;font-weight:650!important}
+.approval-body{padding:14px 16px}
+.approval-amount{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;background:#edf5ff;border-radius:8px}
+.approval-amount strong{font-size:22px;font-weight:700!important}
+.approval-amount .chip{margin-left:auto}
+.approval-meta{margin:12px 0}
+.approval-meta div{display:grid;grid-template-columns:100px 1fr;padding:7px 0;border-bottom:1px solid var(--ln)}
+.approval-meta dt{color:var(--mut)}
+.approval-meta dd{margin:0;overflow-wrap:anywhere}
+.approval-steps{list-style:none;display:flex;justify-content:space-between;gap:8px;padding:0;margin:20px 0;color:var(--mut)}
+.approval-steps li{flex:1;text-align:center;position:relative}
+.approval-steps li:not(:last-child)::after{content:"";position:absolute;top:10px;left:calc(50% + 12px);width:calc(100% - 16px);height:1px;background:#c5d9f6}
+.approval-steps li span{display:grid;place-items:center;margin:0 auto 4px;width:22px;height:22px;border-radius:50%;border:1px solid #a7bfdf}
+.approval-steps .reached span{background:var(--ac);color:#fff;border-color:var(--ac)}
+.approval-note textarea,.approval-body label textarea{display:block;margin-top:5px;border-radius:8px;resize:vertical}
+.approval-actions{display:flex;justify-content:flex-end;gap:8px}
+.approval-actions .btn,.approval-toolbar .btn,.approval-toolbar select{height:32px;border-radius:7px}
+@media(max-width:1000px){body header.top{gap:8px;padding-inline:10px}.approval-split{grid-template-columns:1fr}.approval-table{max-height:42dvh}}
+@media(max-width:600px){body .tn{font-size:12px;padding-inline:8px}.approval-summary div{padding-inline:8px}}
 </style></head>
 <body data-m="b"><div class="cn-brand-entry" aria-hidden="true"><div class="cn-brand-entry-mark"><img src="./logo.png" alt="" width="112" height="112"></div></div>
 <div id="cnsplash" aria-hidden="true" class="cn-off cn-gone"><canvas id="cnsky" width="0" height="0"></canvas>
@@ -580,36 +671,40 @@ var hold=reduce?400:2500;setTimeout(function(){sp.classList.add('cn-off');setTim
 
 
 <section class="pg b grid" id="p-appr" hidden>
-  <div class="pn c12" id="cn-doc-approval" hidden>
-    <div class="ph">
-      <span>客户资料审核<small id="cn-doc-count">正在读取…</small></span>
-      <div class="bar">
-        <select id="cn-doc-kind" aria-label="筛选资料类型"><option value="">全部资料</option><option value="IDENTITY">身份资料</option><option value="BANK">银行卡</option></select>
-        <button type="button" class="btn" id="cn-doc-refresh">刷新</button>
+  <div class="c12 approval-page" id="cn-doc-approval" hidden>
+    <header class="approval-heading"><h1>客户资料审核</h1><p>身份资料与银行卡</p></header>
+    <div class="approval-split">
+      <div class="pn">
+        <div class="ph approval-toolbar"><span>申请列表<small id="cn-doc-count">正在读取…</small></span>
+          <div class="bar"><select id="cn-doc-kind" aria-label="筛选资料类型"><option value="">全部资料</option><option value="IDENTITY">身份资料</option><option value="BANK">银行卡</option></select>
+          <button type="button" class="btn" id="cn-doc-refresh">刷新</button></div>
+        </div>
+        <div class="approval-table"><table><thead><tr><th>客户</th><th>资料</th><th>状态</th><th>提交时间</th><th>操作</th></tr></thead>
+          <tbody id="cn-doc-rows"><tr><td colspan="5" class="empty">正在读取待审核资料…</td></tr></tbody></table></div>
       </div>
-    </div>
-    <div style="overflow-x:auto">
-      <table><thead><tr><th>客户</th><th>资料</th><th>状态</th><th>提交时间</th><th>操作</th></tr></thead>
-      <tbody id="cn-doc-rows"><tr><td colspan="5" class="empty">正在读取待审核资料…</td></tr></tbody></table>
+      <aside class="pn approval-detail" id="cn-doc-detail"><div class="ph">审核详情</div><div class="pb approval-body"><p class="mut">请选择一条申请</p></div></aside>
     </div>
   </div>
-  <div class="pn c12" id="cn-cash-approval" data-master-funding hidden>
-    <div class="ph">
-      <span>出入金审批<small>正在读取…</small></span>
-      <div class="bar">
-        <select id="cn-cash-kind" aria-label="筛选资金类型"><option value="">全部申请</option><option value="DEPOSIT">充值申请</option><option value="WITHDRAW">提现申请</option></select>
-        <button type="button" class="btn" id="cn-cash-refresh">刷新</button>
+  <div class="c12 approval-page" id="cn-cash-approval" data-master-funding hidden>
+    <header class="approval-heading"><h1>资金审批</h1><p>充值与提现</p></header>
+    <dl class="pn approval-summary"><div><dt>待初审</dt><dd id="cn-cash-pending">—</dd></div><div><dt>待终审</dt><dd id="cn-cash-reviewed">—</dd></div><div><dt>今日已入账</dt><dd class="amt" id="cn-cash-booked">—</dd></div></dl>
+    <div class="approval-split">
+      <div class="pn">
+        <div class="ph approval-toolbar"><span>申请列表<small id="cn-cash-count">正在读取…</small></span>
+          <div class="bar"><select id="cn-cash-kind" aria-label="筛选资金类型"><option value="">全部申请</option><option value="DEPOSIT">充值</option><option value="WITHDRAW">提现</option></select>
+          <select id="cn-cash-owner" aria-label="筛选子账户"><option value="">全部子账户</option></select>
+          <button type="button" class="btn" id="cn-cash-refresh">刷新</button></div>
+        </div>
+        <div class="approval-table"><table><thead><tr><th>客户</th><th>类型</th><th>金额 USD</th><th>提交时间</th><th>状态</th></tr></thead>
+          <tbody><tr><td colspan="5" class="empty">正在读取待审批申请…</td></tr></tbody></table></div>
       </div>
-    </div>
-    <div style="overflow-x:auto">
-      <table><thead><tr><th>申请</th><th>状态</th><th>客户</th><th>金额 USD</th><th>提交时间</th><th class="r">操作</th></tr></thead>
-      <tbody><tr><td colspan="6" class="empty">正在读取待审批申请…</td></tr></tbody></table>
+      <aside class="pn approval-detail" id="cn-cash-detail"><div class="ph">审核详情</div><div class="pb approval-body"><p class="mut">请选择一条申请</p></div></aside>
     </div>
   </div>
 </section>
 
 <section class="pg b grid" id="p-fund" hidden="">
-<div class="pn c12"><div class="ph"><span>资金申请与审批记录<small>充值 0 · 提现 0</small></span><button class="btn">刷新统计</button></div>
+<div class="pn c12" id="cn-cash-history"><div class="ph"><span>资金申请与审批记录<small>正在读取…</small></span><button class="btn" id="cn-cash-history-refresh">刷新记录</button></div>
 <table><thead><tr><th>类型</th><th class="r">金额 USD</th><th>状态</th><th>客户</th><th>提交时间</th></tr></thead><tbody><tr><td colspan="5" class="empty">暂无资金申请</td></tr></tbody></table></div>
 </section>
 
@@ -871,7 +966,7 @@ s.querySelectorAll('.tp').forEach(function(t){t.hidden=t.id!==b.dataset.t})}});
 var last;document.querySelectorAll('[data-open]').forEach(function(b){b.onclick=function(){var m=document.getElementById(b.dataset.open);m.classList.add('open');last=b;m.querySelector('[data-close]').focus()}});
 document.querySelectorAll('.dr').forEach(function(d){d.setAttribute('aria-modal','true')});
 var tt;function toast(t){var e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},1800)}
-document.querySelectorAll('.btn').forEach(function(b){if(b.disabled||b.tagName==='A'||b.dataset.p||b.dataset.open||b.hasAttribute('data-close')||b.hasAttribute('data-own'))return;b.addEventListener('click',function(){toast('操作已触发')})});
+document.querySelectorAll('.btn').forEach(function(b){if(b.disabled||b.tagName==='A'||b.dataset.p||b.dataset.open||b.hasAttribute('data-close')||b.hasAttribute('data-own')||b.closest('#p-appr,#p-fund'))return;b.addEventListener('click',function(){toast('操作已触发')})});
 document.querySelectorAll('.seg').forEach(function(g){if(g.id==='mode')return;g.querySelectorAll('button').forEach(function(b){b.onclick=function(){g.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});
 if(g.id==='flt'){var n=0;document.querySelectorAll('#p-trade tbody tr:not(#no-tx)').forEach(function(r){var ok=b.textContent==='全部'||r.children[2].textContent.indexOf(b.textContent)>-1;r.hidden=!ok;if(ok)n++});document.getElementById('no-tx').hidden=n>0}}})});
 document.querySelectorAll('.tabs').forEach(function(t){t.querySelectorAll('button:not([data-t])').forEach(function(b){b.onclick=function(){t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)})}})});
@@ -986,22 +1081,22 @@ function draw(){
  var T=ticks(mx),top=T[T.length-1],Y=function(v){return P.t+ph-ph*fy(v)/fy(top)};
  LAY={D:D,slot:slot,w:w,Y:Y};
  g.font='10px Inter,"Noto Sans SC",sans-serif';g.textBaseline='middle';
- T.forEach(function(v){var y=Y(v);g.strokeStyle=v===0?'rgba(255,255,255,.2)':'rgba(255,255,255,.07)';g.lineWidth=1;g.beginPath();g.moveTo(P.l,Math.round(y)+.5);g.lineTo(w-P.r,Math.round(y)+.5);g.stroke();
-  g.fillStyle='#8a9280';g.textAlign='right';g.fillText(S.hid?'••':(v===0?'0':fm(v)),P.l-8,y)});
+ T.forEach(function(v){var y=Y(v);g.strokeStyle=v===0?'#c7d5e5':'#e0e7f0';g.lineWidth=1;g.beginPath();g.moveTo(P.l,Math.round(y)+.5);g.lineTo(w-P.r,Math.round(y)+.5);g.stroke();
+  g.fillStyle='#526277';g.textAlign='right';g.fillText(S.hid?'••':(v===0?'0':fm(v)),P.l-8,y)});
  var ls=n<=7?1:n<=30?5:15;g.textAlign='center';g.textBaseline='alphabetic';
  D.forEach(function(d,i){var cx=P.l+slot*(i+.5),sel=S.day===d.k,hv=S.hv===i;
-  if(sel||hv){g.fillStyle=sel?'rgba(232,194,122,.09)':'rgba(255,255,255,.05)';g.fillRect(P.l+slot*i,P.t,slot,ph);if(sel){g.fillStyle='#e8c27a';g.fillRect(P.l+slot*i,P.t,slot,2)}}
-  if((n-1-i)%ls===0){g.fillStyle=sel||hv?'#f7f9f2':'#8a9280';g.fillText(md(d.d),cx,h-9)}});
+  if(sel||hv){g.fillStyle=sel?'rgba(40,116,200,.09)':'#f1f6fc';g.fillRect(P.l+slot*i,P.t,slot,ph);if(sel){g.fillStyle='#2874c8';g.fillRect(P.l+slot*i,P.t,slot,2)}}
+  if((n-1-i)%ls===0){g.fillStyle=sel||hv?'#172332':'#526277';g.fillText(md(d.d),cx,h-9)}});
  var bw=Math.max(2,Math.min(24,slot*.34));
  D.forEach(function(d,i){var cx=P.l+slot*(i+.5);
-  [[d.i,'#e8c27a','rgba(232,194,122,.45)',-bw-.5],[d.o,'#ff6b5a','rgba(255,107,90,.4)',.5]].forEach(function(b){if(!(b[0]>0))return;
+  [[d.i,'#2874c8','rgba(40,116,200,.45)',-bw-.5],[d.o,'#ff6b5a','rgba(255,107,90,.4)',.5]].forEach(function(b){if(!(b[0]>0))return;
    var hh=Math.max(3,ph*fy(b[0])/fy(top)),y=P.t+ph-hh,gr=g.createLinearGradient(0,y,0,y+hh);gr.addColorStop(0,b[1]);gr.addColorStop(1,b[2]);g.fillStyle=gr;rrect(cx+b[3],y,bw,hh,Math.min(3,bw/2));g.fill();
-   if(slot>=56&&!S.hid){g.fillStyle='#d4dacb';g.textAlign='center';g.fillText(fm(b[0]),cx+b[3]+bw/2,y-5)}})});
+   if(slot>=56&&!S.hid){g.fillStyle='#41536a';g.textAlign='center';g.fillText(fm(b[0]),cx+b[3]+bw/2,y-5)}})});
  var pts=D.map(function(d,i){return[P.l+slot*(i+.5),Y(d.cum)]});
- var ag=g.createLinearGradient(0,P.t,0,P.t+ph);ag.addColorStop(0,'rgba(232,194,122,.16)');ag.addColorStop(1,'rgba(232,194,122,0)');
+ var ag=g.createLinearGradient(0,P.t,0,P.t+ph);ag.addColorStop(0,'rgba(40,116,200,.16)');ag.addColorStop(1,'rgba(40,116,200,0)');
  g.beginPath();g.moveTo(pts[0][0],P.t+ph);pts.forEach(function(p){g.lineTo(p[0],p[1])});g.lineTo(pts[n-1][0],P.t+ph);g.closePath();g.fillStyle=ag;g.fill();
- g.beginPath();pts.forEach(function(p,i){i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])});g.strokeStyle='#e8c27a';g.lineWidth=2;g.lineJoin='round';g.stroke();
- if(n<=14)pts.forEach(function(p){g.beginPath();g.arc(p[0],p[1],3.2,0,7);g.fillStyle='#13150f';g.fill();g.strokeStyle='#e8c27a';g.lineWidth=1.6;g.stroke()});
+ g.beginPath();pts.forEach(function(p,i){i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])});g.strokeStyle='#2874c8';g.lineWidth=2;g.lineJoin='round';g.stroke();
+ if(n<=14)pts.forEach(function(p){g.beginPath();g.arc(p[0],p[1],3.2,0,7);g.fillStyle='#ffffff';g.fill();g.strokeStyle='#2874c8';g.lineWidth=1.6;g.stroke()});
  renderSummary(D)}
 function renderSummary(D){if(!R.length){$('cs').innerHTML='<div><span>区间充值</span><b>—</b></div><div><span>区间提现</span><b>—</b></div><div><span>区间净流入</span><b>—</b></div><div><span>峰值日</span><b>—</b></div>';return;}
  var i=0,o=0,pk=null;D.forEach(function(d){i+=d.i;o+=d.o;var v=d.i+d.o;if(v>0&&(!pk||v>pk.v))pk={d:d.d,v:v}});
@@ -2127,7 +2222,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
 })();
 </script>
 <script>
-/* deploy build: cash request approval (sub-admin first review, master final) */
+/* Funding review for the master account. */
 (function(){
   var KEY='cncap.admin.session';
   var role=null;
@@ -2138,73 +2233,99 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       body:body?JSON.stringify(body):undefined})
       .then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}return {ok:r.ok,status:r.status,json:j}})});
   }
-  function when(s){if(!s)return '—';return String(s).replace('T',' ').slice(0,16)}
-  function money(c){if(c==null)return '—';try{return (Number(c)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}catch(e){return '—'}}
+  var items=[], selected='', inFlight=null, saving=false;
+  var q=function(selector){return document.querySelector(selector)};
+  var zone='Asia/Kuala_Lumpur';
+  var day=new Intl.DateTimeFormat('en-CA',{timeZone:zone});
+  var clock=new Intl.DateTimeFormat('sv-SE',{timeZone:zone,dateStyle:'short',timeStyle:'short'});
+  function when(s){return s?clock.format(new Date(s)):'—'}
+  function money(c){return (Number(c)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
   var KIND={DEPOSIT:'充值',WITHDRAW:'提现'};
-  function chip(s){var cls=s==='PENDING'?'wa':s==='REVIEWED'?'in':s==='APPROVED'?'in':'rd';var label=s==='PENDING'?'待初审':s==='REVIEWED'?'待终审':s==='APPROVED'?'已通过':'已驳回';return '<span class="chip '+cls+'">'+esc(label)+'</span>'}
+  var STATUS={PENDING:'待初审',REVIEWED:'待终审',APPROVED:'已入账',REJECTED:'已驳回'};
+  function chip(s){return '<span class="chip '+(s==='PENDING'?'wa':s==='REJECTED'?'rd':'in')+'">'+esc(STATUS[s]||s)+'</span>'}
   function loadRole(){return api('/api/admin/me').then(function(res){if(res.ok&&res.json)role=res.json.role}).catch(function(){})}
-  function actions(r){
-    var canFirst=r.status==='PENDING';
-    var canFinal=r.status==='REVIEWED'&&role==='MASTER';
-    if(!canFirst&&!canFinal)return '<span class="mut">—</span>';
-    var out='<button class="btn p" data-cn-review="'+esc(r.id)+'" data-cn-decision="APPROVE">'+(canFirst?'初审通过':'终审通过')+'</button> ';
-    out+='<button class="btn" data-cn-review="'+esc(r.id)+'" data-cn-decision="REJECT">驳回</button>';
-    return out;
+  function renderDetail(r){
+    var panel=q('#cn-cash-detail .approval-body');
+    if(!r){panel.innerHTML='<p class="mut">请选择一条申请</p>';return}
+    var stage=r.status==='PENDING'?1:r.status==='REVIEWED'?2:3;
+    var steps=['已提交',r.reviewedAt?'初审通过':'待初审',stage===3?STATUS[r.status]:'待终审'];
+    var rows=[['客户',r.email],['所属子账户',r.ownerEmail],['提交时间',when(r.createdAt)]];
+    if(r.note)rows.push(['申请备注',r.note]);
+    if(r.rejectReason)rows.push(['驳回原因',r.rejectReason]);
+    panel.innerHTML='<div class="approval-amount"><span>'+esc(KIND[r.kind]||r.kind)+'申请</span><strong class="amt">$'+money(r.amountCents)+'</strong>'+chip(r.status)+'</div>'
+      +'<dl class="approval-meta">'+rows.map(function(row){return '<div><dt>'+esc(row[0])+'</dt><dd>'+esc(row[1]||'—')+'</dd></div>'}).join('')+'</dl>'
+      +'<ol class="approval-steps">'+steps.map(function(label,i){return '<li class="'+(i===0||(i===1&&r.reviewedAt)||(i===2&&stage===3)?'reached':'')+'"><span>'+String(i+1)+'</span>'+esc(label)+'</li>'}).join('')+'</ol>'
+      +(stage<3?'<label class="approval-note">审核备注（驳回时必填）<textarea rows="3" maxlength="500" id="cn-cash-reason"></textarea></label><p role="status" class="ops-note" id="cn-cash-message"></p><div class="approval-actions"><button class="btn" data-cn-decision="REJECT">驳回</button><button class="btn p" data-cn-decision="APPROVE">'+(stage===1?'初审通过':'确认入账')+'</button></div>':'');
   }
-  function rowAppr(r){
-    return '<tr><td>'+esc(KIND[r.kind]||r.kind)+'申请</td><td>'+chip(r.status)+'</td><td>'+esc(r.email||'—')+'</td>'
-      +'<td class="amt">'+esc(money(r.amountCents))+'</td><td class="mut">'+esc(when(r.createdAt))+'</td><td class="r">'+actions(r)+'</td></tr>';
+  function draw(keepDetail){
+    var owner=q('#cn-cash-owner').value,kind=q('#cn-cash-kind').value;
+    var scoped=items.filter(function(r){return (!owner||r.ownerEmail===owner)&&(!kind||r.kind===kind)});
+    window.CN_CASH_TASKS={pending:items.filter(r=>r.status==='PENDING').length,reviewed:items.filter(r=>r.status==='REVIEWED').length};
+    window.dispatchEvent(new CustomEvent('cn-cash-task-counts',{detail:window.CN_CASH_TASKS}));
+    var pending=scoped.filter(function(r){return r.status==='PENDING'}).length;
+    var reviewed=scoped.filter(function(r){return r.status==='REVIEWED'}).length;
+    var today=day.format(new Date());
+    var booked=scoped.filter(function(r){return r.status==='APPROVED'&&r.approvedAt&&day.format(new Date(r.approvedAt))===today}).reduce(function(total,r){return total+Number(r.amountCents)},0);
+    q('#cn-cash-pending').textContent=pending;
+    q('#cn-cash-reviewed').textContent=reviewed;
+    q('#cn-cash-booked').textContent='$'+money(booked);
+    q('#cn-cash-count').textContent='待处理 '+(pending+reviewed)+' 条';
+    var current=scoped.find(function(r){return r.id===selected});
+    if(!current){current=scoped[0];selected=current?current.id:'';keepDetail=false}
+    q('#cn-cash-approval tbody').innerHTML=scoped.length?scoped.map(function(r){
+      return '<tr class="'+(r.id===selected?'approval-selected':'')+'"><td><button class="approval-link" data-cash-select="'+esc(r.id)+'">'+esc(r.email||'—')+'</button></td><td>'+esc(KIND[r.kind]||r.kind)+'</td><td class="amt">'+money(r.amountCents)+'</td><td>'+esc(when(r.createdAt))+'</td><td>'+chip(r.status)+'</td></tr>';
+    }).join(''):'<tr><td colspan="5" class="empty">暂无资金申请</td></tr>';
+    var history=scoped.slice(0,50);
+    q('#cn-cash-history tbody').innerHTML=history.length?history.map(function(r){
+      return '<tr><td>'+esc(KIND[r.kind]||r.kind)+'</td><td class="r amt">'+money(r.amountCents)+'</td><td>'+chip(r.status)+'</td><td>'+esc(r.email||'—')+'</td><td>'+esc(when(r.createdAt))+'</td></tr>';
+    }).join(''):'<tr><td colspan="5" class="empty">暂无资金申请</td></tr>';
+    q('#cn-cash-history small').textContent='显示 '+history.length+' / '+scoped.length+' 条';
+    if(!keepDetail)renderDetail(current);
   }
-  function rowFund(r){
-    return '<tr><td>'+esc(KIND[r.kind]||r.kind)+'</td><td class="r">'+esc(money(r.amountCents))+'</td><td>'+chip(r.status)+'</td>'
-      +'<td>'+esc(r.email||'—')+'</td><td class="mut">'+esc(when(r.createdAt))+'</td></tr>';
-  }
-  function loadAppr(){
-    var tb=document.querySelector('#cn-cash-approval tbody');
-    if(!tb||!token()||role!=='MASTER')return;
-    api('/api/admin/requests').then(function(res){
-      if(!res.ok||!res.json||!Array.isArray(res.json.items)){tb.innerHTML='<tr><td colspan="6" class="empty">无法加载资金申请，请刷新重试。</td></tr>';return}
-      var kind=document.querySelector('#cn-cash-kind').value;var items=res.json.items.filter(function(r){return (!kind||r.kind===kind)&&(r.status==='PENDING'||r.status==='REVIEWED')});
-      tb.innerHTML=items.length?items.map(rowAppr).join(''):'<tr><td colspan="6" class="empty">暂无待审批申请</td></tr>';
-      var small=document.querySelector('#cn-cash-approval .ph small');
-      if(small)small.textContent='待处理 '+items.length+' 条';
-    }).catch(function(){});
-  }
-  function loadFund(){
-    var tb=document.querySelector('#p-appr > .pn:last-child:not(#cn-cash-approval) tbody');
-    if(!tb||!token()||role!=='MASTER')return;
-    api('/api/admin/requests').then(function(res){
-      if(!res.ok||!res.json||!Array.isArray(res.json.items))return;
-      var items=res.json.items.slice(0,50);
-      tb.innerHTML=items.length?items.map(rowFund).join(''):'<tr><td colspan="5" class="empty">暂无资金申请</td></tr>';
-      var small=tb.closest('.pn').querySelector('.ph small');
-      var dep=items.filter(function(r){return r.kind==='DEPOSIT'}).length;
-      var wd=items.filter(function(r){return r.kind==='WITHDRAW'}).length;
-      if(small)small.textContent='充值 '+dep+' · 提现 '+wd;
-    }).catch(function(){});
+  function loadAppr(force){
+    if(!token()||role!=='MASTER'||saving||inFlight)return inFlight;
+    inFlight=api('/api/admin/requests').then(function(res){
+      if(!res.ok||!Array.isArray(res.json?.items))throw Error('资金申请读取失败，请刷新重试。');
+      var previous=items.find(function(r){return r.id===selected});
+      items=res.json.items;
+      var owners=[...new Set(items.map(function(r){return r.ownerEmail}).filter(Boolean))].sort();
+      var filter=q('#cn-cash-owner'),owner=filter.value;
+      filter.replaceChildren(new Option('全部子账户',''),...owners.map(function(email){return new Option(email,email)}));
+      if(owners.includes(owner))filter.value=owner;
+      var next=items.find(function(r){return r.id===selected});
+      draw(!force&&previous&&next&&previous.status===next.status);
+    }).catch(function(){q('#cn-cash-count').textContent='资金申请读取失败，请刷新重试。'}).finally(function(){inFlight=null});
+    return inFlight;
   }
   function install(){
-    loadRole().then(function(){if(role==='MASTER'){loadAppr();loadFund()}});
-    document.querySelector('#cn-cash-refresh').addEventListener('click',loadAppr);
-    document.querySelector('#cn-cash-kind').addEventListener('change',loadAppr);
-    document.addEventListener('click',function(e){
-      var t=e.target.closest&&e.target.closest('[data-cn-review]');
-      if(!t)return;
-      var id=t.getAttribute('data-cn-review'),decision=t.getAttribute('data-cn-decision');
-      var reason='';
-      if(decision==='REJECT'){reason=(prompt('请输入驳回原因（客户可见）')||'').trim();if(!reason)return}
-      t.disabled=true;t.textContent='处理中…';
-      api('/api/admin/requests','POST',{id:id,decision:decision,reason:reason||undefined}).then(function(res){
-        if(res.ok){loadAppr();loadFund();window.dispatchEvent(new Event('cn-funding-overview-refresh'));return}
-        t.disabled=false;t.textContent=decision==='APPROVE'?'通过':'驳回';
-        alert((res.json&&res.json.error)||('操作失败（HTTP '+res.status+'）'));
-      }).catch(function(){t.disabled=false;alert('网络错误')});
-    },true);
-    document.addEventListener('click',function(e){
-      var t2=e.target.closest&&e.target.closest('[data-p="appr"],[data-p="fund"]');
-      if(t2)setTimeout(function(){loadAppr();loadFund()},150);
-    },true);
-    setInterval(function(){loadAppr();loadFund()},60000);
+    loadRole().then(function(){loadAppr()});
+    for(var id of ['#cn-cash-refresh','#cn-cash-history-refresh'])q(id).addEventListener('click',function(){loadAppr()});
+    for(var id of ['#cn-cash-kind','#cn-cash-owner'])q(id).addEventListener('change',function(){if(role==='MASTER'&&!saving)draw(false)});
+    q('#cn-cash-approval').addEventListener('click',async function(e){
+      if(role!=='MASTER'||saving)return;
+      var select=e.target.closest('[data-cash-select]');
+      if(select){selected=select.dataset.cashSelect;draw(false);[...q('#cn-cash-approval tbody').querySelectorAll('[data-cash-select]')].find(function(b){return b.dataset.cashSelect===selected})?.focus();return}
+      var button=e.target.closest('[data-cn-decision]');
+      if(!button||!selected)return;
+      var reason=q('#cn-cash-reason'),message=q('#cn-cash-message'),decision=button.dataset.cnDecision;
+      var value=reason.value.trim();
+      if(decision==='REJECT'&&!value){message.textContent='请输入驳回原因。';reason.focus();return}
+      saving=true;
+      var controls=[...q('#cn-cash-approval').querySelectorAll('button,select,textarea')];
+      controls.forEach(function(control){control.disabled=true});
+      message.textContent='正在提交审核结果…';
+      var updated=false;
+      try{
+        var res=await api('/api/admin/requests','POST',{id:selected,decision:decision,reason:value||undefined});
+        if(!res.ok)throw Error(res.json?.error||'操作失败，请重试。');
+        updated=true;message.textContent='审核结果已提交';
+        window.dispatchEvent(new Event('cn-funding-overview-refresh'));
+      }catch(error){message.textContent=error.message||'网络错误，请重试。'}
+      finally{saving=false;controls.forEach(function(control){control.disabled=false})}
+      if(updated){for(var control of q('#cn-cash-detail').querySelectorAll('button'))control.disabled=true;if(inFlight)await inFlight;loadAppr(true)}
+    });
+    window.addEventListener('cn-admin-section',function(e){if(e.detail==='appr')loadAppr()});
+    setInterval(function(){if(!document.hidden&&!q('#p-appr').hidden)loadAppr()},60000);
   }
   if(document.readyState!=='loading')install();else document.addEventListener('DOMContentLoaded',install);
 })();
@@ -2429,17 +2550,25 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
         recordList('交易记录',d.orders.slice(0,10).map(x=>[x.symbol+' · '+(x.side==='BUY'?'买入':'卖出'),x.quantity+' 股 · '+money(Number(x.amount_usd_cents))])),
         recordList('资金申请',d.requests.slice(0,10).map(x=>[(x.kind==='WITHDRAW'?'提现':'充值')+' · '+money(x.amountCents),x.statusLabel||states[x.status]]))
       );
-      view.body.append(data);
+      view.body.append(data,clientTimeline(d));
     }catch(error){if(view.isCurrent())view.body.replaceChildren(node('p',errorLabel(error),'ops-note'))}
   }
+  let selectedDoc;
   function drawDocs(){
     const body=q('#cn-doc-rows'),kind=q('#cn-doc-kind').value;
     const matches=docs.filter(d=>!kind||d.kind===kind);
     q('#cn-doc-count').textContent='待审核 '+matches.length+' 条';
     body.replaceChildren();
+    drawTasks();
+    if(selectedDoc&&!matches.some(item=>item.email===selectedDoc.email&&item.kind===selectedDoc.kind&&item.updated_at===selectedDoc.updated_at))clearDocDetail();
     if(docError||!matches.length){empty(body,5,docError||'暂无待审核资料');return}
     for(const item of matches){
-      rowWith(body,[item.email,docNames[item.kind],node('span','待审核','chip wa'),date(item.updated_at),action('查看并审核',()=>openReview(item),'p')]);
+      rowWith(body,[item.email,docNames[item.kind],node('span','待审核','chip wa'),date(item.updated_at),action('查看并审核',event=>{
+        body.querySelector('.approval-selected')?.classList.remove('approval-selected');
+        event.currentTarget.closest('tr').classList.add('approval-selected');
+        openReview(item);
+      })]);
+      if(selectedDoc?.email===item.email&&selectedDoc?.kind===item.kind)body.lastElementChild.classList.add('approval-selected');
     }
   }
   function loadDocs(){
@@ -2449,8 +2578,21 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       .catch(error=>{docError=errorLabel(error);drawDocs()}).finally(()=>{docRequest=null});
     return docRequest;
   }
+  function clearDocDetail(){
+    selectedDoc=null;
+    q('#cn-doc-detail .ph').textContent='审核详情';
+    q('#cn-doc-detail .approval-body').replaceChildren(node('p','请选择一条申请','mut'));
+  }
   async function openReview(item,returnToClient){
-    const view=dialogOpen(docNames[item.kind]+'审核',item.email);
+    let view;
+    if(returnToClient)view=dialogOpen(docNames[item.kind]+'审核',item.email);
+    else {
+      selectedDoc=item;
+      const detail=q('#cn-doc-detail'),body=detail.querySelector('.approval-body');
+      detail.querySelector('.ph').textContent=docNames[item.kind]+'审核 · '+item.email;
+      body.replaceChildren();
+      view={body,isCurrent:()=>selectedDoc===item};
+    }
     view.body.append(node('p','正在读取资料…','mut'));
     try{
       const data=await api(query('profile-documents',{email:item.email,kind:item.kind}));
@@ -2484,7 +2626,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
         const buttons=[...footer.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
         try{
           await api('profile-documents','PATCH',{email:item.email,kind:item.kind,version:data.version,status,reason:value});
-          if(view.isCurrent()){if(returnToClient)returnToClient();else dialog.close()}
+          if(view.isCurrent()){if(returnToClient)returnToClient();else clearDocDetail()}
           loadDocs();loadAudit();
         }catch(error){if(view.isCurrent())message.textContent=errorLabel(error);if(error.status===409)loadDocs()}
         finally{buttons.forEach(b=>b.disabled=false)}
@@ -2494,6 +2636,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
     }catch(error){if(view.isCurrent())view.body.replaceChildren(node('p',errorLabel(error),'ops-note'))}
   }
   function drawInbox(){
+    drawTasks();
     const unread=inbox.filter(item=>seen[item.email]!==item.message_id);
     const badge=q('#cn-support-count');
     badge.textContent=String(unread.length);badge.hidden=!unread.length;
@@ -2505,6 +2648,80 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       }
       if(!inbox.length)empty(inboxBody,4,'暂无客户消息');
     }
+  }
+  let cashTasks=window.CN_CASH_TASKS||{pending:0,reviewed:0};
+  function drawTasks(){
+    if(!me)return;
+    cashTasks=window.CN_CASH_TASKS||cashTasks;
+    const host=q('#cn-admin-tasks');
+    const heading=node('div','','ph'),label=node('span','待办事项'),controls=node('div','','bar');
+    if(me.role==='MASTER')controls.append(action('平台公告',openAnnouncement));
+    heading.append(label,controls);
+    const tasks=node('div','','cn-task-grid');
+    const add=(name,count,open)=>{
+      const button=action('',open);
+      button.className='cn-task';
+      button.append(node('span',name),node('strong',String(count)),node('small','查看并处理'));
+      tasks.append(button);
+    };
+    const approval=()=>q('[data-p="appr"]').click();
+    if(me.role==='MASTER'){
+      add('待初审',cashTasks.pending,approval);
+      add('待终审',cashTasks.reviewed,approval);
+      add('未读客服会话',inbox.filter(item=>seen[item.email]!==item.message_id).length,openInbox);
+    }else{
+      add('身份资料待审核',docs.filter(item=>item.kind==='IDENTITY').length,()=>{approval();q('#cn-doc-kind').value='IDENTITY';drawDocs()});
+      add('银行卡待审核',docs.filter(item=>item.kind==='BANK').length,()=>{approval();q('#cn-doc-kind').value='BANK';drawDocs()});
+    }
+    host.replaceChildren(heading,tasks);
+  }
+  async function openAnnouncement(){
+    const view=dialogOpen('平台公告','发布后同步展示在电脑和手机端');
+    try{
+      const data=await api('announcements');if(!view.isCurrent())return;
+      const form=node('form'),title=node('input'),text=node('textarea'),status=node('p','','ops-note'),buttons=node('div','','ops-actions');
+      title.maxLength=100;title.required=true;title.value=data.item?.title||'';
+      text.maxLength=3000;text.rows=6;text.required=true;text.value=data.item?.body||'';
+      const name=node('label','公告标题'),body=node('label','公告内容');name.append(title);body.append(text);
+      const publish=action('发布公告',()=>{},'p');publish.type='submit';
+      const withdraw=action('撤下公告',()=>save('withdraw'),'ops-danger');withdraw.disabled=!data.item;
+      buttons.append(withdraw,publish);form.append(name,body,status,buttons);
+      view.body.replaceChildren(form);
+      async function save(actionName){
+        if(actionName==='publish'&&!form.reportValidity())return;
+        const controls=[title,text,publish,withdraw];controls.forEach(control=>control.disabled=true);
+        try{
+          const result=await api('announcements','POST',{action:actionName,version:data.version,title:title.value,body:text.value});
+          if(!view.isCurrent())return;Object.assign(data,result);status.textContent=actionName==='publish'?'公告已发布':'公告已撤下';loadAudit();
+        }catch(error){if(view.isCurrent())status.textContent=error.status===409?'公告已被其他管理员更新，请关闭后重新打开。':errorLabel(error)}
+        finally{if(view.isCurrent()){controls.forEach(control=>control.disabled=false);withdraw.disabled=!data.item}}
+      }
+      form.addEventListener('submit',event=>{event.preventDefault();save('publish')});
+    }catch(error){if(view.isCurrent())view.body.replaceChildren(node('p',errorLabel(error),'ops-note'))}
+  }
+  function clientTimeline(d){
+    const events=[];
+    const add=(at,title,detail='')=>{if(at)events.push({at,title,detail})};
+    add(d.registeredAt,'客户注册',d.subadminEmail?'邀请归属 '+d.subadminEmail:'');
+    for(const item of d.requests){
+      const kind=item.kind==='WITHDRAW'?'提现':'充值';
+      add(item.createdAt,kind+'申请',money(item.amountCents));
+      add(item.reviewedAt,kind+'初审通过');
+      add(item.approvedAt,kind+(item.status==='REJECTED'?'已驳回':'已入账'),item.rejectReason||money(item.amountCents));
+    }
+    for(const item of d.documents)add(item.updated_at,docNames[item.kind]+' · '+(states[item.status]||item.status));
+    for(const item of d.history||[]){
+      const field=labels[item.field]?.[0]||({document_identity:'身份资料审核',document_bank:'银行卡审核'})[item.field]||'客户资料';
+      add(item.created_at,field+'变更',[item.admin_email,item.reason].filter(Boolean).join(' · '));
+    }
+    for(const item of d.support||[])add(item.created_at,item.sender_role==='CLIENT'?'客户来信':'客服回复',item.body);
+    const sectionNode=section('操作时间线'),list=node('ol','','cn-client-timeline');
+    for(const event of events.sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,50)){
+      const row=node('li'),time=node('time',date(event.at)),title=node('strong',event.title),detail=node('p',event.detail);
+      row.append(time,title,detail);list.append(row);
+    }
+    if(!events.length)list.append(node('li','暂无记录'));
+    sectionNode.append(list);return sectionNode;
   }
   function loadInbox(){
     if(inboxRequest||me?.role!=='MASTER')return inboxRequest||Promise.resolve();
@@ -2567,6 +2784,9 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
     q('#cn-doc-kind').addEventListener('change',drawDocs);
     q('#cn-doc-refresh').addEventListener('click',loadDocs);
 
+    const tasks=node('section','','pn c12');tasks.id='cn-admin-tasks';q('#p-over').prepend(tasks);
+    window.addEventListener('cn-cash-task-counts',event=>{cashTasks=event.detail;drawTasks()});
+    drawTasks();
     q('#cn-support-open').addEventListener('click',openInbox);
     CNNotify.mount(q('#cn-bell-host'),{admin:true,onOpen(item,role){
       if(item.kind==='FUND_FAILURE'){window.dispatchEvent(new Event('cn-open-fund-failures'));return;}
@@ -2592,10 +2812,12 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
     frame.title='客户手机 App 镜像';
     frame.setAttribute('sandbox','allow-scripts allow-forms');frame.referrerPolicy='no-referrer';
     const channel=crypto.randomUUID(),isMaster=me.role==='MASTER';
-    const initialize=function(email,channel,isMaster){
+    const pendingStorageKey="cn.mirror.pending."+String(me.userId||me.email||me.role)+":"+data.email;
+    const initialize=function(email,channel,isMaster,persisted){
+      window.CN_MIRROR_CONTEXT={email,role:isMaster?'MASTER':'SUBADMIN'};
       const storage=seed=>{const entries=new Map(seed);return {getItem:key=>entries.get(key)??null,setItem:(key,value)=>entries.set(key,String(value)),removeItem:key=>entries.delete(key)}};
       Object.defineProperty(window,'localStorage',{value:storage([['cncap.session','mirror'],['cncap.user',email]])});
-      Object.defineProperty(window,'sessionStorage',{value:storage([['cncap.mobile.entry','1']])});
+      Object.defineProperty(window,'sessionStorage',{value:storage([['cncap.mobile.entry','1'],['cn.pending.mirror:'+email.toLowerCase(),persisted||'null']])});
       const pending=new Map();
       window.fetch=async(input,options={})=>{
         const url=new URL(typeof input==='string'?input:input.url,'https://admin.maacropierce.com');
@@ -2610,13 +2832,14 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
           parent.postMessage({type:'cn-mirror-request',channel,id,path:url.pathname+url.search,method,payload,key:headers.get('idempotency-key')},'*');
         });
       };
+      window.CN_MIRROR_STORE_PENDING=async record=>{const r=await window.fetch('/__mirror_pending',{method:'POST',body:JSON.stringify({record})});if(!r.ok)throw Error('Pending storage unavailable');};
       addEventListener('message',event=>{
         const msg=event.data;if(event.source!==parent||msg?.channel!==channel||msg.type!=='cn-mirror-response')return;
         const item=pending.get(msg.id);if(!item)return;clearTimeout(item.timer);pending.delete(msg.id);
         item.resolve(new Response(msg.status===204?null:msg.body,{status:msg.status,headers:{'content-type':'application/json'}}));
       });
       addEventListener('click',event=>{
-        const control=event.composedPath().find(x=>x?.dataset?.a==='logout');
+        const control=event.composedPath().find(x=>x?.dataset?.a==='logout'||x?.dataset?.action==='logout');
         if(control){event.preventDefault();event.stopImmediatePropagation();parent.postMessage({type:'cn-mirror-close',channel},'*');}
       },true);
       addEventListener('keydown',event=>{
@@ -2627,11 +2850,11 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
         parent.postMessage({type:'cn-mirror-close',channel},'*');
       });
       document.addEventListener('DOMContentLoaded',()=>{
-        const patch=document.createElement('style');patch.textContent='html,body{height:100%;overflow:hidden}';
+        const patch=document.createElement('style');patch.textContent='html,body{height:100%;overflow:auto}';
         document.head.append(patch);
       });
     };
-    const boot='('+initialize.toString()+')('+JSON.stringify(data.email).replace(/</g,'\\u003c')+','+JSON.stringify(channel)+','+isMaster+');';
+    const boot='('+initialize.toString()+')('+JSON.stringify(data.email).replace(/</g,'\\u003c')+','+JSON.stringify(channel)+','+isMaster+','+JSON.stringify(localStorage.getItem(pendingStorageKey)).replace(/</g,'\\u003c')+');';
     const policy="default-src 'none'; script-src 'unsafe-inline' https://s3.tradingview.com; style-src 'unsafe-inline'; img-src data: blob: https://admin.maacropierce.com; frame-src about: https://*.tradingview.com https://*.tradingview-widget.com; connect-src 'none'; form-action 'none'; base-uri 'none'";
     const roleCSS=isMaster?'':'[data-a="chat"],.mirror-support-heading,[data-a="sheet"][data-v="dep"],[data-a="sheet"][data-v="wd"]{display:none!important}';
     const mirrorLayout=':host{position:relative;--cn-header-height:52px;--cn-safe-top:0px}:host(:not(.emb)) .app{height:100dvh!important}:host .app>.v,:host .app>.ptr{top:var(--cn-header-height)}:host .sh{max-height:calc(100% - 8px);overflow-y:auto}'+roleCSS;
@@ -2644,6 +2867,9 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       if(!msg||msg.channel!==channel)return;
       if(msg.type==='cn-mirror-close'){dialog.close();return;}
       if(msg.type!=='cn-mirror-request'||typeof msg.id!=='string')return;
+if(msg.path==='/__mirror_pending'){
+        try{const record=msg.payload?.record;if(record!==null&&(!record||!['/api/bulk-orders','/api/fund-subscriptions','/api/product-settlement'].includes(record.path)||!/^[a-f0-9]{64}$/.test(record.digest)||typeof record.key!=='string'||record.key.length>128))throw Error('Invalid pending record');if(record===null)localStorage.removeItem(pendingStorageKey);else localStorage.setItem(pendingStorageKey,JSON.stringify({path:record.path,digest:record.digest,key:record.key}));frame.contentWindow.postMessage({type:'cn-mirror-response',channel,id:msg.id,status:200,body:'{}'},'*');}catch{frame.contentWindow.postMessage({type:'cn-mirror-response',channel,id:msg.id,status:503,body:'{}'},'*');}return;
+      }
       let status=503,responseBody=JSON.stringify({error:'Delegated service unavailable'});
       try{
         const response=await fetch('/api/admin/client-action',{method:'POST',headers:{Authorization:'Bearer '+localStorage.getItem('cncap.admin.session'),'Content-Type':'application/json'},body:JSON.stringify({email:data.email,path:msg.path,method:msg.method,payload:msg.payload,key:msg.key})});
@@ -2873,3 +3099,6 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
  document.addEventListener('click',e=>{if(e.target.closest('[data-product-settlement-open]'))open()});
 })();
 </script></body></html>
+
+
+

@@ -377,7 +377,7 @@ td.spc{padding-top:4px;padding-bottom:4px;line-height:0}
 .tn .cv{margin-left:6px;opacity:.55;transition:transform .2s,opacity .2s}
 .ni:hover .cv,.ni:focus-within .cv{transform:rotate(180deg);opacity:1}
 .dd{position:absolute;left:-10px;top:100%;padding-top:14px;opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .18s,transform .18s,visibility .18s;z-index:30}
-.ni:hover .dd,.ni:focus-within .dd{opacity:1;visibility:visible;transform:none}
+.ni:hover .dd,.ni:has(:focus-visible) .dd{opacity:1;visibility:visible;transform:none}
 .ni.shut .dd{opacity:0;visibility:hidden}
 .ddb{width:300px;padding:8px;border-radius:12px;border:1px solid var(--ln2);background:linear-gradient(180deg,rgba(25,191,189,.12),rgba(15,17,19,.97) 55%),rgba(15,17,19,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 44px rgba(0,0,0,.55)}
 .ddi{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:0;background:none;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--tx)}
@@ -657,8 +657,18 @@ header.top .cn-unified-logo{width:50px;height:50px;object-fit:contain;display:bl
 #f-bank[hidden], #bank-review-status[hidden] { display:none!important; }
 @media(min-width:1181px){#pn-watch{flex:0 1 34%;min-height:100px;overflow:auto}#pn-order{flex:1;min-height:140px;overflow:auto}}
 @media (min-width:1181px) {
-  #p-trade { grid-template-columns:clamp(300px,19vw,350px) minmax(0,1fr) clamp(264px,16vw,300px); }
+  #p-trade { grid-template-columns:clamp(280px,17vw,320px) minmax(0,1fr) clamp(284px,18vw,330px); }
   #pn-ord { flex:0 0 clamp(144px,26%,240px); min-height:144px; }
+}
+#tb-watch td.spc {
+  width: 112px;
+  white-space: normal;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+#tb-watch td.spc small {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 @media (max-width:1180px) {
   #pn-chart .cw { height:clamp(340px,56vh,520px)!important; }
@@ -777,20 +787,21 @@ header.top .cn-unified-logo{width:50px;height:50px;object-fit:contain;display:bl
  function render(target,item,options={}){
    if(!target||!item)return;
    const interval=options.interval||'D',style=options.style||'3';
-   const key=[item.tv,item.overview,interval,style,Boolean(options.average)].join(':');
+   const theme=options.theme==='light'?'light':'dark';
+   const key=[item.tv,item.overview,interval,style,Boolean(options.average),theme].join(':');
    if(target.dataset.chartKey===key)return;
    target.dataset.chartKey=key;
    target.dataset.instrument=item.market+':'+item.symbol;
    const frame=document.createElement('iframe');frame.title='TradingView '+item.name+' '+item.symbol;frame.className='cn-tv-frame';
-   const config={symbol:item.tv,autosize:true,interval,style,locale:'zh_CN',theme:'dark',allow_symbol_change:false,
+   const config={symbol:item.tv,autosize:true,interval,style,locale:'zh_CN',theme,allow_symbol_change:false,
      hide_side_toolbar:true,hide_top_toolbar:false,studies:options.average?['STD;SMA']:[]};
    const tvJSON=JSON.stringify(config).replace(/</g,'\\u003c');
    frame.srcdoc='<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
-     '<style>html,body{margin:0;height:100%;overflow:hidden;background:#0b0e10;color:#c1c9d1;font:11px system-ui}'+
+     '<style>html,body{margin:0;height:100%;overflow:hidden;background:'+(theme==='light'?'#fff;color:#243248':'#0b0e10;color:#c1c9d1')+';font:11px system-ui}'+
      '.tradingview-widget-container{display:flex;flex-direction:column;height:100%;width:100%;overflow:hidden}'+
      '.tradingview-widget-container__widget{flex:1;min-height:0;overflow:hidden}'+
      '.tradingview-widget-container__widget iframe{display:block;border:0;width:100%;height:100%}'+
-     '.chart-credit{flex:none;padding:2px 8px;line-height:14px}.chart-credit a{color:#b8cbff}</style>'+
+     '.chart-credit{flex:none;padding:2px 8px;line-height:14px}.chart-credit a{color:'+(theme==='light'?'#1657a4':'#b8cbff')+'}</style>'+
      '<div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div>'+
      '<div class="chart-credit"><a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView</a></div>'+
      '<script async src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js">'+tvJSON+'</scr'+'ipt></div></html>';
@@ -818,6 +829,186 @@ dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgb
 </style><style id="cn-desktop-order-layout">
 #pn-order{flex:0 1 auto;min-height:0;overflow:hidden}
 #pn-watch{flex:1 1 160px;min-height:120px;overflow:auto}
+#pn-watch > .ph {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px;
+}
+#watchsub {
+  margin: 0;
+  white-space: nowrap;
+}
+:root {
+  color-scheme: light;
+  --bg:#f5f7fb; --sf:#fff; --sf2:#f6f8fc;
+  --pn:#fff; --pn2:#f1f5fa; --ln:#dfe6ef; --ln2:#cad5e3;
+  --tx:#172332; --mut:#526277; --ac:#1255a5; --acb:#e7f0ff;
+  --cn-modal-glow:transparent; --cn-modal-top:#fff; --cn-modal-bottom:#f6f8fc;
+}
+html body { background:#f5f7fb; color:#172332; }
+html body header.top { background:#fff; border-color:#dfe6ef; }
+.cn-unified-logo, .cn-brand-entry-mark img { filter:brightness(0); }
+html body :is(.pn,.sc,.dd,.ddi,.order-product,.order-empty,#pn-order #ptabs,.toast) {
+  background:#fff; border-color:#dfe6ef; color:#172332;
+}
+html body :is(.ph,.ph>div:first-child,.ddi b,.bc-h,.bc-v,.order-head strong,.cp-card h3) { color:#172332; }
+html body :is(.tn,.btn,.seg button,.tabs button,.chip,.bal,.acct,.search,.star) { color:#34465d; }
+html body :is(.btn,.seg,.tabs,.bal,.acct,.search) { background:#f3f6fb; border-color:#dfe6ef; }
+html body :is(.seg button.on,.tabs button.on,#pn-order #ptabs button.on) { background:#e7f0ff; color:#1255a5; }
+html body .tn.on { color:#1255a5; }
+html body .tn.on::after { background:#1255a5; }
+html body :is(.btn.p,.cp-primary) { background:#1255a5; border-color:#1255a5; color:#fff; box-shadow:none; }
+html body :is(th,.note,.order-name,.order-product dt,.order-head small,.mut,.hint,.cp-muted) { color:#526277; }
+html body th { background:#f3f6fa; }
+html body :is(.mask .dlg,dialog.ps-dialog,dialog.cn-notify,dialog.ops-dialog,.cp-dialog.cp-customer,.cn-notify-row,.cp-card,.cp-terms,.cp-tier) {
+  background:#fff!important; color:#172332!important; border-color:#dfe6ef!important;
+}
+html body :is(.fld,.cp-dialog,.ps-form,.dlg,.dd) :is(input,select,textarea) {
+  background:#f6f8fc!important; color:#172332!important; border-color:#cad5e3!important;
+}
+html body :is(.cn-notify-row small,.cn-notify-state,.cp-dialog label,.cp-dialog .cp-muted) { color:#526277; }
+html body :is(.dlg,.ps-dialog,.cp-dialog) :is(h2,h3,.ph>div:first-child) { color:#172332; }
+html body :is(.ps-dialog button,.cn-notify-close) { background:#f3f6fb; color:#172332; border-color:#cad5e3; }
+html body :is(.mask.open,.cp-overlay) { background:rgba(22,36,57,.34); }
+html body .pg .pn:hover,html body .pg .sc:hover { border-color:#b9cce8; box-shadow:none; transform:none; }
+.top .dd .ddb {
+  padding:6px; background:#fff; border:1px solid #dfe6ef;
+  box-shadow:0 12px 32px #22365126; backdrop-filter:none;
+}
+.top .dd .ddi { background:transparent; border-radius:6px; padding:9px 11px; }
+.top .dd .ddi:hover,.top .dd .ddi:focus-visible { background:#edf4ff; }
+.top .dd .ddi b { font-size:14px!important; font-weight:600!important; }
+.top .dd .ddi span { font-size:12px!important; color:#526277; }
+header.top input.sr {
+  background-color:#f4f7fb; color:#172332; border-color:#cad5e3;
+  font-size:13px!important; box-shadow:none;
+}
+header.top input.sr::placeholder { color:#566780; opacity:1; }
+header.top input.sr:focus-visible { border-color:#1255a5; outline:2px solid #a8c9f1; outline-offset:1px; }
+header.top .av { background:#e7f0ff; color:#1255a5; border-color:#c9daf1; font-weight:650; }
+header.top .tn { font-size:14px!important; }
+#p-acct,.trade-drawer,.mask .dlg,html body dialog:is(.cn-notify,.ps-dialog,.ops-dialog) {
+  --fs-cap:13px; --fs-body:14px; --fs-title:16px;
+}
+#p-acct .sc span,#p-acct .sc .sh,#p-acct .ph small,.dlg .ph small { color:#46586e; }
+#p-acct .sc em,#p-acct .sc.gold em {
+  color:#172332; font-weight:650!important; font-variant-numeric:tabular-nums;
+}
+#p-acct .account-section th {
+  color:#33445a; background:#edf2f8; font-weight:600!important;
+}
+#p-acct .account-section td { color:#172332; font-variant-numeric:tabular-nums; }
+#p-acct .account-section :is(th,td) { line-height:1.45; }
+#p-acct .account-section td.up { color:#087538; }
+#p-acct .account-section td.dn { color:#a72c32; }
+html body :is(.mask .dlg,dialog.cn-notify,dialog.ps-dialog,dialog.ops-dialog,.cp-dialog.cp-customer) {
+  border-radius:14px; box-shadow:0 18px 54px #23365333;
+  font-size:14px; line-height:1.55;
+}
+html body :is(.dlg>.ph,.cn-notify-head,.ps-dialog>header,.cp-dialog.cp-customer>header) {
+  background:#fff; color:#172332; border-color:#dfe6ef;
+}
+html body :is(.mask .dlg .ph>div:first-child,.cp-dialog.cp-customer h2,.ps-dialog header strong,.cn-notify-head strong) {
+  font-size:18px!important; font-weight:700!important;
+}
+html body :is(.dlg .er,.cp-dialog .cp-error) { color:#a72c32; }
+html body .tr-ok { background:#fff; color:#172332; }
+html body .tr-ok b { color:#172332; }
+html body dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop {
+  background:#14243c42; backdrop-filter:blur(3px);
+}
+#p-acct { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:none; grid-auto-rows:max-content; align-content:start; overflow:auto; }
+#p-acct[hidden] { display:none; }
+#p-acct .stats { grid-column:auto; }
+#p-acct .stats { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.account-panels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; align-items:start; }
+.account-panels #pn-req { grid-column:1/-1; }
+.account-section .sy { max-height:min(560px,57vh); overflow:auto; }
+.account-section :is(#pn-hold,#pn-ord) { min-height:0; max-height:none; }
+.desktop-section-tabs { display:flex; flex-wrap:wrap; gap:8px; border-bottom:1px solid #dfe6ef; }
+html body .desktop-section-tabs button { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; color:#526277; }
+html body .desktop-section-tabs button[aria-pressed="true"] { border-color:#1255a5; color:#1255a5; font-weight:700; }
+.desktop-section-tabs button:focus-visible { outline:2px solid #1255a5; outline-offset:-2px; }
+#market-favorites { margin-top:8px; }
+#market-favorites #pn-watch { min-height:110px; max-height:310px; overflow:auto; }
+#market-favorites #pn-watch table { width:100%; }
+#p-market #market-favorites .star { color:#526277; }
+#p-market #market-favorites .star.on { color:#956100; }
+.trade-shade { position:fixed; inset:0; z-index:40; background:#14243c42; }
+.ni:has(> [data-p="trade"]) > .dd,.tn[data-p="trade"] .cv { display:none; }
+.trade-drawer { position:fixed; inset:0 0 0 auto; z-index:41; width:min(500px,100%); display:flex; flex-direction:column; background:#fff; border-left:1px solid #dfe6ef; color:#172332; box-shadow:-12px 0 48px #21385322; }
+.trade-drawer[hidden],.trade-shade[hidden],.account-section[hidden],#market-favorites[hidden],#market-ranking[hidden] { display:none; }
+.trade-drawer > header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #dfe6ef; }
+.trade-drawer > header h2 { font-size:20px; margin:0; }
+.trade-drawer #pn-order { flex:1; min-height:0; border:0; border-radius:0; }
+.trade-drawer #pn-order .order-products { flex:1; min-height:0; overflow:auto; }
+.trade-drawer .order-head strong { display:none; }
+html body :is(.trade-drawer .cp-card,.cp-dialog.cp-customer) button:not(.cp-primary) {
+  background:#f3f6fb; color:#172332; border-color:#cad5e3;
+}
+@media(max-width:1020px) { .account-panels { grid-template-columns:minmax(0,1fr); } }
+#p-market {
+  grid-template-columns: minmax(0, 7fr) minmax(320px, 3fr);
+  align-items: start;
+  gap: 16px;
+  padding: clamp(14px, 2vw, 28px);
+  overflow: auto;
+  background: #fff;
+  color: #172332;
+}
+#p-market h1 { font-size: clamp(23px, 2.2vw, 34px); margin: 0 0 16px; }
+#p-market h2 { font-size: 17px; margin: 0 0 10px; }
+.market-main, .market-side { min-width: 0; }
+.market-side { display: grid; gap: 16px; }
+.market-card, .market-table {
+  background: #fff;
+  border: 1px solid #dce4ee;
+  border-radius: 10px;
+}
+.market-card { padding: 14px; }
+.market-table { overflow: auto; }
+.market-tabs { border-bottom: 1px solid #dce4ee; padding-bottom: 4px; }
+#p-market .market-tabs button { background: transparent; border-radius: 0; border-bottom: 2px solid transparent; }
+#p-market .market-tabs button[aria-pressed="true"] { background: transparent; border-bottom-color: #1255a5; color: #1255a5; }
+#p-market .desktop-section-tabs button { background:transparent; border-radius:0; border-bottom:2px solid transparent; }
+#p-market .desktop-section-tabs button[aria-pressed="true"] { border-bottom-color:#1255a5; color:#1255a5; font-weight:700; }
+.market-symbol-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.market-symbol-row .market-select { flex:1; min-width:0; margin:0; }
+.market-symbol-row button { flex:none; }
+.market-source { margin: 10px 0 0; font-size: 12px; color: #526277; }
+.market-select { width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #dce4ee; border-radius: 6px; background: #fff; color: #172332; }
+.market-widget iframe { display: block; width: 100%; height: 100%; border: 0; }
+#market-quotes { height: clamp(410px, 64vh, 760px); }
+#market-ranking { height: 340px; }
+.market-empty { display: grid; place-items: center; height: 100%; color: #526277; }
+.market-unavailable { padding: 8px 14px; margin: 0; border-top: 1px solid #e5ebf2; color: #526277; font-size: 13px; line-height: 1.6; }
+body:has(#p-market.show) header.top { background: #fff; border-color: #dce4ee; }
+body:has(#p-market.show) header.top .tn { color: #33445a; }
+body:has(#p-market.show) header.top .tn.on { color: #1255a5; }
+body:has(#p-market.show) header.top .tn.on::after { background: #1255a5; }
+.market-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+#p-market button {
+  padding: 6px 10px;
+  color: #243248;
+  background: #eef2f7;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#p-market .market-filters button[aria-pressed="true"] { background: #1255a5; color: #fff; }
+.market-table table { width: 100%; min-width: 640px; table-layout: auto; }
+.market-table :is(th,td) { padding: 10px 12px; border-bottom: 1px solid #e5ebf2; text-align: right; white-space: nowrap; }
+.market-table :is(th,td):first-child { text-align: left; }
+.market-table th { background: #eef2f7; color: #33445a; }
+.market-table tr[aria-selected="true"] td { background: #e7f0ff; }
+#p-market .market-instrument { background: transparent; padding: 2px; font-weight: 600; }
+#market-chart { height: 310px; }
+#market-chart iframe { display: block; width: 100%; height: 100%; border: 0; }
+#market-rank-status { color: #526277; margin: 8px 0 0; }
+@media (max-width: 1020px) {
+  #p-market { grid-template-columns: minmax(0, 1fr); }
+}
 .order-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 12px;border-bottom:1px solid var(--ln)}
 .order-head strong,.order-head small{display:block}
 .order-head small{margin-top:4px;color:var(--mut);font-size:11px}
@@ -846,7 +1037,7 @@ dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgb
 <div class="brand">
 <img src="./logo.png" class="cn-unified-logo" alt="CN Capital" width="50" height="50">
 <div>CN Capital<small>PRIVATE · TRADING</small></div></div>
-<nav class="nav"><div class="ni"><button class="tn on" data-p="trade" aria-haspopup="true">交易<svg class="cv" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg></button><div class="dd" role="menu"><div class="ddb"><button type="button" class="ddi" role="menuitem" data-go="trade:pn-order"><b>下单</b><span>大宗交易 · 股票 / 基金 / IPO / 大宗商品</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-hold"><b>持仓</b><span>持仓数量、可卖出与持仓成本</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-watch"><b>自选</b><span>已关注的标的</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-ord"><b>交易明细</b><span>全部成交记录，可导出</span></button></div></div></div><div class="ni"><button class="tn" data-p="acct" aria-haspopup="true">账户<svg class="cv" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg></button><div class="dd" role="menu"><div class="ddb"><button type="button" class="ddi" role="menuitem" data-go="acct:pn-req"><b>申请记录</b><span>充值、提现、资料申请的进度</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-dep"><b>充值</b><span>提交充值申请</span></button><button type="button" class="ddi" role="menuitem" data-go="wd"><b>提现</b><span>提交提现申请</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-id"><b>身份资料</b><span>选择证件图片并预览</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-bank"><b>银行卡资料</b><span>查看与填写银行卡资料</span></button></div></div></div></nav>
+<nav class="nav"><div class="ni"><button class="tn" data-p="trade" aria-haspopup="true">交易<svg class="cv" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg></button><div class="dd" role="menu"><div class="ddb"><button type="button" class="ddi" role="menuitem" data-go="trade:pn-order"><b>下单</b><span>大宗交易 · 股票 / 基金 / IPO / 大宗商品</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-hold"><b>持仓</b><span>持仓数量、可卖出与持仓成本</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-watch"><b>自选</b><span>已关注的标的</span></button><button type="button" class="ddi" role="menuitem" data-go="trade:pn-ord"><b>交易明细</b><span>全部成交记录，可导出</span></button></div></div></div><div class="ni"><button class="tn" data-p="acct" aria-haspopup="true">账户<svg class="cv" viewBox="0 0 10 6" width="9" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path></svg></button><div class="dd" role="menu"><div class="ddb"><button type="button" class="ddi" role="menuitem" data-go="acct:pn-req"><b>申请记录</b><span>充值、提现、资料申请的进度</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-dep"><b>充值</b><span>提交充值申请</span></button><button type="button" class="ddi" role="menuitem" data-go="wd"><b>提现</b><span>提交提现申请</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-id"><b>身份资料</b><span>选择证件图片并预览</span></button><button type="button" class="ddi" role="menuitem" data-go="modal:m-bank"><b>银行卡资料</b><span>查看与填写银行卡资料</span></button></div></div></div></nav>
 <div class="right"><span id="cn-bell-host"></span>
 <input class="sr" type="search" placeholder="搜索代码或公司  按 / 聚焦" aria-label="搜索代码或公司">
 <span class="vdiv" aria-hidden="true"></span>
@@ -856,9 +1047,9 @@ dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgb
 <div class="ni accw"><button class="av" aria-haspopup="true" aria-label="账户菜单">L</button><div class="dd ddr" role="menu"><div class="ddb"><button type="button" class="ddi" role="menuitem" data-go="acct:__acct"><b>账户</b><span>查看资产与账户状态</span></button><button type="button" class="ddi" role="menuitem" data-go="wd"><b>提现</b><span>提交提现申请</span></button><button type="button" class="ddi" role="menuitem" data-go="logout"><b>退出登录</b><span>结束当前会话</span></button></div></div></div></div>
 </header>
 
-<main>
+<main><section id="cn-bulletin" class="cn-bulletin" hidden aria-label="平台公告"></section>
 <!-- 交易 -->
-<section class="pg show" id="p-trade"><div class="kpis"><div class="pn kpi" id="k-total"><span class="kl">总资产 USD</span><em class="amt" data-b="total">—</em><small data-b="valuationNote">现金 + 持仓估值 + 认购资产</small><div class="spw" data-k="total"><span class="mut">—</span></div></div><div class="pn kpi" id="k-cash"><span class="kl">现金余额 USD</span><em class="amt" data-b="cash">—</em><small>账面现金</small><div class="spw" data-k="cash"><span class="mut">—</span></div></div><div class="pn kpi" id="k-cost"><span class="kl">持仓成本 USD</span><em class="amt" data-b="cost">—</em><small><span data-b="nhold">—</span> 个标的</small><div class="spw" data-k="cost"><span class="mut">—</span></div></div><div class="pn kpi" id="k-realized"><span class="kl">已实现盈亏 USD</span><em class="amt" data-b="realized">—</em><small>按卖出记录统计</small><div class="spw" data-k="realized"><span class="mut">—</span></div></div></div><div class="col cl"><div class="pn bal-card" id="pn-bal"><div class="bc-h"><span>我的资产</span><button type="button" class="ibtn" id="balref" aria-label="刷新数据">↻ 刷新</button></div><div class="bc-v amt" data-b="cash">—</div><div class="bc-s">现金余额 USD · 同步 <span data-b="sync">未同步</span></div><div class="bc-btns"><button class="btn" type="button" data-open="m-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14"></path></svg>充值</button><button class="btn" type="button" data-open="m-dep" data-wd="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V9m0 0l-4 4m4-4l4 4M5 5h14"></path></svg>提现</button><button class="btn" type="button" data-open="m-id"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="11" r="2"></circle><path d="M14 10h4M14 14h4M6 16c.6-1.4 1.6-2 3-2s2.4.6 3 2"></path></svg>身份资料</button><button class="btn" type="button" data-open="m-bank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 10h18M7 15h3"></path></svg>银行卡</button></div><div class="bc-f"><div class="kv"><span>订单</span><span><span data-b="nord">—</span> · <span class="tw">—</span></span></div><div class="kv"><span>账户 <span data-b="acct">—</span></span><span><span class="dot"></span><span data-b="sync">未同步</span></span></div></div></div><div class="pn fill" id="pn-hold">
+<section class="pg" id="p-trade" hidden><div class="kpis"><div class="pn kpi" id="k-total"><span class="kl">总资产 USD</span><em class="amt" data-b="total">—</em><small data-b="valuationNote">现金 + 持仓估值 + 认购资产</small><div class="spw" data-k="total"><span class="mut">—</span></div></div><div class="pn kpi" id="k-cash"><span class="kl">现金余额 USD</span><em class="amt" data-b="cash">—</em><small>账面现金</small><div class="spw" data-k="cash"><span class="mut">—</span></div></div><div class="pn kpi" id="k-cost"><span class="kl">持仓成本 USD</span><em class="amt" data-b="cost">—</em><small><span data-b="nhold">—</span> 个标的</small><div class="spw" data-k="cost"><span class="mut">—</span></div></div><div class="pn kpi" id="k-realized"><span class="kl">已实现盈亏 USD</span><em class="amt" data-b="realized">—</em><small>按卖出记录统计</small><div class="spw" data-k="realized"><span class="mut">—</span></div></div></div><div class="col cl"><div class="pn bal-card" id="pn-bal"><div class="bc-h"><span>我的资产</span><button type="button" class="ibtn" id="balref" aria-label="刷新数据">↻ 刷新</button></div><div class="bc-v amt" data-b="cash">—</div><div class="bc-s">现金余额 USD · 同步 <span data-b="sync">未同步</span></div><div class="bc-btns"><button class="btn" type="button" data-open="m-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14"></path></svg>充值</button><button class="btn" type="button" data-open="m-dep" data-wd="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V9m0 0l-4 4m4-4l4 4M5 5h14"></path></svg>提现</button><button class="btn" type="button" data-open="m-id"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="11" r="2"></circle><path d="M14 10h4M14 14h4M6 16c.6-1.4 1.6-2 3-2s2.4.6 3 2"></path></svg>身份资料</button><button class="btn" type="button" data-open="m-bank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M3 10h18M7 15h3"></path></svg>银行卡</button></div><div class="bc-f"><div class="kv"><span>订单</span><span><span data-b="nord">—</span> · <span class="tw">—</span></span></div><div class="kv"><span>账户 <span data-b="acct">—</span></span><span><span class="dot"></span><span data-b="sync">未同步</span></span></div></div></div><div class="pn fill" id="pn-hold">
 <div class="ph"><div>持仓</div><small><span data-b="nhold">—</span> 个标的 · 点击行可卖出</small></div>
 <div class="sy"><table><thead><tr><th>标的</th><th>数量</th><th>可卖出</th><th>持仓成本</th><th>成本走势</th></tr></thead><tbody id="tb-hold"><tr><td colspan="5" class="mut" style="padding:16px 0">数据未同步</td></tr></tbody></table></div>
 <div class="pb ctr" style="border-top:1px solid var(--ln)"><div class="mut" style="font-size:10.5px">配置 · 按持仓数量 ｜ 账户同步 <span data-b="sync">未同步</span></div><div class="alloc"><i style="width:0%"></i></div><div class="mut" style="font-size:10.5px;display:flex;justify-content:space-around"><span>US —</span><span>CN —</span></div></div>
@@ -884,26 +1075,80 @@ dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgb
 <div class="order-footer"><button type="button" class="btn" data-product-settlement-open><span>IPO 与普通基金</span><small>申购与赎回 ›</small></button></div>
 </div>
 <div class="pn fill" id="pn-watch">
-<div class="ph"><div>自选</div><small id="watchsub">行情暂不可用 · 已自选 0</small></div>
+<div class="ph"><div>自选</div><small id="watchsub">已自选 0</small></div>
 <table><tbody id="tb-watch"><tr><td colspan="4" class="mut">数据未同步</td></tr></tbody></table>
 </div></div></section>
 
+<!-- 行情 -->
+<section class="pg show" id="p-market">
+  <div class="market-main">
+    <h1>行情总览</h1>
+    <div class="market-filters market-tabs" aria-label="资产类别">
+      <button type="button" data-kind="INDEX" aria-pressed="true">指数</button>
+      <button type="button" data-kind="STOCK" aria-pressed="false">股票</button>
+      <button type="button" data-kind="COMMODITY" aria-pressed="false">大宗商品</button>
+      <button type="button" data-kind="FOREX" aria-pressed="false">外汇</button>
+      <button type="button" data-kind="ETF" aria-pressed="false">ETF</button>
+      <button type="button" data-kind="BOND" aria-pressed="false">债券</button>
+      <button type="button" data-kind="FUND" aria-pressed="false">基金</button>
+      <button type="button" data-kind="CRYPTO" aria-pressed="false">加密货币</button>
+    </div>
+    <div class="market-filters" aria-label="市场地区">
+      <button type="button" data-region="ALL" aria-pressed="true">全部地区</button>
+      <button type="button" data-region="AMERICAS" aria-pressed="false">美洲</button>
+      <button type="button" data-region="EUROPE" aria-pressed="false">欧洲</button>
+      <button type="button" data-region="ASIA" aria-pressed="false">亚太</button>
+      <button type="button" data-region="MIDEAST" aria-pressed="false">中东</button>
+      <button type="button" data-region="AFRICA" aria-pressed="false">非洲</button>
+    </div>
+    <div class="market-table">
+      <div id="market-quotes" class="market-widget"></div>
+      <p id="market-unavailable" class="market-unavailable" hidden></p>
+    </div>
+    <p class="market-source">行情来源 TradingView · 数据可用性与延迟按市场而异 · 报价更新时间 —</p>
+  </div>
+  <aside class="market-side">
+    <section class="market-card">
+      <h2 id="market-symbol">标的走势</h2>
+      <div class="market-symbol-row">
+        <select id="market-symbol-select" class="market-select" aria-label="选择走势标的"></select>
+        <button type="button" id="market-toggle-favorite" hidden>＋ 自选</button>
+      </div>
+      <div id="market-chart" class="market-widget"></div>
+    </section>
+    <section class="market-card">
+      <div class="desktop-section-tabs" aria-label="行情侧栏">
+        <button class="btn" type="button" data-market-side="ranking" aria-controls="market-ranking" aria-pressed="true">美股排行</button>
+        <button class="btn" type="button" data-market-side="news" aria-controls="market-news" aria-pressed="false">新闻</button><button class="btn" type="button" data-market-side="favorites" aria-controls="market-favorites" aria-pressed="false">自选</button>
+      </div>
+      <div id="market-news" class="market-widget" hidden></div><div id="market-ranking" class="market-widget"></div>
+      <div id="market-favorites" hidden></div>
+    </section>
+  </aside>
+</section>
 <!-- 账户 -->
 <section class="pg" id="p-acct" hidden="">
 <div class="stats">
 <div class="pn sc gold"><span>总资产 USD</span><em class="amt" data-b="total">—</em><small class="sh">现金 + 持仓估值 + 认购资产</small></div>
-<div class="pn sc"><span>现金余额 USD</span><em class="amt" data-b="cash">—</em></div>
+<div class="pn sc"><span>可用现金 USD</span><em class="amt" data-b="availableCash">—</em></div>
 <div class="pn sc"><span>持仓成本 USD</span><em class="amt" data-b="cost">—</em></div>
-<div class="pn sc"><span>总成交额 USD</span><em class="amt" data-b="traded">—</em></div>
 <div class="pn sc"><span>已实现盈亏 USD</span><em class="amt" data-b="realized">—</em></div>
 </div>
+<div class="desktop-section-tabs" aria-label="账户分类">
+  <button class="btn" type="button" data-account-section="holdings" aria-controls="account-holdings" aria-pressed="true">持仓</button>
+  <button class="btn" type="button" data-account-section="orders" aria-controls="account-orders" aria-pressed="false">交易记录</button>
+  <button class="btn" type="button" data-account-section="funds" aria-controls="account-funds" aria-pressed="false">资金与资料</button>
+</div>
+<div class="account-section" id="account-holdings"></div>
+<div class="account-section" id="account-orders" hidden></div>
+<div class="account-section" id="account-funds" hidden>
 <div class="pn" id="pn-req">
 <div class="ph"><div>我的申请记录</div><small>共 <span data-b="nreq">—</span> 条 · 点击行查看进度</small>
 <div class="ar"><button class="btn p" data-open="m-dep">充值 / 提现</button><button class="btn" data-open="m-id">身份资料</button><button class="btn" data-open="m-bank">银行卡资料</button></div></div>
 <table><thead><tr><th>类型</th><th>金额 USD</th><th>状态</th><th>时间 · MYT</th></tr></thead><tbody id="tb-req"></tbody></table>
 <div class="ep" id="req-empty">数据未同步</div>
 </div>
-<div class="col">
+<div class="account-panels" id="account-panels">
 <div class="pn">
 <div class="ph"><div>账户信息</div><small>账户 <span data-b="acct">—</span></small></div>
 <div class="pb"><div class="kv"><span>账面币种</span><span>USD</span></div><div class="kv"><span>账户状态</span><span><span class="dot"></span><span data-b="sync">未同步</span></span></div><div class="kv"><span>记录时间</span><span data-b="sync">未同步</span></div></div>
@@ -913,8 +1158,13 @@ dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgb
 <div class="pb" id="req-stat"></div>
 </div>
 </div>
+</div>
 </section>
 </main>
+<div class="trade-shade" id="trade-shade" hidden></div>
+<aside class="trade-drawer" id="trade-drawer" aria-labelledby="trade-drawer-title" hidden>
+  <header><h2 id="trade-drawer-title">交易</h2><button class="btn" type="button" id="trade-drawer-close">关闭</button></header>
+</aside>
 
 <!-- 弹窗：充值 / 提现 -->
 <div class="mask" id="m-dep"><div class="dlg" role="dialog" aria-modal="true" aria-label="充值 / 提现申请">
@@ -1030,9 +1280,28 @@ function rOrders(){var L=DATA.orders.map(function(o,i){return [o,i]}).filter(fun
  $('tb-ord').innerHTML=L.length?L.map(function(x){var o=x[0];return '<tr class="click" tabindex="0" data-i="'+x[1]+'" title="点击查看成交详情"><td>'+esc(o.s)+'<div class="mut nm2">'+esc(nm(o.s))+'</div></td><td class="mut">'+esc(nm(o.s))+'</td><td class="'+(o.t==='买入'?'up':'dn')+'">'+(o.t==='买入'?'↑ ':'↓ ')+esc(o.t)+'</td><td>'+f(o.p)+'</td><td>'+esc(num(o.q,0))+'</td><td class="amt">'+f(o.a)+'</td><td class="spc">'+(function(){var z=os(o);return spk(z.v,64,22,{hi:z.hi,t:o.s+' 累计持仓走势'})})()+'</td><td class="mut">'+esc(o.d)+'</td><td><span class="chip ok">已记录</span></td></tr>'}).join(''):'<tr><td colspan="8" class="mut" style="padding:20px 0">'+(HAVE.orders?'无符合条件的记录':'数据未同步')+'</td></tr>'}
 function rHolds(){$('tb-hold').innerHTML=DATA.holds.length?DATA.holds.map(function(h){var sl=sellable(h.s),lk=h.q-sl,u=nextUnlock(h.s);
  return '<tr class="click" tabindex="0" data-s="'+esc(h.s)+'" title="点击卖出"><td>'+esc(h.s)+' <span class="mut">'+esc(nm(h.s).split(' ')[0])+'</span></td><td>'+esc(num(h.q,0))+'</td><td>'+esc(sl)+(lk>0&&u?'<div class="mut" style="font-size:10.5px;line-height:1.2">'+esc(fmtT(u))+' 起可卖 '+('')+'</div>':'')+'</td><td class="amt">'+f(h.c)+'</td><td class="spc">'+spk(hs(h),52,22,{t:h.s+' 持仓成本走势'})+'</td></tr>'}).join(''):'<tr><td colspan="5" class="mut" style="padding:16px 0">'+(HAVE.holds?'暂无持仓':'数据未同步')+'</td></tr>'}
-function rWatch(){$('tb-watch').innerHTML=DATA.watch.length?DATA.watch.map(function(s){var on=DATA.fav.indexOf(s)>-1;return '<tr><td>'+esc(s)+'</td><td class="mut">'+esc(nm(s))+'</td><td class="spc">'+(function(){var q=DATA.sec[s];return q&&Number.isSafeInteger(q.lastPriceCents)?'<span class="amt">'+f(q.lastPriceCents/100)+'</span><small style="display:block;font-size:10px" title="报价时间">'+esc(fmtT(Date.parse(q.priceTimestamp)))+'</small>':'—'})()+'</td><td><button class="star'+(on?' on':'')+'" data-s="'+esc(s)+'" aria-label="自选" aria-pressed="'+on+'">'+(on?'★':'☆')+'</button></td></tr>'}).join(''):'<tr><td colspan="4" class="mut">'+(HAVE.watch?'暂无自选数据':'数据未同步')+'</td></tr>';
- $('watchsub').textContent='已自选 '+DATA.fav.length;
- var b=$('favaa');b.textContent=DATA.fav.includes(b.dataset.symbol)?'已自选':'+ 自选'}
+function rWatch(){
+  $('tb-watch').innerHTML=DATA.fav.length?DATA.fav.map(function(symbol){
+    const market=desktopFavorites?.find(item=>item.symbol===symbol)?.market||'';
+    return '<tr><td><button type="button" class="btn market-watch-symbol">'+esc(symbol)+'</button></td>'+
+      '<td class="mut">'+esc(nm(symbol))+'</td>'+
+      '<td><button type="button" class="star on" data-s="'+esc(symbol)+'" data-market="'+esc(market)+'" aria-label="取消自选" aria-pressed="true">★</button></td></tr>';
+  }).join(''):'<tr><td colspan="3" class="mut">暂无自选，可在标的走势旁添加</td></tr>';
+  $('watchsub').textContent='已自选 '+DATA.fav.length;
+  const legacy=$('favaa');
+  legacy.textContent=DATA.fav.includes(legacy.dataset.symbol)?'已自选':'+ 自选';
+  updateMarketFavorite();
+}
+function updateMarketFavorite(){
+  const picker=$('market-symbol-select'), button=$('market-toggle-favorite');
+  const symbol=picker.value.split(':').pop();
+  const instrument=window.CN_DESKTOP_SYMBOLS?.[symbol];
+  const saved=DATA.fav.includes(symbol);
+  button.hidden=!(saved||instrument);
+  button.dataset.symbol=button.hidden?'':symbol;
+  button.setAttribute('aria-pressed',String(saved));
+  button.textContent=saved?'已自选':'＋ 自选';
+}
 function rReqs(){$('tb-req').innerHTML=DATA.reqs.map(function(r,i){return '<tr class="click" tabindex="0" data-i="'+i+'"><td>'+esc(r.k)+'</td><td class="amt'+(r.a?'':' mut')+'">'+(r.a?f(r.a):'—')+'</td><td><span class="chip '+stc(String(r.st))+'">'+esc(r.st)+'</span></td><td class="mut">'+esc(r.d)+'</td></tr>'}).join('');
  $('req-empty').textContent=HAVE.reqs?'暂无申请记录':'数据未同步';$('req-empty').hidden=DATA.reqs.length>0}
 function rStat(){var g={};DATA.reqs.forEach(function(r){g[r.st]=(g[r.st]||0)+1});
@@ -1104,12 +1373,194 @@ document.querySelectorAll('[data-close]').forEach(function(b){b.onclick=closeM})
 document.querySelectorAll('.mask').forEach(function(m){m.onclick=function(e){if(e.target===m&&m.id!=='m-lock')closeM()}});
 
 /* ========== 页面切换 ========== */
-var cur='trade',busy=false;
-function show(p){if(p===cur||busy||!$('p-'+p))return;busy=true;var a=$('p-'+cur),b=$('p-'+p);a.classList.remove('show');
+var cur='market',busy=false;
+const drawer=$('trade-drawer'), drawerShade=$('trade-shade'), drawerClose=$('trade-drawer-close');
+const tradeNav=document.querySelector('[data-p="trade"]');
+const drawerBackground=document.querySelectorAll('header.top, main');
+let tradeReturnFocus;
+for(const [host,id] of [['account-holdings','pn-hold'],['account-orders','pn-ord'],['market-favorites','pn-watch'],['trade-drawer','pn-order']]){
+  $(host).append($(id));
+}
+function selectDesktopSection(selector,attribute,selected){
+  for(const button of document.querySelectorAll(selector)){
+    const active=button.dataset[attribute]===selected;
+    button.setAttribute('aria-pressed',String(active));
+    $(button.getAttribute('aria-controls')).hidden=!active;
+  }
+}
+function selectAccountSection(section){
+  selectDesktopSection('[data-account-section]','accountSection',section);
+}
+function selectMarketSide(section){
+  selectDesktopSection('[data-market-side]','marketSide',section);
+}
+for(const button of document.querySelectorAll('[data-account-section]')){
+  button.addEventListener('click',()=>selectAccountSection(button.dataset.accountSection));
+}
+for(const button of document.querySelectorAll('[data-market-side]')){
+  button.addEventListener('click',()=>selectMarketSide(button.dataset.marketSide));
+}
+function openTrading(){
+  if(!drawer.hidden)return;
+  tradeReturnFocus=document.activeElement;
+  drawer.hidden=drawerShade.hidden=false;
+  tradeNav.setAttribute('aria-expanded','true');
+  drawerClose.focus();
+  for(const section of drawerBackground)section.inert=true;
+}
+function closeTrading(restoreFocus=true){
+  if(drawer.hidden)return;
+  drawer.hidden=drawerShade.hidden=true;
+  tradeNav.setAttribute('aria-expanded','false');
+  for(const section of drawerBackground)section.inert=false;
+  if(restoreFocus)(tradeReturnFocus?.isConnected&&tradeReturnFocus.getClientRects().length?tradeReturnFocus:tradeNav).focus();
+}
+tradeNav.setAttribute('aria-controls','trade-drawer');
+tradeNav.setAttribute('aria-expanded','false');
+tradeNav.removeAttribute('aria-haspopup');
+drawerClose.addEventListener('click',()=>closeTrading());
+drawerShade.addEventListener('click',()=>closeTrading());
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!drawer.hidden&&!document.querySelector('.mask.open,.cp-overlay,dialog[open]')){
+    closeTrading();
+  }
+});
+function show(p){if(p==='trade'){openTrading();return;}closeTrading(false);if(p===cur||busy||!$('p-'+p))return;busy=true;var a=$('p-'+cur),b=$('p-'+p);a.classList.remove('show');
  document.querySelectorAll('.tn').forEach(function(x){x.classList.toggle('on',x.dataset.p===p)});
- setTimeout(function(){a.hidden=true;b.hidden=false;requestAnimationFrame(function(){requestAnimationFrame(function(){b.classList.add('show');cur=p;busy=false})})},230)}
-document.querySelectorAll('.tn').forEach(function(b){b.onclick=function(){show(b.dataset.p)}});
+ setTimeout(function(){a.hidden=true;b.hidden=false;requestAnimationFrame(function(){requestAnimationFrame(function(){b.classList.add('show');cur=p;busy=false;if(p==='market')b.dispatchEvent(new Event('market-open'))})})},230)}
+const marketNav=document.createElement('button');
+marketNav.type='button';
+marketNav.className='tn on';
+marketNav.dataset.p='market';
+marketNav.textContent='行情';
+document.querySelector('[data-p="acct"]').closest('.ni').before(marketNav);
+document.querySelectorAll('.tn').forEach(function(b){b.onclick=function(){
+  if(b.dataset.p==='trade')openTrading();
+  else{const ni=b.closest('.ni');if(ni){ni.classList.add('shut');ni.addEventListener('mouseleave',function closeMenu(){ni.classList.remove('shut');ni.removeEventListener('mouseleave',closeMenu)});}show(b.dataset.p);}
+}});
 $('balchip').onclick=function(){show('acct')};
+
+/* Market data stays inside the official TradingView embeds. */
+(function(){
+  const page=$('p-market'), quotes=$('market-quotes'), chart=$('market-chart');
+  const picker=$('market-symbol-select'), ranking=$('market-ranking');
+  const unavailableIndices=new Set(['TVC:DJI','TVC:SPX','NASDAQ:IXIC','TVC:RUT','CBOE:VIX','TVC:UKX','TVC:HSI']);
+  const instruments={
+    INDEX:[
+      ['道琼斯（TVC）','TVC:DJI','AMERICAS'],
+      ['标普 500（TVC）','TVC:SPX','AMERICAS'],
+      ['纳斯达克综合','NASDAQ:IXIC','AMERICAS'],
+      ['罗素 2000（TVC）','TVC:RUT','AMERICAS'],
+      ['VIX 波动率','CBOE:VIX','AMERICAS'],
+      ['德国 DAX','INDEX:DEU40','EUROPE'],
+      ['英国富时 100（TVC）','TVC:UKX','EUROPE'],
+      ['日经 225','INDEX:NKY','ASIA'],
+      ['恒生指数（TVC）','TVC:HSI','ASIA'],
+    ],
+    STOCK:[
+      ['苹果','NASDAQ:AAPL','AMERICAS'],['英伟达','NASDAQ:NVDA','AMERICAS'],
+      ['微软','NASDAQ:MSFT','AMERICAS'],['特斯拉','NASDAQ:TSLA','AMERICAS'],
+    ],
+    COMMODITY:[['黄金（TVC）','TVC:GOLD','GLOBAL'],['白银（TVC）','TVC:SILVER','GLOBAL'],['WTI 原油（TVC）','TVC:USOIL','GLOBAL']],
+    FOREX:[['欧元兑美元','FX:EURUSD','EUROPE'],['美元兑日元','FX:USDJPY','ASIA'],['英镑兑美元','FX:GBPUSD','EUROPE']],
+    ETF:[['标普 500 ETF','AMEX:SPY','AMERICAS'],['纳斯达克 100 ETF','NASDAQ:QQQ','AMERICAS'],['罗素 2000 ETF','AMEX:IWM','AMERICAS']],
+    BOND:[['美国 10 年期国债收益率','TVC:US10Y','AMERICAS'],['德国 10 年期国债收益率','TVC:DE10Y','EUROPE']],
+    FUND:[],
+    CRYPTO:[['比特币 / 美元','COINBASE:BTCUSD','GLOBAL'],['以太坊 / 美元','COINBASE:ETHUSD','GLOBAL']],
+  };
+  const options={width:'100%',height:'100%',colorTheme:'light',locale:'zh_CN',isTransparent:false,showSymbolLogo:true};
+  let kind='INDEX', region='ALL', entries=[];
+  function empty(target){
+    delete target.dataset.chartKey;
+    delete target.dataset.widgetKey;
+    const dash=document.createElement('span');
+    dash.className='market-empty';
+    dash.textContent='—';
+    target.replaceChildren(dash);
+  }
+  function widget(target, type, title, config){
+    const settings=JSON.stringify({...options,...config}).replace(/</g,'\\u003c');
+    const key=type+settings;
+    if(target.dataset.widgetKey===key)return;
+    target.dataset.widgetKey=key;
+    const frame=document.createElement('iframe');
+    frame.title=title;
+    frame.srcdoc='<!doctype html><html lang="zh-CN"><meta charset="utf-8">'+
+      '<style>html,body{margin:0;height:100%;color:#526277;font:12px system-ui}'+
+      '.tradingview-widget-container{height:100%;display:flex;flex-direction:column}'+
+      '.tradingview-widget-container__widget{flex:1;min-height:0}.tradingview-widget-copyright{padding:4px 8px}a{color:#1255a5}</style>'+
+      '<div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"><span aria-hidden="true">—</span></div>'+
+      '<div class="tradingview-widget-copyright"><a href="https://www.tradingview.com/markets/" target="_blank" rel="noopener">TradingView</a></div>'+
+      '<script async src="https://s3.tradingview.com/external-embedding/embed-widget-'+type+'.js">'+settings+'</scr'+'ipt></div></html>';
+    target.replaceChildren(frame);
+  }
+  function updateChart(){
+    const item=entries.find(([,tv])=>tv===picker.value);
+    $('market-symbol').textContent=item?.[0]||'标的走势';
+    updateMarketFavorite();
+    CNNews.render($('market-news'),{symbol:kind==='STOCK'?item?.[1]||'':''});
+    if(!item||unavailableIndices.has(item[1])){empty(chart);return;}
+    const [name,tv]=item;
+    widget(chart,'symbol-overview',name+'走势',{
+      symbols:[[name,tv+'|1D']],chartType:'area',lineWidth:2,hideDateRanges:false,
+    });
+  }
+  function render(){
+    entries=instruments[kind].filter(([, ,area])=>region==='ALL'||area===region);
+    const previous=picker.value;
+    picker.replaceChildren(...entries.map(([name,tv])=>new Option(name,tv)));
+    picker.disabled=!entries.length;
+    const supported=entries.filter(([,tv])=>!unavailableIndices.has(tv));
+    if(entries.some(([,tv])=>tv===previous))picker.value=previous;
+    else if(supported.length)picker.value=supported[0][1];
+    const unavailable=entries.filter(([,tv])=>unavailableIndices.has(tv));
+    const fallback=$('market-unavailable');
+    fallback.hidden=!unavailable.length;
+    fallback.textContent=unavailable.map(([name])=>name+' —').join('　');
+    if(supported.length){
+      const title=page.querySelector('[data-kind="'+kind+'"]').textContent;
+      widget(quotes,'market-quotes',title+'行情',{symbolsGroups:[{
+        name:title,symbols:supported.map(([name,tv])=>({name:tv,displayName:name})),
+      }]});
+    }else empty(quotes);
+    updateChart();
+    widget(ranking,'hotlists','美股市场排行',{exchange:'US',dateRange:'1D',showChart:false});
+  }
+  picker.addEventListener('change',updateChart);
+  $('market-toggle-favorite').addEventListener('click',()=>{
+    const symbol=$('market-toggle-favorite').dataset.symbol;
+    if(symbol)toggleFav(symbol);
+  });
+  page.addEventListener('market-instrument',event=>{
+    const {name,symbol,market}=event.detail;
+    const item=window.CNChart.choice(market,symbol,name);
+    if(!item)return;
+    if(!instruments.STOCK.some(([,tv])=>tv===item.tv)){
+      instruments.STOCK.push([item.name,item.tv,market==='US'?'AMERICAS':'ASIA']);
+    }
+    page.querySelector('[data-kind="STOCK"]').click();
+    picker.value=item.tv;
+    updateChart();
+    show('market');
+  });
+  page.addEventListener('market-open',render);
+  if(!page.hidden)render();
+  page.addEventListener('click',event=>{
+    const button=event.target.closest('button[data-kind],button[data-region]');
+    if(!button)return;
+    for(const option of button.parentElement.querySelectorAll('button')){
+      option.setAttribute('aria-pressed',String(option===button));
+    }
+    if(button.dataset.kind){
+      kind=button.dataset.kind;
+      region='ALL';
+      for(const option of page.querySelectorAll('[data-region]')){
+        option.setAttribute('aria-pressed',String(option.dataset.region==='ALL'));
+      }
+    }else region=button.dataset.region;
+    render();
+  });
+})();
 
 /* ========== 隐藏金额 ========== */
 function setHide(v){document.body.classList.toggle('hide',v);$('hidebtn').textContent=v?'显示金额':'隐藏金额';$('hidebtn').setAttribute('aria-pressed',v);try{sessionStorage.setItem('hideAmt',v?'1':'')}catch(e){}}
@@ -1552,6 +2003,14 @@ document.querySelectorAll('.ddi').forEach(function(b){b.addEventListener('click'
  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
  if(g==='wd')return openWd();
  if(a[0]==='modal')return openModal(a[1]);
+ if(a[0]==='trade'){
+   if(a[1]==='pn-order')return openTrading();
+   if(a[1]==='pn-watch'){selectMarketSide('favorites');show('market');return;}
+   selectAccountSection(a[1]==='pn-ord'?'orders':'holdings');
+   show('acct');
+   return;
+ }
+ if(a[1]==='pn-req')selectAccountSection('funds');
  var moved=cur!==a[0];if(moved)show(a[0]);setTimeout(function(){pulse(a[1])},moved?520:0)})});
 $('balref').onclick=function(){loadData().then(function(){toast('数据已刷新')})};
 })();
@@ -1614,20 +2073,22 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
    favorite.dataset.symbol=item.overview?'':item.symbol;
    const active=[...document.querySelectorAll('#tb-watch .star.on')].some(star=>star.dataset.s===item.symbol);
    favorite.textContent=active?'已自选':'+ 自选';
-   CNChart.render(chart,item,options);
+   if(!document.getElementById('p-trade').hidden)CNChart.render(chart,item,options);
  }
  controls.forEach(control=>control.addEventListener('click',()=>{
    selectedMarket=control.textContent.trim();selectedSymbol='';
    controls.forEach(item=>item.classList.toggle('on',item===control));draw();
  }));
  q('#tb-watch').addEventListener('click',event=>{
-   if(event.target.closest('button'))return;
-   const ticker=event.target.closest('tr')?.querySelector('[data-s]')?.dataset.s;
-   const item=window.CN_DESKTOP_SYMBOLS?.[ticker];
+   if(event.target.closest('.star'))return;
+   const favorite=event.target.closest('tr')?.querySelector('[data-s]');
+   const ticker=favorite?.dataset.s;
+   const item=window.CN_DESKTOP_SYMBOLS?.[ticker]||(favorite?{market:favorite.dataset.market,n:ticker}:null);
    if(!item||!['US','CN'].includes(item.market))return;
    selectedMarket=item.market;selectedSymbol=ticker;
    controls.forEach(control=>control.classList.toggle('on',control.textContent.trim()===selectedMarket));
    draw();
+   document.getElementById('p-market').dispatchEvent(new CustomEvent('market-instrument',{detail:{name:item.n,symbol:ticker,market:item.market}}));
  });
  const intervals={'1D':'1','5D':'5','1M':'30','6M':'D',YTD:'D','1Y':'D','5Y':'W',All:'D'};
  q('#rg').addEventListener('click',event=>{const time=event.target.closest('button')?.textContent.trim();if(intervals[time]){options.interval=intervals[time];draw()}});
@@ -1648,7 +2109,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }
   if(item.category==='SUPPORT'){const b=document.getElementById('csbtn');if(b.getAttribute('aria-expanded')!=='true')b.click()}
   else if(item.category==='DOCUMENT'){document.querySelector('[data-open="'+(item.kind==='BANK'?'m-bank':'m-id')+'"]').click()}
-  else{document.querySelector('[data-p="acct"]').click();window.dispatchEvent(new Event('cn-requests-refresh'))}
+  else{document.querySelector('[data-account-section="funds"]').click();document.querySelector('[data-p="acct"]').click();window.dispatchEvent(new Event('cn-requests-refresh'))}
  }});
 </script><script>(function(){
  const admin=document.documentElement.dataset.productSettlement==='admin';
@@ -1761,4 +2222,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  window.addEventListener('cn-open-product-settlement',open);
  document.addEventListener('click',e=>{if(e.target.closest('[data-product-settlement-open]'))open()});
 })();
-</script></body></html>
+</script><script>CNNews.mountBulletin(document.getElementById("cn-bulletin"));</script></body></html>
+

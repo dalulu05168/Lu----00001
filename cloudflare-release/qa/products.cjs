@@ -102,7 +102,7 @@ const adminPath='/api/admin/product-settlement',clientPath='/api/product-settlem
  }
  try{
   const desktop=await openPage('desktop',token);
-  await desktop.locator('[data-product-settlement-open]').click();
+  await desktop.locator('.tn[data-p=trade]').click();await desktop.locator('[data-product-settlement-open]').click();
   const dp=desktop.locator('.ps-dialog');
   const order=await write(desktop,dp.locator('form').filter({hasText:'提交 IPO 申购'}),{quantity:'1'});
   await dp.getByText('待配售',{exact:true}).waitFor();
@@ -137,3 +137,4 @@ const adminPath='/api/admin/product-settlement',clientPath='/api/product-settlem
  fs.writeFileSync(require('path').join(process.env.CN_QA_SAVE_DIR,'http-results.json'),JSON.stringify(report,null,2));
  console.log(JSON.stringify({folder:process.env.CN_QA_SAVE_DIR,cashCents:report.cashCents,orders:report.orders.length,positions:report.positions.length}));
 })().catch(error=>{console.error(error.stack);process.exitCode=1});
+

@@ -60,7 +60,7 @@ async function createAgent(master,idx,client){
   page.setDefaultTimeout(20000);page.on('pageerror',e=>console.log('access browser error',e.message));page.on('dialog',async d=>{console.log('access dialog',d.message());await d.dismiss()});
   await page.addInitScript(t=>{localStorage.setItem('cncap.admin.session',t);sessionStorage.setItem('cncap.admin.entry','1')},master);
   const origin='https://admin.maacropierce.com';
-  await page.route(origin+'/**',async r=>{const u=new URL(r.request().url());if(u.pathname.startsWith('/api/'))return r.fulfill({response:await r.fetch({url:base+u.pathname+u.search})});return r.continue()});
+  await page.route(origin+'/**',async r=>{const u=new URL(r.request().url());if(u.pathname==='/admin'){const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8');const pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);return r.fulfill({contentType:'text/html',body:pages.admin});}if(u.pathname.startsWith('/api/'))return r.fulfill({response:await r.fetch({url:base+u.pathname+u.search})});return r.continue()});
   await page.goto(origin+'/admin');
   await page.locator('[data-p=cli]').click();
   const row=page.locator('#t-sub tr').filter({hasText:email});
@@ -101,3 +101,4 @@ async function createAgent(master,idx,client){
  console.log('Audit write failure rolled back password and session revocation');
  console.log('Subaccount child creation/listing denial, master password reset, restriction, restoration and token revocation passed');
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
+

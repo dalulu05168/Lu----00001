@@ -168,6 +168,19 @@
  .tabs{margin:8px 0}
 }
 @media(prefers-reduced-motion:reduce){.panel{animation:none}}
+</style><style>
+html.cn-light-login { color-scheme:light; --tx:#172332; --mut:#526277; --ln:#dfe6ef; --gold:#1255a5; }
+.cn-light-login body { background:#f5f7fb; color:#172332; }
+.cn-light-login :is(#bg,.grid-lines,.glow) { display:none; }
+.cn-light-login .card { background:#fff; border-color:#dfe6ef; box-shadow:0 18px 50px #24375419; }
+.cn-light-login :is(.inp,.tabs,.lang) { background:#f4f7fb; border-color:#dfe6ef; }
+.cn-light-login :is(.tabs button.on,.lang button.on) { background:#e7f0ff; color:#1255a5; }
+.cn-light-login .inp input { color:#172332; }
+.cn-light-login .inp input:-webkit-autofill { -webkit-text-fill-color:#172332; box-shadow:0 0 0 1000px #f4f7fb inset; }
+.cn-light-login .card .btn { background:#1255a5; color:#fff; box-shadow:none; }
+.cn-light-login :is(.cn-login-centered-logo,.cn-brand-entry-mark img,.s-logo img) { filter:brightness(0); }
+.cn-light-login :is(.cn-brand-entry,#splash) { background:#f5f7fb; }
+.cn-light-login .adm-badge{background:#e7f0ff;color:#1255a5;border-color:#c5d9f6}
 </style></head>
 <body class="ready"><div class="cn-brand-entry" aria-hidden="true"><div class="cn-brand-entry-mark"><img src="./logo.png" alt="" width="112" height="112"></div></div>
 <canvas id="bg" aria-hidden="true" width="2880" height="1682"></canvas>
@@ -309,6 +322,7 @@
 
   var $=function(id){return document.getElementById(id)};
   var mobileEntry=!adminMode&&(navigator.userAgentData?.mobile||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
+  if(adminMode||!mobileEntry)document.documentElement.classList.add('cn-light-login');
   function done(nextUrl){if(mobileEntry)sessionStorage.setItem("cncap.mobile.entry","1");location.replace(nextUrl||(adminMode?"/admin":"/index.html"))}
   function showError(el,msg,ok){el.textContent=msg||"";el.className="err"+(ok?" ok":"")}
   function busy(btn,on,text){

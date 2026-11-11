@@ -105,7 +105,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
    await p.locator('.cp-card').filter({hasText:'已返还'}).first().waitFor();
    if(kind==='desktop')assert(await p.locator('#ptabs button.on').filter({hasText:'基金'}).isVisible());
    else assert(await p.locator('[data-a=sec][data-v=基金].on').isVisible());
-   await p.getByRole('button',{name:'消息通知',exact:true}).click();
+   if(kind==='desktop')await p.keyboard.press('Escape');await p.getByRole('button',{name:'消息通知',exact:true}).click();
    await p.locator('.cn-notify-row').filter({hasText:'IPO 配售'}).click();
    await p.getByRole('dialog',{name:'IPO 与普通基金'}).waitFor();
    await p.screenshot({path:require('path').join(process.env.CN_QA_SAVE_DIR,kind+'-product-notification.png'),fullPage:true});
@@ -115,3 +115,4 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  fs.writeFileSync(require('path').join(process.env.CN_QA_SAVE_DIR,'results.json'),JSON.stringify({passed:true,masterFailureBell:true,manualRetry:true,fundNoticeBothClients:true,ipoNoticeBothClients:true},null,2));
  console.log('Master settlement failure bell/retry and desktop/mobile fund maturity and IPO notification navigation passed');
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
+

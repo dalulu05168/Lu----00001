@@ -89,15 +89,21 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});page.setDefaultTimeout(15000);
   await page.addInitScript(t=>{localStorage.setItem('cncap.admin.session',t);sessionStorage.setItem('cncap.admin.entry','1')},owner.token);
-  await page.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base?r.abort():u.pathname==='/admin'?r.fulfill({contentType:'text/html',headers:{'Content-Security-Policy':livePolicy},body:pages.admin}):r.continue()});
+  let loseResponse=true;
+  await page.route('**/*',async r=>{const u=new URL(r.request().url());if(u.pathname==='/api/admin/client-action'&&r.request().method()==='POST'){const data=r.request().postDataJSON();if(loseResponse&&data.path==='/api/bulk-orders'){loseResponse=false;await r.fetch();return r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Isolated response lost after commit'})});}}return u.origin!==base?r.abort():u.pathname==='/admin'?r.fulfill({contentType:'text/html',headers:{'Content-Security-Policy':livePolicy},body:pages.admin}):r.continue()});
   page.on('response',async r=>{if(r.url().endsWith('/api/admin/client-action')&&r.request().postDataJSON()?.method==='POST')console.log('mirror mutation',r.status(),await r.text())});
   await page.goto(base+'/admin#cli',{waitUntil:'domcontentloaded'});
   const row=page.locator('#t-cli tbody tr').filter({hasText:a});await row.getByRole('button',{name:'App 镜像',exact:true}).click();
-  const frame=page.frameLocator('dialog[open] iframe');assert.equal(await frame.locator('body').evaluate(()=>window.cntest),undefined);await frame.locator('[data-a=tab][data-v=trade]').click();
-  await frame.locator('[data-cp=buy]').first().click();
-  await frame.locator('#cp-overlay [name=password]').fill('123456');
-  await frame.locator('#cp-overlay [type=submit]').click();await frame.locator('#cp-overlay').waitFor({state:'detached'});
-  await frame.locator('[data-a=tab][data-v=home]').click();
+  const frame=page.frameLocator('dialog[open] iframe');assert.equal(await frame.locator('body').evaluate(()=>window.cntest),undefined);await frame.locator('nav [data-go=mine]').click();await frame.locator('[data-business=products]').click();await frame.locator('[data-product]').first().click();
+  await frame.locator('[data-business=bulk-buy]').click();await frame.locator('[name=quantity]').fill('1');
+  await frame.locator('[name=tradePassword]').fill('123456');
+  await frame.locator('form button').click();await frame.getByRole('alert').waitFor();
+  assert(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('cn.mirror.pending.'))));
+  await page.locator('dialog[open]>.ops-heading').getByRole('button',{name:'关闭',exact:true}).click();
+  await row.getByRole('button',{name:'App 镜像',exact:true}).click();
+  await frame.locator('nav [data-go=mine]').click();await frame.locator('[data-business=products]').click();await frame.locator('[data-product]').first().click();await frame.locator('[data-business=bulk-buy]').click();await frame.locator('[name=quantity]').fill('1');await frame.locator('[name=tradePassword]').fill('123456');await frame.locator('form button').click();await frame.getByRole('status').waitFor();
+  assert.equal(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('cn.mirror.pending.'))),false);
+  await frame.locator('nav [data-go=trade]').click();
   await frame.getByText('AAPL',{exact:false}).first().waitFor();
   const bought=await act(owner.token,200,{path:'/api/account',method:'GET'});
   assert.equal(bought.account.cashCents,69139);assert.equal(bought.orders.length,1);
@@ -115,3 +121,4 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  fs.writeFileSync(require('path').join(process.env.CN_QA_SAVE_DIR,'results.json'),JSON.stringify({passed:true,mirrorBrowserBuy:true,masterSell:true,scopeIsolation:true,subaccountFundsDenied:true,auditFailureRollback:true,snapshot:after},null,2));
  console.log('Operable current mobile mirror: subaccount buy, master sell, scope isolation, funding restrictions, audit rollback passed');
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
+
