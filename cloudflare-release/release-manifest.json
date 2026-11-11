@@ -1,7 +1,7 @@
 {
   "worker": "lu----00001",
-  "version": "997b0585-8c91-4e59-995c-f30224132f7e",
-  "sourceSha256": "bc049b1487a5ee809b298b7c2ddbab42bbf2a96cfcbd1eaa06ac5c7f235d9165",
+  "version": "45f3b53a-67dc-4565-8432-75890959b0ab",
+  "sourceSha256": "3097eb876e588815b9e593110f38432098ae4ec9feb2d73f4bc223480114a0ca",
   "domains": [
     "nuvexapro.com",
     "admin.maacropierce.com"
@@ -12,11 +12,11 @@
     "migration-write-idempotency.sql"
   ],
   "paidQuotePending": true,
-  "baseVersion": "82e8011c-27d8-40fe-bf52-f59f714af6af",
-  "publishedAt": "2026-11-11T08:10:49.046Z",
+  "baseVersion": "997b0585-8c91-4e59-995c-f30224132f7e",
+  "publishedAt": "2026-11-11T08:34:54.754Z",
   "fundMaturityCron": "*/5 * * * *",
-  "verifiedAt": "2026-11-11T08:13:58.553Z",
-  "previousVersion": "82e8011c-27d8-40fe-bf52-f59f714af6af",
-  "sourceCommit": "6d6a16e084e51f0352d460c6167a7f3fc0d33476",
+  "verifiedAt": "2026-11-11T08:35:08.929Z",
+  "previousVersion": "997b0585-8c91-4e59-995c-f30224132f7e",
+  "sourceCommit": "8174ca7",
   "sourceBranch": "delivery/mirror-mobile-sell-20261111"
 }

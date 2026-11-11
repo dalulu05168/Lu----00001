@@ -1,0 +1,313 @@
+{
+  "release": {
+    "version": "45f3b53a-67dc-4565-8432-75890959b0ab",
+    "sourceSha256": "3097eb876e588815b9e593110f38432098ae4ec9feb2d73f4bc223480114a0ca",
+    "sourceCommit": "8174ca7",
+    "previousVersion": "997b0585-8c91-4e59-995c-f30224132f7e",
+    "publishedAt": "2026-11-11T08:34:54.754Z",
+    "verifiedAt": "2026-11-11T08:35:08.929Z"
+  },
+  "isolatedAcceptance": {
+    "sourceSha256": "3097eb876e588815b9e593110f38432098ae4ec9feb2d73f4bc223480114a0ca",
+    "sourceUnchanged": true,
+    "productionVersion": "997b0585-8c91-4e59-995c-f30224132f7e",
+    "checkedAt": "2026-11-11T08:34:24.627Z",
+    "results": [
+      {
+        "name": "quote-guards",
+        "code": 0
+      },
+      {
+        "name": "notification-session",
+        "code": 0
+      },
+      {
+        "name": "product-recovery",
+        "code": 0
+      },
+      {
+        "name": "admin-funding",
+        "code": 0
+      },
+      {
+        "name": "order-concurrency",
+        "code": 0
+      },
+      {
+        "name": "layout-controls",
+        "code": 0
+      },
+      {
+        "name": "write-receipts",
+        "code": 0
+      },
+      {
+        "name": "experience",
+        "code": 0
+      },
+      {
+        "name": "product-notifications",
+        "code": 0
+      },
+      {
+        "name": "mirror",
+        "code": 0
+      },
+      {
+        "name": "contracts",
+        "code": 0
+      },
+      {
+        "name": "charts",
+        "code": 0
+      },
+      {
+        "name": "product-browser",
+        "code": 0
+      },
+      {
+        "name": "products",
+        "code": 0
+      },
+      {
+        "name": "permissions",
+        "code": 0
+      },
+      {
+        "name": "registration",
+        "code": 0
+      },
+      {
+        "name": "stocks",
+        "code": 0
+      },
+      {
+        "name": "interface",
+        "code": 0
+      },
+      {
+        "name": "sessions",
+        "code": 0
+      },
+      {
+        "name": "reference",
+        "code": 0
+      },
+      {
+        "name": "forms",
+        "code": 0
+      },
+      {
+        "name": "access",
+        "code": 0
+      }
+    ]
+  },
+  "mobileUnits": {
+    "passed": 19,
+    "failed": 0
+  },
+  "configuration": {
+    "checkedAt": "2026-11-11T08:35:08.929Z",
+    "version": "45f3b53a-67dc-4565-8432-75890959b0ab",
+    "percentage": 100,
+    "bindingsPreserved": true,
+    "runtimePreserved": true,
+    "assetsPreserved": true,
+    "routesPreserved": true,
+    "settingsPreserved": true,
+    "schedulesPreserved": true,
+    "previousVersion": "997b0585-8c91-4e59-995c-f30224132f7e"
+  },
+  "online": {
+    "checkedAt": "2026-11-11T08:35:12.474Z",
+    "version": "45f3b53a-67dc-4565-8432-75890959b0ab",
+    "sourceSha256": "3097eb876e588815b9e593110f38432098ae4ec9feb2d73f4bc223480114a0ca",
+    "productionMutations": false,
+    "checks": [
+      {
+        "name": "desktop",
+        "url": "https://nuvexapro.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "388299ec22d46e41376c4bd50a6e5487245965df9b59b0d8873309352f4eb863"
+      },
+      {
+        "name": "mobile",
+        "url": "https://nuvexapro.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "8ae0ce99bc1a7d811b3f046b3c1bff03538d91733721bd8d36c1f283d747645b"
+      },
+      {
+        "name": "login",
+        "url": "https://admin.maacropierce.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "355576ac6cd8f0be3f41ae0128022f159eab329ce36fc161cc11eecec29ae1a8"
+      },
+      {
+        "name": "admin",
+        "url": "https://admin.maacropierce.com/admin",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "f28c0d748162b39ead1c2d760b99c2b8105818d956ca63024f98830284297ab6"
+      },
+      {
+        "url": "https://nuvexapro.com/ready",
+        "httpStatus": 200,
+        "status": "ready",
+        "database": "connected",
+        "brokerConnected": false
+      },
+      {
+        "url": "https://nuvexapro.com/logo.png",
+        "httpStatus": 200,
+        "logoMatches": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/account",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/products",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/requests",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/support",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/watchlist",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/notifications",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/admin/clients",
+        "method": "GET",
+        "httpStatus": 404,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/admin/subaccounts",
+        "method": "GET",
+        "httpStatus": 404,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/ready",
+        "httpStatus": 200,
+        "status": "ready",
+        "database": "connected",
+        "brokerConnected": false
+      },
+      {
+        "url": "https://admin.maacropierce.com/logo.png",
+        "httpStatus": 200,
+        "logoMatches": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/account",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/products",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/requests",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/support",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/watchlist",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/notifications",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/admin/clients",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/admin/subaccounts",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      }
+    ],
+    "relatedFixes": {
+      "mirrorMinimumHeightServed": true,
+      "mobileHeldStockSellCodeServed": true,
+      "authenticatedProductionTradeNotAttempted": true
+    },
+    "carriedForwardSchemaEvidence": true,
+    "physicalDeviceVerified": false
+  },
+  "browser": {
+    "checkedAt": "2026-11-11T08:35:15.963Z",
+    "checks": [
+      {
+        "name": "desktop",
+        "passwordFieldVisible": true,
+        "url": "https://nuvexapro.com/"
+      },
+      {
+        "name": "mobile",
+        "passwordFieldVisible": true,
+        "url": "https://nuvexapro.com/"
+      },
+      {
+        "name": "admin",
+        "passwordFieldVisible": true,
+        "adminTwoFactor": true,
+        "url": "https://admin.maacropierce.com/"
+      }
+    ],
+    "authenticatedProductionWrites": false,
+    "physicalDeviceVerified": false
+  },
+  "limits": [
+    "No physical phone verification in this run",
+    "No business writes to production customers",
+    "Full-project delivery acceptance remains incomplete"
+  ]
+}
