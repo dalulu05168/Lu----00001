@@ -60,16 +60,13 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
   const desktop=await page('desktop',customer);
   await desktop.locator('#cn-bulletin').getByText('平台维护安排',{exact:true}).waitFor();
   await desktop.locator('[data-market-side=news]').click();
-  await desktop.locator('#market-news iframe').waitFor();
-  let newsFrame;
-  for(let i=0;i<30;i++){newsFrame=desktop.frames().find(f=>/widgetembed.*timeline|timeline\//.test(f.url()));if(newsFrame)break;await desktop.waitForTimeout(1000)}
-  assert(newsFrame,'TradingView news iframe must load');
-  await newsFrame.locator('a[href*="/news/"]').first().waitFor({timeout:20000});
+  await desktop.locator('#market-news .cn-news-card').first().waitFor();
+  await desktop.locator('#market-news .cn-news-card img').first().evaluate(img=>img.loading='eager');
+  await desktop.waitForFunction(()=>document.querySelector('#market-news .cn-news-card img')?.naturalWidth>0);
   await desktop.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'desktop-news.png')});
   await desktop.locator('#p-market [data-kind=STOCK]').click();
   await desktop.locator('#market-symbol-select').selectOption('NASDAQ:AAPL');
-  assert.equal(await desktop.locator('#market-news').getAttribute('data-news-key'),'NASDAQ:AAPL|light');
-  await desktop.locator('#market-news iframe').waitFor();
+  await desktop.locator('#market-news .cn-news-card').first().waitFor();
   const mobile=await page('mobile',customer);
   await mobile.locator('nav [data-go=mine]').click();
   await mobile.locator('.profile strong').getByText('验收客户',{exact:true}).waitFor();

@@ -7494,6 +7494,8 @@ async function productSettlementRoute(req,res,route,db,session,actor){
  }
 }
 
+__CN_NEWS__
+const cnNewsService = createNewsService();
 function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveExecutionPrice, resolveCommodityReferencePrice, resolveProductQuote, lookupInstrument, maxBodyBytes = 8192 }) {
   if (!db || typeof resolveSession !== "function") throw new Error("Missing dependencies");
   return async (req, res) => {
@@ -7517,6 +7519,14 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
       } catch {
         return send(res, 503, { status: "not_ready", database: "unavailable", brokerConnected: false });
       }
+    }
+    if (url.pathname === '/api/news') {
+      if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); return send(res, 405, {error: 'Method not allowed'}); }
+      try {
+        const feed = await cnNewsService.load();
+        res.writeHead(200, {'content-type':'application/json; charset=utf-8', 'cache-control':'public, max-age=60'});
+        res.end(JSON.stringify(feed)); return;
+      } catch { return send(res, 503, {error: '新闻暂时无法加载，请稍后重试'}); }
     }
     const route = url.pathname;
     if(!cnPrepareBrowserSession(req,res,route))return;

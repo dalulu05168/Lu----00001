@@ -22,6 +22,7 @@ assert(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/.test(pages.admin),'Mirror templat
 pages.admin=pages.admin.replace(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/,()=> 'const MIRROR_TEMPLATE = '+JSON.stringify(mirrorPage).replace(/</g,'\\u003c')+';');
 const logo = fs.readFileSync(path.join(root,'web','logo.png')).toString('base64');
 const source = fs.readFileSync(path.join(root,'src','worker.template.mjs.in'),'utf8')
+ .replace('__CN_NEWS__', () => fs.readFileSync(path.join(root,'src','news-service.mjs'),'utf8').replace('export function ', 'function '))
  .replace('__CN_BROWSER_SESSIONS__', () => fs.readFileSync(path.join(root,'src/browser-sessions.js'),'utf8')).replace('__CN_SECURITY__', () => fs.readFileSync(path.join(root,'src/security.js'),'utf8')).replace('__CN_PRODUCTS__', () => fs.readFileSync(path.join(root,'src/products/service.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/products/quote.js'),'utf8')).replace('__CN_PAGES__', () => JSON.stringify(pages)).replace('__CN_LOGO__', () => JSON.stringify(logo));
 assert(!source.includes('__CN_PAGES__') && !source.includes('__CN_LOGO__'));
 const sha256 = createHash('sha256').update(source).digest('hex');

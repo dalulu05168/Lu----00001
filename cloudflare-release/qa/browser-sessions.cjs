@@ -50,7 +50,7 @@ async function api(route,status,body,headers={},method=body?'POST':'GET'){const 
    const listed=await p.evaluate(async()=>{const r=await fetch('/api/admin/subaccounts');return r.json()});assert(listed.items.some(x=>x.email==='cookie-browser-sub@example.test')); 
   }
   await p.screenshot({path:path.join(dir,kind+'-cookie-session.png'),fullPage:true});
-  checks.push(kind+' browser login, actual HttpOnly cookie, inaccessible credential in document.cookie/localStorage/sessionStorage and authenticated data');await p.close();
+  checks.push(kind+' browser login, actual HttpOnly cookie, inaccessible credential in document.cookie/localStorage/sessionStorage and authenticated data');await p.unrouteAll({behavior:'wait'});await p.close();
  }
  }finally{await browser.close()}
  fs.writeFileSync(path.join(dir,'browser-session-results.json'),JSON.stringify({passed:true,checks,productionWrites:false},null,2));console.log(checks.join('\n'));

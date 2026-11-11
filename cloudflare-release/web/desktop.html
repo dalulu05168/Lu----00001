@@ -1498,7 +1498,10 @@ $('balchip').onclick=function(){show('acct')};
     const item=entries.find(([,tv])=>tv===picker.value);
     $('market-symbol').textContent=item?.[0]||'标的走势';
     updateMarketFavorite();
-    CNNews.render($('market-news'),{symbol:kind==='STOCK'?item?.[1]||'':''});
+    if(!$('market-news').querySelector('.cn-news-feed')){
+      const reading=document.createElement('div');$('market-news').replaceChildren(reading);CNNews.mountFeed(reading);
+      const tools=document.createElement('div');tools.className='cn-news-tools';const fast=document.createElement('button');fast.type='button';fast.className='btn';fast.textContent='市场快讯';fast.onclick=()=>CNNews.open('','light');tools.append(fast);$('market-news').append(tools);
+    }
     if(!item||unavailableIndices.has(item[1])){empty(chart);return;}
     const [name,tv]=item;
     widget(chart,'symbol-overview',name+'走势',{
