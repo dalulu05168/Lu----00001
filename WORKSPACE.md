@@ -12,3 +12,5 @@
 生产实测仅确认主站和后台域名属于Cloudflare活动版本bea31227。m子域名尚为旧Vercel展示页。历史docs中的生产版本与测试属于相应历史阶段，不自动适用于本分支候选改动。
 
 禁止提交或发布凭证、fixtures、测试数据库、artifacts中的原始敏感记录。生产客户数据不可作为假数据测试目标。
+
+2026-11-11 批次已发布：ce415187-1efa-4eaa-bb41-1dc35ae0d59a，SHA256 b0894289ce933e19b6ace762d3ff5a81f5aa3cc83fabbc2f850e5bf6b6a3172d。已应用去重回执迁移；前台、手机主域名和后台线上核对通过。详情见 cloudflare-release/docs/published-release-2026-11-11.md。m 子域名迁移和全量交付验收仍未完成。
