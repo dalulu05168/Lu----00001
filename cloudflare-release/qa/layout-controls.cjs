@@ -83,6 +83,20 @@ assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locat
  await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=support]').click();await mobile.locator('[name=message]').fill('手机客服入口验收');
  const mobileSent=mobile.waitForResponse(r=>r.url().endsWith('/api/support')&&r.request().method()==='POST');await mobile.locator('form button').click();assert.equal((await mobileSent).status(),201);
  await mobile.getByRole('status').waitFor();await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-support.png'),fullPage:true});
+ await api(admin('support'),201,master,{email:a,message:'通知跳转客服验收回复'});
+ await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=notifications].menulink').click();
+ const supportNotice=mobile.locator('[data-notification][data-business=support]').first();await supportNotice.waitFor();
+ assert.equal(await supportNotice.locator('b').innerText(),'客服回复');assert.equal(await supportNotice.locator('.notification-state').innerText(),'未读');
+ for(const width of [320,390,412]){
+  await mobile.setViewportSize({width,height:844});
+  await mobile.locator('main').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))});
+  const layout=await supportNotice.evaluate(el=>{const c=el.getBoundingClientRect(),t=el.querySelector('.notification-copy').getBoundingClientRect(),r=el.querySelector('.notification-trailing').getBoundingClientRect();return {padding:getComputedStyle(el).paddingLeft,title:getComputedStyle(el.querySelector('b')).color,time:getComputedStyle(el.querySelector('small')).color,gap:r.left-t.right,contained:r.right<=c.right-16,overflow:document.documentElement.scrollWidth>innerWidth};});
+  assert.equal(layout.padding,'18px');assert.equal(layout.title,'rgb(36, 54, 75)');assert.equal(layout.time,'rgb(82, 103, 125)');assert(layout.gap>=15&&layout.contained&&!layout.overflow);
+  await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-notifications-'+width+'.png')});
+ }
+ await supportNotice.click();await mobile.getByRole('heading',{name:'在线客服',exact:true}).waitFor();await mobile.getByText('通知跳转客服验收回复',{exact:true}).waitFor();
+ await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=notifications].menulink').click();
+ assert.equal(await mobile.locator('[data-notification][data-business=support]').first().locator('.notification-state').innerText(),'已读');
  await mobile.unrouteAll({behavior:'ignoreErrors'});await mobile.close();
  }finally{for(const context of browser.contexts())for(const p of context.pages())await p.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
  const snap=await api('/api/account',200,client);const products=await api('/api/products',200,client);assert.equal(products.contracts.length,1);assert.equal(snap.orders.length,1);assert.equal(snap.account.cashCents,94691390);assert.equal(snap.account.activeFundPrincipalCents,5000000);assert.equal(snap.totalAssets,(94691390+5000000+10*35069)/100);assert.equal(Number(snap.positions.find(x=>x.symbol==='AAPL').quantity),10);

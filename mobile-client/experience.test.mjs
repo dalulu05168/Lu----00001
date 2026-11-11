@@ -1,7 +1,7 @@
 import {backgroundRefreshSafe} from './experience.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {verifiedName,notificationTarget,readIds,chartSymbol,createExperience} from './experience.mjs';
+import {verifiedName,notificationTarget,notificationTitle,readIds,chartSymbol,createExperience} from './experience.mjs';
 import {ipoCostCents,units,createIpo} from './ipo.mjs';
 test('only approved identity can name the customer',()=>{
  assert.equal(verifiedName([{kind:'BANK',status:'APPROVED',verifiedName:'错误来源'},{kind:'IDENTITY',status:'PENDING',verifiedName:'未审核'}]),'');
@@ -12,6 +12,13 @@ test('notification read markers remain scoped per customer and recover bad stora
  assert.ok(readIds(storage,'client1').has('message1'));assert.ok(!readIds(storage,'client2').has('message1'));
  assert.equal(readIds({getItem:()=>'{invalid'},'x').size,0);
  assert.equal(notificationTarget({category:'PRODUCT',kind:'IPO'}),'ipo');assert.equal(notificationTarget({category:'SUPPORT'}),'support');
+});
+test('notification titles reflect business kind without fabricating missing status',()=>{
+ assert.equal(notificationTitle({category:'SUPPORT',status:null}),'客服回复');
+ assert.equal(notificationTitle({category:'DOCUMENT',kind:'IDENTITY',status:'APPROVED'}),'身份认证 · 审核通过');
+ assert.equal(notificationTitle({category:'DOCUMENT',kind:'BANK',status:'REJECTED'}),'银行卡 · 审核未通过');
+ assert.equal(notificationTitle({category:'CASH',kind:'DEPOSIT',status:'PENDING'}),'充值申请 · 待审核');
+ assert.equal(notificationTitle({category:'CASH',status:null}),'资金申请');
 });
 test('chart selects exact instruments and never falls back to unrelated overview',()=>{
  assert.equal(chartSymbol({market:'US',symbol:'AAPL'}),'NASDAQ:AAPL');

@@ -23,3 +23,21 @@ html body .cn-brand-logo{filter:brightness(0);opacity:1;mix-blend-mode:normal}
 html body .profile .avatar{display:grid;place-items:center;flex:0 0 56px;width:56px;height:56px;border-radius:50%;padding:0;margin:0;overflow:hidden;background:#e8eef5;color:#172332;font-size:25px;font-weight:600;line-height:1;text-align:center}
 html body .profile .avatar>span{display:block;line-height:1;margin:0;padding:0;transform:none}
 html body .nav [data-go=mine]>span{display:grid;place-items:center;width:22px;height:22px;box-sizing:border-box;border:1.5px solid currentColor;border-radius:50%;font-size:13px!important;font-weight:600;line-height:1;margin-inline:auto}
+/* Consistent, readable mobile lists; menu resets must not remove card padding. */
+html body .top-actions{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;margin:0 0 20px}
+html body .top-actions>.muted{text-align:center;color:#52677d;font-size:14px}
+html body .top-actions>button{color:#52677d}
+html body .notification-center h1{font-size:24px;line-height:1.4;color:#172332;margin:0 0 20px;font-weight:650}
+html body .notification-list{display:grid;gap:12px}
+html body .panel.menulink.notification-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px;margin:0;min-height:88px;border:1px solid #dce5ee;border-radius:18px;background:#fff;box-shadow:none}
+html body .notification-copy{min-width:0;flex:1;text-align:left}
+html body .notification-copy b{display:block;color:#24364b;font-size:15px;line-height:1.5;font-weight:600;overflow-wrap:anywhere}
+html body .notification-copy small{display:block;margin-top:6px;color:#52677d;font-size:13px;line-height:1.5}
+html body .notification-trailing{display:flex;align-items:center;gap:10px;flex-shrink:0}
+html body .notification-state{display:inline-block;padding:4px 9px;border-radius:999px;font-size:12px;line-height:1.5;white-space:nowrap}
+html body .notification-state.is-read{background:#f0f3f7;color:#52677d}
+html body .notification-state.is-unread{background:#e8f1ff;color:#1659aa;font-weight:600}
+html body .notification-chevron{font-size:22px;line-height:1;color:#52677d}
+html body .nav button{color:#52677d}
+html body .nav button.active{color:#1659aa}
+html body .verified{color:#52677d;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
