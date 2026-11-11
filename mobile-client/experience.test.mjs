@@ -11,7 +11,7 @@ test('notification read markers remain scoped per customer and recover bad stora
  const storage={getItem:k=>k==='cn.notify.read.client1'?'["message1"]':'[]'};
  assert.ok(readIds(storage,'client1').has('message1'));assert.ok(!readIds(storage,'client2').has('message1'));
  assert.equal(readIds({getItem:()=>'{invalid'},'x').size,0);
- assert.equal(notificationTarget({category:'PRODUCT',kind:'IPO'}),'ipo');assert.equal(notificationTarget({category:'SUPPORT'}),'support');
+ assert.equal(notificationTarget({category:'PRODUCT',kind:'IPO'}),'ipo-records');assert.equal(notificationTarget({category:'SUPPORT'}),'support');
 });
 test('notification titles reflect business kind without fabricating missing status',()=>{
  assert.equal(notificationTitle({category:'SUPPORT',status:null}),'客服回复');

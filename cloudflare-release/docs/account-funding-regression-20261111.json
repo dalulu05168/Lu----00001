@@ -1,0 +1,32 @@
+{
+  "sourceSha256": "bf2000fe612a3ef484b411c7ff2541bdaf6f9a2c0cf9c445d4be94c23fe580c8",
+  "sourceUnchanged": true,
+  "productionVersion": "65886b67-9618-4383-ac16-fe09c77f383f",
+  "checkedAt": "2026-11-11T02:43:59.547Z",
+  "results": [
+    {
+      "name": "forms",
+      "code": 0
+    },
+    {
+      "name": "registration",
+      "code": 0
+    },
+    {
+      "name": "sessions",
+      "code": 0
+    },
+    {
+      "name": "permissions",
+      "code": 0
+    },
+    {
+      "name": "charts",
+      "code": 1
+    },
+    {
+      "name": "product-notifications",
+      "code": 1
+    }
+  ]
+}

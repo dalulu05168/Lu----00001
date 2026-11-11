@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "desktop",
+    "frame": "https://www.tradingview-widget.com/embed-widget/symbol-overview/",
+    "painted": true,
+    "visibleData": {
+      "canvases": 2,
+      "text": "State Street SPDR S&P 500 ETF\n749.92\nD\nUSD\n−2.77\n−0.37%\n1天\n1天\n1个月\n3个月\n1年\n5年\n全部\n\t\n\t\n\n\t\n\t"
+    }
+  },
+  {
+    "kind": "mobile",
+    "frame": "https://www.tradingview-widget.com/embed-widget/advanced-chart/",
+    "painted": true,
+    "visibleData": {
+      "canvases": 2,
+      "text": "1分\n30分\n1小时\n天\nS\nState Street SPDR S&P 500 ETF\n收=\n749.92\n−2.77 (−0.37%)\n成交量\n40.69 M"
+    }
+  }
+]

@@ -1,7 +1,7 @@
 const memoryReadMarkers=new Map();
 export const notificationStorage={getItem(key){try{return globalThis.localStorage.getItem(key);}catch{return memoryReadMarkers.get(key)||null;}},setItem(key,value){try{globalThis.localStorage.setItem(key,value);}catch{memoryReadMarkers.set(key,value);}}};
 export function readIds(storage,scope){try{const ids=JSON.parse(storage.getItem('cn.notify.read.'+scope)||'[]');return new Set(Array.isArray(ids)?ids:[]);}catch{return new Set();}}
-export function notificationTarget(item){return ({SUPPORT:'support',DOCUMENT:'documents',CASH:'requests'})[item.category]||(item.kind==='IPO'?'ipo':'fund-records');}
+export function notificationTarget(item){return ({SUPPORT:'support',DOCUMENT:'documents',CASH:'requests'})[item.category]||(item.kind==='IPO'?'ipo-records':'fund-records');}
 export function notificationTitle(item){
  if(item.category==='SUPPORT')return '客服回复';
  const kind=({IDENTITY:'身份认证',BANK:'银行卡',DEPOSIT:'充值申请',WITHDRAW:'提现申请',IPO:'IPO申购',TERM_FUND:'基金合约'})[item.kind];

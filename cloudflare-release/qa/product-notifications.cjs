@@ -90,7 +90,9 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
   const page=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:1000}});page.setDefaultTimeout(15000);
   await page.addInitScript(({token,kind})=>{localStorage.setItem(kind==='admin'?'cncap.admin.session':'cncap.session',token);sessionStorage.setItem(kind==='admin'?'cncap.admin.entry':'cncap.mobile.entry','1')},{token,kind});
   await page.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base?r.abort():u.pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue()});
-  await page.goto(base+'/',{waitUntil:'domcontentloaded'});return page;
+  await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+  if(kind==='mobile'){await page.locator('[name=email]').fill(a);await page.locator('[name=password]').fill(password);await page.locator('#login-form button').click();await page.locator('nav [data-go=mine]').waitFor();}
+  return page;
  };
  try{
   const admin=await open('admin',master);await admin.getByRole('button',{name:'消息通知，有未读消息'}).click();
@@ -100,6 +102,15 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
   await admin.unrouteAll({behavior:'ignoreErrors'});await admin.close();
   for(const kind of ['desktop','mobile']){
    const p=await open(kind,client);
+   if(kind==='mobile'){
+    await p.locator('[data-business=notifications].notification').click();
+    await p.locator('[data-notification][data-business=fund-records]').filter({hasText:'已到期'}).first().click();
+    await p.getByRole('heading',{name:'我的基金合约',exact:true}).waitFor();await p.locator('.tag').filter({hasText:'已到期'}).waitFor();
+    await p.locator('[data-business=notifications].notification').click();await p.locator('[data-notification][data-business=ipo-records]').click();
+    await p.getByRole('heading',{name:'申购与配售记录',exact:true}).waitFor();await p.getByText('Notification IPO',{exact:true}).first().waitFor();
+    await p.screenshot({path:require('path').join(process.env.CN_QA_SAVE_DIR,kind+'-product-notification.png'),fullPage:true});
+    await p.unrouteAll({behavior:'ignoreErrors'});await p.close();continue;
+   }
    await p.getByRole('button',{name:'消息通知，有未读消息'}).click();
    await p.locator('.cn-notify-row').filter({hasText:'基金到期'}).click();
    await p.locator('.cp-card').filter({hasText:'已返还'}).first().waitFor();

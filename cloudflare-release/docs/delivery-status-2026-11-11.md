@@ -1,16 +1,18 @@
 # 当前交付验收状态（2026-11-11）
 
-生产：5a210001-825b-4744-bd7f-ee9a626acf65；有效源码在当前delivery/unified-platform-audit分支。旧审计报告是历史快照，不能当成当前上线状态。
+生产版本：93c03f86-0861-4cda-9249-afffbfb39aae，100%流量。有效源码在delivery/unified-platform-audit分支。
 
-| 范围 | 当前验收事实 | 证据 |
-| --- | --- | --- |
-| 业务入口、控件与品牌 | 已发布，前一业务修复十组隔离回归通过；追加登录品牌三组通过 | layout-controls-fix.md |
-| 公告和新闻 | 已发布；桌面/当前手机新闻组件内部条目实际渲染；发布撤回焦点刷新通过 | news-sync-fix.md |
-| 角色、代客操作、资金和客服 | 隔离权限/事务/回执/镜像场景通过；生产不写正式客户业务 | layout-controls-acceptance.json、news-sync-acceptance.json |
-| 生产入口 | 两域名资源、内容、访问保护18项；干净桌面手机后台浏览器登录入口检查通过 | news-sync-online.json、news-sync-browser-entry.json |
-| 并发与本地恢复 | 相同键12请求单次创建、不同键不超买超卖；39表恢复一致 | concurrency-recovery-fix.md |
-| m子域名 | 仍未迁移，浏览器工具禁用且DNS读取403；未动原记录 | news-sync-fix.md、concurrency-recovery-fix.md |
-| 物理设备 | 未执行真实iPhone、Android实机验收，浏览器模拟不能替代 | 待补 |
-| 生产容量、恢复、实时行情及App | 未完成，不承诺可正式交付运营；需各自演练/授权/验收 | 待补 |
+|范围|实际状态及证据|
+|---|---|
+|业务入口、目录和控件|已发布；layout-controls-fix.md记录此前业务回归|
+|黑色Logo、头像N及消息排版|已发布；mobile-brand-black-fix.md、mobile-notification-layout-fix.md|
+|账户、资料、资金权限|原版本本轮forms/registration/sessions/permissions通过；account-funding-regression-20261111.json同时保留旧图表测试失败，不把整批称为通过|
+|产品通知|本轮修复手机IPO通知直达配售记录，基金到期、失败返还重试通过；product-notification-routing-fix.md|
+|行情图及新闻|两端外部SPY画布和价格数字实际显示；chart-visible-data-results.json。仅证明渲染，不证明报价时效或内部成交价正确。新闻组件渲染及公告同步已回归|
+|角色、代客操作|隔离镜像、归属限制、资金权限、审计回滚和丢响应重试通过；本轮mirror回归|
+|并发与本地恢复|同键12请求单次创建，余额/持仓不足不超额；39表本地恢复一致；concurrency-recovery-fix.md|
+|生产入口|18项线上检查通过，三端浏览器登录入口通过；不冒充生产客户业务写入验收|
+|m子域名|按用户决定暂缓迁移，保留Vercel旧指向，仅分发nuvexapro.com|
+|未完成交付项目|物理iPhone/Android、生产多连接容量及恢复演练、全部报价供应商有效性/授权、正式运营与App审核未验收|
 
-运行方式、修改文件与实际结果见各专项记录。当前没有把隔离测试通过等同于整个平台交付通过。
+没有把隔离测试通过等同整个平台可正式运营。生产数据、静态资源、绑定保持原状。

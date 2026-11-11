@@ -68,6 +68,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
 (async()=>{
  const master=(await api('/api/admin/login',200,null,{email:'qa-master@example.test',password,otp:otp(JSON.parse(fs.readFileSync(process.env.CN_OPS_MASTER_FILE)).totpSecret)})).token;
  const client=(await api('/api/auth/login',200,null,{email:'qa-desktop@example.test',password})).token;
+ await api('/api/admin/listings',201,master,{market:'US',status:'PUBLISHED',itemType:'FUND',symbol:'SPY',name:'SPY ETF'});
  const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8'),pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);
  const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  const results=[];
@@ -75,20 +76,23 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
   const p=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:900}});
   p.setDefaultTimeout(35000);
   await p.addInitScript(t=>{localStorage.setItem('cncap.session',t);sessionStorage.setItem('cncap.mobile.entry','1')},client);
-  await p.route(base+'/**',r=>new URL(r.request().url()).pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue());
+  await p.route(base+'/**',r=>{const pathname=new URL(r.request().url()).pathname;return pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):pathname==='/logo.png'?r.fulfill({contentType:'image/png',body:fs.readFileSync(require('path').join(__dirname,'../web/logo.png'))}):r.continue()});
   await p.goto(base+'/',{waitUntil:'domcontentloaded'});
-  if(kind==='mobile')await p.locator('[data-a=tab][data-v=market]').click();else{await p.locator('#p-market [data-kind=ETF]').click();await p.locator('#market-symbol-select').selectOption('AMEX:SPY');}
-  let frame,painted=false;
+  if(kind==='mobile'){
+   await p.locator('[name=email]').fill('qa-desktop@example.test');await p.locator('[name=password]').fill(password);await p.locator('#login-form button').click();
+   await p.locator('nav [data-go=market]').click();await p.locator('[data-instrument="US:SPY"]').click();
+  }else{await p.locator('#p-market [data-kind=ETF]').click();await p.locator('#market-symbol-select').selectOption('AMEX:SPY');}
+  let frame,painted=false,visibleData;
   for(let n=0;n<35;n++){
    for(const candidate of p.frames().filter(f=>/tradingview/.test(f.url()))){
     const visible=await candidate.evaluate(()=>({canvases:[...document.querySelectorAll('canvas')].filter(c=>c.width>200&&c.height>40).length,text:document.body?.innerText||''})).catch(()=>null);
-    if(visible?.canvases>0&&/SPDR|SPY|ETF/.test(visible.text)){frame=candidate;painted=true;break;}
+    if(visible?.canvases>0&&/SPDR|SPY|ETF/.test(visible.text)&&/\d{2,4}[.,]\d{2}/.test(visible.text)&&!/Invalid symbol|无效商品|No data here/i.test(visible.text)){frame=candidate;visibleData=visible;painted=true;break;}
    }
    if(painted)break;
    await p.waitForTimeout(1000);
   }
   await p.screenshot({path:require('path').join(process.env.CN_QA_SAVE_DIR,kind+'-chart.png'),fullPage:true});
-  results.push({kind,frame:frame?.url().split('?')[0],painted});
+  results.push({kind,frame:frame?.url().split('?')[0],painted,visibleData});
   if(!painted)for(const f of p.frames())console.log(await f.evaluate(()=>({url:location.origin,canvases:[...document.querySelectorAll('canvas')].map(c=>[c.width,c.height]),text:document.body?.innerText?.slice(0,160)})).catch(()=>({error:true})));
   assert(painted,kind+' TradingView did not render chart');
   await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
