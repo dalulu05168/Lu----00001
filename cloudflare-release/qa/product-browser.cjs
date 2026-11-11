@@ -53,7 +53,17 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
  for(const kind of ['desktop','mobile']){
  const p=await page(kind,client);
- if(kind==='mobile')await p.locator('[data-a=tab][data-v=trade]').click();
+ if(kind==='mobile'){
+  await p.locator('[name=email]').fill(a);await p.locator('[name=password]').fill(password);await p.locator('#login-form button').click();
+  const catalog=(await api('/api/products',200,client)).items,term=catalog.find(x=>x.kind==='TERM_FUND'),bulk=catalog.find(x=>x.kind==='BULK_STOCK');
+  const enter=async()=>{await p.locator('nav [data-go=mine]').click();await p.locator('[data-business=products]').click();};
+  await enter();await p.locator('[data-product="'+term.id+'"]').click();await p.locator('[data-tier]').first().click();assert.equal(await p.locator('input[type=password]').count(),0);
+  [r]=await Promise.all([p.waitForResponse(r=>new URL(r.url()).pathname==='/api/fund-subscriptions'&&r.request().method()==='POST'),p.locator('[data-business=subscribe].primary').click()]);assert.equal(r.status(),201);await p.getByRole('status').waitFor();
+  await enter();await p.locator('[data-product="'+bulk.id+'"]').click();await p.locator('[data-business=bulk-buy]').click();await p.locator('[name=quantity]').fill('10');await p.locator('[name=tradePassword]').fill('123456');
+  [r]=await Promise.all([p.waitForResponse(r=>new URL(r.url()).pathname==='/api/bulk-orders'&&r.request().method()==='POST'),p.locator('[data-business-form=bulk] button').click()]);assert.equal(r.status(),201);await p.getByRole('status').waitFor();
+  await p.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-products.png'),fullPage:true});await p.unrouteAll({behavior:'ignoreErrors'});await p.close();continue;
+ }
+
  else await p.locator('header [data-p=trade]').click();
  assert.deepEqual(await p.locator(kind==='mobile'?'.trade-tabs [data-a=sec]':'#ptabs button').allTextContents(),['\u5927\u5b97\u4ea4\u6613','\u57fa\u91d1','IPO']);
  await p.locator(kind==='mobile'?'[data-a=sec][data-v=\u57fa\u91d1]':'#ptabs button').filter({hasText:'\u57fa\u91d1'}).click();

@@ -371,11 +371,11 @@ header.top .cn-unified-logo{filter:brightness(0)}
   outline: 1px solid #0a0b0c;
 }
 .ops-phone {
- --phone-width:min(390px,calc(100vw - 24px),calc((100dvh - 20px) * .4620853));
+ --phone-width:min(390px,calc(100vw - 24px),calc((100dvh - 64px) * .4620853));
  width:var(--phone-width);padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;
 }
 .ops-phone .ops-body { padding:0;background:transparent; }
-.ops-phone .ops-heading { position:absolute;z-index:2;top:46px;right:4px;padding:0;background:none;border:0; }
+.ops-phone .ops-heading { position:relative;z-index:2;top:auto;right:auto;height:36px;display:flex;justify-content:flex-end;align-items:center;padding:0;background:none;border:0; }
 .ops-phone .ops-heading button { padding-inline:6px; }
 #p-cli #t-sub table { min-width:0; }
 #t-sub .sub-note-text { min-width:0; }

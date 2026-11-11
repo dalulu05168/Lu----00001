@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "invalidQuotesRejected": [
+    "expired",
+    "future",
+    "wrong-symbol",
+    "wrong-market",
+    "no-timestamp",
+    "bad-price"
+  ],
+  "noDebitOnInvalidQuote": true,
+  "mobileInvalidQuoteHasNoOrderForm": true,
+  "staleVersionRejected": true,
+  "delistedProductRejected": true,
+  "validOrders": 1,
+  "cashCents": 68438
+}

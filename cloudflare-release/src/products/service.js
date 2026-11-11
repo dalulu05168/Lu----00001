@@ -7,6 +7,9 @@ async function cnPagedQuery(db,sql,params=[]){
   return {rows};
 }
 const CN_PRODUCT_MAX = BigInt(Number.MAX_SAFE_INTEGER);
+function cnValidProductQuote(quote,item,now=Date.now()) {
+  return !!quote && quote.symbol===item.symbol && quote.market===item.market && Number.isSafeInteger(quote.priceCents) && quote.priceCents>0 && Number.isFinite(quote.timestampMs) && quote.timestampMs<=now+5000 && now-quote.timestampMs<=5*86400000;
+}
 function cnProductFail(message, statusCode = 400) {
   throw Object.assign(new Error(message), {statusCode});
 }
@@ -110,7 +113,7 @@ async function cnProductSave(db, actor, body, resolveQuote) {
       if (!passwordHash) cnProductFail('Trading password required');
       if (typeof resolveQuote !== 'function') cnProductFail('Reference quote unavailable',503);
       quote = await resolveQuote({symbol,market});
-      if (!quote || quote.symbol !== symbol || quote.market !== market || !Number.isSafeInteger(quote.priceCents) || quote.priceCents <= 0 || !Number.isFinite(quote.timestampMs) || quote.timestampMs>Date.now()+5000 || Date.now()-quote.timestampMs>5*86400000) cnProductFail('Reference quote unavailable',503);
+      if (!cnValidProductQuote(quote,{symbol,market})) cnProductFail('Reference quote unavailable',503);
     }
   }
   const id = previous?.id || randomUUID();
@@ -209,7 +212,9 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
           if (!resolveQuote) cnProductFail('Reference quote unavailable',503);
           const symbol=String(query.get('identify')).trim().toUpperCase(),market=query.get('market')||'US';
           if (!/^[A-Z0-9][A-Z0-9.-]{0,23}$/.test(symbol)||!['US','HK','CN','MY'].includes(market)) cnProductFail('Invalid instrument');
-          return send(res,200,await resolveQuote({symbol,market}));
+          const quote=await resolveQuote({symbol,market});
+          if (!cnValidProductQuote(quote,{symbol,market})) cnProductFail('Reference quote unavailable',503);
+          return send(res,200,quote);
         }
         if (query.has('id')) {
           const row=(await db.query('SELECT * FROM cn_products WHERE id=$1',[cnProductId(query.get('id'))])).rows[0];
@@ -230,7 +235,7 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
       for(let i=0;i<items.length;i+=4)await Promise.all(items.slice(i,i+4).filter(p=>p.kind==='BULK_STOCK').map(async p=>{
         try{
           const q=resolveQuote&&await resolveQuote(p);
-          if(!q||q.market!==p.market||q.symbol!==p.symbol||!Number.isSafeInteger(q.priceCents)||q.priceCents<=0||!Number.isFinite(q.timestampMs)||q.timestampMs>Date.now()+5000||Date.now()-q.timestampMs>5*86400000)throw Error('Invalid quote');
+          if(!cnValidProductQuote(q,p))throw Error('Invalid quote');
           p.referencePriceCents=q.priceCents;p.referenceTimestamp=new Date(q.timestampMs).toISOString();p.quoteAvailable=true;
         }catch{p.referencePriceCents=null;p.referenceTimestamp=null;p.quoteAvailable=false;}
       }));
@@ -239,7 +244,9 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
     if (route==='/api/products/quote' && req.method==='GET') {
       const row=(await db.query("SELECT market,symbol FROM cn_products WHERE id=$1 AND kind='BULK_STOCK' AND status='PUBLISHED'",[cnProductId(query.get('id'))])).rows[0];
       if (!row || !resolveQuote) cnProductFail('Reference quote unavailable',503);
-      return send(res,200,await resolveQuote(row));
+      const quote=await resolveQuote(row);
+      if (!cnValidProductQuote(quote,row)) cnProductFail('Reference quote unavailable',503);
+      return send(res,200,quote);
     }
     if (route==='/api/fund-subscriptions' && req.method==='POST') {
       const body=JSON.parse(await readBody(req,8192));
@@ -258,7 +265,7 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
       if (typeof body.tradePassword!=='string'||!/^\d{6}$/.test(body.tradePassword)||!await verifyPassword(item.password_scheme+':'+body.tradePassword,item.trade_password_hash)) cnProductFail('Invalid trading password',403);
       if (!resolveQuote) cnProductFail('Reference quote unavailable',503);
       const quote=await resolveQuote({symbol:item.symbol,market:item.market});
-      if (!quote || quote.symbol!==item.symbol || quote.market!==item.market || !Number.isSafeInteger(quote.priceCents) || quote.priceCents<=0 || !Number.isFinite(quote.timestampMs) || quote.timestampMs>Date.now()+5000 || Date.now()-quote.timestampMs>5*86400000) cnProductFail('Reference quote unavailable',503);
+      if (!cnValidProductQuote(quote,item)) cnProductFail('Reference quote unavailable',503);
       const price=side==='BUY'?Number((BigInt(quote.priceCents)*BigInt(10000-item.discount_bps)+5000n)/10000n):quote.priceCents;
       if (body.expectedVersion!==item.version || body.expectedPriceCents!==price) cnProductFail('Price changed; confirm again',409);
       if (price<=0) cnProductFail('Invalid discounted price');

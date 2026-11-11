@@ -7436,7 +7436,7 @@ async function productSettlementRoute(req,res,route,db,session,actor){
    }
    const [orders,positions]=await Promise.all([
     cnPagedQuery(db,'SELECT o.*,p.kind,p.symbol,p.display_name FROM product_settlement_orders o JOIN product_settlement_products p ON p.id=o.product_id WHERE o.account_id=$1 ORDER BY o.created_at DESC,o.id',[session.accountId]),
-    db.query('SELECT h.quantity_micros::text,p.symbol,p.display_name,p.kind FROM product_settlement_positions h JOIN product_settlement_products p ON p.id=h.product_id WHERE h.account_id=$1 AND h.quantity_micros>0 ORDER BY p.symbol',[session.accountId])
+    db.query('SELECT h.product_id,h.quantity_micros::text,p.symbol,p.display_name,p.kind FROM product_settlement_positions h JOIN product_settlement_products p ON p.id=h.product_id WHERE h.account_id=$1 AND h.quantity_micros>0 ORDER BY p.symbol',[session.accountId])
    ]);
    return send(res,200,{catalog:catalog.rows,orders:orders.rows,positions:positions.rows});
   }
