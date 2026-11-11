@@ -986,6 +986,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!document.q
 var root=document.getElementById('p-over');if(!root)return;
 /* ===== 数据：图表、指标、明细共用同一份记录 ===== */
 var R=[];
+var overviewSummary=null;
 var FULL={};
 var ST={ok:['成功','ok','已完成','var(--ac)'],ap:['审核通过','in','审核通过','var(--bl)'],wa:['待审核','wa','','var(--am)'],rj:['已拒绝','rd','','var(--dn)']};
 var END=new Date(),WD=['日','一','二','三','四','五','六'];
@@ -1036,7 +1037,7 @@ function totals(){var t={in:{ok:0,ap:0,wa:0,rj:0},cnt:{ok:0,ap:0,wa:0,rj:0},ti:0
  R.forEach(function(r){if(r.k==='in'){t.ti+=r.a;t.ci++}else{t.to+=r.a;t.co++}t.in[r.s]+=r.a;t.cnt[r.s]++});return t}
 
 /* ===== 指标卡 / 侧栏 ===== */
-function renderStats(){if(!R.length){$('stats').innerHTML='<div class="pn sc gold"><span>已记账净流入 USD</span><em>—</em><small>暂无数据</small></div><div class="pn sc"><span>充值申请金额</span><em>—</em></div><div class="pn sc"><span>提现申请金额</span><em>—</em></div><div class="pn sc"><span>客户账户</span><em>—</em></div>';return;}
+function renderStats(){if(!R.length&&!overviewSummary){$('stats').innerHTML='<div class="pn sc gold"><span>已记账净流入 USD</span><em>—</em><small>暂无数据</small></div><div class="pn sc"><span>充值申请金额</span><em>—</em></div><div class="pn sc"><span>提现申请金额</span><em>—</em></div><div class="pn sc"><span>客户账户</span><em>—</em></div>';return;}
  var t=totals(),bi=0,bo=0,bc=0;R.forEach(function(r){if(r.s==='ok'){bc++;if(r.k==='in')bi+=r.a;else bo+=r.a}});
  var d=series7(),mx=Math.max.apply(null,d),mn=Math.min.apply(null,d),W=120,H=40,pts=d.map(function(v,i){return (i*W/(d.length-1)).toFixed(1)+','+(H-3-(mx===mn?.5:(v-mn)/(mx-mn))*(H-8)).toFixed(1)}).join(' ');
  $('stats').innerHTML=
@@ -1044,13 +1045,17 @@ function renderStats(){if(!R.length){$('stats').innerHTML='<div class="pn sc gol
  +'<svg class="sp" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8c27a" stop-opacity=".3"/><stop offset="1" stop-color="#e8c27a" stop-opacity="0"/></linearGradient></defs><polygon points="0,'+H+' '+pts+' '+W+','+H+'" fill="url(#spg)"/><polyline points="'+pts+'" fill="none" stroke="#e8c27a" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg></div>'
  +'<div class="pn sc"><span>充值申请金额</span><em>'+A('$'+f(t.ti))+'</em><small>'+t.ci+' 笔</small></div>'
  +'<div class="pn sc"><span>提现申请金额</span><em>'+A('$'+f(t.to))+'</em><small>'+t.co+' 笔</small></div>'
- +'<div class="pn sc"><span>客户账户</span><em>—</em><small>子管理员 —</small></div>'}
+ +'<div class="pn sc"><span>客户账户</span><em>'+A(overviewSummary?.clients??'—')+'</em><small>子管理员 '+A(overviewSummary?.subaccounts??'—')+'</small></div>'}
 function series7(){var save=[S.rng,S.basis];S.rng=7;S.basis='ok';var v=series().map(function(x){return x.cum});S.rng=save[0];S.basis=save[1];return v}
-function renderSide(){if(!R.length){$('alloc').innerHTML='';$('lgd').innerHTML='<div class="empty">暂无已核实记录</div>';$('ops').innerHTML='<div class="empty">暂无运营记录</div>';return;}
+function renderSide(){
+ var caption=root.querySelector('.overview-side>.pn:last-child>.ph>.mut'),tasks=root.querySelector('.ops-grid>.pb:last-child');
+ if(caption)caption.textContent=overviewSummary?'':'暂无数据';
+ if(tasks)tasks.innerHTML='<div class="ops-caption">当前筛选待办</div><div class="kv"><span class="mut">待审核</span><span>'+(overviewSummary?R.filter(r=>r.s==='wa').length:'—')+'</span></div><div class="kv"><span class="mut">待终审</span><span>'+(overviewSummary?R.filter(r=>r.s==='ap').length:'—')+'</span></div>';
+ if(!R.length&&!overviewSummary){$('alloc').innerHTML='';$('lgd').innerHTML='<div class="empty">暂无已核实记录</div>';$('ops').innerHTML='<div class="empty">暂无运营记录</div>';return;}
  var t=totals(),tot=t.ti+t.to||1,keys=['ok','ap','wa','rj'];
  $('alloc').innerHTML=keys.filter(function(k){return t.in[k]>0}).map(function(k){return '<i style="width:'+(t.in[k]/tot*100)+'%;background:'+ST[k][3]+'"></i>'}).join('');
  $('lgd').innerHTML=keys.map(function(k){var v=t.in[k];return '<div class="kv"><span><i class="sw" style="background:'+ST[k][3]+'"></i>'+ST[k][0]+' <span class="mut">'+t.cnt[k]+' 笔</span></span><span class="'+(v?'':'mut')+'">'+A('$'+f(v))+' <span class="mut">'+(v/tot*100).toFixed(1)+'%</span></span></div>'}).join('');
- $('ops').innerHTML='<div class="kv"><span class="mut">客户账户</span><span>—</span></div><div class="kv"><span class="mut">子管理员</span><span>—</span></div><div class="kv"><span class="mut">证券目录</span><span>—</span></div><div class="kv"><span class="mut">充值申请金额</span>'+A('$'+f(t.ti))+'</div><div class="kv"><span class="mut">提现申请金额</span>'+A('$'+f(t.to))+'</div>'}
+ $('ops').innerHTML='<div class="kv"><span class="mut">客户账户</span><span>'+A(overviewSummary?.clients??'—')+'</span></div><div class="kv"><span class="mut">子管理员</span><span>'+A(overviewSummary?.subaccounts??'—')+'</span></div><div class="kv"><span class="mut">证券目录</span><span>—</span></div><div class="kv"><span class="mut">充值申请金额</span>'+A('$'+f(t.ti))+'</div><div class="kv"><span class="mut">提现申请金额</span>'+A('$'+f(t.to))+'</div>'}
 
 /* ===== 明细表 ===== */
 function rowsView(){
@@ -1063,7 +1068,7 @@ function renderTable(){
   return '<tr'+(inc(r)?'':' class="mutedrow"')+'><td class="mut">'+fts(r.t)+'</td><td><span class="chip '+(r.k==='in'?'ok':'rd')+'">'+(r.k==='in'?'充值':'提现')+'</span></td><td><span class="id" data-full="'+escapeOverview(FULL[r.c]||'')+'" title="点击复制完整编号">'+escapeOverview(r.c)+'</span></td><td><span class="chip '+st[1]+'" title="'+(st[2]||st[0])+'">'+st[0]+'</span></td>'
   +'<td class="r">'+A((g>0?'+':'−')+f(r.a),g>0?'up':'dn')+'</td><td class="r mut">'+A(f(x.c))+'</td></tr>'}).join('')
   :'<tr><td colspan="6" class="empty">'+(S.day?'该日期暂无记录':S.type==='out'?'暂无提现记录':'暂无记录')+'</td></tr>';
- if(!R.length){$('sum').innerHTML='<span>当前显示 0 / 0 条</span><span>充值 — · 提现 — · 净额 —</span>';return;}
+ if(!R.length){$('sum').innerHTML='<span>当前显示 0 / 0 条</span><span>充值 '+(overviewSummary?'0.00':'—')+' · 提现 '+(overviewSummary?'0.00':'—')+' · 净额 '+(overviewSummary?'0.00':'—')+'</span>';return;}
  $('sum').innerHTML='<span>当前显示 <b>'+L.length+'</b> / '+R.length+' 条'+(S.basis==='ok'?' · 灰色行为未入账，不计入累计':'')+'</span><span>充值 '+A('+'+f(si),'up')+' &nbsp;·&nbsp; 提现 '+A('−'+f(so),'dn')+' &nbsp;·&nbsp; 净额 '+A(f(si-so))+'</span>';
  var fc=$('fchip');fc.classList.toggle('on',!!S.day);if(S.day){var s=String(S.day);fc.innerHTML='日期 '+(+s.slice(4,6))+'/'+(+s.slice(6))+' <u>✕</u>'}}
 
@@ -1100,7 +1105,7 @@ function draw(){
  g.beginPath();pts.forEach(function(p,i){i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])});g.strokeStyle='#2874c8';g.lineWidth=2;g.lineJoin='round';g.stroke();
  if(n<=14)pts.forEach(function(p){g.beginPath();g.arc(p[0],p[1],3.2,0,7);g.fillStyle='#ffffff';g.fill();g.strokeStyle='#2874c8';g.lineWidth=1.6;g.stroke()});
  renderSummary(D)}
-function renderSummary(D){if(!R.length){$('cs').innerHTML='<div><span>区间充值</span><b>—</b></div><div><span>区间提现</span><b>—</b></div><div><span>区间净流入</span><b>—</b></div><div><span>峰值日</span><b>—</b></div>';return;}
+function renderSummary(D){if(!R.length){var zero=overviewSummary?'0.00':'—';$('cs').innerHTML='<div><span>区间充值</span><b>'+zero+'</b></div><div><span>区间提现</span><b>'+zero+'</b></div><div><span>区间净流入</span><b>'+zero+'</b></div><div><span>峰值日</span><b>—</b></div>';return;}
  var i=0,o=0,pk=null;D.forEach(function(d){i+=d.i;o+=d.o;var v=d.i+d.o;if(v>0&&(!pk||v>pk.v))pk={d:d.d,v:v}});
  $('cs').innerHTML='<div><span>区间充值</span><b class="up">'+A('+'+f(i))+'</b></div><div><span>区间提现</span><b class="dn">'+A('−'+f(o))+'</b></div><div><span>区间净流入</span><b>'+A(f(i-o))+'</b></div><div><span>峰值日</span><b>'+(pk?md(pk.d)+' · '+A(f(pk.v)):'—')+'</b></div>';
  $('csub').textContent=''}
@@ -1146,11 +1151,11 @@ async function refreshOverview(){
   const r=await fetch('/api/admin/funding-overview?'+new URLSearchParams({subaccount:subFilter.value}),{cache:'no-store',headers:{Authorization:'Bearer '+token}});
   if(!r.ok)throw Error('HTTP '+r.status);
   const data=await r.json();if(version!==loadVersion)return;
-  END=new Date();
+  END=new Date();overviewSummary=data.summary||null;
   FULL={};
   R=data.items.map(row=>({t:new Date(row.created_at),k:row.kind==='DEPOSIT'?'in':'out',s:({APPROVED:'ok',PENDING:'wa',REVIEWED:'ap',REJECTED:'rj'})[row.status],a:Number(row.amount_cents)/100,c:row.email})).filter(row=>row.s&&Number.isFinite(row.a)&&Number.isFinite(+row.t));
   S.day=null;S.hv=null;tip.classList.remove('on');renderStats();renderSide();renderTable();sync();draw();
- }catch{if(version===loadVersion){R=[];renderStats();renderSide();renderTable();draw();$('csub').textContent='资金记录暂时无法读取';}}
+ }catch{if(version===loadVersion){R=[];overviewSummary=null;renderStats();renderSide();renderTable();draw();$('csub').textContent='资金记录暂时无法读取';}}
 }
 subFilter.addEventListener('change',refreshOverview);
 window.addEventListener('cn-funding-overview-refresh',refreshOverview);

@@ -6645,7 +6645,8 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       const selected=new URL(req.url,"http://localhost").searchParams.get("subaccount")||"";
       if(actor.role==="SUBADMIN"&&selected){response(res,403,{error:"Forbidden"});return true}
       const result=await db.query("SELECT r.kind,r.status,r.amount_cents::text,r.created_at,r.approved_at,u.email FROM cash_requests r JOIN client_links l ON l.user_id=r.user_id JOIN invite_codes i ON i.id=l.invite_code_id JOIN admin_roles owner ON owner.user_id=i.subadmin_user_id AND owner.role='SUBADMIN' JOIN app_users u ON u.id=r.user_id JOIN app_users agent ON agent.id=owner.user_id WHERE (($1='MASTER' AND owner.parent_user_id=$2) OR ($1='SUBADMIN' AND owner.user_id=$2)) AND ($3='' OR agent.email=$3) ORDER BY r.created_at DESC,r.id DESC",[actor.role,actor.userId,selected]);
-      response(res,200,{items:result.rows});return true;
+      const counts=await db.query("SELECT count(DISTINCT u.id)::int AS clients,count(DISTINCT owner.user_id)::int AS subaccounts FROM admin_roles owner JOIN app_users agent ON agent.id=owner.user_id LEFT JOIN invite_codes i ON i.subadmin_user_id=owner.user_id LEFT JOIN client_links l ON l.invite_code_id=i.id LEFT JOIN app_users u ON u.id=l.user_id AND NOT EXISTS(SELECT 1 FROM admin_roles ar WHERE ar.user_id=u.id) WHERE owner.role='SUBADMIN' AND (($1='MASTER' AND owner.parent_user_id=$2) OR ($1='SUBADMIN' AND owner.user_id=$2)) AND ($3='' OR agent.email=$3)",[actor.role,actor.userId,selected]);
+      response(res,200,{items:result.rows,summary:counts.rows[0]});return true;
     }
     if (route === "/api/admin/subaccounts/overview") {
       if(actor.role!=="MASTER"){response(res,403,{error:"Master permission required"});return true}
