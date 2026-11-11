@@ -62,7 +62,22 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
  await sellPage.route('**/*',r=>{const u=new URL(r.request().url());return u.origin!==base?r.abort():u.pathname==='/'?r.fulfill({contentType:'text/html',body:pages.desktop}):r.continue()});
  await sellPage.goto(base+'/',{waitUntil:'domcontentloaded'});
  await sellPage.locator('.tn[data-p=acct]').click();await sellPage.locator('[data-account-section=holdings]').click();await sellPage.locator('#tb-hold tr[data-s=AAPL]').click();
+ await sellPage.locator('#tr-next').waitFor({state:'visible'});
+ const ui=await sellPage.evaluate(()=>{const style=s=>getComputedStyle(document.querySelector(s));return {label:style('#tr-body .kv:nth-of-type(3)>span:first-child').color,stepper:style('#tr-body .stp').backgroundColor,button:style('#tr-next').backgroundColor}});
+ assert.equal(ui.label,'rgb(82, 98, 119)');assert.equal(ui.stepper,'rgb(245, 248, 252)');assert.equal(ui.button,'rgb(180, 35, 53)');
+ await sellPage.locator('#m-trade').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))});
+ await sellPage.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'sell-modal.png'),fullPage:true});
+ const unavailable=await browser.newPage({viewport:{width:1280,height:900}});
+ await unavailable.addInitScript(t=>localStorage.setItem('cncap.session',t),client);
+ await unavailable.route('**/*',async r=>{const u=new URL(r.request().url());if(u.origin!==base)return r.abort();if(u.pathname==='/')return r.fulfill({contentType:'text/html',body:pages.desktop});if(u.pathname==='/api/catalog'){const response=await r.fetch();const data=await response.json();for(const item of data.items||[]) {delete item.lastPriceCents;delete item.priceTimestamp}return r.fulfill({response,json:data})}return r.continue()});
+ await unavailable.goto(base+'/',{waitUntil:'domcontentloaded'});
+ await unavailable.locator('.tn[data-p=acct]').click();await unavailable.locator('[data-account-section=holdings]').click();await unavailable.locator('#tb-hold tr[data-s=AAPL]').click();
+ await unavailable.locator('#tr-estimate').filter({hasText:'报价暂不可用'}).waitFor();
+ assert.equal(await unavailable.locator('#tr-next').isDisabled(),true);
+ assert.match(await unavailable.locator('#tr-estimate').innerText(),/报价暂不可用/);
+ await unavailable.unrouteAll({behavior:'ignoreErrors'});await unavailable.close();
  await sellPage.locator('#tq').fill('3');
+ assert.match(await sellPage.locator('#tr-estimate').innerText(),/1,052.07/);
  await sellPage.locator('#tr-next').click();
  await sellPage.locator('#tr-ag').check();
  const [sold]=await Promise.all([sellPage.waitForResponse(r=>r.url().endsWith('/api/orders')&&r.request().method()==='POST'),sellPage.locator('#tr-go').click()]);
@@ -86,4 +101,5 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
  fs.writeFileSync(path.join(process.env.CN_QA_SAVE_DIR,'results.json'),JSON.stringify({customer:a,subaccount:agent.email,orders:result.orders,positions:result.positions,balance:result.account.cashCents},null,2));
  console.log(JSON.stringify({folder:process.env.CN_QA_SAVE_DIR,orders:result.orders.length,balance:result.account.cashCents}));
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
+
 

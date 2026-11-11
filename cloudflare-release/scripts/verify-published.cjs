@@ -18,6 +18,6 @@ async function request(url,options={}){return fetch(url,{...options,signal:Abort
  const desktop=await request('https://nuvexapro.com/',{headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36','Sec-CH-UA-Mobile':'?0'}});assert.equal(desktop.status,200);assert.equal(hash(await desktop.text()),hash(pages.desktop));
  report.checks.push({device:'desktop/admin',htmlMatchesAcceptedBuild:true});
  const legacy=await request('https://m.nuvexapro.com/');report.mobileSubdomain={status:legacy.status,server:legacy.headers.get('server'),migrated:false};
- report.browserChecks={desktopLogoutReturnsRootLogin:true,adminPasswordAndTwoFactorVisible:true,physicalDeviceVerified:false,mobileBrowserInteractionVerified:false};
+ report.browserChecks={desktopLogoutReturnsRootLogin:false,adminPasswordAndTwoFactorVisible:false,physicalDeviceVerified:false,mobileBrowserInteractionVerified:false};
  fs.writeFileSync(path.join(dir,'online-verification.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({passed:true,version:report.version,checks:report.checks.length,mobileMainDomain:true,mobileSubdomain:report.mobileSubdomain}));
 })().catch(e=>{console.error(e.message);process.exitCode=1});

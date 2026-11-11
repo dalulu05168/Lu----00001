@@ -14,7 +14,7 @@ const currency=market=>({US:'USD',HK:'HKD',CN:'CNY',JP:'JPY',EU:'EUR',MY:'MYR'}[
 const empty=(title,body='')=>`<div class="panel empty">${title}${body?`<br><small>${body}</small>`:''}</div>`;
 const navItems=[['home','首页','⌂'],['market','市场','▤'],['trade','操作','↗'],['star','自选','☆'],['mine','我的','◯']];
 function header(){return `<header class="header refined-header"><button class="wordmark" data-go="home" aria-label="NUVEXA首页"><span class="n-mark">N</span>NUVEXA<span class="brand-dot"></span></button><button data-business="notifications" class="notification" aria-label="账户消息">♧</button></header><div class="integration-tag">隔离接口集成 · 仅使用测试账户 · 刷新需重新登录</div>`;}
-function nav(){return `<nav class="nav" aria-label="主导航">${navItems.map(([p,t,i])=>`<button data-go="${p}" ${state.page===p?'aria-current="page" class="active"':''}><span style="font-size:22px">${i}</span>${t}</button>`).join('')}</nav>`;}
+function nav(){return `<nav class="nav" aria-label="主导航">${navItems.map(([p,t,i])=>`<button data-go="${p}" ${state.busy||state.loading?'disabled aria-busy="true"':''} ${state.page===p?'aria-current="page" class="active"':''}><span style="font-size:22px">${i}</span>${t}</button>`).join('')}</nav>`;}
 function errorBox(message,resource=''){return message?`<div class="error-box" role="alert">${esc(message)}${resource?` <button data-retry="${resource}">重试</button>`:''}</div>`:'';}
 function back(title){return `<div class="top-actions"><button class="back" data-action="back" aria-label="返回上一页">←</button><span class="muted">${title}</span><button data-action="refresh">刷新数据</button></div>`;}
 

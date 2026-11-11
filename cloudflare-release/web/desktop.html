@@ -1618,7 +1618,9 @@ $('exp').onclick=function(){var c='代码,类型,价格,数量,总额USD,时间\
 /* ========== 下单：填写 → 确认 → 提交 ========== */
 var TR=null;
 function openTrade(side,code){TR={side:side,code:code,step:1,qty:side==='买入'?minQ(code):1,agree:false,busy:false,key:null};$('tr-title').textContent=side+'订单预览';$('tr-sub').textContent=code+' · '+nm(code);renderTrade(false);openModal('m-trade')}
-function trErr(){var h=held(TR.code),c=cfg(TR.code);if(!(TR.qty>0))return '请输入大于 0 的整数数量';
+function tradeQuote(){var c=cfg(TR.code)||window.CN_DESKTOP_SYMBOLS?.[TR.code],p=Number(c?.lastPriceCents),t=Date.parse(c?.priceTimestamp),age=Date.now()-t;return Number.isSafeInteger(p)&&p>0&&Number.isFinite(t)&&age>=-5000&&age<=5*86400000?p:null}
+function tradeEstimate(){var p=tradeQuote(),n=p===null?NaN:p*TR.qty;return Number.isSafeInteger(n)&&n>0?'$'+f(n/100):'报价暂不可用，请稍后重试'}
+function trErr(){var h=held(TR.code),c=cfg(TR.code);if(!Number.isSafeInteger(TR.qty)||!(TR.qty>0))return '请输入大于 0 的整数数量';
  if(TR.side==='买入'){if(!c||c.visible===false||c.market!=='US'||!['股票','基金'].includes(c.type))return '该标的当前未开放买入';if(TR.qty<minQ(TR.code))return ''+LB.min+'为 '+minQ(TR.code)+' 股'}
  if(TR.side==='卖出'){if(!h)return '当前未持有该标的，无法卖出';if(TR.qty>h.q)return '卖出数量不能超过持仓 '+h.q+' 股';
   var sl=sellable(TR.code);if(TR.qty>sl){var u=nextUnlock(TR.code);return sl>0?'当前可卖出 '+sl+' 股'+(u?'，其余将于 '+fmtT(u)+' 解锁':''):'持有期未满'+(u?'，最早 '+fmtT(u)+' 可卖出':'')}}
@@ -1626,34 +1628,34 @@ function trErr(){var h=held(TR.code),c=cfg(TR.code);if(!(TR.qty>0))return '请�
 function termsHtml(code){var c=cfg(code);if(!c)return '';
  return '<div class="kv"><span>优惠比例</span><span class="chip in">'+esc(c.discount)+'%</span></div><div class="kv"><span>'+LB.days+'</span><span>'+esc(c.days)+' 天</span></div><div class="kv"><span>'+LB.min+'</span><span>'+esc(c.min)+' 股</span></div><div class="kv"><span>参与交易密码</span><span>'+(c.needPass?'需要':'不需要')+'</span></div>'}
 function pwOk(){var c=cfg(TR.code);if(TR.side!=='买入')return true;var i=$('tr-pw');return !!i&&/^\d{6}$/.test(i.value)}
-function goOk(){const price=Number($('tr-limit')?.value);return !!(TR&&priceAvailable(TR.code)&&TR.agree&&pwOk()&&!TR.busy&&(TR.side!=='买入'||Number.isSafeInteger(Math.round(price*100))&&price>=.01))}
-function renderTrade(anim){var b=$('tr-body');function go(){var buy=TR.side==='买入',h=held(TR.code),c=cfg(TR.code),needPw=!!buy,html='';
+function goOk(){const price=Number($('tr-limit')?.value);return !!(TR&&tradeQuote()!==null&&TR.agree&&pwOk()&&!TR.busy&&(TR.side!=='买入'||Number.isSafeInteger(Math.round(price*100))&&price>=.01))}
+function renderTrade(anim){var b=$('tr-body');function go(){var buy=TR.side==='买入',h=held(TR.code),c=cfg(TR.code),needPw=!!buy,html='';$('m-trade').dataset.side=buy?'buy':'sell';
  if(TR.step===1){
   html='<div class="dirtog"><button type="button" class="dirbtn buy'+(buy?' on':'')+'" data-side="买入">买入</button><button type="button" class="dirbtn sell'+(buy?'':' on')+'" data-side="卖出">卖出</button></div><div class="kv"><span style="color:var(--tx)">'+esc(TR.code)+' '+esc(nm(TR.code))+'</span>'+(buy&&c?'<span class="chip in">优惠比例 '+esc(c.discount)+'%</span>':'')+'</div><div class="kv"><span>计价</span><span>USD</span></div>'
   +(buy?(c?'<div class="kv"><span>'+LB.days+'</span><span>'+esc(c.days)+' 天</span></div><div class="kv"><span>'+LB.min+'</span><span>'+esc(c.min)+' 股</span></div>':'')+'<div class="kv"><span>可用现金</span><span class="amt lime">'+f(cash())+' USD</span></div>'
    :'<div class="kv"><span>持仓数量</span><span>'+(h?h.q+' 股':(HAVE.holds?'0 股':'—'))+'</span></div><div class="kv"><span>可卖出数量</span><span>'+(h?sellable(TR.code)+' 股':'0 股')+'</span></div>'+(h&&nextUnlock(TR.code)?'<div class="kv"><span>最早解锁时间</span><span class="tw">'+esc(fmtT(nextUnlock(TR.code)))+'</span></div>':'')+'<div class="kv"><span>成本均价</span><span class="amt">'+(h?'$'+f(h.c/h.q):'—')+'</span></div>')
   +'<div class="fld"><label>'+TR.side+'数量</label><div class="stp"><button type="button" id="tq-m" aria-label="减少">−</button><input id="tq" inputmode="numeric" value="'+TR.qty+'" autocomplete="off" aria-label="数量"><button type="button" id="tq-p" aria-label="增加">+</button></div></div>'
   +'<div class="er" id="tr-er">'+esc(trErr())+'</div>'
-  +'<div class="kv"><span>预估金额</span><span class="mut">暂无行情，暂无法估算</span></div>'
-  +'<button class="btn p w" id="tr-next"'+(trErr()?' disabled':'')+'>下一步：订单预览</button>'}
+  +'<div class="kv"><span>预估金额</span><span id="tr-estimate">'+esc(tradeEstimate())+'</span></div>'
+  +'<button class="btn p w" id="tr-next"'+(trErr()||tradeQuote()===null?' disabled':'')+'>下一步：订单预览</button>'}
  else{
   html='<div class="kv"><span>方向</span><span class="'+(buy?'up':'dn')+'">'+TR.side+'</span></div><div class="kv"><span>标的</span><span>'+esc(TR.code)+' '+esc(nm(TR.code))+'</span></div><div class="kv"><span>数量</span><span>'+TR.qty+' 股</span></div><div class="kv"><span>计价</span><span>USD</span></div>'
   +(buy?termsHtml(TR.code):(h&&nextUnlock(TR.code)?'<div class="kv"><span>可卖出数量</span><span>'+sellable(TR.code)+' 股</span></div><div class="kv"><span>其余解锁时间</span><span class="tw">'+esc(fmtT(nextUnlock(TR.code)))+'</span></div>':''))
-  +'<div class="kv"><span>预估金额</span><span class="mut">当前无法估算</span></div><div class="kv"><span>手续费</span><span class="mut">当前无法估算</span></div>'
+  +'<div class="kv"><span>预估金额</span><span>'+esc(tradeEstimate())+'</span></div>'
   +'<div class="hint" style="text-align:left">价格可能波动，预估金额仅供参考。</div>'
   +(referenceSymbols.includes(TR.code)?'<div class="hint">此商品 ETF 使用最近可用的延迟参考价结算。</div>':'')
   +(buy?'<div class="fld"><label for="tr-limit">最高买入单价（USD）</label><input id="tr-limit" type="number" inputmode="decimal" min="0.01" step="0.01"></div>':'')
   +(needPw?'<div class="fld"><label for="tr-pw">参与交易密码</label><input id="tr-pw" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="6 位数字" aria-label="参与交易密码"><div class="er" id="tr-pwer"></div></div>':'')
   +'<label class="chk"><input type="checkbox" id="tr-ag"'+(TR.agree?' checked':'')+'>'+(buy?'我已阅读并理解以上优惠比例、'+LB.days+'、'+LB.min+'及价格提示，确认订单预览':'我已阅读并理解以上提示，确认订单预览')+'</label>'
-  +'<div class="row2"><button class="btn gh w" id="tr-back">返回修改</button><button class="btn '+(buy?'p':'red')+' w" id="tr-go"'+(goOk()?'':' disabled')+'>'+(priceAvailable(TR.code)&&API?'提交订单':'交易暂不可用')+'</button></div>'}
+  +'<div class="row2"><button class="btn gh w" id="tr-back">返回修改</button><button class="btn '+(buy?'p':'red')+' w" id="tr-go"'+(goOk()?'':' disabled')+'>'+(tradeQuote()!==null&&API?'提交订单':'报价暂不可用')+'</button></div>'}
  b.innerHTML=html;
  if(TR.step===1){var q=$('tq');b.querySelectorAll('.dirbtn').forEach(function(db){db.onclick=function(){var ns=db.getAttribute('data-side');if(ns===TR.side)return;TR.side=ns;TR.qty=ns==='买入'?minQ(TR.code):1;$('tr-title').textContent=ns+'订单预览';$('tr-sub').textContent=TR.code+' · '+nm(TR.code);renderTrade(true)}});
-  var upd=function(){var e=trErr();$('tr-er').textContent=q.value===''?'':e;$('tr-next').disabled=!!e};
+  var upd=function(){var e=trErr();$('tr-er').textContent=q.value===''?'':e;$('tr-next').disabled=!!e||tradeQuote()===null;$('tr-estimate').textContent=tradeEstimate()};
   q.addEventListener('input',function(){q.value=q.value.replace(/\D/g,'');TR.qty=parseInt(q.value,10)||0;upd()});
   q.addEventListener('blur',function(){if(!(parseInt(q.value,10)>0)){TR.qty=buy?minQ(TR.code):1;q.value=TR.qty;upd()}});
   $('tq-m').onclick=function(){TR.qty=Math.max(buy?minQ(TR.code):1,(parseInt(q.value,10)||1)-1);q.value=TR.qty;upd()};
   $('tq-p').onclick=function(){TR.qty=(parseInt(q.value,10)||0)+1;q.value=TR.qty;upd()};
-  $('tr-next').onclick=function(){var e=trErr();if(e){$('tr-er').textContent=e;return}TR.step=2;TR.agree=false;TR.key=null;renderTrade(true)}}
+  $('tr-next').onclick=function(){var e=trErr()||(tradeQuote()===null?'报价暂不可用，请稍后重试':'');if(e){$('tr-er').textContent=e;return}TR.step=2;TR.agree=false;TR.key=null;renderTrade(true)}}
  else{
   const limit=$('tr-limit');if(limit)limit.oninput=()=>{$('tr-go').disabled=!goOk()};
   $('tr-ag').onchange=function(){TR.agree=this.checked;$('tr-go').disabled=!goOk()};

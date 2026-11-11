@@ -67,3 +67,26 @@ html body .cn-products :is(.cp-muted,.cp-empty,.cp-terms span){color:#52677d}
 html body .cn-products :is(.cp-card,.cp-tier){border-color:#d6e1ef}
 html body .cn-products button{border-radius:999px;background:#f5f8fc;color:#24364b;border-color:#d6e1ef}
 html body :is(.cn-products,.cp-dialog) .cp-primary{background:#1659aa;color:#fff;border-color:#1659aa}
+
+/* Order entry: readable white controls and consistent direction feedback. */
+html body #m-trade .dlg{width:min(620px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto;background:#fff;color:#24364b;--tx:#24364b;--mut:#526277}
+html body #m-trade .ph{height:auto!important;min-height:82px!important;padding:18px 90px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;border-bottom:1px solid #d6e1ef}
+html body #m-trade #tr-title{font-size:22px;font-weight:650;line-height:1.4}
+html body #m-trade #tr-sub{font-size:13px;color:#526277}
+html body #m-trade .ph .ar{position:absolute;right:18px;top:20px}
+html body #m-trade #tr-body{padding:22px 24px;gap:12px}
+html body #m-trade .kv{min-height:34px;gap:16px;font-size:14px;line-height:1.5;margin:0}
+html body #m-trade :is(.kv>span:first-child,.fld label,.hint,.chk){color:#526277;font-size:14px}
+html body #m-trade .kv>span:last-child{color:#24364b;text-align:right;overflow-wrap:anywhere}
+html body #m-trade .stp{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f5f8fc;border:1px solid #d6e1ef;border-radius:999px;padding:6px;min-height:52px}
+html body #m-trade .stp button{flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:#e7effa;color:#1659aa;border:0;font-size:22px}
+html body #m-trade .stp input{width:100%;min-width:0;max-width:180px;height:40px;text-align:center;background:#fff;color:#24364b;border:1px solid #d6e1ef;border-radius:12px;font-size:18px;line-height:1.5}
+html body #m-trade :is(#tr-limit,#tr-pw){background:#f5f8fc;color:#24364b;border:1px solid #d6e1ef;min-height:44px;font-size:16px}
+html body #m-trade .dirbtn{min-height:44px;border-radius:999px;font-size:16px!important;background:#f5f8fc;box-shadow:none;color:#526277;border:1px solid #d6e1ef}
+html body #m-trade .dirbtn.buy.on{background:#137a4b;color:#fff;border-color:#137a4b}
+html body #m-trade .dirbtn.sell.on{background:#b42335;color:#fff;border-color:#b42335}
+html body #m-trade :is(#tr-next,#tr-go){min-height:46px;border-radius:999px;font-size:16px!important;background:#137a4b;color:#fff;border-color:#137a4b;box-shadow:none}
+html body #m-trade[data-side=sell] :is(#tr-next,#tr-go){background:#b42335;border-color:#b42335;color:#fff}
+html body #m-trade :is(#tr-next,#tr-go):disabled{background:#edf2f8;border-color:#d6e1ef;color:#63748b;opacity:1;cursor:not-allowed}
+html body #m-trade .er:empty{display:none}
+@media(max-width:600px){html body #m-trade #tr-body{padding:18px 16px}html body #m-trade .ph{padding-inline:76px}html body #m-trade #tr-title{font-size:19px}}
