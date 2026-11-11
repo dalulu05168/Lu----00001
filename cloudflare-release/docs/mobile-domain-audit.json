@@ -1,0 +1,70 @@
+{
+  "checkedAt": "2026-11-11T02:15:46.876Z",
+  "dns": {
+    "status": 403,
+    "success": false,
+    "result": null,
+    "errors": [
+      {
+        "code": 10000,
+        "message": "Authentication error",
+        "documentation_url": "https://developers.cloudflare.com/api/resources/dns/subresources/records/methods/list"
+      }
+    ]
+  },
+  "domains": {
+    "status": 200,
+    "items": [
+      {
+        "id": "3e4ad0347b4607a6842ee94512eb644b4c6fbce2",
+        "zone_id": "a8df35d94c75feed494049aed503ed60",
+        "zone_name": "nuvexapro.com",
+        "hostname": "nuvexapro.com",
+        "service": "lu----00001",
+        "environment": "production",
+        "cert_id": "30e98e1a-253c-4986-8757-d520ce7bfbeb",
+        "previews_enabled": false,
+        "enabled": true
+      },
+      {
+        "id": "81a4bcc4dca02d653ac03de3f72550d663e541f9",
+        "zone_id": "66d3fcc095504d451ebe6b1ec15d3f1e",
+        "zone_name": "maacropierce.com",
+        "hostname": "admin.maacropierce.com",
+        "service": "lu----00001",
+        "environment": "production",
+        "cert_id": "c6771fce-bfae-48d0-a157-d0f09a483fc9",
+        "previews_enabled": false,
+        "enabled": true
+      }
+    ]
+  },
+  "publicDns": {
+    "Status": 0,
+    "TC": false,
+    "RD": true,
+    "RA": true,
+    "AD": false,
+    "CD": false,
+    "Question": [
+      {
+        "name": "m.nuvexapro.com",
+        "type": 5
+      }
+    ],
+    "Answer": [
+      {
+        "name": "m.nuvexapro.com",
+        "type": 5,
+        "TTL": 300,
+        "data": "c824af4759146db2.vercel-dns-017.com."
+      }
+    ]
+  },
+  "mobile": {
+    "status": 200,
+    "server": "Vercel",
+    "url": "https://m.nuvexapro.com/",
+    "htmlBytes": 18329
+  }
+}
