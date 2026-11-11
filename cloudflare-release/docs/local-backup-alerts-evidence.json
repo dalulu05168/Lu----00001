@@ -1,0 +1,287 @@
+{
+  "recordedAt": "2026-11-11T11:30:45.686385+00:00",
+  "productionWorkerChanged": false,
+  "sourceBase": "3c3ff4b",
+  "project": "bitter-heart-61838251",
+  "branch": "br-crimson-morning-b3rhjeoi",
+  "database": "neondb",
+  "productionBusinessDataChanged": false,
+  "databaseSecurityChanges": [
+    "cn_backup_monitor read_only public schema role",
+    "SELECT on public sequences and default sequence SELECT privileges",
+    "SELECT-only RLS policies scoped to cn_backup_monitor on existing protected tables"
+  ],
+  "toolProvenance": {
+    "downloadedAt": "2026-11-11T10:01:27Z",
+    "source": "https://get.enterprisedb.com/postgresql/postgresql-17.11-5-windows-x64-binaries.zip",
+    "officialEntry": "https://www.postgresql.org/download/windows/",
+    "bytes": 381531864,
+    "sha256": "80379b2c04d51c30225532e0ae04509899141e9957ed096fe749d7fd9df8f82f",
+    "officialChecksumMatched": true,
+    "zipCrcVerified": true
+  },
+  "latestBackup": {
+    "file": "cn-capital-2026-11-11T11-26-11.970Z-868389.cnbak",
+    "completedAt": "2026-11-11T11:26:15.763Z",
+    "restored": true,
+    "encrypted": true,
+    "bytes": 6792289,
+    "verification": {
+      "passed": true,
+      "tables": 37,
+      "rows": 190,
+      "constraints": 197,
+      "sequences": 1,
+      "dumpSha256": "1664ef4c7119ddbc143b3cccf4f17a4891f063682fa58b390a15892283b37256",
+      "archiveSha256": "65869ef14ce2b33a900f24011aafccb0838905817214ba47dc1756b7c9e31c8f",
+      "checkedAt": "2026-11-11T11:26:15.414Z",
+      "target": "new loopback database; removed after comparison"
+    }
+  },
+  "readOnlyPermissions": {
+    "checkedAt": "2026-11-11T11:27:58.514Z",
+    "role": "cn_backup_monitor",
+    "users": 9,
+    "accounts": 9,
+    "can_read": true,
+    "can_insert": false,
+    "can_update": false,
+    "can_delete": false,
+    "can_truncate": false,
+    "can_create": false,
+    "can_set_sequence": false
+  },
+  "monitor": {
+    "checkedAt": "2026-11-11T11:29:38.627Z",
+    "active": {},
+    "checks": [
+      {
+        "origin": "https://nuvexapro.com",
+        "ready": true
+      },
+      {
+        "origin": "https://admin.maacropierce.com",
+        "ready": true
+      },
+      {
+        "recentLoginThresholdBuckets": 0
+      },
+      {
+        "ledgerMismatchAccounts": 0
+      }
+    ],
+    "pending": 0,
+    "backupFailure": false
+  },
+  "unitTests": {
+    "command": "node --test cloudflare-release/ops/core.test.cjs",
+    "passed": 7,
+    "failed": 0
+  },
+  "overlapMonitorTest": {
+    "skippedWhileAnotherRunActive": true,
+    "exitCode": 0
+  },
+  "mail": {
+    "to": "dalulu05168@gmail.com",
+    "connected": false,
+    "deliveryVerified": false,
+    "automationId": "cn-capital",
+    "schedule": "hourly incident delivery heartbeat"
+  },
+  "limits": [
+    "This computer must be signed in, powered on and online",
+    "Codex and Gmail must be available for email delivery",
+    "DPAPI credentials and archive key are bound to this Windows account; off-machine recovery key export not completed",
+    "Only the public schema is in scope; a new schema or unreviewed RLS table causes backup to fail",
+    "Cloudflare secret values, Neon global roles and external provider configuration are not included",
+    "No automatic retention deletion or offsite redundancy"
+  ],
+  "schedulerVerification": {
+    "Tasks": [
+      {
+        "Name": "CN-Capital-Encrypted-Backup",
+        "LastRunTime": "2026-11-11T13:26:03.0000000+02:00",
+        "RunLevel": "Limited",
+        "LastTaskResult": 0,
+        "LogonType": "Interactive",
+        "State": "Ready",
+        "NextRunTime": "2026-11-12T04:00:00.0000000+02:00"
+      },
+      {
+        "Name": "CN-Capital-Security-Monitor",
+        "LastRunTime": "2026-11-11T13:29:36.0000000+02:00",
+        "RunLevel": "Limited",
+        "LastTaskResult": 0,
+        "LogonType": "Interactive",
+        "State": "Ready",
+        "NextRunTime": "2026-11-11T13:44:36.0000000+02:00"
+      }
+    ],
+    "CheckedAt": "2026-11-11T11:30:13.9685139Z"
+  },
+  "applicationOnlineReadonly": {
+    "checkedAt": "2026-11-11T11:30:17.402Z",
+    "version": "8361c450-1112-4529-95bb-f67f88187234",
+    "sourceSha256": "bc8762a063f7008ee9c4cf00e5ef5c47c312bb88bcc04e0974c12d48aefe7348",
+    "productionMutations": false,
+    "checks": [
+      {
+        "name": "desktop",
+        "url": "https://nuvexapro.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "e5c0b1c95f6cd4e1f50ec69feb4d0900555e90391884bc52e5fa73e4f6aaf651"
+      },
+      {
+        "name": "mobile",
+        "url": "https://nuvexapro.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "05f3ba9bdff75b75ed91c6f0cf81a8232e2d2d8140e051f7e4a714a3a6f60aba"
+      },
+      {
+        "name": "login",
+        "url": "https://admin.maacropierce.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "06c26614e45804bda538bf803cd3f8df1d48b55070e27f2ee8101c6fec4ca8fb"
+      },
+      {
+        "name": "admin",
+        "url": "https://admin.maacropierce.com/admin",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "8159615cc3275ddff305f4e073cacbdf9769e797123e16484bea2ab5a23ad2a5"
+      },
+      {
+        "url": "https://nuvexapro.com/ready",
+        "httpStatus": 200,
+        "status": "ready",
+        "database": "connected",
+        "brokerConnected": false
+      },
+      {
+        "url": "https://nuvexapro.com/logo.png",
+        "httpStatus": 200,
+        "logoMatches": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/account",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/products",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/requests",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/support",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/watchlist",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/notifications",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/admin/clients",
+        "method": "GET",
+        "httpStatus": 404,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/admin/subaccounts",
+        "method": "GET",
+        "httpStatus": 404,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/ready",
+        "httpStatus": 200,
+        "status": "ready",
+        "database": "connected",
+        "brokerConnected": false
+      },
+      {
+        "url": "https://admin.maacropierce.com/logo.png",
+        "httpStatus": 200,
+        "logoMatches": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/account",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/products",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/requests",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/support",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/watchlist",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/notifications",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/admin/clients",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/admin/subaccounts",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      }
+    ],
+    "relatedFixes": {
+      "mirrorMinimumHeightServed": true,
+      "mobileHeldStockSellCodeServed": true,
+      "authenticatedProductionTradeNotAttempted": true
+    },
+    "carriedForwardSchemaEvidence": true,
+    "physicalDeviceVerified": false
+  },
+  "codeChangesApplicationRuntime": false
+}
