@@ -1174,7 +1174,7 @@ body:has(#p-market.show) header.top .tn.on::after { background: #1255a5; }
 <div class="fld"><label for="damt">申请金额（USD）</label><input id="damt" inputmode="decimal" autocomplete="off" placeholder="例如：100.00"></div>
 <div class="fld" id="dpw-w" hidden=""><label for="dpw">提款密码</label><input id="dpw" type="password" autocomplete="new-password" spellcheck="false" data-lpignore="true" data-1p-ignore="" placeholder="请输入您本人的提款密码"><details><summary>设置 / 重设提款密码</summary><label for="cash-current-password">当前登录密码</label><input id="cash-current-password" type="password" autocomplete="current-password"><label for="cash-new-pin">新提款密码（6 位）</label><input id="cash-new-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"><button type="button" id="cash-set-pin" class="btn">保存提款密码</button><p id="cash-pin-result" role="status"></p></details></div><div class="hint" id="dpw-h" hidden="">请输入您设置的 6 位提款密码。</div>
 <div class="hint">当前可用现金 <span class="amt lime" data-b="availableCash">—</span> USD</div>
-<div class="er" id="dep-er"></div>
+<div class="er" id="dep-er" role="alert"></div><p id="dep-result" class="flow-status" role="status"></p>
 <div class="bn" id="sec-dep" hidden="">当前连接不安全（HTTP），已禁止提交，请使用 HTTPS 访问</div>
 <button class="btn p w" type="submit">提交申请</button>
 
@@ -1231,7 +1231,7 @@ body:has(#p-market.show) header.top .tn.on::after { background: #1255a5; }
 <div class="ph"><div>客户客服</div><small class="cs"><span class="dot" style="margin:0"></span>在线客服</small><div class="al"><button class="btn" id="csref">刷新</button></div><div class="ar"><button class="btn" id="csx" aria-label="关闭">关闭</button></div></div>
 <div class="msgs" id="msgs"></div>
 <div class="qk" id="qk"><button type="button" data-q="充值多久到账">充值多久到账</button><button type="button" data-q="身份资料进度">身份资料进度</button><button type="button" data-q="提现问题">提现问题</button><button type="button" data-q="订单状态">订单状态</button></div>
-<form class="cin" id="f-chat"><input id="cmsg" autocomplete="off" placeholder="输入消息"><button class="btn p" type="submit">发送</button></form>
+<p id="chat-send-status" class="flow-status" role="status"></p><form class="cin" id="f-chat"><input id="cmsg" autocomplete="off" placeholder="输入消息"><button class="btn p" type="submit">发送</button></form>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">数据加载失败</div>
@@ -1359,11 +1359,11 @@ function fade(el,fn){el.classList.add('out');setTimeout(function(){fn();el.class
 var lastF=null,openM=null,urls=[],files={f:null,b:null};
 function resetForms(id){
  if(id==='m-trade'){var tp=$('tr-pw');if(tp)tp.value=''}
- if(id==='m-dep'){$('damt').value='';$('dep-er').textContent='';$('dtype').selectedIndex=0;$('dpw').value='';$('dpw-w').hidden=true;$('dpw-h').hidden=true}
+ if(id==='m-dep'){$('dep-result').textContent='';$('damt').value='';$('dep-er').textContent='';$('dtype').selectedIndex=0;$('dpw').value='';$('dpw-w').hidden=true;$('dpw-h').hidden=true}
  if(id==='m-bank'){$('bname').value='';$('bno').value='';$('bno').type='password';$('bno-t').textContent='显示';$('bank-er').textContent=''}
  if(id==='m-id'){identityStatusRequest++;setDesktopIdentityStatus();['f','b'].forEach(function(k){var b=$('up-'+k);b.querySelector('input').value='';var im=b.querySelector('img');im.removeAttribute('src');b.classList.remove('has');$('fn-'+k).textContent='';files[k]=null});urls.forEach(function(u){URL.revokeObjectURL(u)});urls=[]}}
-function closeM(){if(!openM)return;var id=openM.id;openM.classList.remove('open');openM=null;resetForms(id);if(lastF&&lastF.focus)lastF.focus()}
-function openModal(id){var af=document.activeElement;closeM();lastF=af;var m=$(id);m.classList.add('open');openM=m;
+function closeM(){if(!openM)return;if(openM.querySelector('[data-submitting]')||(openM.id==='m-trade'&&TR?.busy))return;var id=openM.id;openM.classList.remove('open');openM=null;resetForms(id);if(lastF&&lastF.focus)lastF.focus()}
+function openModal(id){var af=document.activeElement;closeM();if(openM)return;lastF=af;var m=$(id);m.classList.add('open');openM=m;
  var sec={'m-dep':'sec-dep','m-id':'sec-id','m-bank':'sec-bank'}[id];
  if(sec){$(sec).hidden=SECURE;m.querySelectorAll('button[type=submit]').forEach(function(b){b.disabled=!SECURE})}
  if(SECURE&&(id==='m-id'||id==='m-bank'))refreshDesktopIdentityStatus(id);
@@ -1648,7 +1648,7 @@ function renderTrade(anim){var b=$('tr-body');function go(){var buy=TR.side==='�
   +(buy?'<div class="fld"><label for="tr-limit">最高买入单价（USD）</label><input id="tr-limit" type="number" inputmode="decimal" min="0.01" step="0.01"></div>':'')
   +(needPw?'<div class="fld"><label for="tr-pw">参与交易密码</label><input id="tr-pw" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="6 位数字" aria-label="参与交易密码"><div class="er" id="tr-pwer"></div></div>':'')
   +'<label class="chk"><input type="checkbox" id="tr-ag"'+(TR.agree?' checked':'')+'>'+(buy?'我已阅读并理解以上优惠比例、'+LB.days+'、'+LB.min+'及价格提示，确认订单预览':'我已阅读并理解以上提示，确认订单预览')+'</label>'
-  +'<div class="row2"><button class="btn gh w" id="tr-back">返回修改</button><button class="btn '+(buy?'p':'red')+' w" id="tr-go"'+(goOk()?'':' disabled')+'>'+(tradeQuote()!==null&&API?'提交订单':'报价暂不可用')+'</button></div>'}
+  +'<div class="er" id="tr-submit-error" role="alert"></div><div class="row2"><button class="btn gh w" id="tr-back">返回修改</button><button class="btn '+(buy?'p':'red')+' w" id="tr-go"'+(goOk()?'':' disabled')+'>'+(tradeQuote()!==null&&API?'提交订单':'报价暂不可用')+'</button></div>'}
  b.innerHTML=html;
  if(TR.step===1){var q=$('tq');b.querySelectorAll('.dirbtn').forEach(function(db){db.onclick=function(){var ns=db.getAttribute('data-side');if(ns===TR.side)return;TR.side=ns;TR.qty=ns==='买入'?minQ(TR.code):1;$('tr-title').textContent=ns+'订单预览';$('tr-sub').textContent=TR.code+' · '+nm(TR.code);renderTrade(true)}});
   var upd=function(){var e=trErr();$('tr-er').textContent=q.value===''?'':e;$('tr-next').disabled=!!e||tradeQuote()===null;$('tr-estimate').textContent=tradeEstimate()};
@@ -1678,13 +1678,15 @@ function playOrderConfirm(o){o=o||{};var dlg=document.querySelector('#m-trade .d
   (Number.isFinite(o.price)?'<span>成交单价 $'+f(o.price)+'</span>':'');
  dlg.appendChild(el);
  var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
- setTimeout(function(){el.remove();if(o.done)o.done()},o.demo?1600:(rm?700:1750));
+ if(o.demo){setTimeout(()=>el.remove(),rm?700:1600);return;}
+ var finish=document.createElement('button');finish.type='button';finish.className='btn p';finish.textContent='完成';
+ finish.onclick=function(){el.remove();if(o.done)o.done();};el.append(finish);finish.focus();
 }
 function placeOrder(){if(!goOk())return;
  if(!API){toast('交易暂不可用');return}
  var c=cfg(TR.code),pw=$('tr-pw'),body={side:TR.side==='买入'?'BUY':'SELL',market:c?.market||window.CN_DESKTOP_SYMBOLS?.[TR.code]?.market||'US',symbol:TR.code,quantity:TR.qty},hd={'Content-Type':'application/json','Idempotency-Key':TR.key||(TR.key=newKey())};
  if(csrf())hd['X-CSRF-Token']=csrf();
- TR.busy=true;$('tr-go').disabled=true;
+ TR.busy=true;$('tr-go').disabled=true;$('tr-go').textContent='正在提交…';$('tr-back').disabled=true;$('tr-submit-error').textContent='';
  if(TR.side==='买入'&&pw){body.tradePin=pw.value;body.limitPriceCents=Math.round(Number($('tr-limit').value)*100);pw.value=''}   /* 取出后立即清空输入框；密码不进 DATA、不缓存 */
  var payload=JSON.stringify(body);body=null;
  fetch(API+'/orders',{method:'POST',credentials:'include',headers:hd,body:payload})
@@ -1698,7 +1700,7 @@ function placeOrder(){if(!goOk())return;
   if(code&&DEFINITIVE[code])TR.key=null;   /* 服务器已明确拒绝：换新幂等键；网络错误/5xx 保留原键，重试不会重复下单 */
   if(x?.status===403||x?.status===409)TR.key=null;
   var msg=ERRMSG[code]||({unconfirmed_order:'暂未确认订单结果，请查看交易明细后再试','Invalid trading password':'交易密码错误','Quote exceeds buy limit':'当前报价高于买入限价','Verified market pricing unavailable':'当前报价不可用，请稍后重试'})[code]||'提交失败，请稍后重试';if(x&&x.wait&&(code==='rate_limited'||code==='locked'))msg+='（约 '+Math.ceil(x.wait/60)+' 分钟后）';
-  var pe=$('tr-pwer');if((code==='bad_password'||code==='rate_limited'||code==='locked')&&pe)pe.textContent=msg;else toast(msg);var g=$('tr-go');if(g)g.disabled=!goOk()})}
+  var pe=$('tr-pwer');if((code==='bad_password'||code==='rate_limited'||code==='locked')&&pe)pe.textContent=msg;else $('tr-submit-error').textContent=msg;var g=$('tr-go');if(g){g.disabled=!goOk();g.textContent='提交订单';$('tr-back').disabled=false}})}
 
 
 /* 申请进度 */
@@ -1721,7 +1723,7 @@ async function saveCashPin(root,button){
  const password=current.value,pin=next.value;
  if(!password||!/^\d{6}$/.test(pin)){result.textContent='请输入登录密码和 6 位提款密码';return}
  const token=localStorage.getItem('cncap.session');if(!token){location.assign('/login');return}
- button.disabled=true;current.value='';next.value='';
+ button.disabled=true;result.textContent='正在保存提款密码…';current.value='';next.value='';
  try{
   const r=await fetch('/api/withdrawal-pin',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({password:password,pin:pin})});
   result.textContent=r.ok?'提款密码已设置':'未能设置，请核对登录密码';
@@ -1770,12 +1772,14 @@ function desktopFormSubmit(form,work,onError){
  if(form.dataset.submitting)return;
  form.dataset.submitting='1';
  const button=form.querySelector('button[type="submit"]');
- if(button)button.disabled=true;
- Promise.resolve().then(work).catch(onError).finally(function(){delete form.dataset.submitting;if(button)button.disabled=form.dataset.identityStatus==='PENDING'});
+ const label=button?.textContent;
+ if(button){button.disabled=true;button.textContent='正在提交…';}
+ form.setAttribute('aria-busy','true');
+ Promise.resolve().then(work).catch(onError).finally(function(){delete form.dataset.submitting;form.removeAttribute('aria-busy');if(button){button.textContent=label;button.disabled=['PENDING','APPROVED','loading','unavailable'].includes(form.dataset.identityStatus)}});
 }
 
 $('dtype').onchange=function(){var w=$('dtype').value==='提现申请';$('dpw-w').hidden=!w;$('dpw-h').hidden=!w;if(!w)$('dpw').value='';$('dep-er').textContent=''};
-$('f-dep').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var v=parseFloat($('damt').value.replace(/,/g,'')),er=$('dep-er');
+$('f-dep').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var amount=$('damt').value.trim(),v=/^\d+(?:\.\d{1,2})?$/.test(amount)?Number(amount):NaN,er=$('dep-er');$('dep-result').textContent='';er.textContent='';
  if(!(v>0)){er.textContent='请输入大于 0 的金额';return}
  if($('dtype').value==='提现申请'&&cash()===null){er.textContent='现金余额未同步，暂不能提现';return}
  if($('dtype').value==='提现申请'&&v>cash()){er.textContent='提现金额不能超过现金余额';return}
@@ -1785,7 +1789,7 @@ $('f-dep').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var v=parse
  const body={kind:withdraw?'WITHDRAW':'DEPOSIT',amountCents:Math.round(v*100)};
  if(withdraw){body.withdrawalPin=pin;$('dpw').value=''}
  desktopFormSubmit(this,async function(){
-  if(await desktopSubmit('/api/requests',body)){$('damt').value='';toast('申请已提交，等待审批');loadData();window.dispatchEvent(new Event('cn-notifications-refresh'))}
+  if(await desktopSubmit('/api/requests',body)){$('damt').value='';$('dep-result').textContent=(withdraw?'提现':'充值')+'申请已提交 · '+f(v)+' USD · 等待审批';loadData();window.dispatchEvent(new Event('cn-notifications-refresh'))}
  },function(error){er.textContent=({'Identity and bank approval required':'身份资料和银行卡都审核通过后才能申请。','Amount below minimum':withdraw?'单笔提现最低 10 USD':'单笔充值最低 1 USD','Amount above maximum':withdraw?'单笔提现最多 50,000 USD':'单笔充值最多 100,000 USD','Invalid withdrawal password':'提款密码不正确','Withdrawal password not configured':'请先设置提款密码','Too many attempts':'尝试次数过多，请稍后再试','Withdrawals restricted':'此账户已限制提现','Insufficient available balance':'可提现余额不足'}[error.code]||'申请未提交，请稍后重试。')})};
 function magic(file,cb){var r=new FileReader();r.onload=function(){var u=new Uint8Array(r.result);cb((u[0]===0x89&&u[1]===0x50&&u[2]===0x4E&&u[3]===0x47)||(u[0]===0xFF&&u[1]===0xD8&&u[2]===0xFF))};r.onerror=function(){cb(false)};r.readAsArrayBuffer(file.slice(0,4))}
 ['f','b'].forEach(function(k){var box=$('up-'+k),inp=box.querySelector('input'),img=box.querySelector('img');
@@ -1886,9 +1890,11 @@ async function refreshSupport(){
 async function sendSupport(message,input){
   if(!message||supportSending)return;
   supportSending=true;
-  try{const sent=await supportRequest(message);if(sent){if(input&&input.value.trim()===message)input.value='';await refreshSupport()}}
-  catch(error){toast('发送失败，请重试')}
-  finally{supportSending=false}
+  const status=$('chat-send-status'),button=$('f-chat').querySelector('button');
+  button.disabled=true;button.textContent='发送中…';status.textContent='正在发送消息…';
+  try{const sent=await supportRequest(message);if(sent){if(input&&input.value.trim()===message)input.value='';status.textContent='消息已发送';await refreshSupport()}}
+  catch(error){status.textContent='发送未确认，请保留原消息重试。'}
+  finally{supportSending=false;button.disabled=false;button.textContent='发送'}
 }
 
 function renderBadge(){var b=$('badge');b.hidden=!unread;b.textContent=unread}
@@ -2180,15 +2186,15 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   let fingerprint='',key='';
   box.onsubmit=async event=>{
    event.preventDefault();
-   if(save.disabled)return;
+   if(save.disabled)return;save.textContent='正在提交…';status.textContent='正在提交，请稍候。';
    save.disabled=true;
    try{
     const data=submit(Object.fromEntries(new FormData(box)));
     const next=JSON.stringify(data);
     if(next!==fingerprint){fingerprint=next;key=crypto.randomUUID()}
-    await request(data,key);await load();status.textContent='已保存。';
+    await request(data,key);await load();status.textContent=({IPO_SUBSCRIBE:'申购已提交，等待配售。',FUND_SUBSCRIBE:'基金申购成功，请查看持仓。',FUND_REDEEM:'基金赎回成功，请查看交易记录。'})[data.action]||'已保存。';
    }catch(error){status.textContent=error.message}
-   finally{save.disabled=false}
+   finally{save.disabled=false;save.textContent=label}
   };
   parent.append(box);
  }
@@ -2238,7 +2244,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
    dialog=node('dialog','','ps-dialog');dialog.setAttribute('aria-label','IPO 与普通基金');
    const head=node('header');head.append(node('strong','IPO 与普通基金'),button('关闭',()=>dialog.close()));
    status=node('p');status.setAttribute('role','status');content=node('div');
-   dialog.append(head,status,content);document.body.append(dialog);
+   dialog.append(head,content,status);document.body.append(dialog);
   }
   if(!dialog.open){dialog.showModal();load()}
  }

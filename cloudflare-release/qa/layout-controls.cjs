@@ -66,7 +66,7 @@ assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locat
  assert.deepEqual(await p.locator(kind==='mobile'?'.trade-tabs [data-a=sec]':'#ptabs button').allTextContents(),['\u5927\u5b97\u4ea4\u6613','\u57fa\u91d1','IPO']);
  await p.locator(kind==='mobile'?'[data-a=sec][data-v=\u57fa\u91d1]':'#ptabs button').filter({hasText:'\u57fa\u91d1'}).click();
  await p.locator('[data-cp=subscribe]').first().click();assert.equal(await p.locator('#cp-overlay input[type=password]').count(),0);
- [r]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/fund-subscriptions')&&r.request().method()==='POST'),p.locator('#cp-overlay [type=submit]').click()]);assert.equal(r.status(),201);await p.locator('#cp-overlay').waitFor({state:'detached'});
+ [r]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/fund-subscriptions')&&r.request().method()==='POST'),p.locator('#cp-overlay [type=submit]').click()]);assert.equal(r.status(),201);await p.getByRole('dialog',{name:'认购成功'}).getByRole('button',{name:'完成',exact:true}).click();
  await p.locator(kind==='mobile'?'[data-a=sec][data-v=\u5927\u5b97\u4ea4\u6613]':'#ptabs button:first-child').click();await p.locator('[data-cp=buy]').first().click();await p.locator('#cp-overlay [name=password]').fill('123456');
  [r]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/bulk-orders')&&r.request().method()==='POST'),p.locator('#cp-overlay [type=submit]').click()]);assert.equal(r.status(),201);await p.locator('#cp-overlay').waitFor({state:'detached'});await p.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,kind+'-products.png'),fullPage:true});
  await p.unrouteAll({behavior:'ignoreErrors'});await p.close();

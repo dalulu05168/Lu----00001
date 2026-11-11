@@ -42,6 +42,15 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
   const subordinate=await page('admin',agent);
   await subordinate.locator('.cn-task').filter({hasText:'身份资料待审核'}).click();
   await subordinate.locator('#cn-doc-approval').waitFor();assert.equal(await subordinate.locator('#cn-doc-kind').inputValue(),'IDENTITY');
+  const image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jP1sAAAAASUVORK5CYII=';
+  await api('/api/profile-documents',201,customer,{kind:'IDENTITY',front:image,back:image,fullName:'验收客户'});
+  await subordinate.locator('#cn-doc-approval').getByRole('button',{name:'刷新',exact:true}).click();
+  await subordinate.locator('#cn-doc-approval').getByRole('button',{name:'查看并审核'}).click();
+  const review=subordinate.locator('#cn-doc-detail');
+  await review.getByRole('button',{name:'通过审核'}).click();
+  await review.getByRole('status').getByText('资料审核已通过。').waitFor();
+  await review.getByRole('button',{name:'完成'}).click();
+  await review.getByText('请选择一条申请').waitFor();
   assert.equal(await subordinate.getByRole('button',{name:'平台公告',exact:true}).count(),0);
   await subordinate.locator('[data-p=cli]').click();
   await subordinate.getByRole('button',{name:'客户详情',exact:true}).first().click();
@@ -62,6 +71,9 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
   assert.equal(await desktop.locator('#market-news').getAttribute('data-news-key'),'NASDAQ:AAPL|light');
   await desktop.locator('#market-news iframe').waitFor();
   const mobile=await page('mobile',customer);
+  await mobile.locator('nav [data-go=mine]').click();
+  await mobile.locator('.profile strong').getByText('验收客户',{exact:true}).waitFor();
+  await mobile.locator('nav [data-go=home]').click();
   await mobile.getByText('平台维护安排',{exact:true}).waitFor();
   await mobile.locator('nav [data-go=market]').click();await mobile.locator('[data-action=news]').click();
   await mobile.locator('.cn-news-dialog[open] iframe').waitFor();

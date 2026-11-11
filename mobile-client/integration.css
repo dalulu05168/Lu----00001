@@ -53,3 +53,9 @@ html body .panel.menulink{padding:18px;border:1px solid #dce5ee;border-radius:18
 html body .content>.menulink{padding:18px;margin:12px 0;border:1px solid #dce5ee;border-radius:18px;background:#fff}
 html body .content>h1{font-size:24px;line-height:1.4;font-weight:650;color:#172332;margin:0 0 20px}
 html body .sub,html body .data-row span:first-child,html body .quote-metrics small{color:#52677d}
+
+/* Action feedback on customer forms. */
+.content > :is(.resultbox,.error-box){padding:14px 16px;border-radius:14px;line-height:1.55;overflow-wrap:anywhere}
+.content > .resultbox{border:1px solid #c4ded5;background:#edf8f3;color:#215445}
+.content form[aria-busy="true"] button:disabled{cursor:wait;opacity:.75}
+.content form .primary:active:not(:disabled){filter:brightness(.94)}

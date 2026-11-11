@@ -5,7 +5,7 @@ export function createApi(fetcher=globalThis.fetch){
   let token=null,scope=null;
   const journal=()=>scope?'cn.pending.'+scope:null;
   async function durableKey(path,body,key){
-    if(!key||!scope||!['/api/bulk-orders','/api/fund-subscriptions','/api/product-settlement','/api/requests','/api/support'].includes(path))return {key};
+    if(!key||!scope||!['/api/orders','/api/bulk-orders','/api/fund-subscriptions','/api/product-settlement','/api/requests','/api/support'].includes(path))return {key};
     const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(body))))).map(x=>x.toString(16).padStart(2,'0')).join('');
     let record;try{record=JSON.parse(sessionStorage.getItem(journal())||'null')}catch{throw new ApiError('无法读取未决订单记录，请先核对订单，暂停重复提交');}
     if(record&&(record.path!==path||record.digest!==digest)){

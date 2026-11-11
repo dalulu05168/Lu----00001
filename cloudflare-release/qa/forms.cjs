@@ -102,17 +102,19 @@ async function createAgent(master,idx,client){
    assert(lostDeposit?.id,'Deposit must commit before response loss');await p.unroute('**/api/requests');
    const dep=await submit(p,mobile?'#sb':'#f-dep button[type=submit]','/api/requests');
    assert.equal(dep.id,lostDeposit.id,'Retry must recover the original deposit');
+   await p.locator('#dep-result').getByText(/充值申请已提交/).waitFor();
    await p.keyboard.press('Escape');await p.locator('#csbtn').click();
    await p.locator('#cmsg').fill('桌面客服响应恢复验收');let lostMessage;
    await p.route('**/api/support',async route=>{
     if(route.request().method()!=='POST')return route.continue();
     lostMessage=await(await route.fetch({url:base+'/api/support'})).json();await route.abort('failed');
    });
-   await p.locator('#f-chat button').click();await p.getByText('发送失败，请重试',{exact:true}).waitFor();
+   await p.locator('#f-chat button').click();await p.getByText('发送未确认，请保留原消息重试。',{exact:true}).waitFor();
    assert(lostMessage?.id,'Message must commit before response loss');await p.unroute('**/api/support');
    const recovered=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/support'&&r.request().method()==='POST');
    await p.locator('#f-chat button').click();const recoveredMessage=await(await recovered).json();
    assert.equal(recoveredMessage.id,lostMessage.id);assert.equal(recoveredMessage.replayed,true);
+   await p.locator('#chat-send-status').getByText(/消息已发送/).waitFor();
    await p.locator('#csx').click();
    console.log(kind,'approving deposit');for(let step=0;step<2;step++)await api(admin('requests'),200,master,{id:dep.id,decision:'APPROVE'});
    await p.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});await p.close();

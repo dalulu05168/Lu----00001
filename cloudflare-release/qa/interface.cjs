@@ -147,6 +147,16 @@ async function page(browser,kind,token,email){
   await ledger.getByText('$30.00',{exact:true}).waitFor();
   assert.equal(await ledger.getByText(b,{exact:true}).count(),0);
   await owner.keyboard.press('Escape');
+  const scope=owner.locator('#t-cli');
+  await scope.getByRole('heading',{name:agentA.email,exact:true}).waitFor();
+  assert.equal(await scope.locator('details[open]').count(),0);
+  for(const panel of await scope.locator('details').all()){
+   await panel.locator('summary').click();
+   assert.equal(await panel.locator('table').isVisible(),true);
+   await panel.locator('summary').click();
+  }
+  await scope.getByRole('button',{name:'返回子账户'}).click();
+  await owner.locator('#t-sub [data-sub-client]').filter({hasText:agentA.email}).click();
   const row=owner.locator('#t-cli > table tbody tr').filter({hasText:a});
   await row.waitFor();
   assert.equal(await owner.locator('#t-cli > table tbody tr').filter({hasText:b}).count(),0);
@@ -159,19 +169,25 @@ async function page(browser,kind,token,email){
   await sub.locator('[data-p=appr]').click();
   await sub.locator('#cn-doc-approval').waitFor();
   assert.equal(await sub.locator('#cn-cash-approval').isVisible(),false);
-  await m.getByText('林女士',{exact:false}).first().waitFor();
-  for(const name of ['行情','交易','订单','账户']){
-   await m.locator('.nv').getByRole('button',{name,exact:true}).click();
-   await m.locator('.cn-mobile-brand').waitFor();
-   assert(await m.locator('.cn-mobile-brand').evaluate(el=>el.complete&&el.naturalWidth>0&&el.width===56));
+  await m.locator('#login-form [name=email]').fill(a);
+  await m.locator('#login-form [name=password]').fill(password);
+  await m.locator('#login-form button').click();
+  for(const name of ['home','market','trade','star','mine']){
+   await m.locator('nav [data-go='+name+']').click();
+   const brand=m.locator('header .cn-brand-logo');
+   await brand.waitFor();
+   await m.waitForFunction(()=>{const logo=document.querySelector('header .cn-brand-logo');return logo?.complete&&logo.naturalWidth>0});
   }
-  for(const kind of ['kyc','bank']){
-   await m.locator('[data-a=sheet][data-v='+kind+']').first().click();
-   await m.getByText('已提交并审核通过。如需更改，请联系在线客服。',{exact:true}).waitFor();
-   await m.locator('[role=dialog]').getByRole('button',{name:'关闭'}).click();
+  await m.locator('.profile strong').getByText('林女士',{exact:true}).waitFor();
+  for(const kind of ['identity','bank']){
+   await m.locator('.menulink[data-business='+kind+']').click();
+   await m.getByText('资料已提交并审核通过，如需更改请联系在线客服。',{exact:true}).waitFor();
+   assert.equal(await m.locator('form[data-business-form='+kind+']').count(),0);
+   await m.locator('nav [data-go=mine]').click();
   }
-  await m.getByRole('button',{name:'消息通知，有未读消息'}).click();
-  await m.getByRole('dialog',{name:'客户客服'}).waitFor();await m.locator('#msgs').getByText('客户客服回复验收').waitFor();
+  await m.locator('.notification[data-business=notifications]').click();
+  await m.locator('[data-notification][data-business=support]').first().click();
+  await m.getByText('客户客服回复验收',{exact:true}).waitFor();
   await d.locator('#balchip').click();
   await d.locator('[data-account-section=funds]').click();
   for(const kind of ['m-id','m-bank']){

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- saved from url=(0058)https://lu-%2D-%2D00001.dalulu05168.workers.dev/admin#over -->
-<html data-product-settlement="admin" lang="zh-CN"><head><script>try{if(sessionStorage.getItem("cncap.admin.entry")!=="1"||!localStorage.getItem("cncap.admin.session"))location.replace("/");else sessionStorage.removeItem("cncap.admin.entry")}catch(e){location.replace("/")}</script><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<html data-admin-workspace data-product-settlement="admin" lang="zh-CN"><head><script>try{if(sessionStorage.getItem("cncap.admin.entry")!=="1"||!localStorage.getItem("cncap.admin.session"))location.replace("/");else sessionStorage.removeItem("cncap.admin.entry")}catch(e){location.replace("/")}</script><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <script>
 window.CN_API_BASE='/api';
 window.CN_FRONT_API_BASE='/api';
@@ -662,9 +662,9 @@ var hold=reduce?400:2500;setTimeout(function(){sp.classList.add('cn-off');setTim
 <section class="pg b grid" id="p-cli" hidden="">
 <div class="pn c12"><div class="tabs"><button class="on" data-t="t-cli">客户</button><button data-t="t-sub">子账户 · —</button></div>
 <div class="tp" id="t-cli">
- <div class="pb bar"><input type="search" id="cn-client-search" placeholder="邮箱、客户编号或归属" aria-label="搜索客户" style="width:260px"><button class="btn" type="button" id="cn-client-refresh">刷新</button><span class="mut">客户详情、独立提款密码状态、账户权限、实名资料及客服统一在此管理</span></div>
- <table><thead><tr><th>客户</th><th>邀请码归属</th><th>账户类别 / VIP</th><th>状态</th><th class="r">操作</th></tr></thead><tbody><tr><td colspan="5" class="empty">正在读取客户…</td></tr></tbody></table><section class="pn" style="margin:12px 0"><div class="ph"><span>客户操作记录<small>最近 20 条</small></span></div><table><thead><tr><th>时间</th><th>管理员</th><th>操作</th><th>客户</th><th>原因</th></tr></thead><tbody id="cn-audit-rows"><tr><td colspan="5" class="empty">正在读取…</td></tr></tbody></table></section>
- <div class="pn" id="cn-resets" style="margin: 12px 0px;"><div class="ph"><span>密码重置申请<small>待处理</small></span></div><table><thead><tr><th>客户邮箱</th><th>提交时间</th><th class="r">操作</th></tr></thead><tbody id="cn-reset-rows"><tr><td colspan="3" class="empty">正在读取…</td></tr></tbody></table></div></div>
+ <div class="pb bar client-list-toolbar"><h2>客户列表</h2><input type="search" id="cn-client-search" placeholder="邮箱、客户编号或归属" aria-label="搜索客户" style="width:260px"><button class="btn" type="button" id="cn-client-refresh">刷新</button></div>
+ <table><thead><tr><th>客户</th><th>邀请码归属</th><th>账户类别 / VIP</th><th>状态</th><th class="r">操作</th></tr></thead><tbody><tr><td colspan="5" class="empty">正在读取客户…</td></tr></tbody></table><details class="client-extra"><summary>客户操作记录 <small>最近 20 条</small></summary><table><thead><tr><th>时间</th><th>管理员</th><th>操作</th><th>客户</th><th>原因</th></tr></thead><tbody id="cn-audit-rows"><tr><td colspan="5" class="empty">正在读取…</td></tr></tbody></table></details>
+ <details class="client-extra" id="cn-resets"><summary>密码重置申请 <small>待处理</small></summary><table><thead><tr><th>客户邮箱</th><th>提交时间</th><th class="r">操作</th></tr></thead><tbody id="cn-reset-rows"><tr><td colspan="3" class="empty">正在读取…</td></tr></tbody></table></details></div>
  <div class="tp" id="t-sub" hidden="">
  <div class="pb bar"><button class="btn p" data-own="" data-mo="m-sub">+ 创建子账户</button><span class="mut">子账户支持密码重置与登录限制</span></div>
  <table><thead><tr><th>子账户</th><th>角色</th><th>备注</th></tr></thead><tbody id="sub-tbody"><tr><td colspan="7" class="empty">正在读取子账户…</td></tr></tbody></table></div>
@@ -2020,14 +2020,14 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
     var tb=document.getElementById('cn-reset-rows');
     if(!tb||!token())return;
     api('/api/admin/password-resets?status=PENDING').then(function(res){
-      if(!res.ok||!res.json||!Array.isArray(res.json.items))return;
+      if(!res.ok||!res.json||!Array.isArray(res.json.items))throw Error('Reset requests unavailable');
       var items=res.json.items;
       if(document.documentElement.dataset.adminRole==='MASTER')items=items.filter(row=>scopedClients.has(row.email));
       tb.innerHTML=items.length?items.map(function(r){
         return '<tr><td><b>'+esc(r.email)+'</b></td><td class="mut">'+esc(when(r.created_at))+'</td>'
           +'<td><button class="mb p" data-cn-reset="'+esc(r.id)+'">生成重置码</button></td></tr>';
       }).join(''):'<tr><td colspan="3" class="empty">暂无待处理申请</td></tr>';
-    }).catch(function(){});
+    }).catch(function(){tb.innerHTML='<tr><td colspan="3" class="empty">暂时无法读取申请，请稍后重试。</td></tr>'});
   }
   function install(){
     var cli=document.getElementById('t-cli');
@@ -2521,12 +2521,12 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       form.addEventListener('submit',async event=>{
         event.preventDefault();
         const entry=selects.find(([, ,button])=>button===event.submitter);
-        if(!entry)return;
+        if(!entry||form.getAttribute('aria-busy')==='true')return;
         const [field,select,save]=entry,value=select.value;
         if(!reason.value.trim()){notice.textContent='请填写变更原因。';reason.focus();return}
         const payload={email,field,value,reason:reason.value.trim()};
         selects.forEach(([,input,button])=>{input.disabled=true;button.disabled=true});
-        reason.disabled=true;
+        reason.disabled=true;form.setAttribute('aria-busy','true');notice.textContent='正在保存变更…';
         try{
           await api('clients','PATCH',payload);
           d.controls[field]=value;notice.textContent=labels[field][0]+'已更新。';
@@ -2534,7 +2534,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
         }catch(error){notice.textContent=errorLabel(error)}
         finally{
           selects.forEach(([name,input,button])=>{input.disabled=false;button.disabled=input.value===(d.controls[name]||labels[name][2])});
-          reason.disabled=false;
+          reason.disabled=false;form.removeAttribute('aria-busy');
         }
       });
       access.append(form);view.body.append(access);
@@ -2628,15 +2628,20 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       const message=node('p','','ops-note');message.setAttribute('role','status');
       const footer=node('div','','ops-actions ops-review-actions');
       async function save(status){
+        if(footer.getAttribute('aria-busy')==='true')return;
         const value=reason.value.trim();
         if(status==='REJECTED'&&!value){message.textContent='请输入驳回原因。';reason.focus();return}
         const buttons=[...footer.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
+        footer.setAttribute('aria-busy','true');message.textContent='正在提交审核结果…';
         try{
           await api('profile-documents','PATCH',{email:item.email,kind:item.kind,version:data.version,status,reason:value});
-          if(view.isCurrent()){if(returnToClient)returnToClient();else clearDocDetail()}
+          if(view.isCurrent()){const receipt=node('p',status==='APPROVED'?'资料审核已通过。':'资料已驳回。','ops-note');receipt.setAttribute('role','status');
+            const done=action('完成',returnToClient||clearDocDetail,'p');
+            if(!returnToClient)selectedDoc=null;
+            view.body.replaceChildren(receipt,done);done.focus()}
           loadDocs();loadAudit();
         }catch(error){if(view.isCurrent())message.textContent=errorLabel(error);if(error.status===409)loadDocs()}
-        finally{buttons.forEach(b=>b.disabled=false)}
+        finally{footer.removeAttribute('aria-busy');buttons.forEach(b=>b.disabled=false)}
       }
       footer.append(action('驳回资料',()=>save('REJECTED'),'ops-danger'),action('通过审核',()=>save('APPROVED'),'p'));
       view.body.append(label,message,footer);
@@ -2696,12 +2701,14 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       view.body.replaceChildren(form);
       async function save(actionName){
         if(actionName==='publish'&&!form.reportValidity())return;
+        if(form.getAttribute('aria-busy')==='true')return;
         const controls=[title,text,publish,withdraw];controls.forEach(control=>control.disabled=true);
+        form.setAttribute('aria-busy','true');status.textContent=actionName==='publish'?'正在发布公告…':'正在撤下公告…';
         try{
           const result=await api('announcements','POST',{action:actionName,version:data.version,title:title.value,body:text.value});
           if(!view.isCurrent())return;Object.assign(data,result);status.textContent=actionName==='publish'?'公告已发布':'公告已撤下';loadAudit();
         }catch(error){if(view.isCurrent())status.textContent=error.status===409?'公告已被其他管理员更新，请关闭后重新打开。':errorLabel(error)}
-        finally{if(view.isCurrent()){controls.forEach(control=>control.disabled=false);withdraw.disabled=!data.item}}
+        finally{form.removeAttribute('aria-busy');if(view.isCurrent()){controls.forEach(control=>control.disabled=false);withdraw.disabled=!data.item}}
       }
       form.addEventListener('submit',event=>{event.preventDefault();save('publish')});
     }catch(error){if(view.isCurrent())view.body.replaceChildren(node('p',errorLabel(error),'ops-note'))}
@@ -2757,15 +2764,20 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       const response=await api('subaccounts').catch(()=>({items:[]}));
       window.dispatchEvent(new CustomEvent('cn-overview-subaccounts',{detail:response.items}));
       const tabs=q('#p-cli .tabs'),group=q('#t-cli');tabs.hidden=true;
-      const header=node('div','','ops-heading');group.prepend(header);
+      const header=node('div','','client-scope');group.prepend(header);
       q('#t-sub').addEventListener('click',event=>{
         const target=event.target.closest('[data-sub-client]');if(!target)return;
         selectedSub=target.dataset.subClient;
         const sub=response.items.find(row=>row.email===selectedSub);
-        header.replaceChildren(node('strong',selectedSub),node('span','邀请码 '+(sub?.code||'—')+' · 使用 '+(sub?.uses??'—')+' / '+(sub?.max_uses??'—')+' · 到期 '+date(sub?.expires_at)+' · '+(sub?.login_restricted_at?'限制登录':sub?.twofa_confirmed_at?'已启用':'待激活'),'mut'),
-          action('出入金明细',()=>window.dispatchEvent(new CustomEvent('cn-sub-detail',{detail:selectedSub}))),
-          action('更改密码',()=>subAction('m-subpass')),action('登录限制',()=>subAction('m-sublock')),
-          action('返回子账户',()=>{selectedSub='';q('[data-t="t-sub"]').click()}));
+        const summary=node('div','','client-scope-summary');
+        summary.append(node('h1',selectedSub),node('span',sub?.login_restricted_at?'限制登录':sub?.twofa_confirmed_at?'已启用':'待激活','chip in'),
+          node('p','邀请码 '+(sub?.code||'—')+' · 使用 '+(sub?.uses??'—')+' / '+(sub?.max_uses??'—')+' · 到期 '+date(sub?.expires_at),'mut'));
+        const actions=node('div','','client-scope-actions');
+        actions.append(action('出入金明细',()=>window.dispatchEvent(new CustomEvent('cn-sub-detail',{detail:selectedSub})),'p'),
+          action('更改密码',()=>subAction('m-subpass')),action('登录限制',()=>subAction('m-sublock')));
+        const back=action('← 返回子账户',()=>{selectedSub='';q('[data-t="t-sub"]').click()});
+        back.classList.add('client-scope-back');
+        header.replaceChildren(back,summary,actions);
         q('[data-t="t-cli"]').click();drawClients();loadClients().then(loadAudit);
       });
       function subAction(modal){const b=node('button');b.dataset.mo=modal;b.dataset.email=selectedSub;b.hidden=true;document.body.append(b);b.click();b.remove()}

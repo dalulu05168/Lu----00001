@@ -87,6 +87,7 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
  assert.match(await confirmation.innerText(),/AAPL.*3/);
  assert.equal(await confirmation.locator('.check').evaluate(el=>getComputedStyle(el).color),'rgb(79, 221, 143)');
  assert.equal(await confirmation.locator('.check svg').evaluate(el=>getComputedStyle(el).transform),'none');
+ await confirmation.getByRole('button',{name:'完成'}).click();
  await sellPage.locator('#tb-hold tr[data-s=AAPL]').waitFor({state:'detached'});
  await sellPage.unrouteAll({behavior:'ignoreErrors'});await sellPage.close();
  console.log('Desktop sell confirmation and refreshed holdings verified');
