@@ -9,3 +9,7 @@ html body :is(.primary,.secondary,.actionbar button,.chips button,.tabs button,.
 html body .nav button{min-height:48px;font-size:12px}
 html body :is(button,input,select,textarea):focus-visible{outline:2px solid #1659aa;outline-offset:3px}
 .notification .unread-dot{position:absolute;right:0;top:0;width:9px;height:9px;background:#e27259;border:2px solid #f5f7f9;border-radius:50%}.chart-mount{min-height:430px;margin-top:18px}.real-chart{border:0;display:block;width:100%;height:430px;background:#fff;border-radius:9px}.page-enter{animation:nuvexa-enter .18s ease-out}@keyframes nuvexa-enter{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:reduce){.page-enter{animation:none}}.support-message{overflow-wrap:anywhere}.notification{min-width:44px;min-height:44px}
+
+html body .header .wordmark{padding:0;display:flex;align-items:center;min-height:44px;letter-spacing:0}
+html body .cn-brand-logo{display:block;width:48px;height:48px;object-fit:contain}
+html body .header .notification{display:grid;place-items:center;position:relative;color:#ae7a16;border:1px solid #f1e2c7;border-radius:50%;background:#fffbf4;width:44px;height:44px}

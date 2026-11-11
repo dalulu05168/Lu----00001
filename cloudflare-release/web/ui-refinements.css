@@ -90,3 +90,26 @@ html body #m-trade[data-side=sell] :is(#tr-next,#tr-go){background:#b42335;borde
 html body #m-trade :is(#tr-next,#tr-go):disabled{background:#edf2f8;border-color:#d6e1ef;color:#63748b;opacity:1;cursor:not-allowed}
 html body #m-trade .er:empty{display:none}
 @media(max-width:600px){html body #m-trade #tr-body{padding:18px 16px}html body #m-trade .ph{padding-inline:76px}html body #m-trade #tr-title{font-size:19px}}
+
+/* Shared control sizing and support composer across the white desktop surfaces. */
+html body #cp{background:#fff;color:#24364b;border:1px solid #d6e1ef}
+html body #cp .cin{display:flex;align-items:center;gap:10px;padding:14px 16px;margin:0;border-top:1px solid #d6e1ef;background:#fff}
+html body #cp #cmsg{flex:1;min-width:0;height:44px;box-sizing:border-box;margin:0;padding:0 16px;background:#f5f8fc!important;color:#24364b!important;-webkit-text-fill-color:#24364b;border:1px solid #d6e1ef;border-radius:999px;font:14px/1.5 inherit}
+html body #cp .cin button{flex:0 0 80px;min-height:44px;height:44px;padding:0 16px;margin:0;font-size:14px;line-height:1.5;box-shadow:none}
+html body #cp :is(.qk button,.ph button){min-height:36px;font-size:14px;padding:7px 14px}
+html body :is(.cn-products,.ps-dialog) button{font-family:inherit;font-size:14px!important;font-weight:500;line-height:1.5;min-height:40px;padding:8px 16px;border-radius:999px;box-shadow:none}
+html body .cn-products .cp-toolbar{gap:10px;min-height:48px;margin-bottom:16px}
+html body .cn-products .cp-toolbar h3{font-size:18px;line-height:1.4;font-weight:600;margin:0;min-width:120px}
+html body .cn-products .cp-card h3{font-size:16px;font-weight:600}
+html body .cn-products .cp-card{background:#fff;border-color:#d6e1ef}
+html body .cn-products .cp-terms b{font-size:15px;color:#24364b}
+html body .cn-products .cp-actions{align-items:center}
+html body #p-cat .tabs .cp-ipo-entry{border-radius:999px;padding:8px 20px;font-size:14px;min-height:40px;margin:0 6px;background:#f5f8fc;color:#24364b;border:1px solid #d6e1ef}
+html body #p-cat .tabs .cp-ipo-entry:hover{background:#eaf2ff;color:#1255a5}
+html body #market-buy{display:block;margin:12px 0 0 auto;min-width:110px;min-height:40px;border-radius:999px}
+html body .ps-dialog :is(input,select,textarea){box-sizing:border-box;min-height:40px;background:#f5f8fc;color:#24364b;border:1px solid #d6e1ef;border-radius:10px;font:14px/1.5 inherit;padding:8px 12px;min-width:0}
+html body .ps-dialog h3{font-size:18px;line-height:1.4}
+@media(max-width:700px){html body .cn-products .cp-toolbar h3{flex-basis:100%}html body .cp-admin-list{padding:16px}html body #cp .cin{padding:12px;gap:8px}}
+
+html body #p-cat .tabs{display:flex;justify-content:center;align-items:center;gap:8px;padding:12px 16px}
+html body #p-cat .tabs button{min-height:40px;padding:8px 20px;font-size:14px!important;line-height:1.5;border-radius:999px;margin:0}

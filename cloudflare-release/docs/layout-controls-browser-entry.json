@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-11-11T01:57:40.044Z",
+  "checks": [
+    {
+      "name": "desktop",
+      "passwordFieldVisible": true,
+      "url": "https://nuvexapro.com/"
+    },
+    {
+      "name": "mobile",
+      "passwordFieldVisible": true,
+      "url": "https://nuvexapro.com/"
+    },
+    {
+      "name": "admin",
+      "passwordFieldVisible": true,
+      "adminTwoFactor": true,
+      "url": "https://admin.maacropierce.com/"
+    }
+  ],
+  "authenticatedProductionWrites": false,
+  "physicalDeviceVerified": false
+}

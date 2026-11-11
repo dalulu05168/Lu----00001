@@ -1114,7 +1114,7 @@ body:has(#p-market.show) header.top .tn.on::after { background: #1255a5; }
         <select id="market-symbol-select" class="market-select" aria-label="选择走势标的"></select>
         <button type="button" id="market-toggle-favorite" hidden>＋ 自选</button>
       </div>
-      <div id="market-chart" class="market-widget"></div>
+      <div id="market-chart" class="market-widget"></div><button class="btn p" type="button" id="market-buy">买入</button>
     </section>
     <section class="market-card">
       <div class="desktop-section-tabs" aria-label="行情侧栏">
@@ -1526,6 +1526,7 @@ $('balchip').onclick=function(){show('acct')};
     updateChart();
     widget(ranking,'hotlists','美股市场排行',{exchange:'US',dateRange:'1D',showChart:false});
   }
+  $('market-buy').onclick=function(){const symbol=picker.value.split(':').pop();window.CNProducts?.openBuy(symbol)};
   picker.addEventListener('change',updateChart);
   $('market-toggle-favorite').addEventListener('click',()=>{
     const symbol=$('market-toggle-favorite').dataset.symbol;

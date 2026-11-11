@@ -22,5 +22,5 @@ module.exports=function mobileBundle(root,{production=false}={}){
  }
  visit('app.mjs');
  const css=['base.css','pages.css','polish.css','integration.css'].map(name=>fs.readFileSync(path.join(root,name),'utf8')).join('\n');
- return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>客户 App</title><style>'+css+'</style></head><body><div id="app" class="app"></div><script>'+chunks.join('\n').replace(/<\/script/gi,'<\\/script')+'</script></body></html>';
+ return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>CN Capital</title><style>'+css+'</style></head><body><div id="app" class="app"></div><script>'+chunks.join('\n').replace(/<\/script/gi,'<\\/script')+'</script></body></html>';
 };
