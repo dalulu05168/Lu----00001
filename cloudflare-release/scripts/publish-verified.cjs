@@ -1,5 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{createHash}=require('node:crypto');
-const root=path.resolve(__dirname,'..'),dir=path.join(root,'artifacts','publication-9fea07e');fs.mkdirSync(dir,{recursive:true});
+const label=process.env.CN_PUBLICATION_LABEL||'9fea07e';assert(/^[a-zA-Z0-9-]+$/.test(label));
+const root=path.resolve(__dirname,'..'),dir=path.join(root,'artifacts','publication-'+label);fs.mkdirSync(dir,{recursive:true});
 const account='8c0339e3cace4c6ecad7052224bd6ac5',service='lu----00001',prefix='/accounts/'+account+'/workers/scripts/'+service;
 const token=fs.readFileSync('C:/Users/mrmal/AppData/Roaming/xdg.config/.wrangler/config/default.toml','utf8').match(/^oauth_token\s*=\s*"([^"]+)"/m)?.[1];assert(token,'Cloudflare authorization missing');
 async function api(route,options={}){const r=await fetch('https://api.cloudflare.com/client/v4'+route,{...options,headers:{Authorization:'Bearer '+token,...options.headers},signal:AbortSignal.timeout(35000)});const j=await r.json();if(!r.ok||!j.success)throw Error(route+' '+r.status+' '+JSON.stringify(j.errors));return j.result;}
@@ -8,7 +9,7 @@ const reportFile=path.join(dir,'publication.json');
 (async()=>{
  const mode=process.argv[2]||'prepare';
  if(mode==='prepare'){
-  const manifest=require('../release-manifest.json'),source=fs.readFileSync(path.join(root,'dist/worker.mjs')),accepted=require('../docs/acceptance-write-recovery-summary.json');
+  const manifest=require('../release-manifest.json'),source=fs.readFileSync(path.join(root,'dist/worker.mjs')),accepted=JSON.parse(fs.readFileSync(path.resolve(root,process.env.CN_ACCEPTANCE_FILE||'docs/acceptance-write-recovery-summary.json')));
   assert.equal(hash(source),accepted.sourceSha256);assert(accepted.sourceUnchanged&&accepted.results.every(x=>x.code===0));
   const deployment=await api(prefix+'/deployments');assert.deepEqual(deployment.deployments[0].versions,[{version_id:manifest.version,percentage:100}]);
   const baseline=await api(prefix+'/versions/'+manifest.version),beforeDomains=await api('/accounts/'+account+'/workers/domains'),settings=await api(prefix+'/settings');

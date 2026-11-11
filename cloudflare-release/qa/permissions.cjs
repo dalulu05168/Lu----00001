@@ -108,6 +108,11 @@ async function sendCustomerMessage(browser,kind,token,message){
   try{
     const owner=await setupPage(browser,master),sub=await setupPage(browser,agentA.token);
     const clientRow=(p,email)=>p.locator('#t-cli tbody tr').filter({hasText:email});
+    const subButton=owner.locator('#t-sub [data-sub-client]').filter({hasText:agentA.email});await subButton.waitFor();
+    const contrast=await subButton.evaluate(el=>{const s=getComputedStyle(el),rgb=value=>value.match(/[\d.]+/g).slice(0,3).map(Number),lum=value=>rgb(value).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0),a=lum(s.color),b=lum(s.backgroundColor);return {text:s.color,background:s.backgroundColor,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05),radius:s.borderRadius};});
+    assert(contrast.ratio>=4.5,'Subaccount email contrast below 4.5:1: '+JSON.stringify(contrast));assert.equal(contrast.background,'rgb(245, 248, 252)');
+    await owner.screenshot({path:require('path').join(process.env.CN_QA_SAVE_DIR,'subaccount-controls.png'),fullPage:true});
+    fs.writeFileSync(require('path').join(process.env.CN_QA_SAVE_DIR,'subaccount-contrast.json'),JSON.stringify(contrast,null,2));
     await owner.locator('#t-sub [data-sub-client]').filter({hasText:agentA.email}).click();await clientRow(owner,a).waitFor();assert.equal(await clientRow(owner,b).count(),0);
     await clientRow(sub,a).waitFor();assert.equal(await clientRow(sub,b).count(),0);
     await sub.locator('#cn-client-search').fill(b);

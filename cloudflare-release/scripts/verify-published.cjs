@@ -1,5 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{createHash}=require('node:crypto');
-const root=path.resolve(__dirname,'..'),dir=path.join(root,'artifacts','publication-9fea07e'),pages=JSON.parse(fs.readFileSync(path.join(root,'dist/worker.mjs'),'utf8').match(/const replacementPages = (.+);/)[1]);
+const label=process.env.CN_PUBLICATION_LABEL||'9fea07e';assert(/^[a-zA-Z0-9-]+$/.test(label));
+const root=path.resolve(__dirname,'..'),dir=path.join(root,'artifacts','publication-'+label),pages=JSON.parse(fs.readFileSync(path.join(root,'dist/worker.mjs'),'utf8').match(/const replacementPages = (.+);/)[1]);
 const hash=b=>createHash('sha256').update(b).digest('hex');
 async function request(url,options={}){return fetch(url,{...options,signal:AbortSignal.timeout(30000)});}
 (async()=>{

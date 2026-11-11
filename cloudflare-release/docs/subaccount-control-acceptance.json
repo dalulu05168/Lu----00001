@@ -1,0 +1,12 @@
+{
+  "sourceSha256": "333f49b242ab01c9823abc17f4b7030f49505f96ec1775e0399dc304595641cd",
+  "sourceUnchanged": true,
+  "productionVersion": "ce415187-1efa-4eaa-bb41-1dc35ae0d59a",
+  "checkedAt": "2026-11-11T01:28:11.939Z",
+  "results": [
+    {
+      "name": "permissions",
+      "code": 0
+    }
+  ]
+}
