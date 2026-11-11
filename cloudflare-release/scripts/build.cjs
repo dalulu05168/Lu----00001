@@ -5,6 +5,7 @@ const { createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const manifest = require('../release-manifest.json');
 const pages = Object.fromEntries(['desktop','mobile','admin','login'].map(kind => [kind, fs.readFileSync(path.join(root,'web',kind+'.html'),'utf8')]));
+pages.admin=pages.admin.replace('</head>',()=>'<script>'+fs.readFileSync(path.join(root,'web/security-ui.js'),'utf8')+'</script></head>');
 const newsUI=fs.readFileSync(path.join(root,'web','news-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace('</head>',()=>'<script>'+newsUI+'</script></head>');
 const refinements=fs.readFileSync(path.join(root,'web','ui-refinements.css'),'utf8');
@@ -17,7 +18,7 @@ assert(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/.test(pages.admin),'Mirror templat
 pages.admin=pages.admin.replace(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/,()=> 'const MIRROR_TEMPLATE = '+JSON.stringify(mirrorPage).replace(/</g,'\\u003c')+';');
 const logo = fs.readFileSync(path.join(root,'web','logo.png')).toString('base64');
 const source = fs.readFileSync(path.join(root,'src','worker.template.mjs.in'),'utf8')
- .replace('__CN_PRODUCTS__', () => fs.readFileSync(path.join(root,'src/products/service.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/products/quote.js'),'utf8')).replace('__CN_PAGES__', () => JSON.stringify(pages)).replace('__CN_LOGO__', () => JSON.stringify(logo));
+ .replace('__CN_SECURITY__', () => fs.readFileSync(path.join(root,'src/security.js'),'utf8')).replace('__CN_PRODUCTS__', () => fs.readFileSync(path.join(root,'src/products/service.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/products/quote.js'),'utf8')).replace('__CN_PAGES__', () => JSON.stringify(pages)).replace('__CN_LOGO__', () => JSON.stringify(logo));
 assert(!source.includes('__CN_PAGES__') && !source.includes('__CN_LOGO__'));
 const sha256 = createHash('sha256').update(source).digest('hex');
 if(process.argv.includes('--record')){manifest.sourceSha256=sha256;fs.writeFileSync(path.join(root,'release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');} else assert.equal(sha256,manifest.sourceSha256,'Source differs from recorded production release');

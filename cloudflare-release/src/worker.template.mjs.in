@@ -5695,7 +5695,7 @@ async function hashPassword(password) {
 }
 __name(hashPassword, "hashPassword");
 async function verifyPassword(password, stored) {
-  if (typeof password !== "string" || typeof stored !== "string") return false;
+  if (typeof password !== "string" || Buffer.byteLength(password)>1024 || typeof stored !== "string") return false;
   const [method, salt, hash, ...extra] = stored.split("$");
   if (method !== HASH_PREFIX || extra.length || !/^[0-9a-f]{32}$/.test(salt) || !/^[0-9a-f]{128}$/.test(hash)) return false;
   const expected = Buffer.from(hash, "hex");
@@ -5735,7 +5735,7 @@ function createSessionResolver(db) {
    WHERE s.token_hash=$1 AND s.expires_at>now() AND s.revoked_at IS NULL
    AND NOT EXISTS (SELECT 1 FROM admin_roles r WHERE r.user_id=s.user_id AND r.login_restricted_at IS NOT NULL)
    AND NOT EXISTS (SELECT 1 FROM cn_client_controls p WHERE p.user_id=s.user_id AND p.login_policy='DENY')`, [tokenHash]);
-    return r.rows.length === 1 ? { accountId: r.rows[0].account_id, userId: r.rows[0].user_id, adminVerified: Boolean(r.rows[0].admin_verified_at) } : null;
+    return r.rows.length === 1 ? { accountId: r.rows[0].account_id, userId: r.rows[0].user_id, adminVerified: Boolean(r.rows[0].admin_verified_at), adminVerifiedAt:r.rows[0].admin_verified_at } : null;
   }, "resolveSession");
 }
 __name(createSessionResolver, "createSessionResolver");
@@ -6476,6 +6476,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
     "/api/admin/bootstrap": ["POST"],
     "/api/admin/activate": ["POST"],
     "/api/admin/me": ["GET"],
+    "/api/admin/reauth": ["POST"],
     "/api/admin/instrument-profile": ["GET"],
     "/api/admin/products": ["GET","POST","PATCH"],
     "/api/admin/fund-settlement": ["GET","POST"],
@@ -6563,8 +6564,16 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       response(res, 403, { error: "Administrator 2FA session required" });
       return true;
     }
-    if(actor.role==="SUBADMIN"&&!["/api/admin/me","/api/admin/clients","/api/admin/notifications","/api/admin/client-view","/api/admin/client-action","/api/admin/funding-overview","/api/admin/profile-documents","/api/admin/audit"].includes(route)){
+    if(actor.role==="SUBADMIN"&&!["/api/admin/me","/api/admin/reauth","/api/admin/clients","/api/admin/notifications","/api/admin/client-view","/api/admin/client-action","/api/admin/funding-overview","/api/admin/profile-documents","/api/admin/audit"].includes(route)){
       response(res,403,{error:"Master permission required"});return true;
+    }
+    if(route==='/api/admin/reauth'){
+      const data=await input(req);
+      const verified=await cnReauthenticate(db,session,authorization.slice(7),data,clientIp(req));
+      response(res,verified?200:401,verified?{verified:true}:{error:'Invalid verification credentials'});return true;
+    }
+    if(cnSensitiveAdminWrite(route,req.method)&&!cnRecentAdminVerification(session)){
+      response(res,428,{error:'Recent admin verification required'});return true;
     }
     if(route==="/api/admin/products"){await cnProductsRoute(req,res,route,db,session,actor,resolveProductQuote);return true;}
     if(route==="/api/admin/instrument-profile"){
@@ -6804,6 +6813,7 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
       };
       if(url.origin!=='https://customer.invalid'||!permitted[url.pathname]?.includes(method))return response(res,403,{error:'Delegated action forbidden'}),true;
       if(actor.role!=='MASTER'&&(url.pathname==='/api/support'||url.pathname==='/api/requests'&&method!=='GET'))return response(res,403,{error:'Master permission required'}),true;
+      if(method!=='GET'&&!cnRecentAdminVerification(session)){response(res,428,{error:'Recent admin verification required'});return true;}
       const tx=await db.connect();
       try{
         await tx.query('BEGIN');
@@ -8025,51 +8035,7 @@ function harden(response2) {
   });
 }
 __name(harden, "harden");
-var RATE_RULES = [
-  { bucket: "bulk-trade", method: "POST", path: "/api/bulk-orders", max: 30, windowMs: 60 * 1e3 },
-  { bucket: "legacy-trade", method: "POST", path: "/api/orders", max: 30, windowMs: 60 * 1e3 },
-  { bucket: "login", method: "POST", path: "/api/auth/login", max: 10, windowMs: 5 * 60 * 1e3 },
-  { bucket: "register", method: "POST", path: "/api/auth/register", max: 6, windowMs: 10 * 60 * 1e3 },
-  { bucket: "admin-login", method: "POST", path: "/api/admin/login", max: 8, windowMs: 5 * 60 * 1e3 },
-  { bucket: "admin-activate", method: "POST", path: "/api/admin/activate", max: 8, windowMs: 5 * 60 * 1e3 },
-  { bucket: "pwreset-request", method: "POST", path: "/api/auth/password-reset/request", max: 5, windowMs: 10 * 60 * 1e3 },
-  { bucket: "pwreset-confirm", method: "POST", path: "/api/auth/password-reset/confirm", max: 10, windowMs: 10 * 60 * 1e3 },
-  { bucket: "pwreset-issue", method: "POST", path: "/api/admin/password-resets", max: 10, windowMs: 5 * 60 * 1e3 }
-];
-function matchRule(pathname, method) {
-  return RATE_RULES.find((r) => r.method === method && r.path === pathname) ?? null;
-}
-__name(matchRule, "matchRule");
-async function checkRateLimit(env, rule, request) {
-  const ip = request.headers.get("cf-connecting-ip") || "unknown";
-  const now = Date.now();
-  const windowStart = new Date(Math.floor(now / rule.windowMs) * rule.windowMs);
-  const db = createRequestScopedDb(env.DATABASE_URL);
-  try {
-    const inserted = await db.query(
-      `insert into auth_attempts(bucket,ip,window_start,count) values($1,$2,$3,1)
-       on conflict(bucket,ip,window_start) do update set count=auth_attempts.count+1
-       returning count`,
-      [rule.bucket, ip, windowStart]
-    );
-    const count = Number(inserted.rows[0].count);
-    if (Math.random() < 0.03) {
-      db.query("delete from auth_attempts where window_start < now() - interval '1 day'").catch(() => {
-      });
-    }
-    if (count > rule.max) {
-      return {
-        limited: true,
-        retryAfter: Math.max(1, Math.ceil((windowStart.getTime() + rule.windowMs - now) / 1e3))
-      };
-    }
-    return { limited: false };
-  } catch (error) {
-    console.error("rate limit error", error && error.message);
-    return { limited: false };
-  }
-}
-__name(checkRateLimit, "checkRateLimit");
+__CN_SECURITY__
 var worker_default = {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -8118,15 +8084,19 @@ var worker_default = {
       }
     }
     if (isApiPath(pathname)) {
+      if(!['GET','HEAD','OPTIONS'].includes(request.method)){
+        const origin=request.headers.get('origin'),site=request.headers.get('sec-fetch-site');
+        if(site==='cross-site'||origin&&origin!==url.origin)return harden(Response.json({error:'Cross-site request forbidden'},{status:403,headers:{'cache-control':'no-store'}}));
+      }
       const rule = matchRule(pathname, request.method);
       if (rule) {
         const verdict = await checkRateLimit(env, rule, request);
-        if (verdict.limited) {
+        if (verdict.status!==200) {
           return harden(
             Response.json(
-              { error: "Too many attempts", message: "\u8BF7\u7A0D\u540E\u518D\u8BD5", retryAfter: verdict.retryAfter },
+              { error: verdict.error, message: verdict.status===503?"安全校验暂不可用，请稍后重试":"请稍后再试", retryAfter: verdict.retryAfter },
               {
-                status: 429,
+                status: verdict.status,
                 headers: { "retry-after": String(verdict.retryAfter), "cache-control": "no-store" }
               }
             )
@@ -8148,7 +8118,7 @@ const replacementPages = __CN_PAGES__;
 const replacementLogo = __CN_LOGO__;
 const releaseWorker = {
   ...worker_default,
-  async scheduled(event,env,ctx){ctx.waitUntil(cnSettleDueFunds(createRequestScopedDb(env.DATABASE_URL)));},
+  async scheduled(event,env,ctx){ctx.waitUntil(Promise.all([cnSettleDueFunds(createRequestScopedDb(env.DATABASE_URL)),createRequestScopedDb(env.DATABASE_URL).query("DELETE FROM auth_attempts WHERE window_start < now() - interval '2 days'").catch(()=>console.error('security_counter_cleanup_failed'))]));},
   async fetch(request,env,ctx){
     const requestUrl=new URL(request.url);
     if(requestUrl.hostname==="lu----00001.dalulu05168.workers.dev"&&

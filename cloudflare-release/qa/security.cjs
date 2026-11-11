@@ -1,0 +1,54 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{pathToFileURL}=require('node:url'),{createHmac,randomUUID,createHash}=require('node:crypto');
+const {Pool}=require('pg'),{chromium}=require('playwright');
+const dir=process.env.CN_QA_SAVE_DIR;assert(dir&&process.env.CN_ACCEPTANCE_PG_PORT,'Isolated runner required');
+const base='http://127.0.0.1:'+process.env.CN_OPS_QA_PORT,password='FixturePass123456!',checks=[];
+const db=new Pool({connectionString:'postgresql://postgres@127.0.0.1:'+process.env.CN_ACCEPTANCE_PG_PORT+'/postgres',max:2});
+function otp(secret){const bits=[...secret].map(c=>'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(c).toString(2).padStart(5,'0')).join(''),time=Buffer.alloc(8);time.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const hash=createHmac('sha1',Buffer.from(bits.match(/.{8}/g).map(x=>parseInt(x,2)))).update(time).digest();return String((hash.readUInt32BE(hash[19]&15)&0x7fffffff)%1000000).padStart(6,'0');}
+async function api(route,status,token,body,method=body?'POST':'GET'){const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:body?JSON.stringify(body):undefined});assert.equal(r.status,status,route+' '+await r.clone().text());return r.status===204?{}:r.json();}
+(async()=>{
+ const secret=JSON.parse(fs.readFileSync(process.env.CN_OPS_MASTER_FILE)).totpSecret;
+ const master=(await api('/api/admin/login',200,null,{email:'qa-master@example.test',password,otp:otp(secret)})).token;
+ const candidate='secure-agent-'+Date.now()+'@example.test';
+ await db.query("UPDATE user_sessions SET admin_verified_at=now()-interval '6 minutes' WHERE token_hash=$1",[createHash('sha256').update(master).digest('hex')]);
+ await api('/api/admin/subaccounts',428,master,{email:candidate,password});
+ assert.equal((await db.query('SELECT 1 FROM app_users WHERE email=$1',[candidate])).rows.length,0);
+ await api('/api/admin/reauth',401,master,{password:'WrongPassword123!',otp:otp(secret)});
+ await api('/api/admin/subaccounts',428,master,{email:candidate,password});
+ await api('/api/admin/reauth',200,master,{password,otp:otp(secret)});
+ const agent=await api('/api/admin/subaccounts',201,master,{email:candidate,password});
+ checks.push('Expired admin verification denies write without side effects; wrong credentials remain denied; valid password and 2FA restore action');
+ await api('/api/admin/activate',200,null,{email:candidate,password,otp:otp(agent.totpSecret)});
+ const sub=(await api('/api/admin/login',200,null,{email:candidate,password,otp:otp(agent.totpSecret)})).token;
+ await api('/api/admin/reauth',200,sub,{password,otp:otp(agent.totpSecret)});
+ await api('/api/admin/subaccounts',403,sub,{email:'child-'+candidate,password});
+ await api('/api/admin/requests',403,sub,{id:randomUUID(),decision:'APPROVE'});
+ checks.push('Subadmin reauthentication grants no master permissions');
+ const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8'),pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);
+ const runtime=path.join(dir,'security-runtime.mjs');fs.writeFileSync(runtime,source.replace('import { handleAsNodeRequest } from "cloudflare:node";','')+'\nexport {cnRateLimit,matchRule,cnRecentAdminVerification,worker_default};');
+ const app=await import(pathToFileURL(runtime));
+ const rule=app.matchRule('/api/admin/login','POST'),request=(ip,email)=>new Request(base+'/api/admin/login',{method:'POST',headers:{'cf-connecting-ip':ip,'Content-Type':'application/json'},body:JSON.stringify({email,password:'not-logged',otp:'000000'})});
+ const attempts=await Promise.all(Array.from({length:12},(_,i)=>app.cnRateLimit(db,rule,request('198.51.100.'+i,'TARGET@EXAMPLE.TEST'))));assert.equal(attempts.filter(x=>x.status===200).length,8);assert.equal(attempts.filter(x=>x.status===429).length,4);
+ for(let i=0;i<30;i++)assert.equal((await app.cnRateLimit(db,rule,request('203.0.113.50','rotating'+i+'@example.test'))).status,200);
+ assert.equal((await app.cnRateLimit(db,rule,request('203.0.113.50','last@example.test'))).status,429);
+ const fail=await app.cnRateLimit({query:async()=>{throw Error('Database unavailable')}},rule,request('192.0.2.1','fail@example.test'));assert.equal(fail.status,503);
+ const oversized=await app.cnRateLimit(db,rule,new Request(base,{method:'POST',body:JSON.stringify({email:'a'.repeat(9000)})}));assert.equal(oversized.status,413);
+ const stored=await db.query('SELECT ip FROM auth_attempts');assert(stored.rows.every(r=>/^[0-9a-f]{64}$/.test(r.ip)));
+ assert(app.matchRule('/api/fund-subscriptions','POST'));assert(app.matchRule('/api/requests','POST'));assert(app.matchRule('/api/admin/subaccounts','PATCH'));assert.equal(app.matchRule('/api/account','GET'),null);
+ checks.push('Concurrent cross-IP account throttling, rotating-account IP throttling, unavailable limiter denial, body cap, hashed identifiers and business coverage');
+ const cross=await app.worker_default.fetch(new Request('https://nuvexapro.com/api/requests',{method:'POST',headers:{Origin:'https://evil.example','Sec-Fetch-Site':'cross-site'},body:'{}'}),{},{});assert.equal(cross.status,403);
+ checks.push('Cross-site write denied before database or business execution');
+ await db.query("UPDATE user_sessions SET admin_verified_at=now()-interval '6 minutes' WHERE token_hash=$1",[createHash('sha256').update(master).digest('hex')]);
+ const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+ try{const page=await browser.newPage({viewport:{width:1440,height:1000}});await page.addInitScript(token=>{localStorage.setItem('cncap.admin.session',token);sessionStorage.setItem('cncap.admin.entry','1')},master);
+  await page.route(base+'/**',r=>new URL(r.request().url()).pathname==='/admin'?r.fulfill({contentType:'text/html',body:pages.admin}):r.continue());await page.goto(base+'/admin');
+  await page.evaluate(email=>{window.securityOutcome=null;void fetch('/api/admin/subaccounts',{method:'PATCH',headers:{Authorization:'Bearer '+localStorage.getItem('cncap.admin.session'),'Content-Type':'application/json'},body:JSON.stringify({email,action:'restriction',restricted:true,reason:'Isolated security validation'})}).then(r=>{window.securityOutcome=r.status})},candidate);
+  const dialog=page.locator('.cn-security-dialog');await dialog.waitFor();await dialog.locator('[name=password]').fill(password);await dialog.locator('[name=otp]').fill(otp(secret));await dialog.locator('[type=submit]').click();await dialog.waitFor({state:'detached'});await page.waitForFunction(()=>window.securityOutcome===200);
+  await api('/api/admin/me',401,sub);checks.push('Browser security dialog validates password plus 2FA, resumes original request once and revokes restricted subaccount session');
+  await db.query("UPDATE user_sessions SET admin_verified_at=now()-interval '6 minutes' WHERE token_hash=$1",[createHash('sha256').update(master).digest('hex')]);
+  await page.evaluate(email=>{window.securityOutcome=null;void fetch('/api/admin/subaccounts',{method:'POST',headers:{Authorization:'Bearer '+localStorage.getItem('cncap.admin.session'),'Content-Type':'application/json'},body:JSON.stringify({email,password:'NotUsedFixture123!'})}).then(r=>{window.securityOutcome=r.status})},'cancel-'+candidate);
+  await dialog.waitFor();await dialog.getByRole('button',{name:'取消',exact:true}).click();await page.waitForFunction(()=>window.securityOutcome===428);assert.equal((await db.query('SELECT 1 FROM app_users WHERE email=$1',['cancel-'+candidate])).rows.length,0);checks.push('Cancel never executes the pending operation');
+  await page.screenshot({path:path.join(dir,'admin-security-browser.png'),fullPage:true});
+ }finally{await browser.close()}
+ const logs=(await db.query("SELECT detail FROM admin_audit_log WHERE action LIKE 'admin.reauth%'" )).rows;assert(logs.length>=3);assert(!JSON.stringify(logs).includes(password));checks.push('Reauthentication audit excludes password and OTP');
+ fs.writeFileSync(path.join(dir,'security-results.json'),JSON.stringify({checks,passed:true,productionWrites:false},null,2));console.log(checks.join('\n'));
+})().catch(e=>{console.error(e.stack);process.exitCode=1}).finally(()=>db.end());

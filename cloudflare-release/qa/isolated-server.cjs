@@ -17,7 +17,7 @@ const { Pool } = require('pg');
  for (const name of migrations) {
   await db.exec(fs.readFileSync(path.join(root,'db',name),'utf8').replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;/ig,''));
  }
- const socket = new PGLiteSocketServer({db,host:'127.0.0.1',port:Number(process.env.CN_ACCEPTANCE_PG_PORT)});
+ const socket = new PGLiteSocketServer({db,host:'127.0.0.1',port:Number(process.env.CN_ACCEPTANCE_PG_PORT),maxConnections:process.env.CN_QA_SECURITY==='1'?4:1});
  await socket.start();
  const pool = new Pool({connectionString:'postgresql://postgres@127.0.0.1:'+process.env.CN_ACCEPTANCE_PG_PORT+'/postgres',max:1});
  pool.on('connect',client=>{
