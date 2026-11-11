@@ -9,15 +9,15 @@ export function createBusiness({api,state,esc,display,time,render,refresh,reset,
  const mutual=createMutualFunds({api,state,esc,display,time,render,refresh,reset,back,friendly});
  const data={products:{items:[],contracts:[]},requests:[],documents:[],support:[],notifications:[],pin:null,loading:false,error:'',success:'',selected:null,quote:null,key:null,requestFingerprint:null,review:null,draft:''};
  const routes=new Set(['products','product','fund-confirm','bulk-order','fund-records','funding','requests','documents','identity','bank','pin','support','notifications']);
- const referenceEtfs=new Set(['GLD','SLV','USO']);
- const referencePosition=()=>state.account?.positions?.find(p=>p.market==='US'&&p.market===state.selected?.market&&p.symbol===state.selected.symbol&&referenceEtfs.has(p.symbol));
+
+ const sellablePosition=()=>state.account?.positions?.find(p=>p.market==='US'&&p.market===state.selected?.market&&p.symbol===state.selected.symbol);
  const availableShares=p=>Math.max(0,Math.floor(Number(p?.quantity??0)-Number(p?.locked_quantity??0)));
- function referenceSellView(){
-  if(!data.referenceReceipt&&!referencePosition())return '';
-  if(data.referenceReceipt)return '<div role="status" class="resultbox">'+esc(data.referenceReceipt)+'</div><button class="secondary" data-go="trade">返回持仓与记录</button>';
-  const available=availableShares(referencePosition());
+ function positionSellView(){
+  if(!data.sellReceipt&&!sellablePosition())return '';
+  if(data.sellReceipt)return '<div role="status" class="resultbox">'+esc(data.sellReceipt)+'</div><button class="secondary" data-go="trade">返回持仓与记录</button>';
+  const available=availableShares(sellablePosition());
   if(!available)return blank('当前无可卖出的份额。');
-  return msg()+form('reference-sell','<h2>卖出持仓</h2><p class="sub">可卖 '+available+' 股。卖出价格以提交时服务器确认的报价为准。</p>'+field('卖出数量（股）','quantity','number',`required min="1" max="${available}" step="1" inputmode="numeric"`),'确认卖出');
+  return msg()+form('position-sell','<h2>卖出持仓</h2><p class="sub">可卖 '+available+' 股。卖出价格以提交时服务器确认的报价为准。</p>'+field('卖出数量（股）','quantity','number',`required min="1" max="${available}" step="1" inputmode="numeric"`),'确认卖出');
  }
  const statuses={PENDING:'待审核',APPROVED:'审核通过',REJECTED:'审核未通过',ACTIVE:'持有中',MATURED:'已到期',PAID:'已完成',CANCELLED:'已取消'};
  const status=s=>statuses[s]||s||'未提供';
@@ -65,8 +65,8 @@ export function createBusiness({api,state,esc,display,time,render,refresh,reset,
  }
  async function image(file){if(!(file instanceof File)||!['image/png','image/jpeg'].includes(file.type)||file.size>2097152||file.size===0)throw Error('请选择2MB以内的PNG/JPEG图片');return new Promise((resolve,reject)=>{let r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('图片读取失败'));r.readAsDataURL(file);});}
  async function submit(formElement){if(await mutual.submit(formElement))return true;if(await ipo.submit(formElement))return true;const kind=formElement.dataset.businessForm;if(!kind)return false;if(state.busy)return true;const f=new FormData(formElement);try{
-  if(kind==='reference-sell'){
-   const position=referencePosition(),quantity=Number(f.get('quantity')),epoch=state.epoch;
+  if(kind==='position-sell'){
+   const position=sellablePosition(),quantity=Number(f.get('quantity')),epoch=state.epoch;
    if(!position||!Number.isSafeInteger(quantity)||quantity<1||quantity>availableShares(position))throw Error('请输入有效的可卖数量。');
    const body={side:'SELL',market:position.market,symbol:position.symbol,quantity};
    const fingerprint='/api/orders'+JSON.stringify(body);
@@ -75,8 +75,9 @@ export function createBusiness({api,state,esc,display,time,render,refresh,reset,
    try{
     const result=await api.request('/api/orders',{method:'POST',body,key:data.key});
     if(epoch!==state.epoch)return true;
+    if(!result?.order?.id||result.order.side!=='SELL'||result.order.symbol!==position.symbol||Number(result.order.quantity)!==quantity||!Number.isSafeInteger(result.order.amountCents)||result.order.amountCents<=0)throw Error('订单结果未确认，请核对交易记录。');
     data.key=null;data.requestFingerprint=null;
-    data.referenceReceipt='已卖出 '+position.symbol+' · '+quantity+' 股 · '+display(cents(result.order.amountCents))+' USD';
+    data.sellReceipt='已卖出 '+position.symbol+' · '+quantity+' 股 · '+display(cents(result.order.amountCents))+' USD';
     await refresh();
    }catch(error){
     if(epoch!==state.epoch)return true;
@@ -101,8 +102,8 @@ export function createBusiness({api,state,esc,display,time,render,refresh,reset,
   if(action==='fund-records'&&state.page==='fund-confirm'&&data.success){await enter(action);await refresh();return true;}
   if(button.dataset.notification&&data.notificationScope){try{let k='cn.notify.read.'+data.notificationScope;let ids=JSON.parse(notificationStorage.getItem(k)||'[]');notificationStorage.setItem(k,JSON.stringify([...new Set([...ids,button.dataset.notification])].slice(-300)));}catch{}}await enter(action);return true;
  }
- function clear(){mutual.clear();ipo.clear();Object.assign(data,{products:{items:[],contracts:[]},requests:[],documents:[],support:[],notifications:[],pin:null,loading:false,error:'',success:'',selected:null,quote:null,key:null,requestFingerprint:null,draft:'',referenceReceipt:''});}
- return {view,enter,load,submit,click,clear,referenceSellView,resetReferenceSell(){data.referenceReceipt='';data.error='';data.success='';},owns:page=>routes.has(page)||ipo.owns(page)||mutual.owns(page),estimate:ipo.estimate,navigationSnapshot:()=>({selected:data.selected,ipo:ipo.snapshot(),mutual:mutual.snapshot()}),restoreNavigation(snapshot){if(snapshot){data.selected=snapshot.selected;ipo.restore(snapshot.ipo);mutual.restore(snapshot.mutual);}},setNotifications(result){data.notifications=result.items||[];data.notificationScope=result.scope;}};
+ function clear(){mutual.clear();ipo.clear();Object.assign(data,{products:{items:[],contracts:[]},requests:[],documents:[],support:[],notifications:[],pin:null,loading:false,error:'',success:'',selected:null,quote:null,key:null,requestFingerprint:null,draft:'',sellReceipt:''});}
+ return {view,enter,load,submit,click,clear,positionSellView,resetPositionSell(){data.sellReceipt='';data.error='';data.success='';},owns:page=>routes.has(page)||ipo.owns(page)||mutual.owns(page),estimate:ipo.estimate,navigationSnapshot:()=>({selected:data.selected,ipo:ipo.snapshot(),mutual:mutual.snapshot()}),restoreNavigation(snapshot){if(snapshot){data.selected=snapshot.selected;ipo.restore(snapshot.ipo);mutual.restore(snapshot.mutual);}},setNotifications(result){data.notifications=result.items||[];data.notificationScope=result.scope;}};
 }
 
 

@@ -26,7 +26,7 @@ test('amount units preserve null and database strings',()=>{
 });
 test('expired login preserves pending receipt until authenticated replay succeeds',async()=>{
  const original=globalThis.sessionStorage,store=new Map();globalThis.sessionStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
- try{for(const path of ['/api/product-settlement','/api/fund-subscriptions','/api/bulk-orders','/api/requests','/api/support']){
+ try{for(const path of ['/api/orders','/api/product-settlement','/api/fund-subscriptions','/api/bulk-orders','/api/requests','/api/support']){
   let phase='lost',keys=[];const fetcher=async(p,o)=>{if(p.endsWith('/login'))return Response.json({token:'isolated'});keys.push(o.headers['Idempotency-Key']);if(phase==='lost')throw TypeError('Lost response');if(phase==='expired')return Response.json({error:'Expired'},{status:401});return Response.json({replayed:true})};
   let api=createApi(fetcher);await api.login('retry@example.test','fake');const body={item:'same-transaction'};
   await assert.rejects(api.request(path,{method:'POST',body,key:'original-key'}));phase='expired';await assert.rejects(api.request(path,{method:'POST',body,key:'generated-again'}),e=>e.status===401);assert.equal(store.size,1);

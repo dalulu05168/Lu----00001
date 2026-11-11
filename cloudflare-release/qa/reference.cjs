@@ -72,7 +72,7 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
   await p.locator('#login-form button').click();
   await p.locator('nav [data-go=trade]').click();
   await p.locator('.holding').filter({hasText:'SLV'}).locator('[data-position]').click();
-  const form=p.locator('form[data-business-form=reference-sell]');
+  const form=p.locator('form[data-business-form=position-sell]');
   const quantity=form.locator('[name=quantity]');
   assert.equal(await quantity.getAttribute('max'),'2');
   await quantity.fill('3');await form.getByRole('button',{name:'确认卖出'}).click();
