@@ -24,6 +24,15 @@ test('amount units preserve null and database strings',()=>{
  for(const v of [null,undefined,''])assert.equal(cents(v),null);
  assert.equal(quote({}),null);assert.equal(cents(1.5),null);
 });
+test('expired login preserves pending receipt until authenticated replay succeeds',async()=>{
+ const original=globalThis.sessionStorage,store=new Map();globalThis.sessionStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
+ try{for(const path of ['/api/product-settlement','/api/fund-subscriptions','/api/bulk-orders','/api/requests','/api/support']){
+  let phase='lost',keys=[];const fetcher=async(p,o)=>{if(p.endsWith('/login'))return Response.json({token:'isolated'});keys.push(o.headers['Idempotency-Key']);if(phase==='lost')throw TypeError('Lost response');if(phase==='expired')return Response.json({error:'Expired'},{status:401});return Response.json({replayed:true})};
+  let api=createApi(fetcher);await api.login('retry@example.test','fake');const body={item:'same-transaction'};
+  await assert.rejects(api.request(path,{method:'POST',body,key:'original-key'}));phase='expired';await assert.rejects(api.request(path,{method:'POST',body,key:'generated-again'}),e=>e.status===401);assert.equal(store.size,1);
+  api=createApi(fetcher);await api.login('retry@example.test','fake');phase='ok';await api.request(path,{method:'POST',body,key:'another-new-ui-key'});assert.deepEqual(keys,['original-key','original-key','original-key']);assert.equal(store.size,0);
+ }}finally{globalThis.sessionStorage=original;}
+});
 test('decimal input and bps rounding use integer arithmetic',()=>{
  assert.equal(toCents('100.01'),10001);assert.equal(toCents('0.1'),10);
  for(const v of ['1.005','-1','1e3','NaN','0'])assert.throws(()=>toCents(v));

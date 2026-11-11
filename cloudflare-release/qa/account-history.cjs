@@ -44,13 +44,20 @@ const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{ran
    await page.route('**/*',r=>{const url=new URL(r.request().url());return url.origin!==origin?r.abort():url.pathname==='/'?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue()});
    await page.goto(origin+'/',{waitUntil:'domcontentloaded'});
    if(kind==='desktop'){
-    await page.locator('[data-b=realized]').first().filter({hasText:'1.00'}).waitFor();
+    await page.locator('[data-p=acct]').click();
+    await page.locator('#p-acct [data-b=realized]').filter({hasText:'1.00'}).waitFor();
     assert.equal(await page.locator('[data-b=nord]').first().textContent(),'515');
-    assert.match(await page.locator('[data-b=valuationNote]').textContent(),/估算/);
+    assert.match(await page.locator('[data-b=valuationNote]').first().textContent(),/估算/);
    }else{
-    await page.getByText('账户',{exact:true}).last().click();
-    await page.locator('.bx').filter({hasText:'总成交额'}).filter({hasText:'542.00'}).waitFor();
-    await page.locator('.bx').filter({hasText:'已实现盈亏'}).filter({hasText:'1.00'}).waitFor();
+    await page.locator('[name=email]').fill('qa-tier@example.test');
+    await page.locator('[name=password]').fill('FixturePass123456!');
+    await page.locator('#login-form button').click();
+    await page.locator('nav [data-go=mine]').click();
+    await page.locator('.compact-grid .panel').filter({hasText:'已实现盈亏'}).filter({hasText:'1.00'}).waitFor();
+    await page.locator('nav [data-go=trade]').click();
+    assert.equal(await page.locator('[data-position]').count(),14);
+    await page.locator('[data-subtab=orders]').click();
+    assert.equal(await page.locator('main .menulink').count(),515);
    }
    await page.screenshot({path:path.join(dir,kind+'.png'),fullPage:true});
    await page.unrouteAll({behavior:'ignoreErrors'});await page.close();

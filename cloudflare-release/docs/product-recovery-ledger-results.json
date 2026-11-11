@@ -1,0 +1,34 @@
+{
+  "checks": [
+    {
+      "kind": "IPO",
+      "requests": 3,
+      "sameKey": true,
+      "replayed": true
+    },
+    {
+      "kind": "SUBSCRIBE",
+      "requests": 3,
+      "sameKey": true,
+      "replayed": true
+    },
+    {
+      "kind": "REDEEM",
+      "requests": 3,
+      "sameKey": true,
+      "replayed": true
+    },
+    {
+      "kind": "TERM",
+      "requests": 3,
+      "sameKey": true,
+      "replayed": true
+    }
+  ],
+  "cashCents": 90125,
+  "totalAssets": 1000,
+  "settlementOrders": 3,
+  "fundContracts": 1,
+  "fundUnits": "15000000",
+  "crossClientBalance": true
+}

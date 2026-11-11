@@ -28,7 +28,7 @@ export function createApi(fetcher=globalThis.fetch){
     const response=await fetcher(path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',credentials:'omit',signal:signal||AbortSignal.timeout(20000)});
     if(response.status===204)return null;
     let data;try{data=await response.json()}catch{throw new ApiError('接口响应格式无效',response.status)}
-    if(!response.ok){if(pending.durable&&response.status>=400&&response.status<500&&![408,429].includes(response.status))await clearJournal();throw new ApiError(data.error||'请求失败',response.status);}
+    if(!response.ok){if(pending.durable&&response.status>=400&&response.status<500&&![401,408,429].includes(response.status))await clearJournal();throw new ApiError(data.error||'请求失败',response.status);}
     if(pending.durable)await clearJournal();
     return data;
   }
