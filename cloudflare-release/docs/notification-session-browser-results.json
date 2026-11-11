@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "sessionSwitchWhileOldRequestPending": true,
+  "oldAccountResponseIgnored": true,
+  "approvedName": true,
+  "supportNotificationNavigation": true,
+  "readMarkerPersisted": true,
+  "focusRefresh": true,
+  "approvedIdentityAndBankLocked": true,
+  "serverDuplicateRejected": true,
+  "contactSupportFromApprovedDocuments": true
+}

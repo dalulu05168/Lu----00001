@@ -151,7 +151,7 @@ async function createAgent(master,idx,client){
    }
    for(const name of ['identity','bank']){
     await enter(name);
-    await p.getByText('当前资料已提交，不可重复上传',{exact:true}).waitFor();
+    await p.getByText('资料已提交并审核通过，如需更改请联系在线客服。',{exact:true}).waitFor();
     assert.equal(await p.locator('form').count(),0,'Approved documents must not allow resubmission');
    }
    await enter('funding');await p.locator('[name=amount]').fill('500');

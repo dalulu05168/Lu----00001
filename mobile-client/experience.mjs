@@ -28,14 +28,14 @@ export function mountChart(target,item){
  target.replaceChildren(frame);target.dataset.chartSymbol=symbol;
 }
 export function createExperience({api,state,business,render,reset,onRestore,onBackground=async()=>{},storage=notificationStorage,intervalMs=15000}){
- let timer=null,polling=false,activeEpoch=-1,lastRoute='',historyReady=false,restoring=false,failed=0,historyAllowed=true;
+ let timer=null,polling=null,activeEpoch=-1,lastRoute='',historyReady=false,restoring=false,failed=0,historyAllowed=true;
  const localTrail=[];
  const snapshot=()=>({page:state.page,selected:state.selected,market:state.market,query:state.query,subtab:state.subtab,business:business.navigationSnapshot()});
  function badge(){const button=document.querySelector('[data-business="notifications"].notification');if(!button)return;const read=readIds(storage,state.notificationScope),unread=state.notifications.filter(x=>!read.has(x.id)).length;button.setAttribute('aria-label',`账户消息${unread?'，'+unread+'条未读':''}`);button.querySelector('.unread-dot')?.remove();if(unread){const dot=document.createElement('i');dot.className='unread-dot';dot.setAttribute('aria-hidden','true');button.append(dot);}button.title=state.notificationError?'通知暂不可用，稍后重试':'账户消息';}
- async function poll(){if(polling||!state.authenticated||document.hidden)return;clearTimeout(timer);polling=true;const epoch=state.epoch;
-  try{const result=await api.request('/api/notifications');if(epoch!==state.epoch)return;state.notifications=Array.isArray(result.items)?result.items:[];state.notificationScope=result.scope||'';state.notificationError='';failed=0;business.setNotifications(result);badge();if(state.page==='notifications'&&!state.busy)render();}
-  catch(error){if(epoch===state.epoch){if(error.status===401)reset('会话已过期，请重新登录。');else{failed++;state.notificationError='通知暂不可用';badge();}}}
-  finally{try{if(state.authenticated&&!document.hidden&&epoch===state.epoch)await onBackground();}catch{}polling=false;if(state.authenticated&&epoch===state.epoch){clearTimeout(timer);timer=setTimeout(poll,Math.min(intervalMs*2**Math.min(failed,3),120000));}}
+ async function poll(){if(polling?.epoch===state.epoch||!state.authenticated||document.hidden)return;clearTimeout(timer);const epoch=state.epoch,attempt={epoch};polling=attempt;
+  try{const result=await api.request('/api/notifications');if(epoch!==state.epoch||polling!==attempt)return;state.notifications=Array.isArray(result.items)?result.items:[];state.notificationScope=result.scope||'';state.notificationError='';failed=0;business.setNotifications(result);badge();if(state.page==='notifications'&&!state.busy)render();}
+  catch(error){if(epoch===state.epoch&&polling===attempt){if(error.status===401)reset('会话已过期，请重新登录。');else{failed++;state.notificationError='通知暂不可用';badge();}}}
+  finally{try{if(polling===attempt&&state.authenticated&&!document.hidden&&epoch===state.epoch)await onBackground();}catch{}if(polling===attempt){polling=null;if(state.authenticated&&epoch===state.epoch){clearTimeout(timer);timer=setTimeout(poll,Math.min(intervalMs*2**Math.min(failed,3),120000));}}}
  }
  function sync(){
   if(!state.authenticated){clearTimeout(timer);timer=null;activeEpoch=-1;lastRoute='';historyReady=false;localTrail.length=0;return;}
@@ -50,7 +50,7 @@ export function createExperience({api,state,business,render,reset,onRestore,onBa
  async function pop(event){if(!state.authenticated)return;if(!event.state?.nuvexa)return;if(state.busy){history.pushState({nuvexa:true,...snapshot()},'');return;}restoring=true;Object.assign(state,{page:event.state.page,selected:event.state.selected,market:event.state.market||'ALL',query:event.state.query||'',subtab:event.state.subtab||'positions',error:''});business.restoreNavigation(event.state.business);render();window.scrollTo(0,0);restoring=false;await onRestore(state.page);}
  function back(){if(historyAllowed&&historyReady&&history.state?.nuvexa&&state.page!=='home')history.back();else if(localTrail.length>1){localTrail.pop();pop({state:{nuvexa:true,...localTrail.at(-1)}});}else{state.page='home';render();}}
  window.addEventListener('focus',()=>{if(!document.hidden&&state.authenticated)poll();});window.addEventListener('online',()=>{if(!document.hidden&&state.authenticated)poll();});window.addEventListener('popstate',pop);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.authenticated)poll();});
- return {sync,badge,poll,haptic,back,stop(){clearTimeout(timer);timer=null;}};
+ return {sync,badge,poll,haptic,back,stop(){clearTimeout(timer);timer=null;polling=null;}};
 }
 
 export function backgroundRefreshSafe(state,doc=globalThis.document){

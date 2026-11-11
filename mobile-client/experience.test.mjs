@@ -74,3 +74,17 @@ test('focus and online polling serialize background refresh and skip hidden stat
   globalThis.document.hidden=true;events.online();assert.equal(calls,1);
  }finally{c.stop();globalThis.window=originals.window;globalThis.document=originals.document;}
 });
+
+test('new login starts notification polling while the revoked session request is pending',async()=>{
+ const originals={window:globalThis.window,document:globalThis.document},pending=[];let background=0;
+ globalThis.window={addEventListener(){}};globalThis.document={hidden:false,addEventListener(){},querySelector:()=>null};
+ const state={authenticated:true,epoch:1,page:'home',notifications:[],notificationScope:'old'};
+ const c=createExperience({api:{request:()=>new Promise(resolve=>pending.push(resolve))},state,business:{setNotifications(){}},render(){},reset(){},onRestore:async()=>{},onBackground:async()=>{background++;},storage:{getItem:()=>null}});
+ try{
+  const old=c.poll();c.stop();state.epoch=2;const current=c.poll();
+  assert.equal(pending.length,2,'New session must not wait for the revoked session request');
+  pending[1]({scope:'new',items:[{id:'new-message'}]});await current;
+  pending[0]({scope:'old',items:[{id:'old-message'}]});await old;
+  assert.equal(state.notificationScope,'new');assert.deepEqual(state.notifications,[{id:'new-message'}]);assert.equal(background,1);
+ }finally{c.stop();globalThis.window=originals.window;globalThis.document=originals.document;}
+});
