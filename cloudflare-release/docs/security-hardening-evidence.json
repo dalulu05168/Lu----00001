@@ -1,0 +1,386 @@
+{
+  "release": {
+    "version": "17c5b3f3-b56e-49ea-a763-f24b8ebd1028",
+    "previous": "45f3b53a-67dc-4565-8432-75890959b0ab",
+    "sha256": "03e9be75e605c7719e80c84c48e118d1552e3f06fd469567a86d47e052a44600",
+    "activatedAt": "2026-11-11T09:07:48.859Z",
+    "sourceCommit": "45ccf80"
+  },
+  "acceptance": {
+    "sourceSha256": "03e9be75e605c7719e80c84c48e118d1552e3f06fd469567a86d47e052a44600",
+    "sourceUnchanged": true,
+    "productionVersion": "45f3b53a-67dc-4565-8432-75890959b0ab",
+    "checkedAt": "2026-11-11T09:06:06.046Z",
+    "results": [
+      {
+        "name": "security",
+        "code": 0
+      },
+      {
+        "name": "quote-guards",
+        "code": 0
+      },
+      {
+        "name": "notification-session",
+        "code": 0
+      },
+      {
+        "name": "product-recovery",
+        "code": 0
+      },
+      {
+        "name": "admin-funding",
+        "code": 0
+      },
+      {
+        "name": "order-concurrency",
+        "code": 0
+      },
+      {
+        "name": "layout-controls",
+        "code": 0
+      },
+      {
+        "name": "write-receipts",
+        "code": 0
+      },
+      {
+        "name": "experience",
+        "code": 0
+      },
+      {
+        "name": "product-notifications",
+        "code": 0
+      },
+      {
+        "name": "mirror",
+        "code": 0
+      },
+      {
+        "name": "contracts",
+        "code": 0
+      },
+      {
+        "name": "charts",
+        "code": 0
+      },
+      {
+        "name": "product-browser",
+        "code": 0
+      },
+      {
+        "name": "products",
+        "code": 0
+      },
+      {
+        "name": "permissions",
+        "code": 0
+      },
+      {
+        "name": "registration",
+        "code": 0
+      },
+      {
+        "name": "stocks",
+        "code": 0
+      },
+      {
+        "name": "interface",
+        "code": 0
+      },
+      {
+        "name": "sessions",
+        "code": 0
+      },
+      {
+        "name": "reference",
+        "code": 0
+      },
+      {
+        "name": "forms",
+        "code": 0
+      },
+      {
+        "name": "access",
+        "code": 0
+      }
+    ]
+  },
+  "security": {
+    "checks": [
+      "Expired admin verification denies write without side effects; wrong credentials remain denied; valid password and 2FA restore action",
+      "Subadmin reauthentication grants no master permissions",
+      "Concurrent cross-IP account throttling, rotating-account IP throttling, unavailable limiter denial, body cap, hashed identifiers and business coverage",
+      "Cross-site write denied before database or business execution",
+      "Browser security dialog validates password plus 2FA, resumes original request once and revokes restricted subaccount session",
+      "Cancel never executes the pending operation",
+      "Reauthentication audit excludes password and OTP"
+    ],
+    "passed": true,
+    "productionWrites": false
+  },
+  "mobileUnits": {
+    "passed": 19,
+    "failed": 0
+  },
+  "schema": {
+    "verified": true,
+    "verifiedAt": "2026-11-11T09:07:45.137Z",
+    "method": "Neon connector SQL transaction and read-only schema verification",
+    "project": "bitter-heart-61838251",
+    "branch": "br-crimson-morning-b3rhjeoi",
+    "database": "neondb",
+    "table": "cn_write_receipts",
+    "securityTable": "auth_attempts",
+    "securityColumns": [
+      "bucket text NOT NULL",
+      "ip text NOT NULL",
+      "window_start timestamptz NOT NULL",
+      "count integer NOT NULL"
+    ],
+    "migration": "migration-security-rate-limits.sql",
+    "customerDataChanged": false,
+    "before": {
+      "users": 9,
+      "accounts": 9,
+      "receipts": 1
+    },
+    "after": {
+      "users": 9,
+      "accounts": 9,
+      "receipts": 1
+    },
+    "backupReview": {
+      "snapshotSchedule": [],
+      "branchProtected": false,
+      "restoreDrillComplete": false
+    }
+  },
+  "configuration": {
+    "checkedAt": "2026-11-11T09:08:02.932Z",
+    "version": "17c5b3f3-b56e-49ea-a763-f24b8ebd1028",
+    "percentage": 100,
+    "bindingsPreserved": true,
+    "runtimePreserved": true,
+    "assetsPreserved": true,
+    "routesPreserved": true,
+    "settingsPreserved": true,
+    "schedulesPreserved": true,
+    "previousVersion": "45f3b53a-67dc-4565-8432-75890959b0ab"
+  },
+  "online": {
+    "checkedAt": "2026-11-11T09:08:06.505Z",
+    "version": "17c5b3f3-b56e-49ea-a763-f24b8ebd1028",
+    "sourceSha256": "03e9be75e605c7719e80c84c48e118d1552e3f06fd469567a86d47e052a44600",
+    "productionMutations": false,
+    "checks": [
+      {
+        "name": "desktop",
+        "url": "https://nuvexapro.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "388299ec22d46e41376c4bd50a6e5487245965df9b59b0d8873309352f4eb863"
+      },
+      {
+        "name": "mobile",
+        "url": "https://nuvexapro.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "8ae0ce99bc1a7d811b3f046b3c1bff03538d91733721bd8d36c1f283d747645b"
+      },
+      {
+        "name": "login",
+        "url": "https://admin.maacropierce.com/",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "355576ac6cd8f0be3f41ae0128022f159eab329ce36fc161cc11eecec29ae1a8"
+      },
+      {
+        "name": "admin",
+        "url": "https://admin.maacropierce.com/admin",
+        "httpStatus": 200,
+        "htmlMatchesAcceptedBuild": true,
+        "sha256": "c52e433882d048565b92164ddc3aae672b4c89f8ebfc7729b28cce74293b9f26"
+      },
+      {
+        "url": "https://nuvexapro.com/ready",
+        "httpStatus": 200,
+        "status": "ready",
+        "database": "connected",
+        "brokerConnected": false
+      },
+      {
+        "url": "https://nuvexapro.com/logo.png",
+        "httpStatus": 200,
+        "logoMatches": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/account",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/products",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/requests",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/support",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/watchlist",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/notifications",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/admin/clients",
+        "method": "GET",
+        "httpStatus": 404,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://nuvexapro.com/api/admin/subaccounts",
+        "method": "GET",
+        "httpStatus": 404,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/ready",
+        "httpStatus": 200,
+        "status": "ready",
+        "database": "connected",
+        "brokerConnected": false
+      },
+      {
+        "url": "https://admin.maacropierce.com/logo.png",
+        "httpStatus": 200,
+        "logoMatches": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/account",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/products",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/requests",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/support",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/watchlist",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/notifications",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/admin/clients",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/admin/subaccounts",
+        "method": "GET",
+        "httpStatus": 401,
+        "anonymousDenied": true
+      }
+    ],
+    "relatedFixes": {
+      "mirrorMinimumHeightServed": true,
+      "mobileHeldStockSellCodeServed": true,
+      "authenticatedProductionTradeNotAttempted": true
+    },
+    "carriedForwardSchemaEvidence": true,
+    "physicalDeviceVerified": false
+  },
+  "securityOnline": {
+    "checkedAt": "2026-11-11T09:08:36.359Z",
+    "checks": [
+      {
+        "url": "https://nuvexapro.com/api/requests",
+        "crossSiteDenied": true,
+        "status": 403
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/requests",
+        "crossSiteDenied": true,
+        "status": 403
+      },
+      {
+        "url": "https://admin.maacropierce.com/api/admin/reauth",
+        "anonymousDenied": true,
+        "status": 401,
+        "limiterAvailable": true
+      }
+    ],
+    "productionCustomerWrites": false,
+    "securityCounterWrite": true
+  },
+  "browser": {
+    "checkedAt": "2026-11-11T09:08:35.138Z",
+    "checks": [
+      {
+        "name": "desktop",
+        "passwordFieldVisible": true,
+        "url": "https://nuvexapro.com/"
+      },
+      {
+        "name": "mobile",
+        "passwordFieldVisible": true,
+        "url": "https://nuvexapro.com/"
+      },
+      {
+        "name": "admin",
+        "passwordFieldVisible": true,
+        "adminTwoFactor": true,
+        "url": "https://admin.maacropierce.com/"
+      }
+    ],
+    "authenticatedProductionWrites": false,
+    "physicalDeviceVerified": false
+  },
+  "remaining": [
+    "HttpOnly cookie migration and strict CSP",
+    "Backup scheduling, encrypted external copy and recovery drill",
+    "External security and reconciliation alerts",
+    "Independent penetration test"
+  ]
+}
