@@ -1509,7 +1509,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
  var q=function(a,r){return(r||document).querySelector(a)},qa=function(a,r){return[].slice.call((r||document).querySelectorAll(a))},last,tt;
  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function toast(m){var e=q('#toast');if(!e)return;e.textContent=m;e.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){e.classList.remove('on')},2200)}
- function show(m,sel){last=document.activeElement;m.classList.add('open');setTimeout(function(){var f=q(sel||'.mx',m);if(f)f.focus()},60)}
+ function show(m,sel){last=document.activeElement;m.classList.add('open');setTimeout(function(){var f=q(sel||'.mx',m);if(f&&!m.contains(document.activeElement))f.focus()},60)}
  function shut(m){m.classList.remove('open');if(last&&last.focus){try{last.focus()}catch(x){}}}
  function step(n){var m=q('#m-sec'),set=m.dataset.mode==='set';m.dataset.n=n;qa('[data-step]',m).forEach(function(x){x.hidden=set?false:x.dataset.step!=n});
   q('#sec-st').hidden=set;qa('#sec-st span').forEach(function(s){var k=+s.dataset.s;s.className=k===n?'on':k<n?'ok':''});
