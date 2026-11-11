@@ -26,3 +26,7 @@ permissions/contracts/registration/sessions/write-receipts/mirror：角色归属
 正式版本 b27f163f-7378-4746-9cb7-560ae66184fb，100% 流量。原静态资源、绑定和两个域名保留，无新迁移。十组最终同SHA验收全通过，摘要 layout-controls-acceptance.json；单元测试16项通过。
 
 隔离截图和原始记录：artifacts/acceptance-lgPdHO/；线上HTTP/内容检查18项通过，干净浏览器实际打开桌面、手机、后台登录入口，后台2FA字段可见。正式客户业务写入未进行。记录见 layout-controls-online.json、layout-controls-browser-entry.json。
+
+### 登录入口截图发现后的追加修复
+
+生产手机登录截图仍有旧NUVEXA字标：已改为同一CN Logo并统一蓝色登录按钮，主页品牌文字改为CN Capital。最终版本 eaebbcda-be53-4923-9b79-8befbaa73de3，100%流量，SHA256 3e7b71ddee48516032f44487e76f0ba6f3f4cf1f27cb76407be74e52769cfd64。视觉追加补丁完成layout-controls/registration/sessions三组回归，见layout-brand-acceptance.json；此前十组业务回归对应前一构建，未混称同一SHA。最终线上18项检查及三端干净浏览器入口复检通过，手机CN图像成功加载，后台2FA可见。

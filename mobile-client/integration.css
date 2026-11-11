@@ -13,3 +13,7 @@ html body :is(button,input,select,textarea):focus-visible{outline:2px solid #165
 html body .header .wordmark{padding:0;display:flex;align-items:center;min-height:44px;letter-spacing:0}
 html body .cn-brand-logo{display:block;width:48px;height:48px;object-fit:contain}
 html body .header .notification{display:grid;place-items:center;position:relative;color:#ae7a16;border:1px solid #f1e2c7;border-radius:50%;background:#fffbf4;width:44px;height:44px}
+
+html body .integration-login .wordmark{display:flex;align-items:center;justify-content:center}
+html body .integration-login .cn-brand-logo{width:72px;height:72px}
+html body .integration-login .primary{background:#1659aa;color:#fff}
