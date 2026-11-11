@@ -73,6 +73,10 @@ assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locat
  }
  const mobile=await page('mobile',client);
  await mobile.locator('[name=email]').fill(a);await mobile.locator('[name=password]').fill(password);await mobile.locator('#login-form button').click();await mobile.locator('nav [data-go=mine]').click();
+ const brand=await mobile.locator('.cn-brand-logo').evaluate(el=>({filter:getComputedStyle(el).filter,opacity:getComputedStyle(el).opacity,loaded:el.complete&&el.naturalWidth>0}));assert.equal(brand.filter,'brightness(0)');assert.equal(brand.opacity,'1');assert(brand.loaded);
+ const avatar=await mobile.locator('.profile .avatar').evaluate(el=>{const outer=el.getBoundingClientRect(),inner=el.querySelector('span').getBoundingClientRect();return {width:outer.width,height:outer.height,dx:(inner.left+inner.width/2)-(outer.left+outer.width/2),dy:(inner.top+inner.height/2)-(outer.top+outer.height/2),color:getComputedStyle(el).color}});
+ assert(Math.abs(avatar.width-56)<0.1);assert(Math.abs(avatar.height-56)<0.1);assert(Math.abs(avatar.dx)<1&&Math.abs(avatar.dy)<1);assert.equal(await mobile.locator('nav [data-go=mine]>span').innerText(),'N');
+ await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-profile-brand.png'),fullPage:true});
  await mobile.locator('[data-business=ipo]').click();await mobile.getByRole('heading',{name:'IPO申购',exact:true}).waitFor();
  await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-ipo.png'),fullPage:true});
  await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=products]').click();await mobile.locator('[data-product]').filter({hasText:'AAPL'}).click();await mobile.locator('[data-business=bulk-buy]').click();await mobile.locator('[name=tradePassword]').waitFor();

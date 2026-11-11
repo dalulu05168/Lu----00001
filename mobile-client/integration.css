@@ -17,3 +17,9 @@ html body .header .notification{display:grid;place-items:center;position:relativ
 html body .integration-login .wordmark{display:flex;align-items:center;justify-content:center}
 html body .integration-login .cn-brand-logo{width:72px;height:72px}
 html body .integration-login .primary{background:#1659aa;color:#fff}
+
+/* The original silver brand asset must render black on all light surfaces. */
+html body .cn-brand-logo{filter:brightness(0);opacity:1;mix-blend-mode:normal}
+html body .profile .avatar{display:grid;place-items:center;flex:0 0 56px;width:56px;height:56px;border-radius:50%;padding:0;margin:0;overflow:hidden;background:#e8eef5;color:#172332;font-size:25px;font-weight:600;line-height:1;text-align:center}
+html body .profile .avatar>span{display:block;line-height:1;margin:0;padding:0;transform:none}
+html body .nav [data-go=mine]>span{display:grid;place-items:center;width:22px;height:22px;box-sizing:border-box;border:1.5px solid currentColor;border-radius:50%;font-size:13px!important;font-weight:600;line-height:1;margin-inline:auto}
