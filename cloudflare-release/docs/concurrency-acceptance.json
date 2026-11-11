@@ -1,0 +1,12 @@
+{
+  "sourceSha256": "81b1320a245ef94f98f4564f61dc27ae3bef46ea8e6cc6d12fffdef8bfe42cca",
+  "sourceUnchanged": true,
+  "productionVersion": "5a210001-825b-4744-bd7f-ee9a626acf65",
+  "checkedAt": "2026-11-11T02:11:30.432Z",
+  "results": [
+    {
+      "name": "order-concurrency",
+      "code": 0
+    }
+  ]
+}
