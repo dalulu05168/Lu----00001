@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-11-11T08:13:58.553Z",
+  "version": "997b0585-8c91-4e59-995c-f30224132f7e",
+  "percentage": 100,
+  "bindingsPreserved": true,
+  "runtimePreserved": true,
+  "assetsBindingPreserved": true,
+  "domainsPreserved": true,
+  "routesPreserved": true,
+  "settingsPreserved": true,
+  "schedulesPreserved": true,
+  "settingsHash": "4cd3b6233fe5c0e178450830baf1f1112f5685725b046a0899d140093fd2b364",
+  "previousVersion": "82e8011c-27d8-40fe-bf52-f59f714af6af",
+  "rollbackVersion": "82e8011c-27d8-40fe-bf52-f59f714af6af"
+}

@@ -1,0 +1,163 @@
+{
+  "checkedAt": "2026-11-11T08:12:29.476Z",
+  "version": "997b0585-8c91-4e59-995c-f30224132f7e",
+  "sourceSha256": "bc049b1487a5ee809b298b7c2ddbab42bbf2a96cfcbd1eaa06ac5c7f235d9165",
+  "productionMutations": false,
+  "checks": [
+    {
+      "name": "desktop",
+      "url": "https://nuvexapro.com/",
+      "httpStatus": 200,
+      "htmlMatchesAcceptedBuild": true,
+      "sha256": "388299ec22d46e41376c4bd50a6e5487245965df9b59b0d8873309352f4eb863"
+    },
+    {
+      "name": "mobile",
+      "url": "https://nuvexapro.com/",
+      "httpStatus": 200,
+      "htmlMatchesAcceptedBuild": true,
+      "sha256": "edb201726c1ae1b91547508d098275200fbe72420a3a20efc82be4a7f787ea91"
+    },
+    {
+      "name": "login",
+      "url": "https://admin.maacropierce.com/",
+      "httpStatus": 200,
+      "htmlMatchesAcceptedBuild": true,
+      "sha256": "355576ac6cd8f0be3f41ae0128022f159eab329ce36fc161cc11eecec29ae1a8"
+    },
+    {
+      "name": "admin",
+      "url": "https://admin.maacropierce.com/admin",
+      "httpStatus": 200,
+      "htmlMatchesAcceptedBuild": true,
+      "sha256": "2399dcfe6975b500523f34783ad5f03b33dd0003fe4ef1687a424bdf4c71d08d"
+    },
+    {
+      "url": "https://nuvexapro.com/ready",
+      "httpStatus": 200,
+      "status": "ready",
+      "database": "connected",
+      "brokerConnected": false
+    },
+    {
+      "url": "https://nuvexapro.com/logo.png",
+      "httpStatus": 200,
+      "logoMatches": true
+    },
+    {
+      "url": "https://nuvexapro.com/api/account",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://nuvexapro.com/api/products",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://nuvexapro.com/api/requests",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://nuvexapro.com/api/support",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://nuvexapro.com/api/watchlist",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://nuvexapro.com/api/notifications",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://nuvexapro.com/api/admin/clients",
+      "method": "GET",
+      "httpStatus": 404,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://nuvexapro.com/api/admin/subaccounts",
+      "method": "GET",
+      "httpStatus": 404,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/ready",
+      "httpStatus": 200,
+      "status": "ready",
+      "database": "connected",
+      "brokerConnected": false
+    },
+    {
+      "url": "https://admin.maacropierce.com/logo.png",
+      "httpStatus": 200,
+      "logoMatches": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/account",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/products",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/requests",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/support",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/watchlist",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/notifications",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/admin/clients",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/admin/subaccounts",
+      "method": "GET",
+      "httpStatus": 401,
+      "anonymousDenied": true
+    }
+  ],
+  "relatedFixes": {
+    "mirrorMinimumHeightServed": true,
+    "mobileHeldStockSellCodeServed": true,
+    "authenticatedProductionTradeNotAttempted": true
+  },
+  "carriedForwardSchemaEvidence": true,
+  "physicalDeviceVerified": false
+}
