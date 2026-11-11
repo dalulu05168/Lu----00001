@@ -11,7 +11,7 @@ const refinements=fs.readFileSync(path.join(root,'web','ui-refinements.css'),'ut
 for(const name of ['desktop','admin','login'])pages[name]=pages[name].replace('</head>',()=>'<style>'+refinements+'</style></head>');
 const productUI=fs.readFileSync(path.join(root,'web/products-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace(/<\/body>/i,()=>'<script>'+productUI+'</script></body>');
-const mirrorPage=require('./mobile-bundle.cjs')(path.resolve(root,'../mobile-client'),{production:true});
+const mirrorPage=require('./mobile-bundle.cjs')(path.resolve(root,'../mobile-client'),{production:true}).replace('</head>',()=>'<script>'+newsUI+'</script></head>');
 pages.mobile=mirrorPage;
 assert(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/.test(pages.admin),'Mirror template missing');
 pages.admin=pages.admin.replace(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/,()=> 'const MIRROR_TEMPLATE = '+JSON.stringify(mirrorPage).replace(/</g,'\\u003c')+';');

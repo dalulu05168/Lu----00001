@@ -28,7 +28,7 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
  await api('/api/support',201,customer,{message:'新闻与客服测试'});
  const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  const errors=[];
- async function page(kind,token){const page=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:900},reducedMotion:'reduce'});page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(kind+': '+e.message));await page.addInitScript(({kind,token,email})=>{if(top!==self)return;localStorage.setItem(kind==='admin'?'cncap.admin.session':'cncap.session',token);localStorage.setItem('cncap.user',email);sessionStorage.setItem('cncap.admin.entry','1');sessionStorage.setItem('cncap.mobile.entry','1')},{kind,token,email});await page.route(base+'/**',route=>{const u=new URL(route.request().url());if(route.request().resourceType()==='document'&&['/','/admin'].includes(u.pathname))return route.fulfill({contentType:'text/html; charset=utf-8',body:pages[kind]});if(u.pathname==='/logo.png')return route.fulfill({contentType:'image/png',body:Buffer.from(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').match(/const replacementLogo = "([^"]+)";/)[1],'base64')});return route.continue()});await page.goto(base+(kind==='admin'?'/admin':'/'),{waitUntil:'domcontentloaded'});return page}
+ async function page(kind,token){const page=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:900},reducedMotion:'reduce'});page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(kind+': '+e.message));await page.addInitScript(({kind,token,email})=>{if(top!==self)return;localStorage.setItem(kind==='admin'?'cncap.admin.session':'cncap.session',token);localStorage.setItem('cncap.user',email);sessionStorage.setItem('cncap.admin.entry','1');sessionStorage.setItem('cncap.mobile.entry','1')},{kind,token,email});await page.route(base+'/**',route=>{const u=new URL(route.request().url());if(route.request().resourceType()==='document'&&['/','/admin'].includes(u.pathname))return route.fulfill({contentType:'text/html; charset=utf-8',body:pages[kind]});if(u.pathname==='/logo.png')return route.fulfill({contentType:'image/png',body:Buffer.from(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').match(/const replacementLogo = "([^"]+)";/)[1],'base64')});return route.continue()});await page.goto(base+(kind==='admin'?'/admin':'/'),{waitUntil:'domcontentloaded'});if(kind==='mobile'){await page.locator('[name=email]').fill(email);await page.locator('[name=password]').fill(password);await page.locator('#login-form button').click();await page.locator('nav [data-go=market]').waitFor();}return page}
  try{
   const owner=await page('admin',master);
   await owner.locator('#cn-admin-tasks').getByText('未读客服会话').waitFor();
@@ -63,16 +63,20 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
   await desktop.locator('#market-news iframe').waitFor();
   const mobile=await page('mobile',customer);
   await mobile.getByText('平台维护安排',{exact:true}).waitFor();
-  await mobile.locator('[data-a=tab][data-v=market]').click();await mobile.locator('[data-a=news]').click();
+  await mobile.locator('nav [data-go=market]').click();await mobile.locator('[data-action=news]').click();
   await mobile.locator('.cn-news-dialog[open] iframe').waitFor();
+  await mobile.frameLocator('.cn-news-dialog[open] iframe').frameLocator('iframe').locator('a[href*="/news/"]').first().waitFor({timeout:30000});
   await mobile.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'mobile-news.png')});
   const box=await mobile.locator('.cn-news-dialog').boundingBox();assert.equal(Math.round(box.width),390);
   await mobile.getByRole('button',{name:'关闭新闻'}).click();await mobile.locator('.cn-news-dialog').waitFor({state:'detached'});
-  await mobile.locator('[data-a=tab][data-v=home]').click();await mobile.getByText('平台维护安排',{exact:true}).waitFor();
+  await mobile.locator('nav [data-go=home]').click();await mobile.getByText('平台维护安排',{exact:true}).waitFor();
+  const live=await api('/api/admin/announcements',200,master);await api('/api/admin/announcements',200,master,{action:'withdraw',version:live.version});
+  await desktop.evaluate(()=>window.dispatchEvent(new Event('focus')));await desktop.locator('#cn-bulletin').waitFor({state:'hidden'});
+  await mobile.evaluate(()=>window.dispatchEvent(new Event('focus')));await mobile.getByText('暂无公告',{exact:true}).waitFor();assert.equal(await mobile.getByText('平台维护安排',{exact:true}).count(),0);
   assert.deepEqual(errors,[]);
  }finally{await browser.close()}
  assert((await api('/api/admin/audit',200,master)).items.some(item=>item.action==='announcement.publish'&&item.admin_email==='qa-master@example.test'));
  const current=await api('/api/admin/announcements',200,master);assert.notEqual(current.version,published.version);
- await api('/api/admin/announcements',200,master,{action:'withdraw',version:current.version});assert.equal((await api('/api/announcements',200,customer)).item,null);
+ assert.equal((await api('/api/announcements',200,customer)).item,null);
  console.log('Announcement publication, withdrawal, concurrent edit guard, role restrictions, timeline, tasks, desktop TV news content and mobile full-screen news passed');
 })().catch(error=>{console.error(error.stack);process.exitCode=1});
