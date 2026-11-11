@@ -14,9 +14,9 @@ export function createNewsService({request = fetch, now = Date.now} = {}) {
     pending = (async () => {
       const headers = {Accept: 'application/json'};
       if (cache?.etag) headers['If-None-Match'] = cache.etag;
-      const response = await request(endpoint, {headers, redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(8000)});
+      const response = await request(endpoint, {headers, redirect: 'manual', credentials: 'omit', signal: AbortSignal.timeout(8000)});
       if (response.status === 304 && cache) { cache.at = now(); return cache.value; }
-      if (!response.ok) throw Error('News provider unavailable');
+      if (!response.ok) throw Error('News provider HTTP ' + response.status);
       const text = await response.text();
       if (text.length > 512000) throw Error('Invalid news response');
       const data = JSON.parse(text);

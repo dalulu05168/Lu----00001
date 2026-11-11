@@ -3,3 +3,4 @@ dist/
 artifacts/
 .dev.vars
 .env*
+.wrangler/

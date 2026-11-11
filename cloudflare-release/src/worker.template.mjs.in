@@ -7526,7 +7526,7 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
         const feed = await cnNewsService.load();
         res.writeHead(200, {'content-type':'application/json; charset=utf-8', 'cache-control':'public, max-age=60'});
         res.end(JSON.stringify(feed)); return;
-      } catch { return send(res, 503, {error: '新闻暂时无法加载，请稍后重试'}); }
+      } catch (error) { console.warn('news_provider_failure', String(error?.message || 'unavailable').slice(0, 160)); return send(res, 503, {error: '新闻暂时无法加载，请稍后重试'}); }
     }
     const route = url.pathname;
     if(!cnPrepareBrowserSession(req,res,route))return;

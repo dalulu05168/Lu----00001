@@ -7,7 +7,7 @@ test('one upstream request for concurrent clients, ETag revalidation and origina
   let calls=0, clock=now;
   const service=createNewsService({now:()=>clock, request:async (url,options)=>{
     calls++;assert.equal(url,'https://www.finvibe.blog/api/v1/feed?per_page=12');
-    assert.equal(options.headers.Authorization,undefined);assert.equal(options.credentials,'omit');
+    assert.equal(options.headers.Authorization,undefined);assert.equal(options.credentials,'omit');assert.equal(options.redirect,'manual');
     if(calls===2){assert.equal(options.headers['If-None-Match'],'"v1"');return new Response(null,{status:304});}
     return Response.json({data:[story()]},{headers:{etag:'"v1"'}});
   }});
@@ -22,6 +22,11 @@ test('reject unsafe URLs, future dates, duplicates; do not fabricate missing cov
 test('provider failure does not serve stale articles as freshly loaded data and can recover',async()=>{
   let clock=now,fail=false;
   const service=createNewsService({now:()=>clock,request:async()=>fail?new Response('secret provider error',{status:429}):Response.json({data:[story()]})});
-  await service.load();clock+=61000;fail=true;await assert.rejects(service.load(),/News provider unavailable/);
+  await service.load();clock+=61000;fail=true;await assert.rejects(service.load(),/News provider HTTP 429/);
   fail=false;assert.equal((await service.load()).items.length,1);
+});
+
+test('upstream redirect is rejected without following it',async()=>{
+ let calls=0;const service=createNewsService({request:async()=>{calls++;return new Response(null,{status:302,headers:{Location:'http://127.0.0.1/private'}})}});
+ await assert.rejects(service.load(),/News provider HTTP 302/);assert.equal(calls,1);
 });

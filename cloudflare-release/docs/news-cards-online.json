@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-11-11T13:21:00.807Z",
+  "passed": true,
+  "productionCustomerWrites": false,
+  "source": "FinVibe",
+  "articleCount": 12,
+  "coverCount": 12,
+  "latestPublishedAt": "2026-10-28T19:56:41.000Z",
+  "checks": [
+    {
+      "kind": "desktop",
+      "publishedComponentRendered": true,
+      "productionAPI": true,
+      "coverLoaded": true,
+      "originalDateAndLink": true,
+      "authenticatedProductionPageTest": false
+    },
+    {
+      "kind": "mobile",
+      "publishedComponentRendered": true,
+      "productionAPI": true,
+      "coverLoaded": true,
+      "originalDateAndLink": true,
+      "authenticatedProductionPageTest": false
+    }
+  ],
+  "version": "8048aea1-de5f-4e53-9a04-8e4395a23abb",
+  "sourceSha256": "0b8e258ffc21c8d20e5a92136fe6e84cdb5eaa640a013db074e798ff9efb4159"
+}

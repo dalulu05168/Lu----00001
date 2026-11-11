@@ -12,9 +12,9 @@
 - 拒绝不安全 URL、异常日期、未来日期、重复文章；不渲染供应商 HTML。
 
 ## 验证
-最终构建 SHA256：2f29810a5fdb40080bf74a4283facc373b69c8f909e29211e23f7e0f73ebaad2。
+最终构建 SHA256：0b8e258ffc21c8d20e5a92136fe6e84cdb5eaa640a013db074e798ff9efb4159。
 
-news-service.test.mjs 3 项通过；acceptance-Sng8dH 的 news、experience、layout-controls、sessions、mirror、browser-sessions 六组通过，测试期间 sourceUnchanged=true。
+news-service.test.mjs 4 项通过；acceptance-Kg3trY 的 news、experience、layout-controls、sessions、mirror、browser-sessions 六组通过，测试期间 sourceUnchanged=true。
 
 真实接口和图片、原文链接实际打开、来源与日期、AI 标识、503 重试恢复、手机 360/390/412/768 像素无横向溢出均已检查。截图：news-cards-desktop.png、news-cards-mobile.png。
 
@@ -23,3 +23,13 @@ news-service.test.mjs 3 项通过；acceptance-Sng8dH 的 news、experience、la
 早期一次回归的镜像外部只读请求网络失败，另一项浏览器测试关闭时请求未结束；浏览器测试补充等待路由清理后重跑六组通过。失败记录保留在 artifacts/acceptance-0nGBNe，未将失败记录记为通过。
 
 本次无数据库迁移，无新增密钥、绑定、路由或域名配置。生产发布与复验结果另记录于 news-cards-online.json。
+
+## Workers 兼容修复
+首次发布 14230d88 的公开新闻请求返回 503，已恢复上一版 8361c450。根因为 Workers 不支持 redirect:error；改为 manual，并拒绝跟随重定向。官方说明：https://developers.cloudflare.com/workers/runtime-apis/request/ 。
+
+本地 Wrangler 4.160.0/workerd 使用相同兼容日期验证 /api/news 为 200，返回 12 篇、12 张封面。记录：news-cards-workerd.json。无生产数据库连接。修复后完整重跑六组验收通过，首次失败和回退记录保留于 artifacts/publication-news-cards-20261111。
+
+## 正式发布结果
+修正版：8048aea1-de5f-4e53-9a04-8e4395a23abb，100% 流量。云端版本预览先验证 200 / 12 篇 / 12 张封面，再激活。正式站点 18 项 HTTP/构建匹配检查通过，两种浏览器尺寸下加载正式接口和封面成功。
+
+线上浏览器采用只读公共组件检查，加载来自正式响应的脚本，未登录正式客户；完整登录后的新闻页面流程在本机隔离库验证。不得将此结果写成真实客户或物理手机操作验收。原域名、静态资源、运行参数和绑定均已核对保留。
