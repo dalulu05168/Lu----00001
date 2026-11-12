@@ -6174,13 +6174,13 @@ function normalizeAmount(value) {
   return n;
 }
 __name(normalizeAmount, "normalizeAmount");
-async function pendingWithdrawCents(db, accountId, excludeId = null) {
+async function pendingWithdrawCents(db, accountId, excludeId = null, exact = false) {
   const r = await db.query(
     `select coalesce(sum(amount_cents),0)::bigint as total from cash_requests
      where account_id=$1 and kind='WITHDRAW' and status in ('PENDING','REVIEWED') and ($2::uuid is null or id<>$2)`,
     [accountId, excludeId]
   );
-  return Number(r.rows[0].total);
+  return exact ? BigInt(r.rows[0].total) : Number(r.rows[0].total);
 }
 __name(pendingWithdrawCents, "pendingWithdrawCents");
 async function cnClaimWrite(tx,userId,route,key,body){
@@ -6350,10 +6350,10 @@ async function reviewCashRequest(db, actor, { id, decision, reason, ip = null })
       request.account_id
     ]);
     if (account.rows.length !== 1) invalid2("Account not found");
-    const cash = Number(account.rows[0].cash_cents);
-    const amount = Number(request.amount_cents);
+    const cash = BigInt(account.rows[0].cash_cents);
+    const amount = BigInt(request.amount_cents);
     if (request.kind === "WITHDRAW") {
-      const frozen = await pendingWithdrawCents(client, request.account_id, id);
+      const frozen = await pendingWithdrawCents(client, request.account_id, id, true);
       if (cash - frozen < amount) invalid2("Insufficient available balance");
       const next = cash - amount;
       await client.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1", [request.account_id, next]);
