@@ -78,19 +78,33 @@ async function api(route,token,body,method=body?'POST':'GET',status=200){const r
   await focus(mobile);await mobile.locator('.real-account .balance').filter({hasText:expectedCash}).waitFor({timeout:35000});
   await mobile.getByRole('alert').filter({hasText:'隔离账户服务暂不可用'}).waitFor({state:'detached',timeout:35000});
   checks.push('account outage reports failure and recovers verified balances on both clients without fabricated success');
-  const hugeAccount=await api('/api/account',token);
-  Object.assign(hugeAccount.account,{cashCents:'9007199254740995',availableCashCents:'9007199254740993',reservedWithdrawalCents:2});
-  hugeAccount.totalAssets='90071992547410.01';
-  hugeAccount.orders=[{id:'precision-order',market:'US',symbol:'AAPL',side:'BUY',quantity:'1',price_cents:'1234',amount_usd_cents:'9007199254740997',created_at:'2026-11-12T00:00:00Z'}];
-  const precise=r=>r.fulfill({json:hugeAccount});
-  await desktop.route(base+'/api/account',precise);await mobile.route(base+'/api/account',precise);
+  // Seed only the isolated PostgreSQL fixture; both pages use the unmodified Worker response.
+  const {Pool}=require('pg');
+  const pgPort=Number(process.env.CN_ACCEPTANCE_PG_PORT);
+  assert(out&&pgPort>15000,'isolated PGlite runner required');
+  const pg=new Pool({connectionString:'postgresql://postgres@127.0.0.1:'+pgPort+'/postgres'});
+  const original=(await api('/api/account',token)).account;
+  const fixtureOrder=randomUUID(),fixtureWithdrawal=randomUUID();
+  try {
+    await pg.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1",[original.id,'9007199254740995']);
+    await pg.query("INSERT INTO cash_requests(id,account_id,user_id,kind,amount_cents,status) SELECT $1,id,user_id,'WITHDRAW',2,'PENDING' FROM accounts WHERE id=$2",[fixtureWithdrawal,original.id]);
+    await pg.query("INSERT INTO orders(id,account_id,idempotency_key,market,symbol,side,quantity,price_cents,fx_usd_micros,amount_usd_cents) VALUES($1::uuid,$2,$1::uuid::text,'US','AAPL','BUY',1,1234,1000000,9007199254740997)",[fixtureOrder,original.id]);
+    const mixed=await api('/api/account',token);
+    assert.equal(mixed.account.cashCents,'9007199254740995');
+    assert.equal(mixed.account.availableCashCents,'9007199254740993');
+    assert.equal(mixed.account.reservedWithdrawalCents,2);
   await focus(desktop);await desktop.locator('[data-b=cash]').first().getByText('90,071,992,547,409.95',{exact:true}).waitFor();
   await desktop.waitForFunction(()=>document.querySelector('#tb-ord')?.textContent.includes('90,071,992,547,409.97'));
   await desktop.waitForFunction(()=>[...document.querySelectorAll('[data-b=reservedWithdrawal]')].some(n=>n.textContent==='0.02'));
   await focus(mobile);await mobile.locator('.real-account .balance').filter({hasText:'90,071,992,547,409.93'}).waitFor({timeout:35000});
   await mobile.locator('nav [data-go=trade]').click();await mobile.locator('[data-subtab=orders]').click();
   await mobile.getByText('90,071,992,547,409.97 USD',{exact:true}).waitFor();
-  await desktop.unroute(base+'/api/account',precise);await mobile.unroute(base+'/api/account',precise);
+  } finally {
+    await pg.query('DELETE FROM orders WHERE id=$1',[fixtureOrder]);
+    await pg.query('DELETE FROM cash_requests WHERE id=$1',[fixtureWithdrawal]);
+    await pg.query('UPDATE accounts SET cash_cents=$2 WHERE id=$1',[original.id,String(original.cashCents)]);
+    await pg.end();
+  }
   await mobile.locator('nav [data-go=home]').click();await focus(desktop);await focus(mobile);
   checks.push('desktop and mobile render mixed numeric and string cents without rounding');
   await desktop.screenshot({path:path.join(out,'desktop-synchronized.png'),fullPage:true});await mobile.screenshot({path:path.join(out,'mobile-synchronized.png'),fullPage:true});

@@ -12,7 +12,9 @@ const { Pool } = require('pg');
  const db = new PGlite(path.join(dir,'database'));
  await db.waitReady;
  await db.exec('CREATE TABLE schema_migrations(filename text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
- const files = fs.readdirSync(path.join(root,'db'));
+ const workerSource=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8');
+ const files=fs.readdirSync(path.join(root,'db')).filter(name=>
+  name!=='migration-trade-evidence.sql'||workerSource.includes('request_intent'));
  const migrations = [...files.filter(f=>/^\d/.test(f)).sort(), ...files.filter(f=>f.startsWith('migration-')).sort(), 'product-settlement-schema.sql','product-settlement-workflows.sql','commodity-reference-order-prices.sql'];
  for (const name of migrations) {
   await db.exec(fs.readFileSync(path.join(root,'db',name),'utf8').replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;/ig,''));

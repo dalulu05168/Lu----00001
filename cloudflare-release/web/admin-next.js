@@ -4,7 +4,21 @@ const $=id=>document.getElementById(id),el=(t,text,cls)=>{const n=document.creat
 const titles={home:'工作台',accounts:'客户账户',orders:'交易订单',positions:'持仓资产',approvals:'资金审批',audit:'操作审计',products:'产品与证券',documents:'客户资料审核',support:'客服与公告',permissions:'子管理员权限',settlement:'IPO 与基金复核',mirror:'App 镜像'};
 let me=null,clients=[],orders=[],positions=[],requests=[],audits=[],view='home',account=null,selectedEmail='',loadVersion=0,rows=[],schema=[],tableState={query:'',market:'',density:false,hidden:[]},selected=new Set(),activeRecord=null,confirmAction=null,posting=false;
 const time=v=>v?new Date(v).toLocaleString('zh-CN',{timeZone:'Europe/Bucharest'}):'未提供';
-const money=(v,c='USD')=>v==null?'未提供':Number.isSafeInteger(Number(v))?(Number(v)/100).toLocaleString('zh-CN',{style:'currency',currency:c}):'金额不可用';
+function formatAdminCents(value, locale, currency, missing = '—') {
+  if (value == null) return missing;
+  if (!(typeof value === 'number' && Number.isSafeInteger(value)) &&
+      !(typeof value === 'string' && /^-?\d{1,40}$/.test(value))) return missing;
+  const cents = BigInt(value), absolute = cents < 0n ? -cents : cents;
+  const whole = absolute / 100n;
+  const amount = cents < 0n ? (whole ? -whole : -0) : whole;
+  const formatter = new Intl.NumberFormat(locale, {
+    ...(currency ? {style:'currency',currency} : {}),
+    minimumFractionDigits:2,maximumFractionDigits:2
+  });
+  const fraction = String(absolute % 100n).padStart(2,'0');
+  return formatter.formatToParts(amount).map(part=>part.type==='fraction'?fraction:part.value).join('');
+}
+const money=(v,c='USD')=>formatAdminCents(v,'zh-CN',c,v==null?'未提供':'金额不可用');
 const label=v=>({PENDING:'待初审',REVIEWED:'待终审',APPROVED:'已入账',REJECTED:'已驳回',BUY:'买入',SELL:'卖出',ALLOW:'允许登录',DENY:'限制登录'}[v]||v||'未提供');
 function notify(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(notify.timer);notify.timer=setTimeout(()=>$('toast').hidden=true,4500)}
 async function api(path,options={}){const headers={'Accept':'application/json',...(options.body?{'Content-Type':'application/json'}:{})};if(options.key)headers['Idempotency-Key']=options.key;const token=localStorage.getItem('cncap.admin.session');if(token)headers.Authorization='Bearer '+token;const r=await fetch('/api/admin/'+path,{...options,headers,cache:'no-store',signal:AbortSignal.timeout(20000)});if(r.status===401){location.assign('/login?admin=1&next=%2Fadmin-next');throw Error('登录已失效')}const d=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(Error(d.error||'请求失败'),{status:r.status});return d}

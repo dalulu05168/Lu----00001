@@ -2,6 +2,20 @@
 <!-- saved from url=(0058)https://lu-%2D-%2D00001.dalulu05168.workers.dev/admin#over -->
 <html data-admin-workspace data-product-settlement="admin" lang="zh-CN"><head><script>try{if(sessionStorage.getItem("cncap.admin.entry")!=="1"||!localStorage.getItem("cncap.admin.session"))location.replace("/");else sessionStorage.removeItem("cncap.admin.entry")}catch(e){location.replace("/")}</script><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <script>
+function formatAdminCents(value, locale, currency, missing = '—') {
+  if (value == null) return missing;
+  if (!(typeof value === 'number' && Number.isSafeInteger(value)) &&
+      !(typeof value === 'string' && /^-?\d{1,40}$/.test(value))) return missing;
+  const cents = BigInt(value), absolute = cents < 0n ? -cents : cents;
+  const whole = absolute / 100n;
+  const amount = cents < 0n ? (whole ? -whole : -0) : whole;
+  const formatter = new Intl.NumberFormat(locale, {
+    ...(currency ? {style:'currency',currency} : {}),
+    minimumFractionDigits:2,maximumFractionDigits:2
+  });
+  const fraction = String(absolute % 100n).padStart(2,'0');
+  return formatter.formatToParts(amount).map(part=>part.type==='fraction'?fraction:part.value).join('');
+}
 window.CN_API_BASE='/api';
 window.CN_FRONT_API_BASE='/api';
 window.CN_SET_TOKEN=function(token){try{if(token)localStorage.setItem('cncap.session',token);else localStorage.removeItem('cncap.session')}catch(e){}};
@@ -2246,7 +2260,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
   var day=new Intl.DateTimeFormat('en-CA',{timeZone:zone});
   var clock=new Intl.DateTimeFormat('sv-SE',{timeZone:zone,dateStyle:'short',timeStyle:'short'});
   function when(s){return s?clock.format(new Date(s)):'—'}
-  function money(c){return (Number(c)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+  function money(c){return formatAdminCents(c,'en-US')}
   var KIND={DEPOSIT:'充值',WITHDRAW:'提现'};
   var STATUS={PENDING:'待初审',REVIEWED:'待终审',APPROVED:'已入账',REJECTED:'已驳回'};
   function chip(s){return '<span class="chip '+(s==='PENDING'?'wa':s==='REJECTED'?'rd':'in')+'">'+esc(STATUS[s]||s)+'</span>'}
@@ -2358,7 +2372,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
   };
   const token=()=>localStorage.getItem('cncap.admin.session');
   const date=value=>value?new Intl.DateTimeFormat('zh-CN',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Kuala_Lumpur'}).format(new Date(value)):'—';
-  const money=cents=>typeof cents==='number'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100):'—';
+  const money=cents=>formatAdminCents(cents,'en-US','USD');
   const docNames={IDENTITY:'身份资料',BANK:'银行卡'};
   const states={PENDING:'待审核',APPROVED:'已通过',REJECTED:'未通过',REVIEWED:'待终审'};
   const labels={

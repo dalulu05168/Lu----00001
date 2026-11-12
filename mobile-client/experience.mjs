@@ -20,7 +20,15 @@ export function chartSymbol(item){
  return null;
 }
 export function mountChart(target,item){
- if(!target)return;const symbol=chartSymbol(item);
+ if(!target)return;
+ // The administrator mirror has an opaque origin. Third-party widgets that read
+ // cookies cannot operate there; customer pages keep their existing chart.
+ if(target.ownerDocument?.defaultView?.CN_MIRROR_CONTEXT){
+  target.textContent='后台镜像不加载第三方行情图表。请在客户前台查看历史行情。';
+  delete target.dataset.chartSymbol;
+  return;
+ }
+ const symbol=chartSymbol(item);
  if(!symbol){target.textContent='暂不支持此市场图表映射。未使用其他股票曲线替代。';return;}
  const frame=document.createElement('iframe');frame.title='TradingView '+item.symbol+' 历史行情';frame.className='real-chart';frame.referrerPolicy='no-referrer';frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-popups');
  const config={symbol,autosize:true,interval:'D',style:'1',locale:'zh_CN',theme:'light',allow_symbol_change:false,hide_side_toolbar:true,hide_top_toolbar:false,calendar:false,support_host:'https://www.tradingview.com'};
