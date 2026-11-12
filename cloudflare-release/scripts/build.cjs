@@ -11,10 +11,9 @@ for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace('
 const refinements=fs.readFileSync(path.join(root,'web','ui-refinements.css'),'utf8');
 for(const name of ['desktop','admin','login'])pages[name]=pages[name].replace('</head>',()=>'<style>'+refinements+'</style></head>');
 const designSystem='<style id="cn-design-system">'+fs.readFileSync(path.join(root,'web','design-system.css'),'utf8')+'</style>';
-// KNOWN REGRESSION reproduced from production 860bea19: the 2026-11-12 frontend sync rebuilt the customer
-// desktop page and the mobile document without the shared design system. Re-enable 'desktop' here and
-// designSystem in mirrorPage below as a separate, tested change. See releases/860bea19/README.md.
-const designSystemPages=['admin','login'],designSystemInMobile=false;
+// The shared design system applies to every page, as in production 08bbfd25 (Issue #57). 860bea19 had lost it
+// on the customer desktop page and the mobile document (and so the admin mirror); see releases/860bea19/README.md.
+const designSystemPages=['desktop','admin','login'],designSystemInMobile=true;
 for(const name of designSystemPages)pages[name]=pages[name].replace('</head>',()=>designSystem+'</head>');
 const productUI=fs.readFileSync(path.join(root,'web/products-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace(/<\/body>/i,()=>'<script>'+productUI+'</script></body>');
