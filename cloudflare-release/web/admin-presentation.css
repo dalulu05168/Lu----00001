@@ -1,0 +1,1 @@
+@layer adminPresentation { html, *, *::before, *::after { scrollbar-width:none !important; font-weight:400 !important; } *::-webkit-scrollbar { display:none; } }

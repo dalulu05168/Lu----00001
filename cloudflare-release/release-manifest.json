@@ -1,7 +1,7 @@
 {
   "worker": "lu----00001",
-  "version": "8048aea1-de5f-4e53-9a04-8e4395a23abb",
-  "sourceSha256": "0b8e258ffc21c8d20e5a92136fe6e84cdb5eaa640a013db074e798ff9efb4159",
+  "version": "860bea19-546f-4900-aa23-7f37827d0fdd",
+  "sourceSha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
   "domains": [
     "nuvexapro.com",
     "admin.maacropierce.com"
@@ -13,11 +13,12 @@
     "migration-security-rate-limits.sql"
   ],
   "paidQuotePending": true,
-  "baseVersion": "17c5b3f3-b56e-49ea-a763-f24b8ebd1028",
-  "publishedAt": "2026-11-11T13:19:53.007Z",
+  "baseVersion": "733317be-cdfd-4057-ad6b-afc1c68fa71e",
+  "publishedAt": "2026-11-12T16:56:24.283Z",
   "fundMaturityCron": "*/5 * * * *",
-  "verifiedAt": "2026-11-11T13:21:00.807Z",
-  "previousVersion": "8361c450-1112-4529-95bb-f67f88187234",
-  "sourceCommit": "815772f",
-  "sourceBranch": "delivery/mirror-mobile-sell-20261111"
+  "verifiedAt": "2026-11-12T16:56:58.859Z",
+  "previousVersion": "733317be-cdfd-4057-ad6b-afc1c68fa71e",
+  "sourceCommit": null,
+  "sourceBranch": "claude/reproducible-860bea19",
+  "reproducedFrom": "npm run build on committed sources (byte-identical to the deployed bundle)"
 }

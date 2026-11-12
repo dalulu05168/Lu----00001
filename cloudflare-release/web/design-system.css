@@ -1,0 +1,34 @@
+/* Shared visual contract for desktop, administration and the mobile mirror. */
+:root{
+  --cn-font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;
+  --cn-ink:#24364b;
+  --cn-muted:#52677d;
+  --cn-border:#d6e1ef;
+  --cn-title-weight:650;
+  --cn-motion-duration:180ms;
+  --cn-motion-ease:cubic-bezier(.2,.7,.2,1);
+  --cn-desktop-font:var(--cn-font);
+}
+html:is([data-product-settlement="desktop"],[data-admin-workspace]){--cn-desktop-font:var(--cn-font)}
+html body,html body :is(button,input,select,textarea,.cn-news-feed,.cp-dialog,.ps-dialog,.ops-dialog,.cn-notify){font-family:var(--cn-font)}
+html body :is(#market-news,#mobile-news) button{min-height:40px;font-size:14px;font-weight:500;line-height:1.4;border-radius:999px}
+html body #cp #f-chat :is(input,button){font-size:14px!important;line-height:1.5}
+html:is([data-product-settlement="desktop"],[data-admin-workspace]) body :is(.ops-dialog:not(.ops-phone) .ops-heading,.ps-dialog>header,.cp-dialog>header)>button{min-height:40px;min-width:40px;line-height:1.4;border-radius:999px}
+html body :is(.cp-dialog,.ps-dialog,.ops-dialog:not(.ops-phone),.cn-notify){font-size:14px;line-height:1.5}
+@keyframes cn-surface-enter{from{opacity:.35;translate:0 -6px}to{opacity:1;translate:0 0}}
+@media(prefers-reduced-motion:no-preference){
+  html body :is(.pg.show,.pg:not([hidden]),.page-enter){animation:cn-surface-enter var(--cn-motion-duration) var(--cn-motion-ease) both}
+  html body :is(.mask.open .dlg,.cp-overlay .cp-dialog,.ps-dialog[open],.ops-dialog[open]:not(.ops-phone),.cn-notify[open]){animation:cn-surface-enter var(--cn-motion-duration) var(--cn-motion-ease) both}
+  html body .cn-news-card{animation:cn-surface-enter var(--cn-motion-duration) var(--cn-motion-ease) both}
+}
+@media(prefers-reduced-motion:reduce){
+  html body :is(.pg,.tp,.page-enter,.mask,.dlg,.cp-dialog,.ps-dialog,.ops-dialog,.cn-notify,.cn-news-card){animation:none!important;transition:none!important}
+}
+/* Mobile targets stay larger than desktop controls, with the same type scale. */
+html body .app #mobile-news.cn-news-feed button{min-height:44px}
+html body .app :is(.sectionhead h2,.company-copy h2){font-size:18px;line-height:1.4;font-weight:var(--cn-title-weight)}
+html body .app .refined-stock .stockname b{font-size:15px;line-height:1.5;font-weight:600}
+html body .app :is(.refined-stock .stockname small,.quote-metrics small,.sort-label,.sort-label select,.company-heading p,.quote-date){font-size:13px;line-height:1.5;color:var(--cn-muted)}
+html body .app :is(.refined-stock .price,.quote-metrics b){font-size:15px;line-height:1.5}
+html body .app .change-badge{font-size:12px!important;line-height:1.5}
+html body .app .order-actions button{min-height:44px;font-size:14px;line-height:1.5;border-radius:999px}

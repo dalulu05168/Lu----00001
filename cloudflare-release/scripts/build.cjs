@@ -5,18 +5,27 @@ const { createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const manifest = require('../release-manifest.json');
 const pages = Object.fromEntries(['desktop','mobile','admin','login'].map(kind => [kind, fs.readFileSync(path.join(root,'web',kind+'.html'),'utf8')]));
-pages.admin=pages.admin.replace('</head>',()=>'<style id="cn-mirror-viewport">'+fs.readFileSync(path.join(root,'web','mirror-viewport.css'),'utf8')+'</style></head>');
 pages.admin=pages.admin.replace('</head>',()=>'<script>'+fs.readFileSync(path.join(root,'web/security-ui.js'),'utf8')+'</script></head>');
 const newsUI=fs.readFileSync(path.join(root,'web','news-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace('</head>',()=>'<script>'+newsUI+'</script></head>');
 const refinements=fs.readFileSync(path.join(root,'web','ui-refinements.css'),'utf8');
 for(const name of ['desktop','admin','login'])pages[name]=pages[name].replace('</head>',()=>'<style>'+refinements+'</style></head>');
+const designSystem='<style id="cn-design-system">'+fs.readFileSync(path.join(root,'web','design-system.css'),'utf8')+'</style>';
+// KNOWN REGRESSION reproduced from production 860bea19: the 2026-11-12 frontend sync rebuilt the customer
+// desktop page and the mobile document without the shared design system. Re-enable 'desktop' here and
+// designSystem in mirrorPage below as a separate, tested change. See releases/860bea19/README.md.
+const designSystemPages=['admin','login'],designSystemInMobile=false;
+for(const name of designSystemPages)pages[name]=pages[name].replace('</head>',()=>designSystem+'</head>');
 const productUI=fs.readFileSync(path.join(root,'web/products-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace(/<\/body>/i,()=>'<script>'+productUI+'</script></body>');
-const mirrorPage=require('./mobile-bundle.cjs')(path.resolve(root,'../mobile-client'),{production:true}).replace('</head>',()=>'<script>'+newsUI+'</script></head>');
+const mirrorPage=require('./mobile-bundle.cjs')(path.resolve(root,'../mobile-client'),{production:true}).replace('</head>',()=>'<script>'+newsUI+'</script>'+(designSystemInMobile?designSystem:'')+'</head>');
 const browserTransport=fs.readFileSync(path.join(root,'web/session-transport.js'),'utf8');
 function browserSessionPage(html,admin){return html.replace(/<head>/i,()=>'<head><script>'+browserTransport.replace('__CN_BROWSER_ADMIN__',String(admin))+'</script>');}
 for(const kind of ['desktop','login','admin'])pages[kind]=browserSessionPage(pages[kind],kind==='admin'||kind==='login');
+// Admin presentation layer (hidden scrollbars, uniform weight) goes first in <head>, as published in 860bea19.
+pages.admin=pages.admin.replace(/<head[^>]*>/i,head=>head+'<style>'+fs.readFileSync(path.join(root,'web','admin-presentation.css'),'utf8')+'</style>');
+// Phone-mirror viewport rules are the last style in the admin <head>, as published in 860bea19.
+pages.admin=pages.admin.replace('</head>',()=>'<style id="cn-mirror-viewport">'+fs.readFileSync(path.join(root,'web','mirror-viewport.css'),'utf8')+'</style></head>');
 pages.login=pages.login.replace("const scope=true?'admin':'client';","const scope=location.hostname==='admin.maacropierce.com'||new URLSearchParams(location.search).has('admin')?'admin':'client';");
 pages.mobile=browserSessionPage(mirrorPage,false);
 assert(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/.test(pages.admin),'Mirror template missing');
