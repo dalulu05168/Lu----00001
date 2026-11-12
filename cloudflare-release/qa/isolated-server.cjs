@@ -26,6 +26,9 @@ const { Pool } = require('pg');
    if(typeof sql==='string'&&/INSERT INTO admin_audit_log/i.test(sql)&&values?.[2]==='subaccount.password.reset'&&fs.existsSync(path.join(dir,'reject-audit'))){
     return Promise.reject(new Error('Isolated audit write failure'));
    }
+   if(typeof sql==='string'&&/INSERT INTO admin_audit_log/i.test(sql)&&values?.some(v=>typeof v==='string'&&v.startsWith('settlement.'))&&fs.existsSync(path.join(dir,'reject-settlement-audit')))return Promise.reject(Error('Isolated settlement audit failure'));
+   if(typeof sql==='string'&&/INSERT INTO admin_audit_log/i.test(sql)&&values?.includes('cash_request.approve')&&fs.existsSync(path.join(dir,'reject-cash-audit')))return Promise.reject(Error('Isolated cash audit failure'));
+   if(typeof sql==='string'&&/INSERT INTO admin_audit_log/i.test(sql)&&values?.includes('support.reply')&&fs.existsSync(path.join(dir,'reject-support-audit')))return Promise.reject(Error('Isolated support audit failure'));
    if(typeof sql==='string'&&sql.includes("'client.delegated.action'")&&fs.existsSync(path.join(dir,'reject-delegated-audit')))return Promise.reject(Error('Isolated delegated audit failure'));
    if(typeof sql==='string'&&sql.includes('cn_fund_contracts')&&fs.existsSync(path.join(dir,'force-maturity'))){fs.unlinkSync(path.join(dir,'force-maturity'));return query("UPDATE cn_fund_contracts SET due_at=now()-interval '1 minute'").then(()=>query(sql,values,...rest));}
    if(typeof sql==='string'&&sql.includes("status='MATURED'")&&fs.existsSync(path.join(dir,'reject-maturity')))return Promise.reject(Error('Isolated maturity failure'));

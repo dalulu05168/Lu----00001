@@ -5,6 +5,7 @@ const { createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const manifest = require('../release-manifest.json');
 const pages = Object.fromEntries(['desktop','mobile','admin','login'].map(kind => [kind, fs.readFileSync(path.join(root,'web',kind+'.html'),'utf8')]));
+pages.admin=pages.admin.replace('</head>',()=>'<style id="cn-mirror-viewport">'+fs.readFileSync(path.join(root,'web','mirror-viewport.css'),'utf8')+'</style></head>');
 pages.admin=pages.admin.replace('</head>',()=>'<script>'+fs.readFileSync(path.join(root,'web/security-ui.js'),'utf8')+'</script></head>');
 const newsUI=fs.readFileSync(path.join(root,'web','news-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace('</head>',()=>'<script>'+newsUI+'</script></head>');
@@ -20,6 +21,10 @@ pages.login=pages.login.replace("const scope=true?'admin':'client';","const scop
 pages.mobile=browserSessionPage(mirrorPage,false);
 assert(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/.test(pages.admin),'Mirror template missing');
 pages.admin=pages.admin.replace(/const MIRROR_TEMPLATE\s*=\s*[^\r\n]+;/,()=> 'const MIRROR_TEMPLATE = '+JSON.stringify(mirrorPage).replace(/</g,'\\u003c')+';');
+pages.adminNext=fs.readFileSync(path.join(root,'web','admin-next.html'),'utf8')
+ .replace('<!--ADMIN_NEXT_STYLE-->',()=>'<style>'+fs.readFileSync(path.join(root,'web','admin-next.css'),'utf8')+'</style>')
+ .replace('<!--ADMIN_NEXT_AUTH-->',()=>'<script>'+browserTransport.replace('__CN_BROWSER_ADMIN__','true')+'</script><script>'+fs.readFileSync(path.join(root,'web/security-ui.js'),'utf8')+'</script>')
+ .replace('<!--ADMIN_NEXT_APP-->',()=>'<script>'+fs.readFileSync(path.join(root,'web/admin-next.js'),'utf8').replace(/<\/script/gi,'<\\/script')+'</script>');
 const logo = fs.readFileSync(path.join(root,'web','logo.png')).toString('base64');
 const source = fs.readFileSync(path.join(root,'src','worker.template.mjs.in'),'utf8')
  .replace('__CN_NEWS__', () => fs.readFileSync(path.join(root,'src','news-service.mjs'),'utf8').replace('export function ', 'function '))

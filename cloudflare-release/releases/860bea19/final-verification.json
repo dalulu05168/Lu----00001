@@ -1,0 +1,140 @@
+{
+  "checkedAt": "2026-11-12T16:59:19.080Z",
+  "version": "860bea19-546f-4900-aa23-7f37827d0fdd",
+  "sourceSha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
+  "productionTrafficPercent": 100,
+  "deploymentVerified": true,
+  "backendUnchanged": true,
+  "databaseMigrationExecuted": false,
+  "productionFinancialOperations": false,
+  "predeployment": {
+    "sourceSha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
+    "sourceUnchanged": true,
+    "baselineVersion": "8048aea1-de5f-4e53-9a04-8e4395a23abb",
+    "checkedAt": "2026-11-12T16:55:47.111Z",
+    "results": [
+      {
+        "name": "frontend-sync",
+        "code": 0
+      },
+      {
+        "name": "admin-account-layout",
+        "code": 0
+      },
+      {
+        "name": "contracts",
+        "code": 0
+      }
+    ]
+  },
+  "postdeploymentIsolated": {
+    "sourceSha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
+    "sourceUnchanged": true,
+    "baselineVersion": "8048aea1-de5f-4e53-9a04-8e4395a23abb",
+    "checkedAt": "2026-11-12T16:58:49.051Z",
+    "results": [
+      {
+        "name": "frontend-sync",
+        "code": 0
+      },
+      {
+        "name": "stocks",
+        "code": 0
+      },
+      {
+        "name": "order-concurrency",
+        "code": 0
+      },
+      {
+        "name": "write-receipts",
+        "code": 0
+      },
+      {
+        "name": "quote-guards",
+        "code": 0
+      },
+      {
+        "name": "forms",
+        "code": 0
+      },
+      {
+        "name": "admin-next",
+        "code": 0
+      }
+    ]
+  },
+  "frontendChecks": [
+    "two-stage admin approval updates desktop and mobile balance after focus without client-side ledger inference",
+    "withdrawal reserves only available balance, initial review does not debit and final review synchronizes cash and status",
+    "withdrawal rejection releases reserved funds without debit and refreshes customer request status",
+    "server-recorded trade synchronizes exact cash and position to desktop and mobile",
+    "admin announcement publish reaches desktop and mobile",
+    "admin announcement withdrawal removes it on both clients",
+    "mobile product center refreshes newly published admin products without leaving page",
+    "background synchronization preserves unsent support form input",
+    "admin support reply refreshes customer conversation",
+    "account outage reports failure and recovers verified balances on both clients without fabricated success",
+    "admin login restriction invalidates mobile session and desktop returns to login",
+    "no uncaught browser errors"
+  ],
+  "onlineReadOnly": {
+    "checkedAt": "2026-11-12T16:57:34.753Z",
+    "readOnly": true,
+    "checks": [
+      {
+        "origin": "https://nuvexapro.com",
+        "route": "/ready",
+        "status": 200,
+        "cache": "no-store",
+        "ready": "ready",
+        "database": "connected"
+      },
+      {
+        "origin": "https://nuvexapro.com",
+        "route": "/api/admin/me",
+        "status": 404,
+        "cache": null
+      },
+      {
+        "origin": "https://nuvexapro.com",
+        "route": "/api/account",
+        "status": 401,
+        "cache": "no-store"
+      },
+      {
+        "origin": "https://nuvexapro.com",
+        "route": "/api/news",
+        "status": 200,
+        "cache": "public, max-age=60",
+        "items": 12,
+        "source": "FinVibe"
+      },
+      {
+        "origin": "https://admin.maacropierce.com",
+        "route": "/ready",
+        "status": 200,
+        "cache": "no-store",
+        "ready": "ready",
+        "database": "connected"
+      },
+      {
+        "origin": "https://admin.maacropierce.com",
+        "route": "/api/admin/me",
+        "status": 401,
+        "cache": "no-store"
+      },
+      {
+        "origin": "https://admin.maacropierce.com",
+        "route": "/api/account",
+        "status": 401,
+        "cache": "no-store"
+      }
+    ]
+  },
+  "remaining": [
+    "News API HTTP response verified; client news rendering not re-certified",
+    "Live external chart rendering not certified",
+    "Physical mobile hardware session not certified",
+    "IBKR starter remains disconnected"
+  ]
+}

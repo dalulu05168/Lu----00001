@@ -141,7 +141,7 @@ async function sendCustomerMessage(browser,kind,token,message){
     const iframe=sub.locator('dialog[open] iframe');
     await iframe.waitFor();
     const size=await iframe.evaluate(frame=>{const r=frame.getBoundingClientRect();return [r.width,r.height,frame.closest('dialog').getBoundingClientRect().bottom,innerHeight]});
-    assert(size[1]>400);assert(size[2]<=size[3]);assert(size[0]>=470&&size[0]<=480);
+    assert(size[1]>400);assert(size[2]<=size[3]);assert.equal(size[0],390);assert.equal(size[1],844);
     const frame=sub.frameLocator('dialog[open] iframe');
     await frame.locator('nav [data-go=mine]').click();await frame.getByText(a,{exact:false}).first().waitFor();
     assert.equal(await frame.getByRole('button',{name:'客服',exact:true}).count(),0);
@@ -258,4 +258,5 @@ async function sendCustomerMessage(browser,kind,token,message){
     console.log('Desktop and mobile sent to master; master inbox, bell and reply passed; subaccount denied by API, list, detail and mirror');
   }finally{for(const context of browser.contexts())for(const page of context.pages())await page.unrouteAll({behavior:'ignoreErrors'});await browser.close()}
 })().catch(error=>{console.error(error.stack);process.exitCode=1});
+
 

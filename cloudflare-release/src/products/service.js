@@ -75,6 +75,7 @@ function cnProductImage(value) {
 async function cnProductSave(db, actor, body, resolveQuote) {
   if (actor.role !== 'MASTER') cnProductFail('Master permission required',403);
   if (!body || typeof body !== 'object' || Array.isArray(body)) cnProductFail('Invalid product');
+  if(body.reason!==undefined&&(typeof body.reason!=='string'||body.reason.trim().length<10||body.reason.trim().length>500))cnProductFail('Change reason must be 10 to 500 characters');
   const previous = body.id ? (await db.query('SELECT * FROM cn_products WHERE id=$1',[cnProductId(body.id)])).rows[0] : null;
   if (body.id && !previous) cnProductFail('Product not found',404);
   const kind = body.kind || previous?.kind;
@@ -130,7 +131,7 @@ async function cnProductSave(db, actor, body, resolveQuote) {
       await tx.query('UPDATE cn_fund_tiers SET active=false WHERE product_id=$1 AND active',[id]);
       for (const tier of tiers) await tx.query('INSERT INTO cn_fund_tiers(id,product_id,principal_cents,holding_days,profit_bps) VALUES($1,$2,$3,$4,$5)',[randomUUID(),id,tier.principal,tier.days,tier.profit]);
     }
-    await tx.query("INSERT INTO admin_audit_log(admin_user_id,role,action,target,detail) VALUES($1,'MASTER','product.save',$2,$3::jsonb)",[actor.userId,id,JSON.stringify({kind,status,version:saved.rows[0].version})]);
+    await tx.query("INSERT INTO admin_audit_log(admin_user_id,role,action,target,detail) VALUES($1,'MASTER','product.save',$2,$3::jsonb)",[actor.userId,id,JSON.stringify({kind,status,version:saved.rows[0].version,...(body.reason!==undefined?{reason:body.reason.trim(),before:previous?{name:previous.name,status:previous.status,version:previous.version}:null,after:{name,status,version:saved.rows[0].version}}:{})})]);
     return cnProductPublic(saved.rows[0]);
   });
 }
@@ -256,7 +257,7 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
     if (route==='/api/bulk-orders' && req.method==='POST') {
       const body=JSON.parse(await readBody(req,8192));
       cnProductId(body?.productId);
-      const prior=await cnReplayInternalOrder(db,session.accountId,req.headers['idempotency-key'],{productId:body.productId,side:body.side||'BUY',quantity:body.quantity});
+      const prior=await cnReplayInternalOrder(db,session.accountId,req.headers['idempotency-key'],{productId:body.productId,side:body.side||'BUY',quantity:body.quantity,requestIntent:cnOrderIntent(body)});
       if(prior)return send(res,200,prior);
       const item=(await db.query("SELECT * FROM cn_products WHERE id=$1 AND kind='BULK_STOCK' AND status='PUBLISHED'",[cnProductId(body?.productId)])).rows[0];
       if (!item) cnProductFail('Product unavailable',409);
@@ -269,7 +270,7 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
       const price=side==='BUY'?Number((BigInt(quote.priceCents)*BigInt(10000-item.discount_bps)+5000n)/10000n):quote.priceCents;
       if (body.expectedVersion!==item.version || body.expectedPriceCents!==price) cnProductFail('Price changed; confirm again',409);
       if (price<=0) cnProductFail('Invalid discounted price');
-      const result=await placeInternalOrder(db,session.accountId,req.headers['idempotency-key'],{market:item.market,symbol:item.symbol,side,quantity:body.quantity,priceCents:price,fxUsdMicros:1000000,bulkTerms:side==='SELL'?undefined:{id:item.id,version:item.version,minimum:item.min_quantity,holdingDays:item.holding_days,discountBps:item.discount_bps,referencePrice:quote.priceCents,referenceTimestamp:new Date(quote.timestampMs).toISOString()}},randomUUID());
+      const result=await placeInternalOrder(db,session.accountId,req.headers['idempotency-key'],{requestIntent:cnOrderIntent(body),quoteEvidence:{timestampMs:quote.timestampMs,maxAgeMs:5*86400000,source:quote.source||'PRODUCT_REFERENCE',priceCents:price,referencePriceCents:quote.priceCents,fxUsdMicros:1000000,receivedAtMs:Date.now()},market:item.market,symbol:item.symbol,side,quantity:body.quantity,priceCents:price,fxUsdMicros:1000000,bulkTerms:side==='SELL'?undefined:{id:item.id,version:item.version,minimum:item.min_quantity,holdingDays:item.holding_days,discountBps:item.discount_bps,referencePrice:quote.priceCents,referenceTimestamp:new Date(quote.timestampMs).toISOString()}},randomUUID());
       return send(res,result.replayed?200:201,result);
     }
     return send(res,405,{error:'Method not allowed'});

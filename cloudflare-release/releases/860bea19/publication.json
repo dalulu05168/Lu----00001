@@ -1,0 +1,87 @@
+{
+  "version": "860bea19-546f-4900-aa23-7f37827d0fdd",
+  "previous": "733317be-cdfd-4057-ad6b-afc1c68fa71e",
+  "sha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
+  "domains": [
+    [
+      "admin.maacropierce.com",
+      "81a4bcc4dca02d653ac03de3f72550d663e541f9",
+      "production"
+    ],
+    [
+      "nuvexapro.com",
+      "3e4ad0347b4607a6842ee94512eb644b4c6fbce2",
+      "production"
+    ]
+  ],
+  "before": {
+    "adminLogin": {
+      "sha256": "176c316bed8dc24621150575eea6035072dcd1e50f04fb8e9ee4ad26cef4da2e"
+    },
+    "customerDesktop": {
+      "sha256": "c58fac13648baea84f0be8b80e1551f3c5c775150988eceda5e3165bbc6c8575"
+    },
+    "customerMobile": {
+      "sha256": "8dab2162f628e1cababb6fcc38e8a0fc4d84c8b2de167f013c79ca55b365c479"
+    },
+    "adminLogo": {
+      "sha256": "4da4c8b3ce9a6315b26def221612af34e6962f6fd2cfcdf5e902244576519d4d"
+    },
+    "customerLogo": {
+      "sha256": "4da4c8b3ce9a6315b26def221612af34e6962f6fd2cfcdf5e902244576519d4d"
+    },
+    "adminReady": {
+      "status": "ready",
+      "database": "connected"
+    },
+    "customerReady": {
+      "status": "ready",
+      "database": "connected"
+    }
+  },
+  "expectedAfter": {
+    "adminLogin": {
+      "sha256": "176c316bed8dc24621150575eea6035072dcd1e50f04fb8e9ee4ad26cef4da2e"
+    },
+    "customerDesktop": {
+      "sha256": "896600bc1e81db11e2d99ca24f4f4148d9e1600ede73afe948f2e4437b71019c"
+    },
+    "customerMobile": {
+      "sha256": "fbf74fc5fb26840334de9f15b5bb5f9ae4a29d5be1995b3545e24bf8473d7854"
+    },
+    "adminLogo": {
+      "sha256": "4da4c8b3ce9a6315b26def221612af34e6962f6fd2cfcdf5e902244576519d4d"
+    },
+    "customerLogo": {
+      "sha256": "4da4c8b3ce9a6315b26def221612af34e6962f6fd2cfcdf5e902244576519d4d"
+    },
+    "adminReady": {
+      "status": "ready",
+      "database": "connected"
+    },
+    "customerReady": {
+      "status": "ready",
+      "database": "connected"
+    }
+  },
+  "schema": {
+    "checkedAt": "2026-11-12T12:59:24.014Z",
+    "probeVersion": "a68e5d2b-1242-4138-b4cf-054ac2cfd4f8",
+    "liveVersion": "08bbfd25-0773-4af5-8600-81367ea90ca7",
+    "ready": true,
+    "request_intent": false,
+    "quote_evidence": false,
+    "write_receipts": true
+  },
+  "limitations": [
+    "External news, chart service and physical-device session remain unverified"
+  ],
+  "preparedAt": "2026-11-12T16:56:24.283Z",
+  "online": {
+    "entry": 200,
+    "alias": 200,
+    "compat": 200,
+    "anonymousAdminApi": 401
+  },
+  "verifiedAt": "2026-11-12T16:56:58.859Z"
+}

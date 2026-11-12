@@ -26,16 +26,18 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
  const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8'),pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);
  const runtime=path.join(dir,'security-runtime.mjs');fs.writeFileSync(runtime,source.replace('import { handleAsNodeRequest } from "cloudflare:node";','')+'\nexport {cnRateLimit,matchRule,cnRecentAdminVerification,worker_default};');
  const app=await import(pathToFileURL(runtime));
+ // Pin direct counter tests to one window; real HTTP/browser authentication keeps the real clock.
+ const rateNow=Date.now(),rateLimit=(...args)=>app.cnRateLimit(...args,rateNow);
  const rule=app.matchRule('/api/admin/login','POST'),request=(ip,email)=>new Request(base+'/api/admin/login',{method:'POST',headers:{'cf-connecting-ip':ip,'Content-Type':'application/json'},body:JSON.stringify({email,password:'not-logged',otp:'000000'})});
- const attempts=await Promise.all(Array.from({length:12},(_,i)=>app.cnRateLimit(db,rule,request('198.51.100.'+i,'TARGET@EXAMPLE.TEST'))));assert.equal(attempts.filter(x=>x.status===200).length,8);assert.equal(attempts.filter(x=>x.status===429).length,4);
- for(let i=0;i<30;i++)assert.equal((await app.cnRateLimit(db,rule,request('203.0.113.50','rotating'+i+'@example.test'))).status,200);
- assert.equal((await app.cnRateLimit(db,rule,request('203.0.113.50','last@example.test'))).status,429);
+ const attempts=await Promise.all(Array.from({length:12},(_,i)=>rateLimit(db,rule,request('198.51.100.'+i,'TARGET@EXAMPLE.TEST'))));assert.equal(attempts.filter(x=>x.status===200).length,8);assert.equal(attempts.filter(x=>x.status===429).length,4);
+ for(let i=0;i<30;i++)assert.equal((await rateLimit(db,rule,request('203.0.113.50','rotating'+i+'@example.test'))).status,200);
+ assert.equal((await rateLimit(db,rule,request('203.0.113.50','last@example.test'))).status,429);
  const cookieRule=app.matchRule('/api/requests','POST'),cookieIdentity='A'.repeat(43);
- for(let i=0;i<30;i++)assert.equal((await app.cnRateLimit(db,cookieRule,new Request(base+'/api/requests',{method:'POST',headers:{'cf-connecting-ip':'192.0.2.'+i,Cookie:'__Host-cn-client='+cookieIdentity,'X-CN-Session-Mode':'cookie'},body:'{}'}))).status,200);
- assert.equal((await app.cnRateLimit(db,cookieRule,new Request(base+'/api/requests',{method:'POST',headers:{'cf-connecting-ip':'192.0.2.99',Cookie:'__Host-cn-client='+cookieIdentity,'X-CN-Session-Mode':'cookie'},body:'{}'}))).status,429);
+ for(let i=0;i<30;i++)assert.equal((await rateLimit(db,cookieRule,new Request(base+'/api/requests',{method:'POST',headers:{'cf-connecting-ip':'192.0.2.'+i,Cookie:'__Host-cn-client='+cookieIdentity,'X-CN-Session-Mode':'cookie'},body:'{}'}))).status,200);
+ assert.equal((await rateLimit(db,cookieRule,new Request(base+'/api/requests',{method:'POST',headers:{'cf-connecting-ip':'192.0.2.99',Cookie:'__Host-cn-client='+cookieIdentity,'X-CN-Session-Mode':'cookie'},body:'{}'}))).status,429);
  checks.push('Cookie-mode writes remain subject to cross-IP per-session rate limits');
- const fail=await app.cnRateLimit({query:async()=>{throw Error('Database unavailable')}},rule,request('192.0.2.1','fail@example.test'));assert.equal(fail.status,503);
- const oversized=await app.cnRateLimit(db,rule,new Request(base,{method:'POST',body:JSON.stringify({email:'a'.repeat(9000)})}));assert.equal(oversized.status,413);
+ const fail=await rateLimit({query:async()=>{throw Error('Database unavailable')}},rule,request('192.0.2.1','fail@example.test'));assert.equal(fail.status,503);
+ const oversized=await rateLimit(db,rule,new Request(base,{method:'POST',body:JSON.stringify({email:'a'.repeat(9000)})}));assert.equal(oversized.status,413);
  const stored=await db.query('SELECT ip FROM auth_attempts');assert(stored.rows.every(r=>/^[0-9a-f]{64}$/.test(r.ip)));
  assert(app.matchRule('/api/fund-subscriptions','POST'));assert(app.matchRule('/api/requests','POST'));assert(app.matchRule('/api/admin/subaccounts','PATCH'));assert.equal(app.matchRule('/api/account','GET'),null);
  checks.push('Concurrent cross-IP account throttling, rotating-account IP throttling, unavailable limiter denial, body cap, hashed identifiers and business coverage');

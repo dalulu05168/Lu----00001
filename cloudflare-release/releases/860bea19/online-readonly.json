@@ -1,0 +1,54 @@
+{
+  "checkedAt": "2026-11-12T16:57:34.753Z",
+  "readOnly": true,
+  "checks": [
+    {
+      "origin": "https://nuvexapro.com",
+      "route": "/ready",
+      "status": 200,
+      "cache": "no-store",
+      "ready": "ready",
+      "database": "connected"
+    },
+    {
+      "origin": "https://nuvexapro.com",
+      "route": "/api/admin/me",
+      "status": 404,
+      "cache": null
+    },
+    {
+      "origin": "https://nuvexapro.com",
+      "route": "/api/account",
+      "status": 401,
+      "cache": "no-store"
+    },
+    {
+      "origin": "https://nuvexapro.com",
+      "route": "/api/news",
+      "status": 200,
+      "cache": "public, max-age=60",
+      "items": 12,
+      "source": "FinVibe"
+    },
+    {
+      "origin": "https://admin.maacropierce.com",
+      "route": "/ready",
+      "status": 200,
+      "cache": "no-store",
+      "ready": "ready",
+      "database": "connected"
+    },
+    {
+      "origin": "https://admin.maacropierce.com",
+      "route": "/api/admin/me",
+      "status": 401,
+      "cache": "no-store"
+    },
+    {
+      "origin": "https://admin.maacropierce.com",
+      "route": "/api/account",
+      "status": 401,
+      "cache": "no-store"
+    }
+  ]
+}

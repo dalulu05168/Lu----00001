@@ -1,0 +1,13 @@
+
+html body dialog.ops-phone {
+  --phone-width:min(390px,calc(100vw - 24px));
+  width:var(--phone-width)!important;
+  padding:0;border:0;
+}
+html body dialog.ops-phone .ops-body { padding:0; }
+html body dialog.ops-phone iframe.ops-frame {
+  display:block;width:100%!important;height:auto!important;
+  min-height:0!important;max-height:none!important;
+  aspect-ratio:390 / 844!important;
+  border:0;border-radius:0;outline:0;
+}

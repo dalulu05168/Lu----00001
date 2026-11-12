@@ -88,7 +88,9 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  await act(owner.token,403,{path:'/api/announcements',method:'POST',payload:{title:'denied'}});
  const initial=await act(owner.token,200,{path:'/api/account',method:'GET'});assert.equal(initial.account.cashCents,100000);
  const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8'),pages=JSON.parse(source.match(/const replacementPages = (.+);/)[1]);
- const livePolicy=(await fetch('https://admin.maacropierce.com/')).headers.get('content-security-policy');
+ // Isolated acceptance uses this exact candidate's policy, never a production GET.
+ const policyMatch=source.match(/var CSP = (\[[\s\S]*?\])\.join/);assert(policyMatch,'Candidate CSP missing');
+ const livePolicy=JSON.parse(policyMatch[1]).join('; ');
  const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});page.setDefaultTimeout(15000);
@@ -98,7 +100,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
   page.on('response',async r=>{if(r.url().endsWith('/api/admin/client-action')&&r.request().postDataJSON()?.method==='POST')console.log('mirror mutation',r.status(),await r.text())});
   await page.goto(base+'/admin#cli',{waitUntil:'domcontentloaded'});
   const row=page.locator('#t-cli tbody tr').filter({hasText:a});await row.getByRole('button',{name:'App 镜像',exact:true}).click();
-  const frame=page.frameLocator('dialog[open] iframe');await frame.locator('h1').first().waitFor();assert.equal(await frame.getByText('Delegated action forbidden',{exact:false}).count(),0);const mirrorBox=await page.locator('dialog[open] iframe').boundingBox();assert(mirrorBox.width>=470,'Desktop mirror should be wider than a height-scaled phone');assert.equal(await frame.locator('body').evaluate(()=>window.cntest),undefined);await frame.locator('nav [data-go=mine]').click();await frame.locator('[data-business=products]').click();await frame.locator('[data-product]').first().click();
+  const frame=page.frameLocator('dialog[open] iframe');await frame.locator('h1').first().waitFor();assert.equal(await frame.getByText('Delegated action forbidden',{exact:false}).count(),0);const mirrorBox=await page.locator('dialog[open] iframe').boundingBox();assert(Math.abs(mirrorBox.width-390)<1,'Mirror content should use the phone width');assert(Math.abs(mirrorBox.height-844)<1,'Mirror content should use the phone height');assert.equal(await frame.locator('body').evaluate(()=>window.cntest),undefined);await frame.locator('nav [data-go=mine]').click();await frame.locator('[data-business=products]').click();await frame.locator('[data-product]').first().click();
   await frame.locator('[data-business=bulk-buy]').click();await frame.locator('[name=quantity]').fill('1');
   await frame.locator('[name=tradePassword]').fill('123456');
   await frame.locator('form button').click();await frame.getByRole('alert').waitFor();

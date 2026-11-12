@@ -1,0 +1,86 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {createHmac,randomUUID}=require('node:crypto'),{chromium}=require('playwright');
+const base='http://127.0.0.1:'+process.env.CN_OPS_QA_PORT,out=process.env.CN_QA_SAVE_DIR;
+const source=fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8'),pages=JSON.parse(source.match(/^const replacementPages = (.+);$/m)[1]);
+const password='FixturePass123456!',email='frontend-sync@example.test',checks=[],errors=[];
+function otp(secret){const bits=[...secret].map(c=>'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(c).toString(2).padStart(5,'0')).join(''),counter=Buffer.alloc(8);counter.writeBigUInt64BE(BigInt(Math.floor(Date.now()/30000)));const mac=createHmac('sha1',Buffer.from(bits.match(/.{8}/g).map(v=>parseInt(v,2)))).update(counter).digest();return String((mac.readUInt32BE(mac[19]&15)&0x7fffffff)%1000000).padStart(6,'0');}
+async function api(route,token,body,method=body?'POST':'GET',status=200){const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(body?{'Idempotency-Key':randomUUID()}:{})},body:body?JSON.stringify(body):undefined});const d=r.status===204?{}:await r.json();assert.equal(r.status,status,route+' '+JSON.stringify(d));return d;}
+(async()=>{
+ const secret=JSON.parse(fs.readFileSync(process.env.CN_OPS_MASTER_FILE)).totpSecret;
+ const master=(await api('/api/admin/login',null,{email:'qa-master@example.test',password,otp:otp(secret)})).token;
+ const sub=await api('/api/admin/subaccounts',master,{email:'frontend-owner@example.test',password},'POST',201);
+ const credential={email:'frontend-owner@example.test',password,otp:otp(sub.totpSecret)};await api('/api/admin/activate',null,credential);
+ const agent=(await api('/api/admin/login',null,credential)).token;
+ await api('/api/auth/register',null,{email,password,inviteCode:sub.inviteCode},'POST',201);
+ const token=(await api('/api/auth/login',null,{email,password})).token;
+ const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1kAAAAASUVORK5CYII=';
+ for(const doc of [{kind:'IDENTITY',fullName:'隔离联动客户',front:png,back:png},{kind:'BANK',bankName:'Fixture Bank',accountNumber:'000000001234'}]){await api('/api/profile-documents',token,doc,'POST',201);const d=await api('/api/admin/profile-documents?'+new URLSearchParams({email,kind:doc.kind}),agent);await api('/api/admin/profile-documents',agent,{email,kind:doc.kind,status:'APPROVED',version:d.version},'PATCH');}
+ const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+ try{
+  async function open(kind){const p=await browser.newPage({viewport:kind==='mobile'?{width:390,height:844}:{width:1440,height:1000}});p.setDefaultTimeout(12000);p.on('response',async r=>{if(r.url().endsWith('/api/account')){const d=await r.json().catch(()=>({}));console.log(kind,'account',r.status(),d.account?.cashCents)}});p.on('pageerror',e=>errors.push(kind+': '+e.message));await p.addInitScript(({token,email})=>{if(location.href==='about:srcdoc')return;localStorage.setItem('cncap.session',token);localStorage.setItem('cncap.user',email);sessionStorage.setItem('cncap.mobile.entry','1');},{token,email});await p.route(base+'/**',r=>{const u=new URL(r.request().url());if(u.pathname==='/')return r.fulfill({contentType:'text/html',body:pages[kind]});if(u.pathname==='/logo.png')return r.fulfill({contentType:'image/png',body:Buffer.from(source.match(/^const replacementLogo = "([^"]+)";/m)[1],'base64')});return r.continue();});await p.goto(base,{waitUntil:'domcontentloaded'});if(kind==='mobile'){await p.locator('[name=email]').fill(email);await p.locator('[name=password]').fill(password);await p.locator('#login-form button').click();await p.locator('.real-account').waitFor();}else await p.locator('[data-b=cash]').first().getByText('0.00',{exact:true}).waitFor();return p;}
+  const desktop=await open('desktop'),mobile=await open('mobile');await mobile.locator('p.notice').filter({hasText:'客户持有平台内部记账权益'}).waitFor();
+  const focus=async p=>{await p.bringToFront();await p.evaluate(()=>{document.activeElement?.blur();window.dispatchEvent(new Event('focus'));});};
+  const deposit=await api('/api/requests',token,{kind:'DEPOSIT',amountCents:123456},'POST',201);
+  await api('/api/admin/requests',master,{id:deposit.id,decision:'APPROVE',reason:'隔离前后台资金联动测试'});
+  assert.equal((await api('/api/account',token)).account.cashCents,0);
+  await api('/api/admin/requests',master,{id:deposit.id,decision:'APPROVE',reason:'隔离前后台资金终审测试'});
+  await focus(desktop);await focus(mobile);
+  try{await desktop.locator('[data-b=cash]').first().getByText('1,234.56',{exact:true}).waitFor();}catch(e){console.log('desktop diagnostic',await desktop.evaluate(()=>({hidden:document.hidden,url:location.href,cash:[...document.querySelectorAll('[data-b=cash]')].map(x=>({text:x.textContent,visible:!!x.getClientRects().length})),dialogs:[...document.querySelectorAll('dialog[open],.mask.open')].map(x=>x.id),fields:[...document.querySelectorAll('form input,form textarea,form select')].filter(x=>x.getClientRects().length&&x.value).map(x=>({name:x.name,type:x.type})),errors:document.body.innerText.slice(-150)})),'pageErrors',errors);await desktop.screenshot({path:path.join(out,'failed-desktop.png'),fullPage:true});throw e;}await mobile.locator('.real-account .balance').filter({hasText:'1,234.56'}).waitFor();
+  checks.push('two-stage admin approval updates desktop and mobile balance after focus without client-side ledger inference');
+  await api('/api/withdrawal-pin',token,{password,pin:'123456'});
+  const withdrawal=await api('/api/requests',token,{kind:'WITHDRAW',amountCents:23456,withdrawalPin:'123456'},'POST',201);
+  let snapshot=await api('/api/account',token);assert.equal(snapshot.account.cashCents,123456);assert.equal(snapshot.account.availableCashCents,100000);
+  await focus(mobile);await mobile.locator('.real-account .balance').filter({hasText:'1,000.00'}).waitFor({timeout:35000});
+  await api('/api/admin/requests',master,{id:withdrawal.id,decision:'APPROVE',reason:'隔离出金申请初审联动'});
+  assert.equal((await api('/api/account',token)).account.cashCents,123456);
+  await api('/api/admin/requests',master,{id:withdrawal.id,decision:'APPROVE',reason:'隔离出金申请终审联动'});
+  snapshot=await api('/api/account',token);assert.equal(snapshot.account.cashCents,100000);assert.equal(snapshot.account.reservedWithdrawalCents,0);
+  await focus(desktop);await desktop.locator('[data-b=cash]').first().getByText('1,000.00',{exact:true}).waitFor();
+  await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=requests]').click();
+  await mobile.locator('.panel').filter({hasText:withdrawal.id}).getByText('审核通过',{exact:true}).waitFor();
+  checks.push('withdrawal reserves only available balance, initial review does not debit and final review synchronizes cash and status');
+  const rejected=await api('/api/requests',token,{kind:'WITHDRAW',amountCents:10000,withdrawalPin:'123456'},'POST',201);
+  assert.equal((await api('/api/account',token)).account.availableCashCents,90000);
+  await api('/api/admin/requests',master,{id:rejected.id,decision:'REJECT',reason:'隔离出金驳回保留余额测试'});
+  snapshot=await api('/api/account',token);assert.equal(snapshot.account.cashCents,100000);assert.equal(snapshot.account.availableCashCents,100000);
+  await focus(mobile);await mobile.locator('.panel').filter({hasText:rejected.id}).getByText('审核未通过',{exact:true}).waitFor({timeout:35000});
+  checks.push('withdrawal rejection releases reserved funds without debit and refreshes customer request status');
+  await mobile.locator('nav [data-go=home]').click();
+  await api('/api/admin/listings',master,{market:'US',itemType:'STOCK',symbol:'AAPL',name:'Apple',status:'PUBLISHED',tradePin:'749286'},'POST',201);
+  const buy=await api('/api/orders',token,{market:'US',symbol:'AAPL',side:'BUY',quantity:1,limitPriceCents:1300,tradePin:'749286'},'POST',201);
+  snapshot=await api('/api/account',token);const expectedCash=(snapshot.account.cashCents/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  assert.equal(snapshot.orders.length,1);assert.equal(Number(snapshot.positions[0].quantity),1);
+  await focus(desktop);await desktop.locator('[data-b=cash]').first().getByText(expectedCash,{exact:true}).waitFor();
+  await focus(mobile);await mobile.locator('.real-account .balance').filter({hasText:expectedCash}).waitFor({timeout:35000});
+  await mobile.locator('nav [data-go=trade]').click();await mobile.locator('main').getByText('AAPL',{exact:false}).first().waitFor();
+  await desktop.locator('.tn[data-p=acct]').click();await desktop.locator('[data-account-section=holdings]').click();await desktop.locator('#tb-hold').getByText('AAPL',{exact:false}).first().waitFor();
+  checks.push('server-recorded trade synchronizes exact cash and position to desktop and mobile');
+  await mobile.locator('nav [data-go=home]').click();
+  const initial=await api('/api/admin/announcements',master);
+  const announcement=await api('/api/admin/announcements',master,{action:'publish',version:initial.version,title:'联动验收公告',body:'后台发布后同步两个客户端。',reason:'隔离公告前后台发布联动'});
+  await focus(desktop);await focus(mobile);await desktop.locator('#cn-bulletin').getByText('联动验收公告',{exact:true}).waitFor();await mobile.getByText('联动验收公告',{exact:true}).waitFor();
+  checks.push('admin announcement publish reaches desktop and mobile');
+  await api('/api/admin/announcements',master,{action:'withdraw',version:announcement.version,reason:'隔离公告撤下前后台联动'});await focus(desktop);await focus(mobile);await desktop.locator('#cn-bulletin').waitFor({state:'hidden'});await mobile.getByText('联动验收公告',{exact:true}).waitFor({state:'detached'});
+  checks.push('admin announcement withdrawal removes it on both clients');
+  await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=products]').click();await mobile.getByRole('heading',{name:'产品中心',exact:true}).waitFor();
+  const product=await api('/api/admin/products',master,{kind:'TERM_FUND',name:'后台新增联动产品',status:'PUBLISHED',tiers:[{principalCents:10000,holdingDays:7,profitBps:100}]},'POST',201);
+  await focus(mobile);await mobile.locator('[data-product="'+product.id+'"]').filter({hasText:'后台新增联动产品'}).waitFor({timeout:35000});checks.push('mobile product center refreshes newly published admin products without leaving page');
+  await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=support]').click();await mobile.locator('form textarea').fill('尚未提交的客户草稿');await focus(mobile);assert.equal(await mobile.locator('form textarea').inputValue(),'尚未提交的客户草稿');checks.push('background synchronization preserves unsent support form input');
+  await mobile.locator('form textarea').fill('');await api('/api/support',token,{message:'请测试后台回复同步'},'POST',201);await api('/api/admin/support',master,{email,message:'后台联动回复已送达'} ,'POST',201);await focus(mobile);await mobile.getByText('后台联动回复已送达',{exact:true}).waitFor();checks.push('admin support reply refreshes customer conversation');
+  await mobile.locator('nav [data-go=home]').click();
+  const unavailable=r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'隔离账户服务暂不可用'})});
+  await desktop.route(base+'/api/account',unavailable);await mobile.route(base+'/api/account',unavailable);
+  await focus(desktop);await desktop.locator('[data-b=cash]').first().getByText('—',{exact:true}).waitFor();
+  await focus(mobile);await mobile.getByRole('alert').filter({hasText:'隔离账户服务暂不可用'}).waitFor({timeout:35000});
+  await desktop.unroute(base+'/api/account',unavailable);await mobile.unroute(base+'/api/account',unavailable);
+  await focus(desktop);await desktop.locator('[data-b=cash]').first().getByText(expectedCash,{exact:true}).waitFor();
+  await focus(mobile);await mobile.locator('.real-account .balance').filter({hasText:expectedCash}).waitFor({timeout:35000});
+  await mobile.getByRole('alert').filter({hasText:'隔离账户服务暂不可用'}).waitFor({state:'detached',timeout:35000});
+  checks.push('account outage reports failure and recovers verified balances on both clients without fabricated success');
+  await desktop.screenshot({path:path.join(out,'desktop-synchronized.png'),fullPage:true});await mobile.screenshot({path:path.join(out,'mobile-synchronized.png'),fullPage:true});
+  await api('/api/admin/clients',agent,{email,field:'login_policy',value:'DENY',reason:'隔离前后台会话撤销联动'},'PATCH');await focus(mobile);await mobile.locator('#login-form').waitFor();await focus(desktop);await desktop.waitForURL(/\/login(?:[?#]|$)/);checks.push('admin login restriction invalidates mobile session and desktop returns to login');
+  assert.deepEqual(errors,[]);checks.push('no uncaught browser errors');
+  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({passed:true,checks,errors,productionAccess:false},null,2));console.log(JSON.stringify({passed:true,checks:checks.length}));
+ }finally{await browser.close();}
+})().catch(e=>{console.error(e.stack);process.exitCode=1;});

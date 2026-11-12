@@ -63,10 +63,25 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
   await p.route(overviewPattern,r=>r.fulfill({status:503,json:{error:'Isolated unavailable'}}));
   await p.locator('#cn-overview-sub').selectOption('');await p.locator('#csub').filter({hasText:'资金记录暂时无法读取'}).waitFor();assert.equal(await p.locator('#stats .sc').nth(3).locator('em').innerText(),'—');
   await p.unroute(overviewPattern);await check('recovered-agent-a',agents[0].email,'60.00','100.00',2,1,[ca.email]);
-  await p.locator('[data-p=cli]').first().click();await p.locator('[data-sub-client]').filter({hasText:agents[0].email}).click();await p.locator('#t-cli').getByText(ca.email,{exact:true}).waitFor();assert(!(await p.locator('#t-cli').innerText()).includes(cb.email));
+  await p.locator('[data-p=cli]').first().click();await p.locator('[data-sub-client]').filter({hasText:agents[0].email}).click();const scopedClients=p.locator('#t-cli > table > tbody');await scopedClients.getByText(ca.email,{exact:true}).waitFor();assert(!(await scopedClients.innerText()).includes(cb.email));
   await p.getByRole('button',{name:'出入金明细',exact:true}).click();await p.locator('dialog.sub-overview[open]').getByText(ca.email,{exact:true}).first().waitFor();await p.screenshot({path:path.join(dir,'subaccount-detail.png'),fullPage:true});await p.close();
   const own=await open(agents[0].token);assert(await own.locator('#cn-overview-sub').isHidden());assert.equal(await own.locator('#stats .sc').first().locator('em').innerText(),'$60.00');assert.equal(await own.locator('#stats .sc').nth(3).locator('em').innerText(),'2');await own.screenshot({path:path.join(dir,'agent-own-scope.png'),fullPage:true});await own.close();
  }finally{await browser.close()}
  assert.deepEqual(errors,[]);assert.equal((await api('/api/account',200,ca.token)).account.cashCents,6000);assert.equal((await api('/api/account',200,cb.token)).account.cashCents,30000);
+ if(process.env.CN_QA_CASH_AUDIT==='1'){
+  const request=await api('/api/requests',201,ca.token,{kind:'DEPOSIT',amountCents:1234});
+  const decision={id:request.id,decision:'APPROVE',reason:'隔离测试核对资金审批审计'};
+  await api('/api/admin/requests',200,master,decision);
+  const flag=path.join(dir,'reject-cash-audit');
+  fs.writeFileSync(flag,'');
+  try{await api('/api/admin/requests',500,master,decision)}finally{fs.unlinkSync(flag)}
+  assert.equal((await api('/api/account',200,ca.token)).account.cashCents,6000);
+  assert.equal((await api('/api/admin/requests',200,master)).items.find(row=>row.id===request.id).status,'REVIEWED');
+  await api('/api/admin/requests',200,master,decision);
+  assert.equal((await api('/api/account',200,ca.token)).account.cashCents,7234);
+  const audit=(await api('/api/admin/audit?limit=100',200,master)).items.filter(row=>row.target===request.id&&row.action==='cash_request.approve');
+  assert.equal(audit.length,1);assert.equal(audit[0].detail.reason,decision.reason);
+  console.log('Cash approval audit failure rolls back balance, ledger and review state; retry credits and audits exactly once');
+ }
  fs.writeFileSync(path.join(dir,'results.json'),JSON.stringify({checks,errors,all,a,b,empty,subDetail},null,2));console.log('Scoped counts, funding totals, chart tooltip, filters, client drilldown and ledger reconciliation passed');
 })().catch(e=>{console.error(e.stack);process.exitCode=1});

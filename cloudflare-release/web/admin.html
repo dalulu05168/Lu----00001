@@ -2787,6 +2787,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
     dialog=node('dialog');dialog.setAttribute('aria-labelledby','ops-dialog-title');
     dialog.addEventListener('close',()=>{if(!dialog.open){dialogVersion++;dialog.replaceChildren()}});
     document.body.append(dialog);
+    window.CNAdminMirror=Object.freeze({open:email=>openClient(email,true)});
     const seenKey='cncap.support.seen:'+me.userId;
     try{seen=JSON.parse(localStorage.getItem(seenKey)||'{}')||{}}catch{}
     window.addEventListener('cn-support-viewed',event=>{

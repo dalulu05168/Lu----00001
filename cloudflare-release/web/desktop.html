@@ -1271,7 +1271,7 @@ function $(id){return document.getElementById(id)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function stc(s){if(s.includes('未通过')||s.includes('驳回'))return 'rd';return s.indexOf('成功')>-1?'ok':s.indexOf('等待')>-1||s.indexOf('通过')>-1?'in':'wa'}
 function now(){return fmtT(Date.now())}
-function bind(){var m={valuationNote:DATA.valuationEstimated?'部分持仓按最近成交价估算':HAVE.holds&&DATA.holds.length&&!HAVE.totalAssets?'部分持仓暂无有效报价':'现金 + 持仓估值 + 认购资产',availableCash:f(DATA.availableCash),cash:f(cash()),cost:f(cost()),traded:f(traded()),realized:f(realized()),total:f(totalAssets()),nord:HAVE.orders?DATA.orders.length:'—',nhold:HAVE.holds?DATA.holds.length:'—',nreq:HAVE.reqs?DATA.reqs.length:'—',acct:DATA_READY&&DATA.acct?'····'+DATA.acct:'—',sync:DATA_READY?DATA.sync:'未同步',src:DATA.src};
+function bind(){var m={valuationNote:DATA.valuationEstimated?'部分持仓按历史成交价或成本估算':HAVE.holds&&DATA.holds.length&&!HAVE.totalAssets?'部分持仓暂无有效报价':'现金 + 持仓估值 + 认购资产',availableCash:f(DATA.availableCash),cash:f(cash()),cost:f(cost()),traded:f(traded()),realized:f(realized()),total:f(totalAssets()),nord:HAVE.orders?DATA.orders.length:'—',nhold:HAVE.holds?DATA.holds.length:'—',nreq:HAVE.reqs?DATA.reqs.length:'—',acct:DATA_READY&&DATA.acct?'····'+DATA.acct:'—',sync:DATA_READY?DATA.sync:'未同步',src:DATA.src};
  document.querySelectorAll('[data-b]').forEach(function(e){var v=m[e.dataset.b];if(v!=null)e.textContent=v})}
 
 /* ========== 渲染 ========== */
@@ -1952,9 +1952,25 @@ function showSkeleton(){
  for(var i=0,m=clampN(stN,2,5);i<m;i++)sh+='<div class="kv"><span class="sk" style="width:'+sts[i%sts.length]+'"></span><span class="sk chip"></span></div>';
  $('req-stat').innerHTML=sh}
 function clearSnapshot(){DATA_READY=false;HAVE={};DATA.cashOverride=null;DATA.availableCash=null;DATA.realizedPnl=null;DATA.totalAssets=null;DATA.orders=[];DATA.holds=[];DATA.reqs=[];DATA.sec={};DATA.watch=[];DATA.fav=[];DATA.chat=[];DATA.acct='';DATA.sync='未同步'}
-function loadData(){if(!API){clearSnapshot();renderAll();return Promise.resolve()}
+var accountLoadVersion=0;
+function loadData(background=false){var requestVersion=++accountLoadVersion;if(!API){clearSnapshot();renderAll();return Promise.resolve()}
  clearSnapshot();showSkeleton();
- return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(r.status===401){localStorage.removeItem('cncap.session');location.replace('/login');throw new Error('Session expired')}if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){var v=safe(d);if(d?.account?.id){v.acct=d.account.id.slice(-8);v.sync="已同步";}if(Number.isSafeInteger(d?.account?.cashCents))v.cashOverride=d.account.cashCents/100;if(Number.isSafeInteger(d?.account?.availableCashCents))v.availableCash=d.account.availableCashCents/100;if(Array.isArray(d.positions))v.holds=d.positions.map(row=>({s:row.symbol,q:Number(row.quantity),available:Math.max(0,Number(row.quantity)-Number(row.locked_quantity)),unlock:row.next_unlock_at,c:row.cost_cents==null?null:Number(row.cost_cents)/100}));if(Array.isArray(d.orders))v.orders=d.orders.map(function(row){return {id:row.id,s:row.symbol,t:row.side==="BUY"?"买入":"卖出",p:Number(row.price_cents)/100,q:Number(row.quantity),a:Number(row.amount_usd_cents)/100,d:new Date(row.created_at).toLocaleString()}});HAVE={};Object.keys(v).forEach(function(k){HAVE[k]=true});Object.assign(DATA,v);DATA_READY=Object.keys(HAVE).length>0;renderAll();return refreshDesktopRequests()}).catch(function(){clearSnapshot();toast('数据加载失败');renderAll()})}
+ return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(r.status===401){localStorage.removeItem('cncap.session');location.replace('/login');throw new Error('Session expired')}if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){if(requestVersion!==accountLoadVersion)return;var v=safe(d);if(d?.account?.id){v.acct=d.account.id.slice(-8);v.sync="已同步";}if(Number.isSafeInteger(d?.account?.cashCents))v.cashOverride=d.account.cashCents/100;if(Number.isSafeInteger(d?.account?.availableCashCents))v.availableCash=d.account.availableCashCents/100;if(Array.isArray(d.positions))v.holds=d.positions.map(row=>({s:row.symbol,q:Number(row.quantity),available:Math.max(0,Number(row.quantity)-Number(row.locked_quantity)),unlock:row.next_unlock_at,c:row.cost_cents==null?null:Number(row.cost_cents)/100}));if(Array.isArray(d.orders))v.orders=d.orders.map(function(row){return {id:row.id,s:row.symbol,t:row.side==="BUY"?"买入":"卖出",p:Number(row.price_cents)/100,q:Number(row.quantity),a:Number(row.amount_usd_cents)/100,d:new Date(row.created_at).toLocaleString()}});HAVE={};Object.keys(v).forEach(function(k){HAVE[k]=true});Object.assign(DATA,v);DATA_READY=Object.keys(HAVE).length>0;renderAll();return refreshDesktopRequests()}).catch(function(){if(requestVersion!==accountLoadVersion)return;clearSnapshot();toast('数据加载失败');renderAll()})}
+
+/* Background synchronization reads the same authenticated API; never interrupt a form. */
+var accountBackgroundPending=false;
+async function refreshAccountInBackground(){
+ if(accountBackgroundPending||document.hidden||!API||openM||document.querySelector('dialog[open]'))return;
+ const focused=document.activeElement;
+ if(focused&&(/^(INPUT|TEXTAREA|SELECT)$/.test(focused.tagName)||focused.isContentEditable))return;
+ if([...document.querySelectorAll('form input,form textarea,form select')].some(field=>field.getClientRects().length&&((field.type==='file'&&field.files?.length)||(field.tagName!=='SELECT'&&field.type!=='hidden'&&String(field.value||'').trim()))))return;
+ accountBackgroundPending=true;
+ try{await loadData(true);if(localStorage.getItem('cncap.session'))await refreshDesktopFavorites();}catch{if(localStorage.getItem('cncap.session'))toast('自选同步失败，请稍后刷新');}finally{accountBackgroundPending=false;}
+}
+window.addEventListener('focus',refreshAccountInBackground);
+window.addEventListener('online',refreshAccountInBackground);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAccountInBackground()});
+setInterval(refreshAccountInBackground,15000);
 
 /* ========== 图表（Canvas，高清渲染） ========== */
 var UP='#4fdd8f',DN='#ff5b50',FF='12px Inter,"Noto Sans SC",sans-serif';
@@ -2254,5 +2270,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  window.addEventListener('cn-open-product-settlement',open);
  document.addEventListener('click',e=>{if(e.target.closest('[data-product-settlement-open]'))open()});
 })();
-</script><script>CNNews.mountBulletin(document.getElementById("cn-bulletin"));</script></body></html>
+</script><script>CNNews.mountBulletin(document.getElementById("cn-bulletin"));</script><aside role="note" aria-label="交易权益说明" style="padding:12px 20px;font-size:13px;line-height:1.6">客户持有平台内部记账权益，不代表实际登记的上市证券。平台内部执行交易并记录资金、持仓及盈亏，不进行客户间撮合，也不向外部券商购买对应股票。外部行情仅提供报价参考。</aside>
+</body></html>
 

@@ -1,0 +1,12 @@
+{
+  "kind": "UNPUBLISHED_DEVELOPMENT_CANDIDATE",
+  "scope": "FRONTEND_AND_ADMIN_PRESENTATION",
+  "liveVersion": "733317be-cdfd-4057-ad6b-afc1c68fa71e",
+  "liveSourceSha256": "2602f2802519670a3eb761b27932c5fe8df4abc0e1f5f906e289d935a0bfeee8",
+  "sha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
+  "backendUnchanged": true,
+  "components": {
+    "front": "artifacts/frontend-sync-1DM54G",
+    "admin": "artifacts/admin-design-468TlI"
+  }
+}
