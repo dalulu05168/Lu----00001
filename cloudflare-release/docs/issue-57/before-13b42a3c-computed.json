@@ -1,0 +1,15 @@
+{
+  "bundle": "before-1d09eee.mjs",
+  "desktop": {
+    "sharedStyle": false,
+    "body": "Inter, \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+    "firstButton": "Inter, \"Microsoft YaHei UI\", \"PingFang SC\", system-ui, sans-serif",
+    "overflowX": false
+  },
+  "mobile": {
+    "sharedStyle": false,
+    "body": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", Arial, sans-serif",
+    "firstButton": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", Arial, sans-serif",
+    "overflowX": false
+  }
+}
