@@ -1,0 +1,114 @@
+{
+  "sourceCommit": "1cb5a36e9518f583b4d704500d761f7dd5c497c2",
+  "candidateSha256": "e97a8af7fefe3f76bb3a2b269e1cf6ee75c0511945327ddb510d0fd872b741fe",
+  "candidateUnchanged": true,
+  "isolatedRunUtc": "2026-11-12T19:19:29.068Z",
+  "unit": {
+    "exitCode": 0,
+    "passed": 13,
+    "failed": 0,
+    "checks": [
+      {
+        "name": "admin.html formats exact cents across the number and string contract",
+        "durationMs": 91.4942,
+        "passed": true
+      },
+      {
+        "name": "admin-next.js formats exact cents across the number and string contract",
+        "durationMs": 1.9966,
+        "passed": true
+      },
+      {
+        "name": "final deposit preserves the exact balance and ledger amount",
+        "durationMs": 3.689,
+        "passed": true
+      },
+      {
+        "name": "withdrawal approval rejects when exact available balance is one cent short",
+        "durationMs": 2.0499,
+        "passed": true
+      },
+      {
+        "name": "finalized requests and non-master final approvals cannot write the ledger",
+        "durationMs": 0.4624,
+        "passed": true
+      },
+      {
+        "name": "audit failure rolls the final approval transaction back",
+        "durationMs": 0.3574,
+        "passed": true
+      },
+      {
+        "name": "settlement price input preserves exact micro units without floating point",
+        "durationMs": 1.7738,
+        "passed": true
+      },
+      {
+        "name": "large raw settlement amounts display exactly without Number coercion",
+        "durationMs": 1.1151,
+        "passed": true
+      },
+      {
+        "name": "amount calculation is exact and shared with ledger for boundary FX values",
+        "durationMs": 3.5899,
+        "passed": true
+      },
+      {
+        "name": "invalid or overflowing amounts fail before accounting",
+        "durationMs": 2.0516,
+        "passed": true
+      },
+      {
+        "name": "customer disclosures identify internal rights and no broker purchase",
+        "durationMs": 10.2418,
+        "passed": true
+      },
+      {
+        "name": "mobile preserves adjacent integer-cent strings and signed decimal amounts",
+        "durationMs": 27.0418,
+        "passed": true
+      },
+      {
+        "name": "desktop renders exact money and sums position costs without losing a cent",
+        "durationMs": 3.3614,
+        "passed": true
+      }
+    ]
+  },
+  "isolated": {
+    "exitCode": 0,
+    "passed": 7,
+    "failed": 0,
+    "suites": [
+      {
+        "suite": "admin-next",
+        "exitCode": 0
+      },
+      {
+        "suite": "funding-safety",
+        "exitCode": 0
+      },
+      {
+        "suite": "admin-funding",
+        "exitCode": 0
+      },
+      {
+        "suite": "order-concurrency",
+        "exitCode": 0
+      },
+      {
+        "suite": "permissions",
+        "exitCode": 0
+      },
+      {
+        "suite": "login-page",
+        "exitCode": 0
+      },
+      {
+        "suite": "frontend-sync",
+        "exitCode": 0
+      }
+    ]
+  },
+  "failureDetails": []
+}

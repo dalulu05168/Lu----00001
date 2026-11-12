@@ -1,0 +1,257 @@
+{
+  "sourceCommit": "1cb5a36e9518f583b4d704500d761f7dd5c497c2",
+  "unit": {
+    "exitCode": 0,
+    "passed": 13,
+    "failed": 0
+  },
+  "observedRuns": {
+    "candidateBroad": {
+      "sha256": "56c684ca2504f07f7c4dca63b03896f4a923e5272980ee770cb6d4693bd96235",
+      "bundleUnchanged": true,
+      "utc": "2026-11-12T19:36:54.415Z",
+      "exitCode": 1,
+      "passed": 27,
+      "failed": 3,
+      "suiteExitCodes": {
+        "sessions": 0,
+        "funding-safety": 0,
+        "login-page": 0,
+        "admin-next": 0,
+        "frontend-sync": 0,
+        "admin-account-layout": 0,
+        "news": 1,
+        "browser-sessions": 0,
+        "security": 0,
+        "quote-guards": 0,
+        "notification-session": 0,
+        "product-recovery": 0,
+        "admin-funding": 0,
+        "order-concurrency": 0,
+        "layout-controls": 1,
+        "write-receipts": 0,
+        "experience": 0,
+        "product-notifications": 0,
+        "mirror": 0,
+        "contracts": 0,
+        "charts": 0,
+        "product-browser": 0,
+        "products": 0,
+        "permissions": 0,
+        "registration": 0,
+        "stocks": 0,
+        "interface": 0,
+        "reference": 0,
+        "forms": 1,
+        "access": 0
+      }
+    },
+    "productionComparison": {
+      "sha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
+      "bundleUnchanged": true,
+      "utc": "2026-11-12T19:35:49.588Z",
+      "exitCode": 1,
+      "passed": 22,
+      "failed": 5,
+      "suiteExitCodes": {
+        "sessions": 1,
+        "admin-next": 1,
+        "admin-account-layout": 0,
+        "news": 1,
+        "browser-sessions": 0,
+        "security": 0,
+        "quote-guards": 0,
+        "notification-session": 0,
+        "product-recovery": 0,
+        "admin-funding": 0,
+        "order-concurrency": 0,
+        "layout-controls": 1,
+        "write-receipts": 0,
+        "experience": 0,
+        "product-notifications": 0,
+        "mirror": 0,
+        "contracts": 0,
+        "charts": 0,
+        "product-browser": 0,
+        "products": 0,
+        "permissions": 1,
+        "registration": 0,
+        "stocks": 0,
+        "interface": 0,
+        "reference": 0,
+        "forms": 0,
+        "access": 0
+      }
+    },
+    "productionNativeSessions": {
+      "sha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
+      "bundleUnchanged": true,
+      "utc": "2026-11-12T19:32:31.539Z",
+      "exitCode": 0,
+      "passed": 1,
+      "failed": 0,
+      "suiteExitCodes": {
+        "sessions": 0
+      }
+    },
+    "productionNativePermissions": {
+      "sha256": "d055098d474f651d9085b81d66787f45e542d387f97d35f60b78cc0a1e43d8d0",
+      "bundleUnchanged": true,
+      "utc": "2026-11-12T19:35:20.988Z",
+      "exitCode": 0,
+      "passed": 1,
+      "failed": 0,
+      "suiteExitCodes": {
+        "permissions": 0
+      }
+    },
+    "candidateFixtureRetest": {
+      "sha256": "56c684ca2504f07f7c4dca63b03896f4a923e5272980ee770cb6d4693bd96235",
+      "bundleUnchanged": true,
+      "utc": "2026-11-12T19:34:52.916Z",
+      "exitCode": 1,
+      "passed": 1,
+      "failed": 1,
+      "suiteExitCodes": {
+        "layout-controls": 1,
+        "product-browser": 0
+      }
+    },
+    "candidateFormsRetest": {
+      "sha256": "56c684ca2504f07f7c4dca63b03896f4a923e5272980ee770cb6d4693bd96235",
+      "bundleUnchanged": true,
+      "utc": "2026-11-12T19:37:41.370Z",
+      "exitCode": 0,
+      "passed": 1,
+      "failed": 0,
+      "suiteExitCodes": {
+        "forms": 0
+      }
+    }
+  },
+  "candidateFinal": {
+    "passed": 28,
+    "failed": 2,
+    "suiteExitCodes": {
+      "sessions": 0,
+      "funding-safety": 0,
+      "login-page": 0,
+      "admin-next": 0,
+      "frontend-sync": 0,
+      "admin-account-layout": 0,
+      "news": 1,
+      "browser-sessions": 0,
+      "security": 0,
+      "quote-guards": 0,
+      "notification-session": 0,
+      "product-recovery": 0,
+      "admin-funding": 0,
+      "order-concurrency": 0,
+      "layout-controls": 1,
+      "write-receipts": 0,
+      "experience": 0,
+      "product-notifications": 0,
+      "mirror": 0,
+      "contracts": 0,
+      "charts": 0,
+      "product-browser": 0,
+      "products": 0,
+      "permissions": 0,
+      "registration": 0,
+      "stocks": 0,
+      "interface": 0,
+      "reference": 0,
+      "forms": 0,
+      "access": 0
+    }
+  },
+  "productionAfterContractRetests": {
+    "passed": 24,
+    "failed": 3,
+    "suiteExitCodes": {
+      "sessions": 0,
+      "admin-next": 1,
+      "admin-account-layout": 0,
+      "news": 1,
+      "browser-sessions": 0,
+      "security": 0,
+      "quote-guards": 0,
+      "notification-session": 0,
+      "product-recovery": 0,
+      "admin-funding": 0,
+      "order-concurrency": 0,
+      "layout-controls": 1,
+      "write-receipts": 0,
+      "experience": 0,
+      "product-notifications": 0,
+      "mirror": 0,
+      "contracts": 0,
+      "charts": 0,
+      "product-browser": 0,
+      "products": 0,
+      "permissions": 0,
+      "registration": 0,
+      "stocks": 0,
+      "interface": 0,
+      "reference": 0,
+      "forms": 0,
+      "access": 0
+    }
+  },
+  "classification": [
+    {
+      "suites": [
+        "news",
+        "layout-controls"
+      ],
+      "category": "inherited",
+      "detail": "Both candidate and archived production fail the desktop body font design contract. Candidate layout reached the same assertion after correcting approval fixture input."
+    },
+    {
+      "suites": [
+        "admin-next"
+      ],
+      "category": "production-only failure",
+      "detail": "Archived production raised the TradingView opaque-origin storage exception and did not show the mirror placeholder. Candidate passed."
+    },
+    {
+      "suites": [
+        "sessions",
+        "permissions"
+      ],
+      "category": "production probe contract mismatch",
+      "detail": "New probe expects HTTP 409 on repeat approval; archived production returns HTTP 400. Production-native probes both passed."
+    },
+    {
+      "suites": [
+        "layout-controls",
+        "product-browser"
+      ],
+      "category": "candidate fixture fixed",
+      "detail": "The fixture omitted the expected approval stage. Corrected both stages. Initial layout probe failed HTTP 400; product-browser passed with the corrected fixture and on independent rerun."
+    },
+    {
+      "suites": [
+        "forms"
+      ],
+      "category": "candidate fixture fixed",
+      "detail": "Initial probe waited for a request that the mobile balance guard correctly prevented. Revised test proves local blocking and independently checks Worker HTTP 400. Rerun passed."
+    },
+    {
+      "suites": [
+        "trade-database"
+      ],
+      "category": "not applicable",
+      "detail": "Requires unpublished order-intent and quote-evidence logic."
+    },
+    {
+      "suites": [
+        "funding-safety",
+        "login-page",
+        "frontend-sync"
+      ],
+      "category": "candidate-only probes",
+      "detail": "Executed on candidate. Production comparison omits probes for the new funding contract, replacement login and large-amount client integration."
+    }
+  ]
+}

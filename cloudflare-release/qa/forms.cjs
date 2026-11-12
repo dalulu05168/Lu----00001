@@ -168,8 +168,17 @@ async function createAgent(master,idx,client){
    await submit(p,'form button','/api/requests',403);await p.getByRole('alert').waitFor();
    await p.locator('[name=kind]').selectOption('WITHDRAW');await p.locator('[name=amount]').fill('501');
    await p.locator('[name=withdrawalPin]').fill('472863');
-   const denied=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/requests'&&r.request().method()==='POST');
-   await p.locator('form button').click();assert.equal((await denied).ok(),false,'Insufficient cash must reject withdrawal');await p.getByRole('alert').waitFor();
+   // The mobile client checks the latest available balance before posting.
+   const posted=[];
+   const watchWithdrawal=r=>{if(new URL(r.url()).pathname==='/api/requests'&&r.method()==='POST')posted.push(r)};
+   p.on('request',watchWithdrawal);
+   try {
+     await p.locator('form button').click();
+     await p.getByRole('alert').filter({hasText:'可提现余额不足'}).waitFor();
+     assert.equal(posted.length,0,'Insufficient withdrawal must not submit from the mobile form');
+   } finally { p.off('request',watchWithdrawal); }
+   const serverDenial=await api('/api/requests',400,token,{kind:'WITHDRAW',amountCents:50100,withdrawalPin:'472863'});
+   assert.match(serverDenial.error,/Insufficient available balance/);
    await p.locator('[name=kind]').selectOption('WITHDRAW');await p.locator('[name=amount]').fill('100');
    await p.locator('[name=withdrawalPin]').fill('472863');
    const wd=await submit(p,'form button','/api/requests');
