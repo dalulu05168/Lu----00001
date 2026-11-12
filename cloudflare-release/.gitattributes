@@ -5,3 +5,8 @@
 
 /src/products/*.js -text
 /web/products-ui.js -text
+
+# Every build input is checked out byte-for-byte so `npm run build` reproduces the
+# recorded release SHA256 regardless of the machine core.autocrlf setting.
+/src/** -text
+/web/** -text
