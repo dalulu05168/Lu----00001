@@ -40,16 +40,15 @@ const source = fs.readFileSync(path.join(root,'src','worker.template.mjs.in'),'u
  .replace('__CN_BROWSER_SESSIONS__', () => fs.readFileSync(path.join(root,'src/browser-sessions.js'),'utf8')).replace('__CN_SECURITY__', () => fs.readFileSync(path.join(root,'src/security.js'),'utf8')).replace('__CN_PRODUCTS__', () => fs.readFileSync(path.join(root,'src/products/service.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/products/quote.js'),'utf8')).replace('__CN_PAGES__', () => JSON.stringify(pages)).replace('__CN_LOGO__', () => JSON.stringify(logo));
 assert(!source.includes('__CN_PAGES__') && !source.includes('__CN_LOGO__'));
 const sha256 = createHash('sha256').update(source).digest('hex');
-// --candidate builds an unpublished development bundle: no manifest check, and the manifest is left untouched.
-const candidate=process.argv.includes('--candidate');
-if(process.argv.includes('--record')){manifest.sourceSha256=sha256;fs.writeFileSync(path.join(root,'release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');} else if(!candidate) assert.equal(sha256,manifest.sourceSha256,'Source differs from recorded production release');
-// Candidates never land in dist/, which is what the publish scripts upload.
-const dir = path.join(root,candidate?'artifacts/candidate-build':'dist');
+const development=process.argv.includes('--development');
+assert(!(development&&process.argv.includes('--record')),'Development builds cannot update the release manifest');
+if(!development&&process.argv.includes('--record')){manifest.sourceSha256=sha256;fs.writeFileSync(path.join(root,'release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');} else if(!development) assert.equal(sha256,manifest.sourceSha256,'Source differs from recorded production release');
+const dir = path.join(root,development?'dist-dev':'dist');
 fs.mkdirSync(path.join(dir,'assets'),{recursive:true});
 fs.writeFileSync(path.join(dir,'worker.mjs'),source);
 for (const [kind,name] of [['desktop','index'],['mobile','mobile'],['admin','admin'],['login','login']]) fs.writeFileSync(path.join(dir,'assets',name+'.html'),pages[kind]);
 fs.copyFileSync(path.join(root,'web','logo.png'),path.join(dir,'assets','logo.png'));
-console.log(candidate?'Built UNPUBLISHED candidate in artifacts/candidate-build (production is '+manifest.version+') SHA256 '+sha256:'Built production '+manifest.version+' SHA256 '+sha256);
+console.log(development?'Built development candidate SHA256 '+sha256:'Built release '+manifest.version+' SHA256 '+sha256);
 
 
 
