@@ -43,8 +43,35 @@ export function createApi(fetcher=globalThis.fetch){
     watch:(item,add)=>request('/api/watchlist',{method:add?'POST':'DELETE',body:{market:item.market,symbol:item.symbol}})
   };
 }
-export function cents(value){if(value===null||value===undefined||value==='')return null;const n=Number(value);return Number.isSafeInteger(n)?n/100:null;}
-export function amount(value){if(value===null||value===undefined||value==='')return null;return Number.isFinite(Number(value))?Number(value):null;}
+export function integerCents(value) {
+  if (typeof value === 'number') return Number.isSafeInteger(value) ? BigInt(value) : null;
+  return typeof value === 'string' && /^-?\d{1,40}$/.test(value) ? BigInt(value) : null;
+}
+function decimalCents(value) {
+  const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+  if (typeof text !== 'string' || !/^-?\d{1,40}(?:\.\d{1,2})?$/.test(text)) return null;
+  const [whole, fraction = ''] = text.replace(/^-/, '').split('.');
+  const cents = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+  return text.startsWith('-') ? -cents : cents;
+}
+function centsDecimal(value) {
+  const absolute = value < 0n ? -value : value;
+  return (value < 0n ? '-' : '') + (absolute / 100n) + '.' + String(absolute % 100n).padStart(2, '0');
+}
+export function formatMoney(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  const cents = decimalCents(value);
+  return cents === null ? '—' : centsDecimal(cents).replace(/\B(?=(\d{3})+\.)/g, ',');
+}
+export function cents(value) {
+  const n = integerCents(value);
+  if (n === null) return null;
+  const exact = centsDecimal(n);
+  return n > -1000000000000000n && n < 1000000000000000n ? Number(exact) : exact;
+}
+export function amount(value) {
+  return decimalCents(value) === null ? null : value;
+}
 export function quote(item){return cents(item?.lastPriceCents);}
 export function instrumentKey(item){return item.market+':'+item.symbol;}
 

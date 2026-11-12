@@ -1,3 +1,4 @@
+import {cents} from './api.mjs';
 import {units,productDate} from './ipo.mjs';
 export function decimalUnits(value,scale){
  const text=String(value);if(!new RegExp('^\\d+(\\.\\d{1,'+scale+'})?$').test(text))throw Error('请输入有效的正数');
@@ -9,7 +10,7 @@ export function createMutualFunds({api,state,esc,display,time,render,refresh,res
  const routes=new Set(['mutual-funds','mutual-detail','mutual-records']);
  async function load(){const epoch=state.epoch;loading=true;render();try{const r=await api.request('/api/product-settlement');if(epoch!==state.epoch)return;catalog=(r.catalog||[]).filter(x=>x.kind==='MUTUAL_FUND');positions=(r.positions||[]).filter(x=>x.kind==='MUTUAL_FUND');orders=(r.orders||[]).filter(x=>x.kind==='MUTUAL_FUND');error='';}catch(e){if(epoch===state.epoch){if(e.status===401)reset('会话已过期，请重新登录。');else error=friendly(e);}}finally{if(epoch===state.epoch){loading=false;render();}}}
  async function enter(page){state.page=page;error='';success='';render();window.scrollTo(0,0);await load();}
- const money=value=>value==null?'—':display(Number(value)/100);
+ const money=value=>display(cents(value));
  const nav=()=>'<button class="secondary" data-business="mutual-records">查看基金持仓与记录</button>';
  function view(page){if(!routes.has(page))return null;const lead=back('净值基金')+(error?'<div role="alert" class="error-box">'+esc(error)+'</div>':'')+(success?'<div role="status" class="resultbox">'+esc(success)+'</div>':'');if(loading)return lead+'<div class="busy">正在读取基金资料…</div>';
   if(page==='mutual-funds')return lead+'<h1>净值基金</h1><p class="sub">按已复核生效的基金净值申购或赎回。</p>'+catalog.map(p=>`<button class="panel menulink" data-mutual-product="${esc(p.id)}"><b>${esc(p.display_name)}<small>${esc(p.symbol)} · ${esc(productDate(p.effective_date))}</small></b><span>${display(Number(p.unit_price_micros)/1000000)} USD　›</span></button>`).join('')+(catalog.length?'':'<div class="panel empty">暂无已生效基金</div>')+nav();

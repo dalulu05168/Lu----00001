@@ -1,7 +1,7 @@
 import {createMutualFunds} from './mutual-funds.mjs';
 import {createIpo} from './ipo.mjs';
 import {notificationTarget,notificationTitle,readIds,notificationStorage} from './experience.mjs';
-import {cents} from './api.mjs';
+import {cents,integerCents} from './api.mjs';
 export function toCents(text){if(!/^\d+(\.\d{1,2})?$/.test(text))throw Error('金额最多保留两位小数');const [a,b='']=text.split('.');const n=BigInt(a)*100n+BigInt(b.padEnd(2,'0'));if(n<1n||n>BigInt(Number.MAX_SAFE_INTEGER))throw Error('金额超出允许范围');return Number(n);}
 export function discountedCents(price,bps){if(!Number.isSafeInteger(price)||!Number.isSafeInteger(bps)||bps<0||bps>10000)throw Error('报价或折价无效');return Number((BigInt(price)*BigInt(10000-bps)+5000n)/10000n);}
 export function createBusiness({api,state,esc,display,time,render,refresh,reset,back,friendly}){
@@ -75,7 +75,7 @@ export function createBusiness({api,state,esc,display,time,render,refresh,reset,
    try{
     const result=await api.request('/api/orders',{method:'POST',body,key:data.key});
     if(epoch!==state.epoch)return true;
-    if(!result?.order?.id||result.order.side!=='SELL'||result.order.symbol!==position.symbol||Number(result.order.quantity)!==quantity||!Number.isSafeInteger(result.order.amountCents)||result.order.amountCents<=0)throw Error('订单结果未确认，请核对交易记录。');
+    if(!result?.order?.id||result.order.side!=='SELL'||result.order.symbol!==position.symbol||Number(result.order.quantity)!==quantity||(integerCents(result.order.amountCents)??0n)<=0n)throw Error('订单结果未确认，请核对交易记录。');
     data.key=null;data.requestFingerprint=null;
     data.sellReceipt='已卖出 '+position.symbol+' · '+quantity+' 股 · '+display(cents(result.order.amountCents))+' USD';
     await refresh();
@@ -87,7 +87,7 @@ export function createBusiness({api,state,esc,display,time,render,refresh,reset,
    return true;
   }
   if(kind==='support'){data.draft=String(f.get('message'));await write('/api/support',{message:String(f.get('message')).trim()},{idempotent:true,success:'消息已发送，等待客服回复。'});if(data.success)data.draft='';render();}
-  if(kind==='funding'){let body={kind:f.get('kind'),amountCents:toCents(String(f.get('amount'))),note:String(f.get('note')||'')};if(body.kind==='WITHDRAW'){body.withdrawalPin=String(f.get('withdrawalPin'));if(!/^\d{6}$/.test(body.withdrawalPin))throw Error('请输入六位提现密码');}await write('/api/requests',body,{idempotent:true,success:'申请已提交，等待审批；不代表资金已到账。'});}
+  if(kind==='funding'){let body={kind:f.get('kind'),amountCents:toCents(String(f.get('amount'))),note:String(f.get('note')||'')};if(body.kind==='WITHDRAW'){const available=integerCents(state.account?.account?.availableCashCents);if(available!==null&&BigInt(body.amountCents)>available)throw Error('可提现余额不足');body.withdrawalPin=String(f.get('withdrawalPin'));if(!/^\d{6}$/.test(body.withdrawalPin))throw Error('请输入六位提现密码');}await write('/api/requests',body,{idempotent:true,success:'申请已提交，等待审批；不代表资金已到账。'});}
   if(kind==='bank')await write('/api/profile-documents',{kind:'BANK',bankName:String(f.get('bankName')),accountNumber:String(f.get('accountNumber'))},{success:'银行卡资料已提交，等待审核。'});
   if(kind==='identity'){state.busy=true;const [front,back]=await Promise.all([image(f.get('front')),image(f.get('back'))]);await write('/api/profile-documents',{kind:'IDENTITY',fullName:String(f.get('fullName')),front,back},{success:'身份资料已提交，等待审核。'});}
   if(kind==='pin')await write('/api/withdrawal-pin',{password:String(f.get('password')),pin:String(f.get('pin'))},{success:'提现密码已设置。'});

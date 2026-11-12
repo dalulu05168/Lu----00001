@@ -761,7 +761,7 @@ header.top .cn-unified-logo{width:50px;height:50px;object-fit:contain;display:bl
    }));
    const [cash,documents]=await Promise.all(requests);
    const result=cash.items.map(row=>({
-     id:row.id,k:row.kind==='WITHDRAW'?'提现申请':'充值申请',a:row.amountCents/100,
+     id:row.id,k:row.kind==='WITHDRAW'?'提现申请':'充值申请',a:desktopCents(row.amountCents),
      st:row.statusLabel,status:row.status,at:row.createdAt,reason:row.rejectReason||'',isDocument:false
    }));
    for(const row of documents.items)result.push({
@@ -1173,7 +1173,7 @@ body:has(#p-market.show) header.top .tn.on::after { background: #1255a5; }
 <div class="fld"><label for="dtype">申请类型</label><select id="dtype"><option>充值申请</option><option>提现申请</option></select></div>
 <div class="fld"><label for="damt">申请金额（USD）</label><input id="damt" inputmode="decimal" autocomplete="off" placeholder="例如：100.00"></div>
 <div class="fld" id="dpw-w" hidden=""><label for="dpw">提款密码</label><input id="dpw" type="password" autocomplete="new-password" spellcheck="false" data-lpignore="true" data-1p-ignore="" placeholder="请输入您本人的提款密码"><details><summary>设置 / 重设提款密码</summary><label for="cash-current-password">当前登录密码</label><input id="cash-current-password" type="password" autocomplete="current-password"><label for="cash-new-pin">新提款密码（6 位）</label><input id="cash-new-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"><button type="button" id="cash-set-pin" class="btn">保存提款密码</button><p id="cash-pin-result" role="status"></p></details></div><div class="hint" id="dpw-h" hidden="">请输入您设置的 6 位提款密码。</div>
-<div class="hint">当前可用现金 <span class="amt lime" data-b="availableCash">—</span> USD</div>
+<div class="hint">当前可用现金 <span class="amt lime" data-b="availableCash">—</span> USD · 提现冻结 <span class="amt" data-b="reservedWithdrawal">—</span> USD</div>
 <div class="er" id="dep-er" role="alert"></div><p id="dep-result" class="flow-status" role="status"></p>
 <div class="bn" id="sec-dep" hidden="">当前连接不安全（HTTP），已禁止提交，请使用 HTTPS 访问</div>
 <button class="btn p w" type="submit">提交申请</button>
@@ -1251,13 +1251,13 @@ var SECURE=!(location.protocol==='http:'&&!/^(localhost|127\.0\.0\.1)$/.test(loc
 var DATA={perm:{withdraw:'—'},acct:'',sync:'—',cashOverride:null,realizedPnl:null,totalAssets:null,names:{},sec:{},watch:[],fav:[],orders:[],holds:[],reqs:[],chat:[]};
 var DATA_READY=false,HAVE={};
 function sum(a,fn){return a.reduce(function(x,y){return x+fn(y)},0)}
-function safeTotal(a,key){if(!Array.isArray(a))return null;var n=0;for(var i=0;i<a.length;i++){var v=a[i]&&a[i][key];if(typeof v!=='number'||!isFinite(v))return null;n+=v}return n}
+function safeTotal(a,key){if(!Array.isArray(a))return null;var n=0n;for(var i=0;i<a.length;i++){var v=decimalCents(a[i]?.[key]);if(v===null)return null;n+=v}return centsDecimal(n)}
 function cost(){return HAVE.holds?safeTotal(DATA.holds,'c'):null}
 function traded(){return HAVE.tradeTotal?DATA.tradeTotal:null}
-function realized(){return HAVE.realizedPnl&&typeof DATA.realizedPnl==='number'&&isFinite(DATA.realizedPnl)?DATA.realizedPnl:null}
+function realized(){return HAVE.realizedPnl&&decimalCents(DATA.realizedPnl)!==null?DATA.realizedPnl:null}
 /* 余额和估值只接受已确认的服务端字段，不从申请或订单列表推测。 */
-function cash(){return HAVE.cashOverride&&typeof DATA.cashOverride==='number'&&isFinite(DATA.cashOverride)?DATA.cashOverride:null}
-function totalAssets(){return HAVE.totalAssets&&typeof DATA.totalAssets==='number'&&isFinite(DATA.totalAssets)?DATA.totalAssets:null}
+function cash(){return HAVE.cashOverride&&decimalCents(DATA.cashOverride)!==null?DATA.cashOverride:null}
+function totalAssets(){return HAVE.totalAssets&&decimalCents(DATA.totalAssets)!==null?DATA.totalAssets:null}
 function held(s){var h=DATA.holds.filter(function(x){return x.s===s})[0];return h||null}
 /* ---- 证券配置 / 持有期 / 名称（后台设置驱动） ---- */
 function cfg(c){var s=DATA.sec&&DATA.sec[c];return s&&!s.withdrawn?s:null}   /* 每个证券各自一份配置；没有配置 = 未开放 */
@@ -1266,12 +1266,33 @@ function minQ(c){var s=cfg(c);return s&&s.min>0?s.min:1}
 function sellable(code){var h=held(code);if(!h)return 0;if(Number.isInteger(h.available))return h.available;if(!Array.isArray(h.lots))return h.q;var t=Date.now();return h.lots.reduce(function(a,l){var u=Date.parse(l.until);return a+(isNaN(u)||u<=t?l.q:0)},0)}
 function nextUnlock(code){var h=held(code);if(h?.unlock)return Date.parse(h.unlock);if(!h||!Array.isArray(h.lots))return null;var t=Date.now(),m=null;h.lots.forEach(function(l){var u=Date.parse(l.until);if(!isNaN(u)&&u>t&&(m===null||u<m))m=u});return m}
 function fmtT(ms){var d=new Date(ms+288e5),p=function(n){return n<10?'0'+n:n};return d.getUTCFullYear()+'-'+p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate())+' '+p(d.getUTCHours())+':'+p(d.getUTCMinutes())}
-function f(n){return typeof n==='number'&&isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}
+function integerCents(value) {
+  if (typeof value === 'number') return Number.isSafeInteger(value) ? BigInt(value) : null;
+  return typeof value === 'string' && /^-?\d{1,40}$/.test(value) ? BigInt(value) : null;
+}
+function decimalCents(value) {
+  const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+  if (typeof text !== 'string' || !/^-?\d{1,40}(?:\.\d{1,2})?$/.test(text)) return null;
+  const [whole, fraction = ''] = text.replace(/^-/, '').split('.');
+  const cents = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
+  return text.startsWith('-') ? -cents : cents;
+}
+function centsDecimal(value) {
+  const absolute = value < 0n ? -value : value;
+  return (value < 0n ? '-' : '') + (absolute / 100n) + '.' + String(absolute % 100n).padStart(2, '0');
+}
+function formatMoney(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  const cents = decimalCents(value);
+  return cents === null ? '—' : centsDecimal(cents).replace(/\B(?=(\d{3})+\.)/g, ',');
+}
+function f(n){return formatMoney(n)}
+function desktopCents(value){var n=integerCents(value);return n===null?null:centsDecimal(n)}
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function stc(s){if(s.includes('未通过')||s.includes('驳回'))return 'rd';return s.indexOf('成功')>-1?'ok':s.indexOf('等待')>-1||s.indexOf('通过')>-1?'in':'wa'}
 function now(){return fmtT(Date.now())}
-function bind(){var m={valuationNote:DATA.valuationEstimated?'部分持仓按历史成交价或成本估算':HAVE.holds&&DATA.holds.length&&!HAVE.totalAssets?'部分持仓暂无有效报价':'现金 + 持仓估值 + 认购资产',availableCash:f(DATA.availableCash),cash:f(cash()),cost:f(cost()),traded:f(traded()),realized:f(realized()),total:f(totalAssets()),nord:HAVE.orders?DATA.orders.length:'—',nhold:HAVE.holds?DATA.holds.length:'—',nreq:HAVE.reqs?DATA.reqs.length:'—',acct:DATA_READY&&DATA.acct?'····'+DATA.acct:'—',sync:DATA_READY?DATA.sync:'未同步',src:DATA.src};
+function bind(){var m={valuationNote:DATA.valuationEstimated?'部分持仓按历史成交价或成本估算':HAVE.holds&&DATA.holds.length&&!HAVE.totalAssets?'部分持仓暂无有效报价':'现金 + 持仓估值 + 认购资产',availableCash:f(DATA.availableCash),reservedWithdrawal:f(DATA.reservedWithdrawal),cash:f(cash()),cost:f(cost()),traded:f(traded()),realized:f(realized()),total:f(totalAssets()),nord:HAVE.orders?DATA.orders.length:'—',nhold:HAVE.holds?DATA.holds.length:'—',nreq:HAVE.reqs?DATA.reqs.length:'—',acct:DATA_READY&&DATA.acct?'····'+DATA.acct:'—',sync:DATA_READY?DATA.sync:'未同步',src:DATA.src};
  document.querySelectorAll('[data-b]').forEach(function(e){var v=m[e.dataset.b];if(v!=null)e.textContent=v})}
 
 /* ========== 渲染 ========== */
@@ -1338,16 +1359,14 @@ function spk(v,w,h,o){o=o||{};var P=3,t=o.t||'',c=o.c||TEAL,pre='<svg class="sp"
   +'<path d="M'+pts[0]+' L'+pts.join(' L')+' L'+(n<2?w-P:X(n-1)).toFixed(1)+','+h+' L'+(n<2?P:P)+','+h+' Z" fill="url(#'+id+')"/>'
   +'<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+c+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
   +'<circle cx="'+dx.toFixed(1)+'" cy="'+dy.toFixed(1)+'" r="2.6" fill="'+c+'"/></svg>'}
-function evs(){var E=[];DATA.orders.forEach(function(o){E.push({d:o.d,s:o.s,t:o.t,a:+o.a,q:+o.q,o:o})});
- DATA.reqs.forEach(function(r){if(r.k==='充值申请'&&r.st.indexOf('成功')>-1)E.push({d:r.d,dep:+r.a})});
+function evs(){var E=[];DATA.orders.forEach(function(o){E.push({d:o.d,s:o.s,t:o.t,a:decimalCents(o.a),q:+o.q,o:o})});
+ DATA.reqs.forEach(function(r){if(r.k==='充值申请'&&r.st.indexOf('成功')>-1)E.push({d:r.d,dep:decimalCents(r.a)})});
  E.sort(function(x,y){return x.d<y.d?-1:x.d>y.d?1:0});return E}
 function okEnd(a,x){return a.length&&Math.abs(a[a.length-1]-x)<.01?a:[]}
-function kser(){var E=evs(),c=0,k=0,C=[],K=[],T=[];
- E.forEach(function(e){if(e.dep)c+=e.dep;else if(e.t==='买入'){c-=e.a;k+=e.a}else{c+=e.a;k-=e.a}C.push(c);K.push(k);T.push(c+k)});
- return{cash:[],cost:[],total:[],realized:[]}}
-function symSer(sym,kind){var q=0,c=0,Q=[],C=[],E=evs().filter(function(e){return e.s===sym});
- E.forEach(function(e){var b=e.t==='买入';q+=b?e.q:-e.q;c+=b?e.a:-e.a;Q.push(q);C.push(c)});return{E:E,Q:Q,C:C}}
-function hs(h){var r=symSer(h.s);return okEnd(r.C,h.c)}
+function kser(){return{cash:[],cost:[],total:[],realized:[]}}
+function symSer(sym,kind){var q=0,c=0n,Q=[],C=[],valid=true,E=evs().filter(function(e){return e.s===sym});
+ E.forEach(function(e){var b=e.t==='买入';q+=b?e.q:-e.q;Q.push(q);if(e.a===null){valid=false;return}c+=b?e.a:-e.a;if(c<=-1000000000000000n||c>=1000000000000000n)valid=false;C.push(valid?Number(c)/100:0)});return{E:E,Q:Q,C:valid?C:[]}}
+function hs(h){var r=symSer(h.s),c=decimalCents(h.c);return r.C.length&&c!==null&&c>-1000000000000000n&&c<1000000000000000n?okEnd(r.C,Number(c)/100):[]}
 function ws(s){if(DATA.px&&DATA.px[s]&&DATA.px[s].length>1)return DATA.px[s];var h=held(s);return h?hs(h):[]}
 function os(o){var r=symSer(o.s),i=-1;r.E.forEach(function(e,k){if(e.o===o)i=k});return{v:r.Q,hi:i<0?null:i}}
 function rKpi(){var S=kser();document.querySelectorAll('.kpi .spw').forEach(function(e){e.innerHTML=spk(S[e.dataset.k],112,38,{t:'按已记录成交与充值累计'})})}
@@ -1636,7 +1655,7 @@ function goOk(){const price=Number($('tr-limit')?.value);return !!(TR&&tradeQuot
 function renderTrade(anim){var b=$('tr-body');function go(){var buy=TR.side==='买入',h=held(TR.code),c=cfg(TR.code),needPw=!!buy,html='';$('m-trade').dataset.side=buy?'buy':'sell';
  if(TR.step===1){
   html='<div class="dirtog"><button type="button" class="dirbtn buy'+(buy?' on':'')+'" data-side="买入">买入</button><button type="button" class="dirbtn sell'+(buy?'':' on')+'" data-side="卖出">卖出</button></div><div class="kv"><span style="color:var(--tx)">'+esc(TR.code)+' '+esc(nm(TR.code))+'</span>'+(buy&&c?'<span class="chip in">优惠比例 '+esc(c.discount)+'%</span>':'')+'</div><div class="kv"><span>计价</span><span>USD</span></div>'
-  +(buy?(c?'<div class="kv"><span>'+LB.days+'</span><span>'+esc(c.days)+' 天</span></div><div class="kv"><span>'+LB.min+'</span><span>'+esc(c.min)+' 股</span></div>':'')+'<div class="kv"><span>可用现金</span><span class="amt lime">'+f(cash())+' USD</span></div>'
+  +(buy?(c?'<div class="kv"><span>'+LB.days+'</span><span>'+esc(c.days)+' 天</span></div><div class="kv"><span>'+LB.min+'</span><span>'+esc(c.min)+' 股</span></div>':'')+'<div class="kv"><span>可用现金</span><span class="amt lime">'+f(DATA.availableCash)+' USD</span></div>'
    :'<div class="kv"><span>持仓数量</span><span>'+(h?h.q+' 股':(HAVE.holds?'0 股':'—'))+'</span></div><div class="kv"><span>可卖出数量</span><span>'+(h?sellable(TR.code)+' 股':'0 股')+'</span></div>'+(h&&nextUnlock(TR.code)?'<div class="kv"><span>最早解锁时间</span><span class="tw">'+esc(fmtT(nextUnlock(TR.code)))+'</span></div>':'')+'<div class="kv"><span>成本均价</span><span class="amt">'+(h?'$'+f(h.c/h.q):'—')+'</span></div>')
   +'<div class="fld"><label>'+TR.side+'数量</label><div class="stp"><button type="button" id="tq-m" aria-label="减少">−</button><input id="tq" inputmode="numeric" value="'+TR.qty+'" autocomplete="off" aria-label="数量"><button type="button" id="tq-p" aria-label="增加">+</button></div></div>'
   +'<div class="er" id="tr-er">'+esc(trErr())+'</div>'
@@ -1782,17 +1801,19 @@ function desktopFormSubmit(form,work,onError){
 }
 
 $('dtype').onchange=function(){var w=$('dtype').value==='提现申请';$('dpw-w').hidden=!w;$('dpw-h').hidden=!w;if(!w)$('dpw').value='';$('dep-er').textContent=''};
-$('f-dep').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var amount=$('damt').value.trim(),v=/^\d+(?:\.\d{1,2})?$/.test(amount)?Number(amount):NaN,er=$('dep-er');$('dep-result').textContent='';er.textContent='';
- if(!(v>0)){er.textContent='请输入大于 0 的金额';return}
- if($('dtype').value==='提现申请'&&cash()===null){er.textContent='现金余额未同步，暂不能提现';return}
- if($('dtype').value==='提现申请'&&v>cash()){er.textContent='提现金额不能超过现金余额';return}
+$('f-dep').onsubmit=function(e){e.preventDefault();if(!SECURE)return;var amount=$('damt').value.trim(),v=decimalCents(amount),er=$('dep-er');$('dep-result').textContent='';er.textContent='';
+ if(v===null||v<=0n){er.textContent='请输入大于 0 的金额，最多两位小数';return}
+ if(v>BigInt(Number.MAX_SAFE_INTEGER)){er.textContent='金额超出允许范围';return}
+ var available=decimalCents(DATA.availableCash);
+ if($('dtype').value==='提现申请'&&available===null){er.textContent='现金余额未同步，暂不能提现';return}
+ if($('dtype').value==='提现申请'&&v>available){er.textContent='提现金额不能超过现金余额';return}
  const withdraw=$('dtype').value==='提现申请';
  const pin=$('dpw').value;
  if(withdraw&&!/^\d{6}$/.test(pin)){er.textContent='请输入 6 位提款密码';return}
- const body={kind:withdraw?'WITHDRAW':'DEPOSIT',amountCents:Math.round(v*100)};
+ const body={kind:withdraw?'WITHDRAW':'DEPOSIT',amountCents:Number(v)};
  if(withdraw){body.withdrawalPin=pin;$('dpw').value=''}
  desktopFormSubmit(this,async function(){
-  if(await desktopSubmit('/api/requests',body)){$('damt').value='';$('dep-result').textContent=(withdraw?'提现':'充值')+'申请已提交 · '+f(v)+' USD · 等待审批';loadData();window.dispatchEvent(new Event('cn-notifications-refresh'))}
+  if(await desktopSubmit('/api/requests',body)){$('damt').value='';$('dep-result').textContent=(withdraw?'提现':'充值')+'申请已提交 · '+f(centsDecimal(v))+' USD · 等待审批';loadData();window.dispatchEvent(new Event('cn-notifications-refresh'))}
  },function(error){er.textContent=({'Identity and bank approval required':'身份资料和银行卡都审核通过后才能申请。','Amount below minimum':withdraw?'单笔提现最低 10 USD':'单笔充值最低 1 USD','Amount above maximum':withdraw?'单笔提现最多 50,000 USD':'单笔充值最多 100,000 USD','Invalid withdrawal password':'提款密码不正确','Withdrawal password not configured':'请先设置提款密码','Too many attempts':'尝试次数过多，请稍后再试','Withdrawals restricted':'此账户已限制提现','Insufficient available balance':'可提现余额不足'}[error.code]||'申请未提交，请稍后重试。')})};
 function magic(file,cb){var r=new FileReader();r.onload=function(){var u=new Uint8Array(r.result);cb((u[0]===0x89&&u[1]===0x50&&u[2]===0x4E&&u[3]===0x47)||(u[0]===0xFF&&u[1]===0xD8&&u[2]===0xFF))};r.onerror=function(){cb(false)};r.readAsArrayBuffer(file.slice(0,4))}
 ['f','b'].forEach(function(k){var box=$('up-'+k),inp=box.querySelector('input'),img=box.querySelector('img');
@@ -1924,13 +1945,13 @@ document.addEventListener('keydown',function(e){var t=e.target.tagName;
  if(e.key==='/'&&t!=='INPUT'&&t!=='TEXTAREA'&&t!=='SELECT'){e.preventDefault();document.querySelector('.sr').focus()}});
 
 /* ========== 数据加载（接入后端时设置 API） ========== */
-var KEYS=['acct','sync','cashOverride','realizedPnl','totalAssets','tradeTotal','valuationEstimated','availableCash','perm','names','sec','watch','fav','orders','holds','reqs','chat'];   /* 新增后台字段必须登记在这里，否则会被丢弃 */
+var KEYS=['acct','sync','cashOverride','realizedPnl','totalAssets','tradeTotal','valuationEstimated','availableCash','reservedWithdrawal','perm','names','sec','watch','fav','orders','holds','reqs','chat'];   /* 新增后台字段必须登记在这里，否则会被丢弃 */
 function clean(v){if(Array.isArray(v))return v.map(clean);if(v&&typeof v==='object'){var o={};Object.keys(v).forEach(function(k){if(k==='__proto__'||k==='constructor'||k==='prototype')return;o[k]=clean(v[k])});return o}return v}
 function num(v,d){v=Number(v);return isFinite(v)?v:d}
 function normSec(m){var o={};Object.keys(m||{}).forEach(function(c){var x=m[c];if(!x||typeof x!=='object')return;
  var t=String(x.type||'股票');t=t==='STOCK'?'股票':t==='COMMODITY'?'大宗商品':t;var w=x.withdrawn===true;
  o[c]={type:t,name:x.name?String(x.name):'',discount:num(x.discount,0),days:Math.max(0,Math.floor(num(x.days,0))),min:Math.max(1,Math.floor(num(x.min!=null?x.min:x.minQty,1))),needPass:x.needPass===true||x.hasPass===true,visible:x.visible!==false&&!w,withdrawn:w}});return o}
-function safe(d){var o={};KEYS.forEach(function(k){if(!d||d[k]===undefined||d[k]===null)return;var v=d[k];if(['cashOverride','realizedPnl','totalAssets','tradeTotal','availableCash'].indexOf(k)>=0&&!(typeof v==='number'&&isFinite(v)))return;if(['watch','fav','orders','holds','reqs','chat'].indexOf(k)>=0&&!Array.isArray(v))return;if(['sec','names','perm'].indexOf(k)>=0&&(!v||typeof v!=='object'||Array.isArray(v)))return;o[k]=clean(v)});if(o.sec)o.sec=normSec(o.sec);if(o.perm)o.perm={withdraw:String(o.perm.withdraw||'')};return o}
+function safe(d){var o={};KEYS.forEach(function(k){if(!d||d[k]===undefined||d[k]===null)return;var v=d[k];if(['cashOverride','realizedPnl','totalAssets','tradeTotal','availableCash','reservedWithdrawal'].indexOf(k)>=0&&decimalCents(v)===null)return;if(['watch','fav','orders','holds','reqs','chat'].indexOf(k)>=0&&!Array.isArray(v))return;if(['sec','names','perm'].indexOf(k)>=0&&(!v||typeof v!=='object'||Array.isArray(v)))return;o[k]=clean(v)});if(o.sec)o.sec=normSec(o.sec);if(o.perm)o.perm={withdraw:String(o.perm.withdraw||'')};return o}
 var skActive=false,skStart=0,skTimer=0;
 function skSweep(){var el=Date.now()-skStart,d=el<800?'1.2s':el<2000?'1.6s':'2.1s';document.documentElement.style.setProperty('--skdur',d)}
 function reveal(){var el=Date.now()-skStart;if(el<150)return;var d=el<600?220:el<1500?340:520;
@@ -1951,11 +1972,11 @@ function showSkeleton(){
  var sts=['112px','94px','130px','80px','104px'],sh='';
  for(var i=0,m=clampN(stN,2,5);i<m;i++)sh+='<div class="kv"><span class="sk" style="width:'+sts[i%sts.length]+'"></span><span class="sk chip"></span></div>';
  $('req-stat').innerHTML=sh}
-function clearSnapshot(){DATA_READY=false;HAVE={};DATA.cashOverride=null;DATA.availableCash=null;DATA.realizedPnl=null;DATA.totalAssets=null;DATA.orders=[];DATA.holds=[];DATA.reqs=[];DATA.sec={};DATA.watch=[];DATA.fav=[];DATA.chat=[];DATA.acct='';DATA.sync='未同步'}
+function clearSnapshot(){DATA_READY=false;HAVE={};DATA.cashOverride=null;DATA.availableCash=null;DATA.reservedWithdrawal=null;DATA.realizedPnl=null;DATA.totalAssets=null;DATA.orders=[];DATA.holds=[];DATA.reqs=[];DATA.sec={};DATA.watch=[];DATA.fav=[];DATA.chat=[];DATA.acct='';DATA.sync='未同步'}
 var accountLoadVersion=0;
 function loadData(background=false){var requestVersion=++accountLoadVersion;if(!API){clearSnapshot();renderAll();return Promise.resolve()}
  clearSnapshot();showSkeleton();
- return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(r.status===401){localStorage.removeItem('cncap.session');location.replace('/login');throw new Error('Session expired')}if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){if(requestVersion!==accountLoadVersion)return;var v=safe(d);if(d?.account?.id){v.acct=d.account.id.slice(-8);v.sync="已同步";}if(Number.isSafeInteger(d?.account?.cashCents))v.cashOverride=d.account.cashCents/100;if(Number.isSafeInteger(d?.account?.availableCashCents))v.availableCash=d.account.availableCashCents/100;if(Array.isArray(d.positions))v.holds=d.positions.map(row=>({s:row.symbol,q:Number(row.quantity),available:Math.max(0,Number(row.quantity)-Number(row.locked_quantity)),unlock:row.next_unlock_at,c:row.cost_cents==null?null:Number(row.cost_cents)/100}));if(Array.isArray(d.orders))v.orders=d.orders.map(function(row){return {id:row.id,s:row.symbol,t:row.side==="BUY"?"买入":"卖出",p:Number(row.price_cents)/100,q:Number(row.quantity),a:Number(row.amount_usd_cents)/100,d:new Date(row.created_at).toLocaleString()}});HAVE={};Object.keys(v).forEach(function(k){HAVE[k]=true});Object.assign(DATA,v);DATA_READY=Object.keys(HAVE).length>0;renderAll();return refreshDesktopRequests()}).catch(function(){if(requestVersion!==accountLoadVersion)return;clearSnapshot();toast('数据加载失败');renderAll()})}
+ return fetch(API+'/account',{credentials:'include',headers:{Accept:'application/json'}}).then(function(r){if(r.status===401){localStorage.removeItem('cncap.session');location.replace('/login');throw new Error('Session expired')}if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){if(requestVersion!==accountLoadVersion)return;var v=safe(d);if(d?.account?.id){v.acct=d.account.id.slice(-8);v.sync="已同步";}v.cashOverride=desktopCents(d?.account?.cashCents);v.availableCash=desktopCents(d?.account?.availableCashCents);v.reservedWithdrawal=desktopCents(d?.account?.reservedWithdrawalCents);if(Array.isArray(d.positions))v.holds=d.positions.map(row=>({s:row.symbol,q:Number(row.quantity),available:Math.max(0,Number(row.quantity)-Number(row.locked_quantity)),unlock:row.next_unlock_at,c:desktopCents(row.cost_cents)}));if(Array.isArray(d.orders))v.orders=d.orders.map(function(row){return {id:row.id,s:row.symbol,t:row.side==="BUY"?"买入":"卖出",p:desktopCents(row.price_cents),q:Number(row.quantity),a:desktopCents(row.amount_usd_cents),d:new Date(row.created_at).toLocaleString()}});HAVE={};Object.keys(v).forEach(function(k){HAVE[k]=true});Object.assign(DATA,v);DATA_READY=Object.keys(HAVE).length>0;renderAll();return refreshDesktopRequests()}).catch(function(){if(requestVersion!==accountLoadVersion)return;clearSnapshot();toast('数据加载失败');renderAll()})}
 
 /* Background synchronization reads the same authenticated API; never interrupt a form. */
 var accountBackgroundPending=false;
