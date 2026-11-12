@@ -103,16 +103,31 @@ async function submitLogin(page, email, pwd) {
       }
       await page.close();
 
-      for (const [target, expected] of [['/index.html?tab=market', '/index.html?tab=market'], ['//evil.example/x', '/index.html'], ['/\\evil.example', '/index.html'], ['https://evil.example/', '/index.html']]) {
+      // Open-redirect regression: the browser URL parser strips tab/CR/LF and treats "\" as "/", so each of
+      // these would leave the site if the page only checked characters. Only same-origin paths may be followed.
+      const redirects = [
+        ['/index.html?tab=market', '/index.html?tab=market'], ['/%2F%2Fevil.example', '/%2F%2Fevil.example'],
+        ['//evil.example/x', '/index.html'], ['/\\evil.example', '/index.html'], ['\\\\evil.example', '/index.html'],
+        ['/\t/evil.example', '/index.html'], ['/\n/evil.example', '/index.html'], ['/\r/evil.example', '/index.html'],
+        ['https://evil.example/', '/index.html'], ['javascript:alert(1)', '/index.html'],
+      ];
+      for (const [target, expected] of redirects) {
         const ctx = await browser.newContext(opts); const p = await ctx.newPage(); await p.emulateMedia({ reducedMotion: 'reduce' });
+        const outside = [];
+        await ctx.route(u => new URL(u).origin !== base, r => { outside.push(r.request().url()); return r.abort('blockedbyclient'); });
         await p.route(base + '/**', r => r.request().resourceType() === 'document' ? r.fulfill({ contentType: 'text/html', body: new URL(r.request().url()).pathname === '/login' ? pages.login : stub }) : r.continue());
         await p.goto(base + '/login?next=' + encodeURIComponent(target));
         await submitLogin(p, email, password);
-        await p.waitForURL(u => u.origin === base && u.pathname !== '/login');
-        const u = new URL(p.url()); a.equal(u.pathname + u.search, expected, 'next=' + target);
+        // Accept any navigation away from the form (an off-site one is aborted and ends on an error page).
+        await p.waitForURL(u => !(u.origin === base && u.pathname === '/login'), { waitUntil: 'commit' }).catch(() => {});
+        await p.waitForTimeout(300);
+        const u = new URL(p.url());
+        a.equal(u.origin, base, 'next=' + JSON.stringify(target) + ' left the site (' + p.url() + ', outside requests ' + JSON.stringify(outside) + ')');
+        a.equal(u.pathname + u.search, expected, 'next=' + JSON.stringify(target));
+        a.deepEqual(outside.filter(x => /evil\.example/.test(x)), [], 'next=' + JSON.stringify(target) + ' contacted an outside host');
         await ctx.close();
       }
-      pass(kind + ': ?next= follows same-origin paths only');
+      pass(kind + ': ?next= open-redirect payloads (tab/CR/LF, backslash, protocol-relative, absolute, javascript:) stay on site');
 
       // Password recovery: request, administrator issues a code, customer confirms in the page.
       { const ctx = await browser.newContext(opts); const p = await ctx.newPage(); await p.emulateMedia({ reducedMotion: 'reduce' });

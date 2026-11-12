@@ -57,7 +57,9 @@ once("var adminMode=location.hostname==='admin.maacropierce.com'||new URLSearchP
   "var params=new URLSearchParams(location.search);\n" +
   "var adminMode=location.hostname==='admin.maacropierce.com'||params.get('admin')==='1';\n" +
   "var next=params.get('next')||'';\n" +
-  "if(next&&(next.charAt(0)!=='/'||next.charAt(1)==='/'||next.charAt(1)==='\\\\'))next='';\n" +
+  // Resolve with the browser's own URL parser: it strips tabs/newlines and treats a backslash as a slash,
+  // so character checks alone let /%09/evil.example or /\evil.example escape. Only an identical origin is kept.
+  "next=(function(n){if(!n||n.charAt(0)!=='/')return '';try{var u=new URL(n,location.origin);return u.origin===location.origin?u.pathname+u.search+u.hash:''}catch(e){return ''}})(next);\n" +
   "if(location.hostname==='nuvexapro.com')try{history.replaceState(history.state,'','/')}catch(e){}\n" +
   "var mobileEntry=!adminMode&&!!((navigator.userAgentData&&navigator.userAgentData.mobile)||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));");
 once("if(adminMode){otpField.hidden=false;", "if(adminMode){rem.hidden=true;otpField.hidden=false;");

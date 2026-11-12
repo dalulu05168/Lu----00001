@@ -541,7 +541,7 @@ sub.addEventListener('pointerdown',function(e){var r=sub.getBoundingClientRect()
 var params=new URLSearchParams(location.search);
 var adminMode=location.hostname==='admin.maacropierce.com'||params.get('admin')==='1';
 var next=params.get('next')||'';
-if(next&&(next.charAt(0)!=='/'||next.charAt(1)==='/'||next.charAt(1)==='\\'))next='';
+next=(function(n){if(!n||n.charAt(0)!=='/')return '';try{var u=new URL(n,location.origin);return u.origin===location.origin?u.pathname+u.search+u.hash:''}catch(e){return ''}})(next);
 if(location.hostname==='nuvexapro.com')try{history.replaceState(history.state,'','/')}catch(e){}
 var mobileEntry=!adminMode&&!!((navigator.userAgentData&&navigator.userAgentData.mobile)||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
 var emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
