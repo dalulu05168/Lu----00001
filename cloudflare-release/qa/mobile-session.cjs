@@ -15,14 +15,13 @@ async function api(route, status, token, body, method = body ? 'POST' : 'GET') {
   if (status !== null) a.equal(r.status, status, route + ' ' + JSON.stringify(data.error)); return { status: r.status, data };
 }
 const admin = p => '/api/admin/' + p;
-// Works before and after the backend started requiring expectedStatus on cash request reviews.
-async function review(master, id) {
+// Works before and after the backend started requiring expectedStatus on cash request reviews
+// (stage 0 approves a PENDING request, stage 1 a REVIEWED one, as in Codex's sessions/stocks fixtures).
+async function review(master, id, stage) {
   const first = await api(admin('requests'), null, master, { id, decision: 'APPROVE' });
   if (first.status === 200) return;
-  a.equal(first.status, 400, JSON.stringify(first.data));
-  const row = (await db.query('SELECT status FROM cn_cash_requests WHERE id=$1', [id]).catch(() => ({ rows: [] }))).rows[0];
-  a(row, 'cash request status unavailable: ' + JSON.stringify(first.data));
-  await api(admin('requests'), 200, master, { id, decision: 'APPROVE', expectedStatus: row.status });
+  a.equal(first.status, 400, JSON.stringify(first.data)); a.match(String(first.data.error), /Expected cash request status/);
+  await api(admin('requests'), 200, master, { id, decision: 'APPROVE', expectedStatus: stage === 0 ? 'PENDING' : 'REVIEWED' });
 }
 const checks = [];
 const pass = name => { checks.push(name); console.log('PASS ' + name); };
@@ -59,7 +58,7 @@ const nvda = async cookie => ((await api('/api/account', 200, cookie)).data.posi
     await api(admin('profile-documents'), 200, agentToken, { email: A, kind: doc.kind, status: 'APPROVED', version: r.version }, 'PATCH');
   }
   const deposit = (await api('/api/requests', 201, clientA, { kind: 'DEPOSIT', amountCents: 100000 })).data;
-  for (let i = 0; i < 2; i++) await review(master, deposit.id);
+  for (let i = 0; i < 2; i++) await review(master, deposit.id, i);
   await api(admin('listings'), 201, master, { market: 'US', status: 'PUBLISHED', itemType: 'STOCK', symbol: 'NVDA', name: 'NVIDIA', tradePin: pin });
   await api('/api/orders', 201, clientA, { market: 'US', symbol: 'NVDA', side: 'BUY', quantity: 3, limitPriceCents: 1300, tradePin: pin });
   await api('/api/auth/logout', 204, clientA, {});
