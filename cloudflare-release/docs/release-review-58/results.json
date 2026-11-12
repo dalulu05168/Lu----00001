@@ -1,0 +1,125 @@
+{
+  "sourceCommit": "c85022a10e26e95afa8481fe1c657a390fa71ee4",
+  "workerSha256": "bb4c87a5b840499563d76bf488ce3533104404dc3484b1f3e7ad3643d4c0fe6a",
+  "unit": {
+    "exitCode": 0,
+    "passed": 37,
+    "failed": 0
+  },
+  "publicProductionProbe": {
+    "passed": 9,
+    "failed": 0,
+    "archiveVersion": "860bea19-546f-4900-aa23-7f37827d0fdd",
+    "controlPlaneVerified": false
+  },
+  "preproductionCloudDeployment": {
+    "completed": false,
+    "reason": "Control-plane browser access was blocked by automatic approval review due to review-service usage limit; no staging credentials or isolated cloud resources available."
+  },
+  "notApplicable": [
+    {
+      "suite": "trade-database",
+      "reason": "Requires unpublished cnOrderIntent and quote-evidence logic absent in the production-lineage Worker."
+    }
+  ],
+  "runs": [
+    {
+      "runId": "14tGUU",
+      "utc": "2026-11-12T20:46:15.432Z",
+      "exitCode": 0,
+      "suiteExitCodes": {
+        "admin-next": 0,
+        "admin-account-layout": 0,
+        "news": 0,
+        "notification-session": 0,
+        "layout-controls": 0,
+        "experience": 0,
+        "product-notifications": 0,
+        "mirror": 0
+      }
+    },
+    {
+      "runId": "HEz1Ox",
+      "utc": "2026-11-12T20:43:59.177Z",
+      "exitCode": 0,
+      "suiteExitCodes": {
+        "funding-safety": 0,
+        "admin-funding": 0,
+        "order-concurrency": 0,
+        "product-recovery": 0,
+        "products": 0,
+        "forms": 0,
+        "write-receipts": 0,
+        "quote-guards": 0
+      }
+    },
+    {
+      "runId": "C5vcIC",
+      "utc": "2026-11-12T20:47:36.259Z",
+      "exitCode": 0,
+      "suiteExitCodes": {
+        "mobile-session": 0,
+        "sessions": 0,
+        "login-page": 0,
+        "browser-sessions": 0,
+        "security": 0,
+        "frontend-sync": 0,
+        "registration": 0,
+        "access": 0
+      }
+    },
+    {
+      "runId": "DgqXec",
+      "utc": "2026-11-12T20:45:55.918Z",
+      "exitCode": 0,
+      "suiteExitCodes": {
+        "contracts": 0,
+        "charts": 0,
+        "product-browser": 0,
+        "permissions": 0,
+        "stocks": 0,
+        "interface": 0,
+        "reference": 0
+      }
+    }
+  ],
+  "suites": {
+    "executed": 31,
+    "passed": 31,
+    "failed": 0,
+    "exitCodes": {
+      "access": 0,
+      "admin-account-layout": 0,
+      "admin-funding": 0,
+      "admin-next": 0,
+      "browser-sessions": 0,
+      "charts": 0,
+      "contracts": 0,
+      "experience": 0,
+      "forms": 0,
+      "frontend-sync": 0,
+      "funding-safety": 0,
+      "interface": 0,
+      "layout-controls": 0,
+      "login-page": 0,
+      "mirror": 0,
+      "mobile-session": 0,
+      "news": 0,
+      "notification-session": 0,
+      "order-concurrency": 0,
+      "permissions": 0,
+      "product-browser": 0,
+      "product-notifications": 0,
+      "product-recovery": 0,
+      "products": 0,
+      "quote-guards": 0,
+      "reference": 0,
+      "registration": 0,
+      "security": 0,
+      "sessions": 0,
+      "stocks": 0,
+      "write-receipts": 0
+    }
+  },
+  "failureDetails": []
+}

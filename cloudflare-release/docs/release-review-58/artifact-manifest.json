@@ -1,0 +1,14 @@
+{
+  "sourceCommit": "c85022a10e26e95afa8481fe1c657a390fa71ee4",
+  "status": "review-only",
+  "cloudflareVersionId": null,
+  "files": {
+    "worker.mjs": "bb4c87a5b840499563d76bf488ce3533104404dc3484b1f3e7ad3643d4c0fe6a",
+    "assets/admin.html": "c1126a92fc0b873e3ebde66b17cce00d5e141a02378b2047a50b8dee744153fe",
+    "assets/index.html": "57226907233191c4f31931c36c744281c779b0f71a9c803fa3e3c913b40bf430",
+    "assets/login.html": "ba09b3fd282c6590739a4bc5b24db2c817c485a7883c86c43d660ea5eba0f00e",
+    "assets/logo.png": "4da4c8b3ce9a6315b26def221612af34e6962f6fd2cfcdf5e902244576519d4d",
+    "assets/mobile.html": "283d00dad00f50d6d56a126a9e1d2b827cde3014a188f3f6f51db0e75ef67b7f"
+  },
+  "reviewArchiveSha256": "4e103d9aa6d242a1a0f83bce85354bd8efadd57286fb851b1c71aa2f6e02f25b"
+}
