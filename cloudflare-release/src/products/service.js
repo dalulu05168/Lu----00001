@@ -257,7 +257,7 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
     if (route==='/api/bulk-orders' && req.method==='POST') {
       const body=JSON.parse(await readBody(req,8192));
       cnProductId(body?.productId);
-      const prior=await cnReplayInternalOrder(db,session.accountId,req.headers['idempotency-key'],{productId:body.productId,side:body.side||'BUY',quantity:body.quantity,requestIntent:cnOrderIntent(body)});
+      const prior=await cnReplayInternalOrder(db,session.accountId,req.headers['idempotency-key'],{productId:body.productId,side:body.side||'BUY',quantity:body.quantity});
       if(prior)return send(res,200,prior);
       const item=(await db.query("SELECT * FROM cn_products WHERE id=$1 AND kind='BULK_STOCK' AND status='PUBLISHED'",[cnProductId(body?.productId)])).rows[0];
       if (!item) cnProductFail('Product unavailable',409);
@@ -270,7 +270,7 @@ async function cnProductsRoute(req, res, route, db, session, actor, resolveQuote
       const price=side==='BUY'?Number((BigInt(quote.priceCents)*BigInt(10000-item.discount_bps)+5000n)/10000n):quote.priceCents;
       if (body.expectedVersion!==item.version || body.expectedPriceCents!==price) cnProductFail('Price changed; confirm again',409);
       if (price<=0) cnProductFail('Invalid discounted price');
-      const result=await placeInternalOrder(db,session.accountId,req.headers['idempotency-key'],{requestIntent:cnOrderIntent(body),quoteEvidence:{timestampMs:quote.timestampMs,maxAgeMs:5*86400000,source:quote.source||'PRODUCT_REFERENCE',priceCents:price,referencePriceCents:quote.priceCents,fxUsdMicros:1000000,receivedAtMs:Date.now()},market:item.market,symbol:item.symbol,side,quantity:body.quantity,priceCents:price,fxUsdMicros:1000000,bulkTerms:side==='SELL'?undefined:{id:item.id,version:item.version,minimum:item.min_quantity,holdingDays:item.holding_days,discountBps:item.discount_bps,referencePrice:quote.priceCents,referenceTimestamp:new Date(quote.timestampMs).toISOString()}},randomUUID());
+      const result=await placeInternalOrder(db,session.accountId,req.headers['idempotency-key'],{market:item.market,symbol:item.symbol,side,quantity:body.quantity,priceCents:price,fxUsdMicros:1000000,bulkTerms:side==='SELL'?undefined:{id:item.id,version:item.version,minimum:item.min_quantity,holdingDays:item.holding_days,discountBps:item.discount_bps,referencePrice:quote.priceCents,referenceTimestamp:new Date(quote.timestampMs).toISOString()}},randomUUID());
       return send(res,result.replayed?200:201,result);
     }
     return send(res,405,{error:'Method not allowed'});

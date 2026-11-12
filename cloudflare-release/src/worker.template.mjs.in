@@ -6971,21 +6971,14 @@ import { randomUUID as randomUUID4 } from "node:crypto";
 
 // src/ledger.mjs
 var MARKETS2 = Object.freeze(["US", "HK", "CN", "MY"]);
-function cnTradeAmount({quantity,priceCents,fxUsdMicros=1000000}) {
- if(![quantity,priceCents,fxUsdMicros].every(v=>Number.isSafeInteger(v)&&v>0))throw Error('Invalid quantity, price or FX rate');
- const cents=(BigInt(quantity)*BigInt(priceCents)*BigInt(fxUsdMicros)+500000n)/1000000n;
- if(cents<=0n||cents>BigInt(Number.MAX_SAFE_INTEGER))throw Error('Amount overflow');return Number(cents);
-}
-function cnValidateTradeQuote(quote,now=Date.now()) {
- if(!quote||!Number.isFinite(quote.timestampMs)||!Number.isSafeInteger(quote.maxAgeMs)||quote.maxAgeMs<=0||quote.timestampMs>now+5000||now-quote.timestampMs>quote.maxAgeMs)throw Error('Verified market pricing expired while waiting for account');
-}
 function applyOrder(account, order) {
   const { side, symbol, market, quantity, priceCents, fxUsdMicros = 1e6 } = order;
   if (!["BUY", "SELL"].includes(side)) throw new Error("Invalid side");
   if (!MARKETS2.includes(market)) throw new Error("Invalid market");
   if (typeof symbol !== "string" || !/^[A-Z0-9.\-]{1,24}$/.test(symbol)) throw new Error("Invalid symbol");
   if (![quantity, priceCents, fxUsdMicros].every((v2) => Number.isSafeInteger(v2) && v2 > 0)) throw new Error("Invalid quantity, price or FX rate");
-  const cents = BigInt(cnTradeAmount(order));
+  const totalMicros = BigInt(quantity) * BigInt(priceCents) * BigInt(fxUsdMicros);
+  const cents = (totalMicros + 500000n) / 1000000n;
   if (cents <= 0n || cents > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Amount overflow");
   const amount = Number(cents);
   if (!Number.isSafeInteger(account?.cashCents) || account.cashCents < 0) throw new Error("Invalid cash balance");
@@ -7006,19 +6999,10 @@ function applyOrder(account, order) {
 __name(applyOrder, "applyOrder");
 
 // src/order-service.mjs
-function cnOrderIntent(input) {
- return input.productId?{route:'bulk',productId:input.productId,side:input.side||'BUY',quantity:input.quantity,expectedVersion:input.expectedVersion??null,expectedPriceCents:input.expectedPriceCents??null}:{route:'orders',market:input.market,symbol:input.symbol,side:input.side,quantity:input.quantity,limitPriceCents:input.limitPriceCents??null};
-}
-function cnCheckOrderIntent(row,intent) {
- if(!intent)return;
- if(row.request_intent){const keys=Object.keys(intent);if(keys.length!==Object.keys(row.request_intent).length||keys.some(k=>JSON.stringify(intent[k])!==JSON.stringify(row.request_intent[k])))cnProductFail('Idempotency payload mismatch',409);}
- else if(intent.route==='bulk'||intent.limitPriceCents!==null)cnProductFail('Legacy order receipt requires manual verification',409);
-}
 async function cnReplayInternalOrder(db,accountId,key,input){
   if(typeof key!=='string'||key.length<8||key.length>128)cnProductFail('Invalid idempotency key',400);
   const row=(await db.query('SELECT o.*,t.product_id AS bulk_product_id FROM orders o LEFT JOIN cn_bulk_order_terms t ON t.order_id=o.id WHERE o.account_id=$1 AND o.idempotency_key=$2',[accountId,key])).rows[0];
   if(!row)return null;
-  cnCheckOrderIntent(row,input.requestIntent);
   if(row.side!==input.side||Number(row.quantity)!==input.quantity||(input.productId?row.bulk_product_id!==input.productId:row.market!==input.market||row.symbol!==input.symbol))cnProductFail('Idempotency payload mismatch',409);
   return {replayed:true,order:{id:row.id,market:row.market,symbol:row.symbol,side:row.side,quantity:Number(row.quantity),priceCents:Number(row.price_cents),fxUsdMicros:Number(row.fx_usd_micros),amountCents:Number(row.amount_usd_cents)}};
 }
@@ -7036,7 +7020,6 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
     const existing = await client.query("SELECT * FROM orders WHERE account_id=$1 AND idempotency_key=$2", [accountId, key2]);
     if (existing.rows.length) {
       const prior=existing.rows[0];
-      cnCheckOrderIntent(prior,input2.requestIntent);
       if(prior.market!==input2.market||prior.symbol!==input2.symbol||prior.side!==input2.side||Number(prior.quantity)!==input2.quantity)cnProductFail('Idempotency payload mismatch',409);
       await client.query("COMMIT");
       transactionStarted = false;
@@ -7056,10 +7039,9 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
     }
     if(input2.side==='BUY'){
       const frozen=await pendingWithdrawCents(client,accountId);
-      const amount=cnTradeAmount(input2);
+      const amount=Math.round(input2.priceCents*input2.quantity*input2.fxUsdMicros/1000000);
       if(account.cashCents-frozen<amount)cnProductFail('Insufficient available balance',409);
     }
-    if(input2.quoteEvidence)cnValidateTradeQuote(input2.quoteEvidence);
     const updated = applyOrder(account, input2);
     const order = updated.orders[0];
     const position = updated.positions[order.market + ":" + order.symbol];
@@ -7070,9 +7052,9 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
       [accountId, order.market, order.symbol, position]
     );
     await client.query(
-      `INSERT INTO orders(id,account_id,idempotency_key,market,symbol,side,quantity,price_cents,fx_usd_micros,amount_usd_cents,request_intent,quote_evidence)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb)`,
-      [newOrderId, accountId, key2, order.market, order.symbol, order.side, order.quantity, order.priceCents, order.fxUsdMicros, order.amountCents, input2.requestIntent?JSON.stringify(input2.requestIntent):null, input2.quoteEvidence?JSON.stringify(input2.quoteEvidence):null]
+      `INSERT INTO orders(id,account_id,idempotency_key,market,symbol,side,quantity,price_cents,fx_usd_micros,amount_usd_cents)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [newOrderId, accountId, key2, order.market, order.symbol, order.side, order.quantity, order.priceCents, order.fxUsdMicros, order.amountCents]
     );
     await client.query(
       "INSERT INTO cash_ledger(account_id,order_id,delta_cents,balance_after_cents) VALUES($1,$2,$3,$4)",
@@ -7162,17 +7144,6 @@ async function logoutAccount(db, token) {
 }
 __name(logoutAccount, "logoutAccount");
 async function getAccountSnapshot(db, accountId) {
- const tx=await db.connect();
- try{
-  await tx.query('BEGIN');
-  const locked=await tx.query('SELECT id FROM accounts WHERE id=$1 FOR SHARE',[accountId]);
-  if(locked.rows.length!==1)throw Error('Account not found');
-  const snapshot=await cnReadAccountSnapshot(tx,accountId);
-  await tx.query('COMMIT');return snapshot;
- }catch(error){await tx.query('ROLLBACK').catch(()=>{});throw error;}
- finally{await tx.release();}
-}
-async function cnReadAccountSnapshot(db, accountId) {
   const a2 = await db.query("SELECT id,cash_cents,base_currency,(SELECT COALESCE(SUM(principal_cents),0) FROM cn_fund_contracts WHERE account_id=accounts.id AND status=\'ACTIVE\') AS active_fund_principal_cents FROM accounts WHERE id=$1", [accountId]);
   if (a2.rows.length !== 1) throw new Error("Account not found");
   const [p2] = await Promise.all([
@@ -7197,7 +7168,7 @@ async function cnReadAccountSnapshot(db, accountId) {
   const history=[];
   let cursor=null;
   for (;;) {
-    const page=await db.query("SELECT id,market,symbol,side,quantity,price_cents,fx_usd_micros,amount_usd_cents,created_at FROM orders WHERE account_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)>($2::timestamptz,$3::uuid)) ORDER BY created_at,id LIMIT 500",[accountId,cursor?.created_at??null,cursor?.id??null]);
+    const page=await db.query("SELECT id,market,symbol,side,quantity,price_cents,amount_usd_cents,created_at FROM orders WHERE account_id=$1 AND ($2::timestamptz IS NULL OR (created_at,id)>($2::timestamptz,$3::uuid)) ORDER BY created_at,id LIMIT 500",[accountId,cursor?.created_at??null,cursor?.id??null]);
     history.push(...page.rows);
     if(page.rows.length<500)break;
     cursor=page.rows[page.rows.length-1];
@@ -7224,7 +7195,7 @@ async function cnReadAccountSnapshot(db, accountId) {
   const reservedWithdrawalCents=await pendingWithdrawCents(db,accountId);
   const extra=(await db.query("SELECT (SELECT COALESCE(SUM(amount_cents),0) FROM product_settlement_cash_holds WHERE account_id=$1 AND released_at IS NULL) AS ipo_reserved_cents,(SELECT COALESCE(SUM(FLOOR(p.quantity_micros::numeric*t.unit_price_micros/10000000000)),0) FROM product_settlement_positions p JOIN LATERAL (SELECT unit_price_micros FROM product_settlement_terms WHERE product_id=p.product_id AND reviewed_at IS NOT NULL AND effective_date<=current_date ORDER BY effective_date DESC,reviewed_at DESC,id DESC LIMIT 1) t ON true WHERE p.account_id=$1 AND p.quantity_micros>0) AS settlement_value_cents",[accountId])).rows[0];
   const statistics={tradeTotal:tradeCents/100,realizedPnl:realizedCents/100};
-  return { account: { id: a2.rows[0].id, cashCents: Number(a2.rows[0].cash_cents), activeFundPrincipalCents: Number(a2.rows[0].active_fund_principal_cents), currency: a2.rows[0].base_currency, reservedWithdrawalCents, availableCashCents:Math.max(0,Number(a2.rows[0].cash_cents)-reservedWithdrawalCents), ipoReservedCashCents:Number(extra.ipo_reserved_cents), settlementPositionValueCents:Number(extra.settlement_value_cents) }, positions: p2.rows, orders: history.reverse(), ...statistics, disclosure: "客户持有平台内部记账权益，不代表实际登记的上市证券。平台内部执行交易并记录资金、持仓及盈亏，不进行客户间撮合，也不向外部券商购买对应股票。外部行情仅提供报价参考。" };
+  return { account: { id: a2.rows[0].id, cashCents: Number(a2.rows[0].cash_cents), activeFundPrincipalCents: Number(a2.rows[0].active_fund_principal_cents), currency: a2.rows[0].base_currency, reservedWithdrawalCents, availableCashCents:Math.max(0,Number(a2.rows[0].cash_cents)-reservedWithdrawalCents), ipoReservedCashCents:Number(extra.ipo_reserved_cents), settlementPositionValueCents:Number(extra.settlement_value_cents) }, positions: p2.rows, orders: history.reverse(), ...statistics, disclosure: "Internal records only; no brokerage orders or real securities ownership." };
 }
 __name(getAccountSnapshot, "getAccountSnapshot");
 
@@ -7829,14 +7800,11 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
             try{
               const q=resolveProductQuote&&await resolveProductQuote(p);
               if(!q||q.market!==p.market||q.symbol!==p.symbol||!Number.isSafeInteger(q.priceCents)||q.priceCents<=0)throw Error('Missing valuation quote');
-              const value=cnTradeAmount({priceCents:q.priceCents,quantity:Number(p.quantity),fxUsdMicros:1000000});
-              p.valuation={basis:'REFERENCE_QUOTE',estimated:false,timestamp:Number.isFinite(q.timestampMs)?new Date(q.timestampMs).toISOString():null,source:q.source||'PRODUCT_REFERENCE',currency:'USD'};
-              return value;
+              return q.priceCents*Number(p.quantity);
             }catch{
               snapshot.valuationEstimated=true;
               const last=snapshot.orders.find(o=>o.market===p.market&&o.symbol===p.symbol);
-              p.valuation={basis:last?'LAST_EXECUTION':'COST',estimated:true,timestamp:last?.created_at??null,currency:'USD'};
-              return last?cnTradeAmount({priceCents:Number(last.price_cents),quantity:Number(p.quantity),fxUsdMicros:Number(last.fx_usd_micros)}):p.cost_cents==null?null:Number(p.cost_cents);
+              return last?Number(last.price_cents)*Number(p.quantity):p.cost_cents==null?null:Number(p.cost_cents);
             }
           }));
           values.push(...batch);
@@ -7879,7 +7847,7 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
       if (Object.keys(data).some((k) => !allowed.includes(k))) return send(res, 400, { error: "Unexpected fields" });
       const restrictions=await db.query("SELECT 1 FROM cn_client_controls WHERE user_id=$1 AND account_type='READ_ONLY'",[session.userId]);
       if(restrictions.rows.length)return send(res,403,{error:"Read-only account"});
-      const priorOrder=await cnReplayInternalOrder(db,session.accountId,key2,{...data,requestIntent:cnOrderIntent(data)});
+      const priorOrder=await cnReplayInternalOrder(db,session.accountId,key2,data);
       if(priorOrder)return send(res,200,priorOrder);
       const useReference=data.market==='US'&&Object.hasOwn(commodityReferenceIds,data.symbol)&&typeof resolveCommodityReferencePrice==='function';
       if(useReference&&data.side==='BUY'){
@@ -7901,8 +7869,6 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
         return send(res, 503, { error: "Verified market pricing unavailable" });
       if(data.limitPriceCents!==undefined&&verified.priceCents>data.limitPriceCents)return send(res,409,{error:"Quote exceeds buy limit"});
       const result = await placeInternalOrder(db, session.accountId, key2, {
-        requestIntent:cnOrderIntent(data),
-        quoteEvidence:{timestampMs:verified.timestampMs,maxAgeMs:useReference?commodityReferenceMaxAge:useDelayed?5*86400000:60000,source:verified.source||(useDelayed?'PRODUCT_REFERENCE':'EXECUTION_PROVIDER'),priceCents:verified.priceCents,fxUsdMicros:verified.fxUsdMicros,receivedAtMs:Date.now()},
         side: data.side,
         market: data.market,
         symbol: data.symbol,
@@ -8285,7 +8251,7 @@ export { releaseWorker as default };
      *)
   *)
 */
-//# sourceMappingURL=worker.js.map
+
 
 
 
