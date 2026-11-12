@@ -206,7 +206,7 @@ async function sendCustomerMessage(browser,kind,token,message){
     await expectButtonResult(owner,cashDetail.getByRole('button',{name:'初审通过'}),admin('requests'),200,'POST');
     await expectButtonResult(owner,cashDetail.getByRole('button',{name:'确认入账'}),admin('requests'),200,'POST');
     assert.equal((await api('/api/account',200,freshA)).account.cashCents,3000);
-    await api(admin('requests'),400,master,{id:deposit.id,decision:'APPROVE'});
+    await api(admin('requests'),409,master,{id:deposit.id,decision:'APPROVE',expectedStatus:'REVIEWED'});
 
     await api(admin('clients'),200,agentA.token,{email:a,field:'withdraw_policy',value:'ALLOW',reason:'QA restore'},'PATCH');
     await api('/api/withdrawal-pin',200,freshA,{password,pin:'472863'});
@@ -219,7 +219,7 @@ async function sendCustomerMessage(browser,kind,token,message){
     await expectButtonResult(owner,cashDetail.getByRole('button',{name:'初审通过'}),admin('requests'),200,'POST');
     await expectButtonResult(owner,cashDetail.getByRole('button',{name:'确认入账'}),admin('requests'),200,'POST');
     assert.equal((await api('/api/account',200,freshA)).account.cashCents,2000);
-    await api(admin('requests'),400,master,{id:withdrawal.id,decision:'APPROVE'});
+    await api(admin('requests'),409,master,{id:withdrawal.id,decision:'APPROVE',expectedStatus:'REVIEWED'});
     console.log('Master-only deposit and withdrawal review, filters and one ledger entry per request verified');
     const messageA='QA owned message '+stamp,messageB='QA other message '+stamp;
     await sendCustomerMessage(browser,'desktop',freshA,messageA);

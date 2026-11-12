@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.cjs",
+    "build:dev": "node scripts/build.cjs --development",
     "test": "node scripts/acceptance.cjs"
   },
   "engines": {

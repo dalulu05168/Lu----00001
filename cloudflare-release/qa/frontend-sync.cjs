@@ -22,9 +22,9 @@ async function api(route,token,body,method=body?'POST':'GET',status=200){const r
   const desktop=await open('desktop'),mobile=await open('mobile');await mobile.locator('p.notice').filter({hasText:'客户持有平台内部记账权益'}).waitFor();
   const focus=async p=>{await p.bringToFront();await p.evaluate(()=>{document.activeElement?.blur();window.dispatchEvent(new Event('focus'));});};
   const deposit=await api('/api/requests',token,{kind:'DEPOSIT',amountCents:123456},'POST',201);
-  await api('/api/admin/requests',master,{id:deposit.id,decision:'APPROVE',reason:'隔离前后台资金联动测试'});
+  await api('/api/admin/requests',master,{id:deposit.id,decision:'APPROVE',expectedStatus:'PENDING',reason:'隔离前后台资金联动测试'});
   assert.equal((await api('/api/account',token)).account.cashCents,0);
-  await api('/api/admin/requests',master,{id:deposit.id,decision:'APPROVE',reason:'隔离前后台资金终审测试'});
+  await api('/api/admin/requests',master,{id:deposit.id,decision:'APPROVE',expectedStatus:'REVIEWED',reason:'隔离前后台资金终审测试'});
   await focus(desktop);await focus(mobile);
   try{await desktop.locator('[data-b=cash]').first().getByText('1,234.56',{exact:true}).waitFor();}catch(e){console.log('desktop diagnostic',await desktop.evaluate(()=>({hidden:document.hidden,url:location.href,cash:[...document.querySelectorAll('[data-b=cash]')].map(x=>({text:x.textContent,visible:!!x.getClientRects().length})),dialogs:[...document.querySelectorAll('dialog[open],.mask.open')].map(x=>x.id),fields:[...document.querySelectorAll('form input,form textarea,form select')].filter(x=>x.getClientRects().length&&x.value).map(x=>({name:x.name,type:x.type})),errors:document.body.innerText.slice(-150)})),'pageErrors',errors);await desktop.screenshot({path:path.join(out,'failed-desktop.png'),fullPage:true});throw e;}await mobile.locator('.real-account .balance').filter({hasText:'1,234.56'}).waitFor();
   checks.push('two-stage admin approval updates desktop and mobile balance after focus without client-side ledger inference');
@@ -32,9 +32,9 @@ async function api(route,token,body,method=body?'POST':'GET',status=200){const r
   const withdrawal=await api('/api/requests',token,{kind:'WITHDRAW',amountCents:23456,withdrawalPin:'123456'},'POST',201);
   let snapshot=await api('/api/account',token);assert.equal(snapshot.account.cashCents,123456);assert.equal(snapshot.account.availableCashCents,100000);
   await focus(mobile);await mobile.locator('.real-account .balance').filter({hasText:'1,000.00'}).waitFor({timeout:35000});
-  await api('/api/admin/requests',master,{id:withdrawal.id,decision:'APPROVE',reason:'隔离出金申请初审联动'});
+  await api('/api/admin/requests',master,{id:withdrawal.id,decision:'APPROVE',expectedStatus:'PENDING',reason:'隔离出金申请初审联动'});
   assert.equal((await api('/api/account',token)).account.cashCents,123456);
-  await api('/api/admin/requests',master,{id:withdrawal.id,decision:'APPROVE',reason:'隔离出金申请终审联动'});
+  await api('/api/admin/requests',master,{id:withdrawal.id,decision:'APPROVE',expectedStatus:'REVIEWED',reason:'隔离出金申请终审联动'});
   snapshot=await api('/api/account',token);assert.equal(snapshot.account.cashCents,100000);assert.equal(snapshot.account.reservedWithdrawalCents,0);
   await focus(desktop);await desktop.locator('[data-b=cash]').first().getByText('1,000.00',{exact:true}).waitFor();
   await mobile.locator('nav [data-go=mine]').click();await mobile.locator('[data-business=requests]').click();
@@ -42,7 +42,7 @@ async function api(route,token,body,method=body?'POST':'GET',status=200){const r
   checks.push('withdrawal reserves only available balance, initial review does not debit and final review synchronizes cash and status');
   const rejected=await api('/api/requests',token,{kind:'WITHDRAW',amountCents:10000,withdrawalPin:'123456'},'POST',201);
   assert.equal((await api('/api/account',token)).account.availableCashCents,90000);
-  await api('/api/admin/requests',master,{id:rejected.id,decision:'REJECT',reason:'隔离出金驳回保留余额测试'});
+  await api('/api/admin/requests',master,{id:rejected.id,decision:'REJECT',expectedStatus:'PENDING',reason:'隔离出金驳回保留余额测试'});
   snapshot=await api('/api/account',token);assert.equal(snapshot.account.cashCents,100000);assert.equal(snapshot.account.availableCashCents,100000);
   await focus(mobile);await mobile.locator('.panel').filter({hasText:rejected.id}).getByText('审核未通过',{exact:true}).waitFor({timeout:35000});
   checks.push('withdrawal rejection releases reserved funds without debit and refreshes customer request status');

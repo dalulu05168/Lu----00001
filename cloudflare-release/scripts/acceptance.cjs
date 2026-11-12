@@ -2,13 +2,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {fork,spawn} = require('node:child_process');
 const root = path.resolve(__dirname,'..');
-const testedSha=require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(root,'dist/worker.mjs'))).digest('hex');
+const development=process.argv.includes('--development');
+const workerPath=path.join(root,development?'dist-dev':'dist','worker.mjs');
+const testedSha=require('node:crypto').createHash('sha256').update(fs.readFileSync(workerPath)).digest('hex');
 fs.mkdirSync(path.join(root,'artifacts'),{recursive:true});
 const out=fs.mkdtempSync(path.join(root,'artifacts','acceptance-'));
-const suites={"news":["news-browser.cjs",8916],"browser-sessions":["browser-sessions.cjs",8915],"security":["security.cjs",8914],"quote-guards":["quote-guards.cjs",8913],"notification-session":["notification-session.cjs",8912],"product-recovery":["product-recovery.cjs",8911],"admin-funding":["admin-funding.cjs",8910],"order-concurrency":["order-concurrency.cjs",8908],"layout-controls":["layout-controls.cjs",8907],"write-receipts":["write-receipts.cjs",8906],"experience":["experience.cjs",8905],"product-notifications":["product-notifications.cjs",8904],"mirror":["mirror-operations.cjs",8903],"contracts":["api-contracts.cjs",8902],"charts":["chart-render.cjs",8901],"product-browser":["product-browser.cjs",8900],"products":["products.cjs",8891],"permissions":["permissions.cjs",8892],"registration":["registration.cjs",8893],"stocks":["stocks.cjs",8894],"interface":["interface.cjs",8895],"sessions":["sessions.cjs",8896],"reference":["reference.cjs",8897],"forms":["forms.cjs",8898],"access":["access.cjs",8899]};
+const suites={"admin-next":["admin-next.cjs",8918],"funding-safety":["funding-safety.cjs",8917],"news":["news-browser.cjs",8916],"browser-sessions":["browser-sessions.cjs",8915],"security":["security.cjs",8914],"quote-guards":["quote-guards.cjs",8919],"notification-session":["notification-session.cjs",8912],"product-recovery":["product-recovery.cjs",8911],"admin-funding":["admin-funding.cjs",8910],"order-concurrency":["order-concurrency.cjs",8908],"layout-controls":["layout-controls.cjs",8907],"write-receipts":["write-receipts.cjs",8906],"experience":["experience.cjs",8905],"product-notifications":["product-notifications.cjs",8904],"mirror":["mirror-operations.cjs",8903],"contracts":["api-contracts.cjs",8902],"charts":["chart-render.cjs",8901],"product-browser":["product-browser.cjs",8900],"products":["products.cjs",8891],"permissions":["permissions.cjs",8892],"registration":["registration.cjs",8893],"stocks":["stocks.cjs",8894],"interface":["interface.cjs",8895],"sessions":["sessions.cjs",8896],"reference":["reference.cjs",8897],"forms":["forms.cjs",8898],"access":["access.cjs",8899]};
 async function run(name) {
  const [file,port]=suites[name],dir=path.join(out,name);fs.mkdirSync(dir);
- const env={...process.env,CN_QA_SECURITY:['security','browser-sessions'].includes(name)?'1':'0',CN_ACCEPTANCE_SOURCE:path.join(root,'dist','worker.mjs'),CN_QA_SAVE_DIR:dir,CN_OPS_QA_PORT:String(port),CN_ACCEPTANCE_PG_PORT:String(port+6600),CN_OPS_MASTER_FILE:path.join(dir,'fixture-master.json'),CN_OPS_LIVE_UI:'1',CN_REFERENCE_FIXTURE:name==='reference'?'1':'0'};
+ const env={...process.env,CN_QA_CONCURRENT_FUNDING:name==='funding-safety'?'1':'0',CN_QA_SECURITY:['security','browser-sessions','funding-safety'].includes(name)?'1':'0',CN_ACCEPTANCE_SOURCE:workerPath,CN_QA_SAVE_DIR:dir,CN_OPS_QA_PORT:String(port),CN_ACCEPTANCE_PG_PORT:String(port+6600),CN_OPS_MASTER_FILE:path.join(dir,'fixture-master.json'),CN_OPS_LIVE_UI:'1',CN_REFERENCE_FIXTURE:name==='reference'?'1':'0'};
  if(name==='reference')env.CN_QUOTE_REPORT=path.join(root,'qa','reference-quote-report.json');
  return new Promise(resolve=>{
   const log=fs.createWriteStream(path.join(dir,'qa.log'));
@@ -31,11 +33,12 @@ async function run(name) {
  });
 }
 (async()=>{
- const names=process.argv.slice(2).length?process.argv.slice(2):Object.keys(suites);
+ const requested=process.argv.slice(2).filter(arg=>arg!=='--development');
+ const names=requested.length?requested:Object.keys(suites);
  for(const name of names)if(!suites[name])throw Error('Unknown suite '+name);
  const result=[];
  for(const name of names)result.push(await run(name));
- fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({sourceSha256:testedSha,sourceUnchanged:testedSha===require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(root,'dist/worker.mjs'))).digest('hex'),productionVersion:require('../release-manifest.json').version,checkedAt:new Date().toISOString(),results:result},null,2));
- console.log('Evidence '+out); console.log(JSON.stringify(result));process.exitCode=result.some(x=>x.code!==0)||testedSha!==require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(root,'dist/worker.mjs'))).digest('hex')?1:0;
+ fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({sourceSha256:testedSha,sourceUnchanged:testedSha===require('node:crypto').createHash('sha256').update(fs.readFileSync(workerPath)).digest('hex'),productionVersion:development?null:require('../release-manifest.json').version,checkedAt:new Date().toISOString(),results:result},null,2));
+ console.log('Evidence '+out); console.log(JSON.stringify(result));process.exitCode=result.some(x=>x.code!==0)||testedSha!==require('node:crypto').createHash('sha256').update(fs.readFileSync(workerPath)).digest('hex')?1:0;
 })().catch(e=>{console.error(e.stack);process.exitCode=1});
 

@@ -19,7 +19,7 @@ const { Pool } = require('pg');
  }
  const socket = new PGLiteSocketServer({db,host:'127.0.0.1',port:Number(process.env.CN_ACCEPTANCE_PG_PORT),maxConnections:process.env.CN_QA_SECURITY==='1'?4:1});
  await socket.start();
- const pool = new Pool({connectionString:'postgresql://postgres@127.0.0.1:'+process.env.CN_ACCEPTANCE_PG_PORT+'/postgres',max:1});
+ const pool = new Pool({connectionString:'postgresql://postgres@127.0.0.1:'+process.env.CN_ACCEPTANCE_PG_PORT+'/postgres',max:process.env.CN_QA_CONCURRENT_FUNDING==='1'?3:1});
  pool.on('connect',client=>{
   const query=client.query.bind(client);
   client.query=function(sql,values,...rest){
@@ -55,7 +55,8 @@ const { Pool } = require('pg');
   },()=>Math.max(...rows.map(x=>x.last[0]))+1000);
  }
  // Historical replay retains recorded prices; its execution clock is relative to this isolated run.
- const listener=app.createApi({db:pool,resolveSession:app.createSessionResolver(pool),resolveExecutionPrice:reference?undefined:async({side,symbol})=>['AAPL','NVDA','SPY'].includes(symbol)?{priceCents:side==='BUY'?1234:1233,fxUsdMicros:1000000,timestampMs:Date.now()}:null,resolveCommodityReferencePrice:reference?async input=>({...await reference(input),timestampMs:Date.now()-60000}):undefined,resolveProductQuote:async({symbol,market})=>{const file=path.join(dir,'quote-fault.json'),patch=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};return {symbol,market,name:symbol==='AAPL'?'Apple Inc':'NVIDIA Corp',priceCents:35069,timestampMs:Date.now()-60000,...patch};}}).listen(Number(process.env.CN_OPS_QA_PORT),'127.0.0.1',()=>console.log('Isolated local QA API ready'));
+ const fixtureQuoteTimestamp=Date.now()-60000;
+ const listener=app.createApi({db:pool,resolveSession:app.createSessionResolver(pool),resolveExecutionPrice:reference?undefined:async({side,symbol})=>['AAPL','NVDA','SPY'].includes(symbol)?{priceCents:side==='BUY'?1234:1233,fxUsdMicros:1000000,timestampMs:Date.now()}:null,resolveCommodityReferencePrice:reference?async input=>({...await reference(input),timestampMs:Date.now()-60000}):undefined,resolveProductQuote:async({symbol,market})=>{const file=path.join(dir,'quote-fault.json'),patch=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};return {symbol,market,name:symbol==='AAPL'?'Apple Inc':'NVIDIA Corp',priceCents:35069,timestampMs:fixtureQuoteTimestamp,...patch};}}).listen(Number(process.env.CN_OPS_QA_PORT),'127.0.0.1',()=>console.log('Isolated local QA API ready'));
  process.on('message',async()=>{
   listener.close();
   const audit=(await pool.query('SELECT action,count(*)::int AS count FROM admin_audit_log GROUP BY action ORDER BY action')).rows;

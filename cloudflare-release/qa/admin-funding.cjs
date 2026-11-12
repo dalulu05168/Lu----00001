@@ -21,10 +21,10 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
   }
  }
  const ca=agents[0].clients[0],cb=agents[1].clients[0];
- async function deposit(client,amount){const r=await api('/api/requests',201,client.token,{kind:'DEPOSIT',amountCents:amount});for(let n=0;n<2;n++)await api('/api/admin/requests',200,master,{id:r.id,decision:'APPROVE'});return r}
+ async function deposit(client,amount){const r=await api('/api/requests',201,client.token,{kind:'DEPOSIT',amountCents:amount});for(let n=0;n<2;n++)await api('/api/admin/requests',200,master,{id:r.id,decision:'APPROVE',expectedStatus:n===0?'PENDING':'REVIEWED'});return r}
  await deposit(ca,10000);await deposit(cb,30000);
  await api('/api/withdrawal-pin',200,ca.token,{password,pin:'123456'});
- const withdraw=await api('/api/requests',201,ca.token,{kind:'WITHDRAW',amountCents:4000,withdrawalPin:'123456'});for(let n=0;n<2;n++)await api('/api/admin/requests',200,master,{id:withdraw.id,decision:'APPROVE'});
+ const withdraw=await api('/api/requests',201,ca.token,{kind:'WITHDRAW',amountCents:4000,withdrawalPin:'123456'});for(let n=0;n<2;n++)await api('/api/admin/requests',200,master,{id:withdraw.id,decision:'APPROVE',expectedStatus:n===0?'PENDING':'REVIEWED'});
  await api('/api/requests',201,cb.token,{kind:'DEPOSIT',amountCents:2000});
  const overview=async(token,email='')=>api('/api/admin/funding-overview?'+new URLSearchParams({subaccount:email}),200,token);
  const all=await overview(master),a=await overview(master,agents[0].email),b=await overview(master,agents[1].email),empty=await overview(master,agents[2].email);
@@ -71,13 +71,13 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
  if(process.env.CN_QA_CASH_AUDIT==='1'){
   const request=await api('/api/requests',201,ca.token,{kind:'DEPOSIT',amountCents:1234});
   const decision={id:request.id,decision:'APPROVE',reason:'隔离测试核对资金审批审计'};
-  await api('/api/admin/requests',200,master,decision);
+  await api('/api/admin/requests',200,master,{...decision,expectedStatus:'PENDING'});
   const flag=path.join(dir,'reject-cash-audit');
   fs.writeFileSync(flag,'');
-  try{await api('/api/admin/requests',500,master,decision)}finally{fs.unlinkSync(flag)}
+  try{await api('/api/admin/requests',500,master,{...decision,expectedStatus:'REVIEWED'})}finally{fs.unlinkSync(flag)}
   assert.equal((await api('/api/account',200,ca.token)).account.cashCents,6000);
   assert.equal((await api('/api/admin/requests',200,master)).items.find(row=>row.id===request.id).status,'REVIEWED');
-  await api('/api/admin/requests',200,master,decision);
+  await api('/api/admin/requests',200,master,{...decision,expectedStatus:'REVIEWED'});
   assert.equal((await api('/api/account',200,ca.token)).account.cashCents,7234);
   const audit=(await api('/api/admin/audit?limit=100',200,master)).items.filter(row=>row.target===request.id&&row.action==='cash_request.approve');
   assert.equal(audit.length,1);assert.equal(audit[0].detail.reason,decision.reason);

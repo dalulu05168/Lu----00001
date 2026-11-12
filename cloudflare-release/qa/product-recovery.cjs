@@ -13,7 +13,7 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
   await api('/api/profile-documents',201,client,doc);const review=await api('/api/admin/profile-documents?'+new URLSearchParams({email,kind:doc.kind}),200,agent);
   await api('/api/admin/profile-documents',200,agent,{email,kind:doc.kind,status:'APPROVED',version:review.version},'PATCH');
  }
- const deposit=await api('/api/requests',201,client,{kind:'DEPOSIT',amountCents:100000});for(let n=0;n<2;n++)await api('/api/admin/requests',200,master,{id:deposit.id,decision:'APPROVE'});
+ const deposit=await api('/api/requests',201,client,{kind:'DEPOSIT',amountCents:100000});for(let n=0;n<2;n++)await api('/api/admin/requests',200,master,{id:deposit.id,decision:'APPROVE',expectedStatus:n===0?'PENDING':'REVIEWED'});
  async function settlement(kind,symbol,price){const p=await api('/api/admin/product-settlement',201,master,{action:'create',kind,symbol,name:symbol}),t=await api('/api/admin/product-settlement',201,master,{action:'enter-price',product:p.id,date:new Date().toISOString().slice(0,10),price});await api('/api/admin/product-settlement',200,master,{action:'review-price',terms:t.id,price});return p.id}
  const ipo=await settlement('IPO','RETRYIPO','10000000'),fund=await settlement('MUTUAL_FUND','RETRYFUND','1250000');
  const term=await api('/api/admin/products',201,master,{kind:'TERM_FUND',name:'恢复验收期限基金',status:'PUBLISHED',tiers:[{principalCents:5000,holdingDays:7,profitBps:100}]});

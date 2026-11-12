@@ -21,7 +21,7 @@ async function ok(route,status,token,body,key,method){const r=await call(route,t
  }
 
  const deposit=await ok('/api/requests',201,token,{kind:'DEPOSIT',amountCents:100000},randomUUID());
- for(let i=0;i<2;i++)await ok('/api/admin/requests',200,master,{id:deposit.id,decision:'APPROVE'});
+ for(let i=0;i<2;i++)await ok('/api/admin/requests',200,master,{id:deposit.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED'});
  await ok('/api/admin/listings',201,master,{market:'US',itemType:'STOCK',symbol:'AAPL',name:'Apple',status:'PUBLISHED',tradePin:'749286'});
  const buy={market:'US',symbol:'AAPL',side:'BUY',quantity:1,limitPriceCents:1300,tradePin:'749286'},key=randomUUID();
  const repeated=await Promise.all(Array.from({length:12},()=>call('/api/orders',token,buy,key)));

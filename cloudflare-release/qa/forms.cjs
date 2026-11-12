@@ -116,7 +116,7 @@ async function createAgent(master,idx,client){
    assert.equal(recoveredMessage.id,lostMessage.id);assert.equal(recoveredMessage.replayed,true);
    await p.locator('#chat-send-status').getByText(/消息已发送/).waitFor();
    await p.locator('#csx').click();
-   console.log(kind,'approving deposit');for(let step=0;step<2;step++)await api(admin('requests'),200,master,{id:dep.id,decision:'APPROVE'});
+   console.log(kind,'approving deposit');for(let step=0;step<2;step++)await api(admin('requests'),200,master,{id:dep.id,decision:'APPROVE',expectedStatus:step===0?'PENDING':'REVIEWED'});
    await p.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});await p.close();
    p=await open(kind,token);
    await p.locator(mobile?'[data-a=sheet][data-v=wd]':'[data-open=m-dep]:visible').first().click();if(!mobile)await p.locator('#dtype').selectOption({label:'提现申请'});
@@ -130,7 +130,7 @@ async function createAgent(master,idx,client){
    await submit(p,mobile?'#sb':'#f-dep button[type=submit]','/api/requests',403);
    await pin.fill('472863');
    const wd=await submit(p,mobile?'#sb':'#f-dep button[type=submit]','/api/requests');
-   for(let step=0;step<2;step++)await api(admin('requests'),200,master,{id:wd.id,decision:'APPROVE'});
+   for(let step=0;step<2;step++)await api(admin('requests'),200,master,{id:wd.id,decision:'APPROVE',expectedStatus:step===0?'PENDING':'REVIEWED'});
    const state=await api('/api/account',200,token);assert.equal(state.account.cashCents,40000);
    records.push({kind,email,balance:state.account.cashCents,deposit:dep.id,withdrawal:wd.id});
    await p.unrouteAll({behavior:'ignoreErrors'});await p.unrouteAll({behavior:'ignoreErrors'});await p.close();console.log(kind+' identity/bank forms, deposit without PIN, wrong/correct withdrawal PIN and cash reconciliation passed');
@@ -159,7 +159,7 @@ async function createAgent(master,idx,client){
    await enter('funding');await p.locator('[name=amount]').fill('500');
    // No withdrawal password supplied for a deposit.
    const dep=await submit(p,'form button','/api/requests');await p.getByRole('status').waitFor();
-   for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:dep.id,decision:'APPROVE'});
+   for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:dep.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED'});
    await p.locator('[data-business=pin]').click();
    await p.locator('[name=password]').fill(password);await p.locator('[name=pin]').fill('472863');
    await submit(p,'form button','/api/withdrawal-pin',200);await p.getByRole('status').waitFor();
@@ -173,7 +173,7 @@ async function createAgent(master,idx,client){
    await p.locator('[name=kind]').selectOption('WITHDRAW');await p.locator('[name=amount]').fill('100');
    await p.locator('[name=withdrawalPin]').fill('472863');
    const wd=await submit(p,'form button','/api/requests');
-   for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:wd.id,decision:'APPROVE'});
+   for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:wd.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED'});
    assert.equal((await api('/api/account',200,token)).account.cashCents,40000);
    records.push({kind:'mobile',email,balance:40000,deposit:dep.id,withdrawal:wd.id});
    await p.unrouteAll({behavior:'ignoreErrors'});await p.close();

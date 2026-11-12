@@ -6174,13 +6174,13 @@ function normalizeAmount(value) {
   return n;
 }
 __name(normalizeAmount, "normalizeAmount");
-async function pendingWithdrawCents(db, accountId, excludeId = null, exact = false) {
+async function pendingWithdrawCents(db, accountId, excludeId = null) {
   const r = await db.query(
-    `select coalesce(sum(amount_cents),0)::bigint as total from cash_requests
+    `select coalesce(sum(amount_cents),0)::text as total from cash_requests
      where account_id=$1 and kind='WITHDRAW' and status in ('PENDING','REVIEWED') and ($2::uuid is null or id<>$2)`,
     [accountId, excludeId]
   );
-  return exact ? BigInt(r.rows[0].total) : Number(r.rows[0].total);
+  return BigInt(r.rows[0].total);
 }
 __name(pendingWithdrawCents, "pendingWithdrawCents");
 async function cnClaimWrite(tx,userId,route,key,body){
@@ -6211,9 +6211,9 @@ async function createCashRequest(db, { accountId, userId, kind, amountCents, met
     if (kind === "WITHDRAW") {
       const restriction=await client.query("SELECT 1 FROM cn_client_controls WHERE user_id=$1 AND withdraw_policy='DENY'",[userId]);
       if(restriction.rows.length) invalid2("Withdrawals restricted");
-      const cash = Number(account.rows[0].cash_cents);
+      const cash = BigInt(account.rows[0].cash_cents);
       const frozen = await pendingWithdrawCents(client, accountId);
-      if (cash - frozen < amount) invalid2("Insufficient available balance");
+      if (cash - frozen < BigInt(amount)) invalid2("Insufficient available balance");
     }
     const id = randomUUID2();
     await client.query(
@@ -6241,7 +6241,7 @@ async function listCustomerRequests(db, accountId) {
   return r.rows.map((x2) => ({
     id: x2.id,
     kind: x2.kind,
-    amountCents: Number(x2.amount_cents),
+    amountCents: cnWireCents(BigInt(x2.amount_cents)),
     status: x2.status,
     statusLabel: STATUS_LABELS[x2.status] ?? x2.status,
     method: x2.method,
@@ -6280,7 +6280,7 @@ async function listAdminRequests(db, actor, { status } = {}) {
   return r.rows.map((x2) => ({
     id: x2.id,
     kind: x2.kind,
-    amountCents: Number(x2.amount_cents),
+    amountCents: cnWireCents(BigInt(x2.amount_cents)),
     status: x2.status,
     statusLabel: STATUS_LABELS[x2.status] ?? x2.status,
     method: x2.method,
@@ -6294,7 +6294,7 @@ async function listAdminRequests(db, actor, { status } = {}) {
   }));
 }
 __name(listAdminRequests, "listAdminRequests");
-async function reviewCashRequest(db, actor, { id, decision, reason, ip = null }) {
+async function reviewCashRequest(db, actor, { id, decision, reason, expectedStatus, ip = null }) {
   if (!actor) throw Object.assign(new Error("Authentication required"), { statusCode: 401 });
   if (!["APPROVE", "REJECT"].includes(decision)) invalid2("Invalid decision");
   if (typeof id !== "string" || !/^[0-9a-f-]{36}$/.test(id)) invalid2("Invalid request id");
@@ -6319,6 +6319,9 @@ async function reviewCashRequest(db, actor, { id, decision, reason, ip = null })
     );
     if (found.rows.length !== 1) invalid2("Request not found");
     const request = found.rows[0];
+    if (expectedStatus !== undefined && expectedStatus !== request.status) {
+      throw Object.assign(new Error("Cash request status changed; reload before reviewing"), { statusCode: 409 });
+    }
     if (request.status === "APPROVED" || request.status === "REJECTED") {
       invalid2("Request already finalized");
     }
@@ -6353,7 +6356,7 @@ async function reviewCashRequest(db, actor, { id, decision, reason, ip = null })
     const cash = BigInt(account.rows[0].cash_cents);
     const amount = BigInt(request.amount_cents);
     if (request.kind === "WITHDRAW") {
-      const frozen = await pendingWithdrawCents(client, request.account_id, id, true);
+      const frozen = await pendingWithdrawCents(client, request.account_id, id);
       if (cash - frozen < amount) invalid2("Insufficient available balance");
       const next = cash - amount;
       await client.query("UPDATE accounts SET cash_cents=$2 WHERE id=$1", [request.account_id, next]);
@@ -6413,6 +6416,7 @@ function safeError(error) {
   if (error instanceof SyntaxError) return { status: 400, error: "Invalid JSON" };
   if (error?.statusCode === 401) return { status: 401, error: "Invalid admin credentials" };
   if (error?.statusCode === 400) return { status: 400, error: error.message };
+  if (error?.statusCode === 409) return { status: 409, error: error.message };
   if (error?.code === "23505") return { status: 409, error: "Record already exists" };
   return { status: 500, error: "Internal server error" };
 }
@@ -6913,7 +6917,11 @@ async function handleAdminApi(req, res, route, db, resolveSession, lookupInstrum
     if (route === "/api/admin/requests") {
       if (req.method === "POST") {
         const data = await input(req);
-        const result = await reviewCashRequest(db, actor, { id: data?.id, decision: data?.decision, reason: data?.reason, ip: clientIp(req) });
+        if (!["PENDING", "REVIEWED"].includes(data?.expectedStatus)) {
+          response(res, 400, { error: "Expected cash request status is required" });
+          return true;
+        }
+        const result = await reviewCashRequest(db, actor, { id: data?.id, decision: data?.decision, reason: data?.reason, expectedStatus: data?.expectedStatus, ip: clientIp(req) });
         response(res, 200, result);
         return true;
       }
@@ -6971,28 +6979,39 @@ import { randomUUID as randomUUID4 } from "node:crypto";
 
 // src/ledger.mjs
 var MARKETS2 = Object.freeze(["US", "HK", "CN", "MY"]);
+function cnWireCents(value) {
+  const limit = BigInt(Number.MAX_SAFE_INTEGER);
+  return value >= -limit && value <= limit ? Number(value) : value.toString();
+}
+function cnWireDollars(cents) {
+  if (cents >= -BigInt(Number.MAX_SAFE_INTEGER) && cents <= BigInt(Number.MAX_SAFE_INTEGER)) return Number(cents)/100;
+  const absolute = cents < 0n ? -cents : cents;
+  return (cents < 0n ? "-" : "") + absolute/100n + "." + String(absolute%100n).padStart(2,"0");
+}
+function cnTradeAmount({quantity,priceCents,fxUsdMicros=1000000}) {
+ if(![quantity,priceCents,fxUsdMicros].every(v=>Number.isSafeInteger(v)&&v>0))throw Error('Invalid quantity, price or FX rate');
+ const cents=(BigInt(quantity)*BigInt(priceCents)*BigInt(fxUsdMicros)+500000n)/1000000n;
+ if(cents<=0n||cents>9223372036854775807n)throw Error('Amount overflow');return cents;
+}
 function applyOrder(account, order) {
   const { side, symbol, market, quantity, priceCents, fxUsdMicros = 1e6 } = order;
   if (!["BUY", "SELL"].includes(side)) throw new Error("Invalid side");
   if (!MARKETS2.includes(market)) throw new Error("Invalid market");
   if (typeof symbol !== "string" || !/^[A-Z0-9.\-]{1,24}$/.test(symbol)) throw new Error("Invalid symbol");
   if (![quantity, priceCents, fxUsdMicros].every((v2) => Number.isSafeInteger(v2) && v2 > 0)) throw new Error("Invalid quantity, price or FX rate");
-  const totalMicros = BigInt(quantity) * BigInt(priceCents) * BigInt(fxUsdMicros);
-  const cents = (totalMicros + 500000n) / 1000000n;
-  if (cents <= 0n || cents > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Amount overflow");
-  const amount = Number(cents);
-  if (!Number.isSafeInteger(account?.cashCents) || account.cashCents < 0) throw new Error("Invalid cash balance");
+  const cents = cnTradeAmount(order);
+  if (typeof account?.cashCents !== "bigint" || account.cashCents < 0n) throw new Error("Invalid cash balance");
   const key2 = market + ":" + symbol;
   const held = account.positions[key2] ?? 0;
-  if (side === "BUY" && account.cashCents < amount) throw new Error("Insufficient funds");
+  if (side === "BUY" && account.cashCents < cents) throw new Error("Insufficient funds");
   if (side === "SELL" && held < quantity) throw new Error("Insufficient position");
-  const nextCash = BigInt(account.cashCents) + (side === "BUY" ? -cents : cents);
+  const nextCash = account.cashCents + (side === "BUY" ? -cents : cents);
   const nextHeld = BigInt(held) + (side === "BUY" ? BigInt(quantity) : -BigInt(quantity));
-  if (nextCash < 0n || nextCash > BigInt(Number.MAX_SAFE_INTEGER) || nextHeld < 0n || nextHeld > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Amount overflow");
+  if (nextCash < 0n || nextCash > 9223372036854775807n || nextHeld < 0n || nextHeld > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Amount overflow");
   const next = {
-    cashCents: Number(nextCash),
+    cashCents: nextCash,
     positions: { ...account.positions, [key2]: Number(nextHeld) },
-    orders: [...account.orders, { side, symbol, market, quantity, priceCents, fxUsdMicros, amountCents: amount, execution: "INTERNAL_ONLY" }]
+    orders: [...account.orders, { side, symbol, market, quantity, priceCents, fxUsdMicros, amountCents: cents, execution: "INTERNAL_ONLY" }]
   };
   return next;
 }
@@ -7004,7 +7023,7 @@ async function cnReplayInternalOrder(db,accountId,key,input){
   const row=(await db.query('SELECT o.*,t.product_id AS bulk_product_id FROM orders o LEFT JOIN cn_bulk_order_terms t ON t.order_id=o.id WHERE o.account_id=$1 AND o.idempotency_key=$2',[accountId,key])).rows[0];
   if(!row)return null;
   if(row.side!==input.side||Number(row.quantity)!==input.quantity||(input.productId?row.bulk_product_id!==input.productId:row.market!==input.market||row.symbol!==input.symbol))cnProductFail('Idempotency payload mismatch',409);
-  return {replayed:true,order:{id:row.id,market:row.market,symbol:row.symbol,side:row.side,quantity:Number(row.quantity),priceCents:Number(row.price_cents),fxUsdMicros:Number(row.fx_usd_micros),amountCents:Number(row.amount_usd_cents)}};
+  return {replayed:true,order:{id:row.id,market:row.market,symbol:row.symbol,side:row.side,quantity:Number(row.quantity),priceCents:Number(row.price_cents),fxUsdMicros:Number(row.fx_usd_micros),amountCents:cnWireCents(BigInt(row.amount_usd_cents))}};
 }
 async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
   if (typeof accountId !== "string" || !accountId) throw new Error("Account required");
@@ -7026,7 +7045,7 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
       return { replayed: true, order: existing.rows[0] };
     }
     const p2 = await client.query("SELECT market,symbol,quantity FROM positions WHERE account_id=$1", [accountId]);
-    const account = { cashCents: Number(a2.rows[0].cash_cents), positions: Object.fromEntries(p2.rows.map((r) => [r.market + ":" + r.symbol, Number(r.quantity)])), orders: [] };
+    const account = { cashCents: BigInt(a2.rows[0].cash_cents), positions: Object.fromEntries(p2.rows.map((r) => [r.market + ":" + r.symbol, Number(r.quantity)])), orders: [] };
     if(input2.side==='SELL'){
       const locked=await client.query("SELECT COALESCE(sum(quantity),0) AS qty FROM cn_bulk_order_terms WHERE account_id=$1 AND market=$2 AND symbol=$3 AND locked_until>now()",[accountId,input2.market,input2.symbol]);
       const available=(account.positions[input2.market+':'+input2.symbol]||0)-Number(locked.rows[0].qty);
@@ -7041,6 +7060,10 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
       const frozen=await pendingWithdrawCents(client,accountId);
       const amount=Math.round(input2.priceCents*input2.quantity*input2.fxUsdMicros/1000000);
       if(account.cashCents-frozen<amount)cnProductFail('Insufficient available balance',409);
+    }
+    if (input2.side === 'BUY') {
+      const frozen = await pendingWithdrawCents(client, accountId);
+      if (account.cashCents - frozen < cnTradeAmount(input2)) cnProductFail('Insufficient available balance', 409);
     }
     const updated = applyOrder(account, input2);
     const order = updated.orders[0];
@@ -7067,7 +7090,7 @@ async function placeInternalOrder(db, accountId, key2, input2, newOrderId) {
     if(input2.referenceSource)await client.query("INSERT INTO commodity_reference_order_prices(order_id,source,source_timestamp) VALUES($1,$2,$3)",[newOrderId,input2.referenceSource,input2.referenceTimestamp]);
     await client.query("COMMIT");
     transactionStarted = false;
-    return { replayed: false, order: { id: newOrderId, ...order }, cashCents: updated.cashCents, position };
+    return { replayed: false, order: { id: newOrderId, ...order, amountCents: cnWireCents(order.amountCents) }, cashCents: cnWireCents(updated.cashCents), position };
   } catch (error) {
     if (transactionStarted) await client.query("ROLLBACK");
     throw error;
@@ -7174,28 +7197,30 @@ async function getAccountSnapshot(db, accountId) {
     cursor=page.rows[page.rows.length-1];
   }
   const lots=new Map();
-  let tradeCents=0,realizedCents=0;
+  let tradeCents=0n,realizedCents=0n;
   for(const row of history){
-    tradeCents+=Number(row.amount_usd_cents);
+    tradeCents+=BigInt(row.amount_usd_cents);
     const key=row.market+':'+row.symbol,queue=lots.get(key)||[];
     lots.set(key,queue);
-    if(row.side==='BUY')queue.push({quantity:Number(row.quantity),cost:Number(row.amount_usd_cents)});
+    if(row.side==='BUY')queue.push({quantity:BigInt(row.quantity),cost:BigInt(row.amount_usd_cents)});
     else if(row.side==='SELL'){
-      let remaining=Number(row.quantity),cost=0;
+      let remaining=BigInt(row.quantity),cost=0n;
       while(remaining>0&&queue.length){
-        const lot=queue[0],used=Math.min(remaining,lot.quantity);
-        const usedCost=used===lot.quantity?lot.cost:Math.round(lot.cost*used/lot.quantity);
+        const lot=queue[0],used=remaining<lot.quantity?remaining:lot.quantity;
+        const usedCost=used===lot.quantity?lot.cost:(lot.cost*used+lot.quantity/2n)/lot.quantity;
         cost+=usedCost;lot.cost-=usedCost;lot.quantity-=used;remaining-=used;
         if(!lot.quantity)queue.shift();
       }
       if(remaining>0)throw Error('Incomplete cost history');
-      realizedCents+=Number(row.amount_usd_cents)-cost;
+      realizedCents+=BigInt(row.amount_usd_cents)-cost;
     }
   }
   const reservedWithdrawalCents=await pendingWithdrawCents(db,accountId);
+  const cashCents=BigInt(a2.rows[0].cash_cents);
+  const availableCashCents=cashCents-reservedWithdrawalCents;
   const extra=(await db.query("SELECT (SELECT COALESCE(SUM(amount_cents),0) FROM product_settlement_cash_holds WHERE account_id=$1 AND released_at IS NULL) AS ipo_reserved_cents,(SELECT COALESCE(SUM(FLOOR(p.quantity_micros::numeric*t.unit_price_micros/10000000000)),0) FROM product_settlement_positions p JOIN LATERAL (SELECT unit_price_micros FROM product_settlement_terms WHERE product_id=p.product_id AND reviewed_at IS NOT NULL AND effective_date<=current_date ORDER BY effective_date DESC,reviewed_at DESC,id DESC LIMIT 1) t ON true WHERE p.account_id=$1 AND p.quantity_micros>0) AS settlement_value_cents",[accountId])).rows[0];
-  const statistics={tradeTotal:tradeCents/100,realizedPnl:realizedCents/100};
-  return { account: { id: a2.rows[0].id, cashCents: Number(a2.rows[0].cash_cents), activeFundPrincipalCents: Number(a2.rows[0].active_fund_principal_cents), currency: a2.rows[0].base_currency, reservedWithdrawalCents, availableCashCents:Math.max(0,Number(a2.rows[0].cash_cents)-reservedWithdrawalCents), ipoReservedCashCents:Number(extra.ipo_reserved_cents), settlementPositionValueCents:Number(extra.settlement_value_cents) }, positions: p2.rows, orders: history.reverse(), ...statistics, disclosure: "Internal records only; no brokerage orders or real securities ownership." };
+  const statistics={tradeTotal:cnWireDollars(tradeCents),realizedPnl:cnWireDollars(realizedCents)};
+  return { account: { id: a2.rows[0].id, cashCents: cnWireCents(cashCents), activeFundPrincipalCents: cnWireCents(BigInt(a2.rows[0].active_fund_principal_cents)), currency: a2.rows[0].base_currency, reservedWithdrawalCents: cnWireCents(reservedWithdrawalCents), availableCashCents:cnWireCents(availableCashCents>0n?availableCashCents:0n), ipoReservedCashCents:cnWireCents(BigInt(extra.ipo_reserved_cents)), settlementPositionValueCents:cnWireCents(BigInt(extra.settlement_value_cents)) }, positions: p2.rows, orders: history.reverse(), ...statistics, disclosure: "Internal records only; no brokerage orders or real securities ownership." };
 }
 __name(getAccountSnapshot, "getAccountSnapshot");
 
@@ -7305,7 +7330,7 @@ async function requireProductMaster(tx,actor){
 
 async function productCash(tx,account,delta){
  if(delta===0n)return null;
- if(delta<0n){const frozen=await pendingWithdrawCents(tx,account);const row=await productOne(tx,'SELECT cash_cents FROM accounts WHERE id=$1 FOR UPDATE',[account]);if(BigInt(row.cash_cents)+delta<BigInt(frozen))cnProductFail('Insufficient available balance',409);}
+ if(delta<0n){const row=await productOne(tx,'SELECT cash_cents FROM accounts WHERE id=$1 FOR UPDATE',[account]);const frozen=await pendingWithdrawCents(tx,account);if(BigInt(row.cash_cents)+delta<frozen)cnProductFail('Insufficient available balance',409);}
  const balance=await productOne(tx,'UPDATE accounts SET cash_cents=cash_cents+$2 WHERE id=$1 AND cash_cents+$2>=0 RETURNING cash_cents',[account,delta.toString()],'Insufficient productCash');
  return productOne(tx,'INSERT INTO cash_ledger(account_id,delta_cents,balance_after_cents) VALUES($1,$2,$3) RETURNING id',[account,delta.toString(),balance.cash_cents]);
 }
@@ -7792,7 +7817,7 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
       try {
         await cnSettleDueFunds(db,session.accountId).catch(error=>console.error('Account maturity check failed',error.code||error.name));
         const snapshot=await getAccountSnapshot(db,session.accountId);
-        const baseAssetsCents=snapshot.account.cashCents+snapshot.account.activeFundPrincipalCents+snapshot.account.ipoReservedCashCents+snapshot.account.settlementPositionValueCents;
+        const baseAssetsCents=BigInt(snapshot.account.cashCents)+BigInt(snapshot.account.activeFundPrincipalCents)+BigInt(snapshot.account.ipoReservedCashCents)+BigInt(snapshot.account.settlementPositionValueCents);
         const values=[];
         snapshot.valuationEstimated=false;
         for(let i=0;i<snapshot.positions.length;i+=4){
@@ -7800,16 +7825,16 @@ function createApiHandler({ db, resolveSession, createId = randomUUID4, resolveE
             try{
               const q=resolveProductQuote&&await resolveProductQuote(p);
               if(!q||q.market!==p.market||q.symbol!==p.symbol||!Number.isSafeInteger(q.priceCents)||q.priceCents<=0)throw Error('Missing valuation quote');
-              return q.priceCents*Number(p.quantity);
+              return BigInt(q.priceCents)*BigInt(p.quantity);
             }catch{
               snapshot.valuationEstimated=true;
               const last=snapshot.orders.find(o=>o.market===p.market&&o.symbol===p.symbol);
-              return last?Number(last.price_cents)*Number(p.quantity):p.cost_cents==null?null:Number(p.cost_cents);
+              return last?BigInt(last.price_cents)*BigInt(p.quantity):p.cost_cents==null?null:BigInt(p.cost_cents);
             }
           }));
           values.push(...batch);
         }
-        snapshot.totalAssets=values.every(v=>v!==null)?(baseAssetsCents+values.reduce((n,v)=>n+v,0))/100:null;
+        snapshot.totalAssets=values.every(v=>v!==null)?cnWireDollars(baseAssetsCents+values.reduce((n,v)=>n+v,0n)):null;
         return send(res,200,snapshot);
       } catch {
         return send(res, 500, { error: "Internal server error" });

@@ -42,7 +42,7 @@ const pages=JSON.parse(w.match(/const replacementPages = (.+);/)[1]);
   await api(admin('profile-documents'),200,agent.token,{email:a,kind:doc.kind,status:'APPROVED',version:review.version},'PATCH');
  }
  const deposit=await api('/api/requests',201,client,{kind:'DEPOSIT',amountCents:100000});
- for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE'});
+ for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED'});
  const security={market:'US',status:'PUBLISHED'};
  const stock=await api(admin('listings'),201,master,{...security,itemType:'FUND',symbol:'GLD',name:'SPDR Gold Shares',tradePin:pin});
  const fund=await api(admin('listings'),201,master,{...security,itemType:'FUND',symbol:'SLV',name:'iShares Silver Trust'});
