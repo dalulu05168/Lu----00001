@@ -1,0 +1,108 @@
+{
+  "checkedAt": "2026-11-12T02:02:35.097Z",
+  "version": "08bbfd25-0773-4af5-8600-81367ea90ca7",
+  "sourceSha256": "22e75fd3d25c06364062dc95fd0b30477c75b14e22f1a8aa9e35c18379473423",
+  "checks": [
+    {
+      "origin": "https://nuvexapro.com",
+      "database": "connected",
+      "logo": "matching"
+    },
+    {
+      "url": "https://nuvexapro.com/api/account",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "https://nuvexapro.com/api/products",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "https://nuvexapro.com/api/product-settlement",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "https://nuvexapro.com/api/requests",
+      "method": "POST",
+      "status": 401
+    },
+    {
+      "url": "https://nuvexapro.com/api/support",
+      "method": "POST",
+      "status": 401
+    },
+    {
+      "url": "https://nuvexapro.com/api/admin/clients",
+      "method": "GET",
+      "status": 404
+    },
+    {
+      "url": "https://nuvexapro.com/api/admin/client-action",
+      "method": "POST",
+      "status": 404
+    },
+    {
+      "origin": "https://admin.maacropierce.com",
+      "database": "connected",
+      "logo": "matching"
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/account",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/products",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/product-settlement",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/requests",
+      "method": "POST",
+      "status": 401
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/support",
+      "method": "POST",
+      "status": 401
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/admin/clients",
+      "method": "GET",
+      "status": 401
+    },
+    {
+      "url": "https://admin.maacropierce.com/api/admin/client-action",
+      "method": "POST",
+      "status": 401
+    },
+    {
+      "device": "mobile",
+      "origin": "https://nuvexapro.com/",
+      "http": 200,
+      "htmlMatchesAcceptedBuild": true
+    },
+    {
+      "device": "desktop/admin",
+      "htmlMatchesAcceptedBuild": true
+    }
+  ],
+  "mobileSubdomain": {
+    "status": 200,
+    "server": "Vercel",
+    "migrated": false
+  },
+  "browserChecks": {
+    "desktopLogoutReturnsRootLogin": false,
+    "adminPasswordAndTwoFactorVisible": false,
+    "physicalDeviceVerified": false,
+    "mobileBrowserInteractionVerified": false
+  }
+}

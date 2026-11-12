@@ -40,14 +40,15 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
  await api('/api/profile-documents',201,client,doc);const review=await api(reviewQuery(a,doc.kind),200,agent.token);await api(admin('profile-documents'),200,agent.token,{email:a,kind:doc.kind,status:'APPROVED',version:review.version},'PATCH');}
  for(let n=0;n<20;n++){const deposit=await api('/api/requests',201,client,{kind:'DEPOSIT',amountCents:5000000});for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE'});}
  const browser=await chromium.launch({executablePath:process.env.CN_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe'});
- const errors=[];
+ const errors=[],designChecks=[];const checkDesign=require('./design-contract.cjs');
  async function page(kind,t){const p=await browser.newPage(kind==='mobile'?devices['iPhone 13']:{viewport:{width:1440,height:1000}});p.setDefaultTimeout(12000);p.on('pageerror',e=>{errors.push(kind+': '+e.message);console.log('ERROR '+kind+' '+e.message)});await p.addInitScript(({t,kind})=>{localStorage.setItem(kind==='admin'?'cncap.admin.session':'cncap.session',t);sessionStorage.setItem('cncap.mobile.entry','1');sessionStorage.setItem('cncap.admin.entry','1')},{t,kind});await p.route('**/*',r=>{const u=new URL(r.request().url());if(u.pathname==='/logo.png')return r.fulfill({contentType:'image/png',body:fs.readFileSync(path.join(__dirname,'../web/logo.png'))});return u.origin!==base?r.abort():['/','/admin'].includes(u.pathname)?r.fulfill({contentType:'text/html',body:pages[kind]}):r.continue()});await p.goto(base+(kind==='admin'?'/admin':'/'),{waitUntil:'commit',timeout:30000});console.log('Opened '+kind);await p.waitForTimeout(1000);console.log('URL '+p.url());return p;}
  try{
  const p=await page('admin',master);await p.locator('[data-p=cat]').click();
- await p.locator('#p-cat .tabs [data-product-settlement-open]').click();await p.locator('.ps-dialog[open]').waitFor();await p.locator('.ps-dialog header').getByRole('button',{name:'关闭',exact:true}).click();
-assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locator('[data-cp=create][data-kind=TERM_FUND]').click();await p.locator('#cp-overlay [name=name]').fill('客户期限基金 QA');
+ await p.locator('#p-cat .tabs [data-product-settlement-open]').click();await p.locator('.ps-dialog[open]').waitFor();designChecks.push(await checkDesign(p,'admin IPO',['.ps-dialog header button']));await p.locator('.ps-dialog header').getByRole('button',{name:'关闭',exact:true}).click();
+assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locator('[data-cp=create][data-kind=TERM_FUND]').click();designChecks.push(await checkDesign(p,'admin fund',['#cp-overlay header button','#cp-overlay [name=name]','#cp-overlay [type=submit]']));await p.locator('#cp-overlay [name=name]').fill('客户期限基金 QA');
  await p.locator('#cp-overlay [name=image]').setInputFiles({name:'fund.png',mimeType:'image/png',buffer:Buffer.from(image.split(',')[1],'base64')});
  await p.locator('[data-add-tier]').click();await p.locator('#cp-overlay [name=principal]').nth(1).fill('100000');await p.locator('#cp-overlay [name=days]').nth(1).fill('15');await p.locator('#cp-overlay [name=profit]').nth(1).fill('2.5');
+ await p.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'admin-fund-dialog.png')});
  let [r]=await Promise.all([p.waitForResponse(r=>r.url().endsWith('/api/admin/products')&&r.request().method()==='POST'),p.locator('#cp-overlay [type=submit]').click()]);assert.equal(r.status(),201);await p.locator('#cp-overlay').waitFor({state:'detached'});
  await p.locator('[data-t=t-com]').click();await p.locator('[data-cp=create][data-kind=BULK_STOCK]').click();await p.locator('#cp-overlay [name=symbol]').fill('AAPL');await p.locator('[data-identify]').click();await p.locator('[data-profile]').filter({hasText:'Apple Inc'}).waitFor();
  await p.locator('#cp-overlay [name=discount]').fill('12');await p.locator('#cp-overlay [name=days]').fill('7');await p.locator('#cp-overlay [name=minimum]').fill('10');await p.locator('#cp-overlay [name=password]').fill('123456');
@@ -58,11 +59,11 @@ assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locat
  if(kind==='mobile')await p.locator('[data-a=tab][data-v=trade]').click();
  else {await p.locator('header [data-p=trade]').click();await p.locator('#trade-drawer-close').click();}
  await p.locator('#csbtn').click();await p.locator('#cp').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})))});
- const composer=await p.locator('#f-chat').evaluate(el=>{let i=el.querySelector('input'),b=el.querySelector('button'),a=i.getBoundingClientRect(),z=b.getBoundingClientRect();return {background:getComputedStyle(i).backgroundColor,inputHeight:a.height,buttonHeight:z.height,top:a.top-z.top}});
+ designChecks.push(await checkDesign(p,'desktop support',['#f-chat button','#cmsg']));const composer=await p.locator('#f-chat').evaluate(el=>{let i=el.querySelector('input'),b=el.querySelector('button'),a=i.getBoundingClientRect(),z=b.getBoundingClientRect();return {background:getComputedStyle(i).backgroundColor,inputHeight:a.height,buttonHeight:z.height,top:a.top-z.top}});
  assert.equal(composer.background,'rgb(245, 248, 252)');assert.equal(composer.inputHeight,44);assert.equal(composer.buttonHeight,44);assert(Math.abs(composer.top)<2);
  await p.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'support-composer.png')});
  await p.locator('#cmsg').fill('客户布局验收消息');const sent=p.waitForResponse(r=>r.url().endsWith('/api/support')&&r.request().method()==='POST');await p.locator('#f-chat button').click();assert.equal((await sent).status(),201);await p.locator('#csx').click();
- await p.locator('[data-p=market]').first().click();await p.locator('#p-market [data-kind=STOCK]').click();await p.locator('#market-symbol-select').selectOption('NASDAQ:AAPL');await p.locator('#market-buy').click();await p.locator('#cp-overlay [name=password]').waitFor();await p.locator('#cp-overlay [data-cp-close]').first().click();await p.locator('header [data-p=trade]').click();
+ await p.locator('[data-p=market]').first().click();await p.locator('#p-market [data-kind=STOCK]').click();await p.locator('#market-symbol-select').selectOption('NASDAQ:AAPL');await p.locator('#market-buy').click();await p.locator('#cp-overlay [name=password]').waitFor();designChecks.push(await checkDesign(p,'desktop order',['#cp-overlay header button','#cp-overlay [name=password]','#cp-overlay [type=submit]']));await p.screenshot({path:path.join(process.env.CN_QA_SAVE_DIR,'desktop-order-dialog.png')});await p.locator('#cp-overlay [data-cp-close]').first().click();await p.locator('header [data-p=trade]').click();
  assert.deepEqual(await p.locator(kind==='mobile'?'.trade-tabs [data-a=sec]':'#ptabs button').allTextContents(),['\u5927\u5b97\u4ea4\u6613','\u57fa\u91d1','IPO']);
  await p.locator(kind==='mobile'?'[data-a=sec][data-v=\u57fa\u91d1]':'#ptabs button').filter({hasText:'\u57fa\u91d1'}).click();
  await p.locator('[data-cp=subscribe]').first().click();assert.equal(await p.locator('#cp-overlay input[type=password]').count(),0);
@@ -73,6 +74,9 @@ assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locat
  }
  const mobile=await page('mobile',client);
  await mobile.locator('[name=email]').fill(a);await mobile.locator('[name=password]').fill(password);await mobile.locator('#login-form button').click();await mobile.locator('nav [data-go=mine]').click();
+ designChecks.push(await checkDesign(mobile,'mobile account',['.profile .avatar','.menulink b'],{touch:true}));
+ const motion=await mobile.locator('main.content').evaluate(el=>({name:getComputedStyle(el).animationName,duration:getComputedStyle(el).animationDuration}));assert.equal(motion.name,'cn-surface-enter');assert.equal(motion.duration,'0.18s');
+ await mobile.emulateMedia({reducedMotion:'reduce'});assert.equal(await mobile.locator('main.content').evaluate(el=>getComputedStyle(el).animationName),'none');await mobile.emulateMedia({reducedMotion:'no-preference'});
  const brand=await mobile.locator('.cn-brand-logo').evaluate(el=>({filter:getComputedStyle(el).filter,opacity:getComputedStyle(el).opacity,loaded:el.complete&&el.naturalWidth>0}));assert.equal(brand.filter,'brightness(0)');assert.equal(brand.opacity,'1');assert(brand.loaded);
  const avatar=await mobile.locator('.profile .avatar').evaluate(el=>{const outer=el.getBoundingClientRect(),inner=el.querySelector('span').getBoundingClientRect();return {width:outer.width,height:outer.height,dx:(inner.left+inner.width/2)-(outer.left+outer.width/2),dy:(inner.top+inner.height/2)-(outer.top+outer.height/2),color:getComputedStyle(el).color}});
  assert(Math.abs(avatar.width-56)<0.1);assert(Math.abs(avatar.height-56)<0.1);assert(Math.abs(avatar.dx)<1&&Math.abs(avatar.dy)<1);assert.equal(await mobile.locator('nav [data-go=mine]>span').innerText(),'N');
@@ -102,6 +106,7 @@ assert.equal(await p.locator('#cn-listing-add').isVisible(),false);await p.locat
   }
   await mobile.locator('nav [data-go=mine]').click();await inspectLists('account-menu',width);
  }
+ fs.writeFileSync(path.join(process.env.CN_QA_SAVE_DIR,'design-contract.json'),JSON.stringify(designChecks,null,2));
  fs.writeFileSync(path.join(process.env.CN_QA_SAVE_DIR,'shared-list-checks.json'),JSON.stringify(listChecks,null,2));
  await mobile.locator('nav [data-go=mine]').click();
  await mobile.locator('[data-business=ipo]').click();await mobile.getByRole('heading',{name:'IPO申购',exact:true}).waitFor();

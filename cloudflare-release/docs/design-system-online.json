@@ -1,0 +1,36 @@
+{
+  "checkedAt": "2026-11-12T02:03:22.122Z",
+  "passed": true,
+  "productionCustomerWrites": false,
+  "physicalDeviceVerified": false,
+  "authenticatedBusinessFlows": "isolated acceptance only",
+  "results": [
+    {
+      "kind": "desktop",
+      "url": "https://nuvexapro.com/",
+      "font": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", Arial, sans-serif",
+      "overflow": false,
+      "motion": "180ms",
+      "forms": 3,
+      "javascriptErrors": 0
+    },
+    {
+      "kind": "mobile",
+      "url": "https://nuvexapro.com/",
+      "font": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", Arial, sans-serif",
+      "overflow": false,
+      "motion": "180ms",
+      "forms": 1,
+      "javascriptErrors": 0
+    },
+    {
+      "kind": "admin",
+      "url": "https://admin.maacropierce.com/",
+      "font": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", Arial, sans-serif",
+      "overflow": false,
+      "motion": "180ms",
+      "forms": 3,
+      "javascriptErrors": 0
+    }
+  ]
+}

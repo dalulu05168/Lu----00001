@@ -11,9 +11,11 @@ const newsUI=fs.readFileSync(path.join(root,'web','news-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace('</head>',()=>'<script>'+newsUI+'</script></head>');
 const refinements=fs.readFileSync(path.join(root,'web','ui-refinements.css'),'utf8');
 for(const name of ['desktop','admin','login'])pages[name]=pages[name].replace('</head>',()=>'<style>'+refinements+'</style></head>');
+const designSystem='<style id="cn-design-system">'+fs.readFileSync(path.join(root,'web','design-system.css'),'utf8')+'</style>';
+for(const name of ['desktop','admin','login'])pages[name]=pages[name].replace('</head>',()=>designSystem+'</head>');
 const productUI=fs.readFileSync(path.join(root,'web/products-ui.js'),'utf8');
 for(const name of ['desktop','mobile','admin'])pages[name]=pages[name].replace(/<\/body>/i,()=>'<script>'+productUI+'</script></body>');
-const mirrorPage=require('./mobile-bundle.cjs')(path.resolve(root,'../mobile-client'),{production:true}).replace('</head>',()=>'<script>'+newsUI+'</script></head>');
+const mirrorPage=require('./mobile-bundle.cjs')(path.resolve(root,'../mobile-client'),{production:true}).replace('</head>',()=>'<script>'+newsUI+'</script>'+designSystem+'</head>');
 const browserTransport=fs.readFileSync(path.join(root,'web/session-transport.js'),'utf8');
 function browserSessionPage(html,admin){return html.replace(/<head>/i,()=>'<head><script>'+browserTransport.replace('__CN_BROWSER_ADMIN__',String(admin))+'</script>');}
 for(const kind of ['desktop','login','admin'])pages[kind]=browserSessionPage(pages[kind],kind==='admin'||kind==='login');

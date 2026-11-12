@@ -24,6 +24,7 @@ async function api(route,body){const r=await fetch(base+route,{method:body?'POST
    else await page.locator('[data-market-side=news]').click();
    const host=page.locator(kind==='mobile'?'#mobile-news':'#market-news');
    const first=host.locator('.cn-news-card').first();await first.waitFor();
+   await require('./design-contract.cjs')(page,kind+' news',[(kind==='mobile'?'#mobile-news':'#market-news')+' header button'],{touch:kind==='mobile'});
    await first.scrollIntoViewIfNeeded();await first.locator('img').evaluate(img=>img.loading='eager');
    await page.waitForFunction(selector=>{const img=document.querySelector(selector+' .cn-news-card img');return img?.complete&&img.naturalWidth>0},kind==='mobile'?'#mobile-news':'#market-news');
    const link=first.locator('.cn-news-article-link');assert.equal(await link.textContent(),feed.items[0].title);
