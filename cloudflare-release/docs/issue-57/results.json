@@ -1,0 +1,168 @@
+{
+  "issue": 57,
+  "branch": "frontend/claude-desktop-font-57",
+  "fixCommit": "c060458",
+  "base": "integration/nuvexa-mobile-session-20261112@1d09eee",
+  "bundles": {
+    "before": "13b42a3cd9cc448ece76ea59bb18b0d72db88bb5ebbca64caddc075036e561c5",
+    "after": "bb4c87a5b840499563d76bf488ce3533104404dc3484b1f3e7ad3643d4c0fe6a"
+  },
+  "targeted": {
+    "before": {
+      "news": "fail",
+      "layoutControls": "fail",
+      "reason": "desktop body font Inter/\"Microsoft YaHei UI\"; cn-design-system absent"
+    },
+    "productionControl08bbfd25": {
+      "news": "pass",
+      "layoutControls": "pass"
+    },
+    "after": {
+      "news": "pass",
+      "layoutControls": "pass"
+    }
+  },
+  "fullRegressionAfter": {
+    "command": "CN_QA_PORT_OFFSET=150 node scripts/acceptance-release.cjs --bundle <after bundle>",
+    "total": 32,
+    "passed": 31,
+    "failed": [
+      "trade-database"
+    ],
+    "skipped": 0,
+    "notApplicable": {
+      "trade-database": "tests unreleased cnOrderIntent"
+    },
+    "results": [
+      {
+        "name": "mobile-session",
+        "code": 0
+      },
+      {
+        "name": "funding-safety",
+        "code": 0
+      },
+      {
+        "name": "login-page",
+        "code": 0
+      },
+      {
+        "name": "admin-next",
+        "code": 0
+      },
+      {
+        "name": "trade-database",
+        "code": 1
+      },
+      {
+        "name": "frontend-sync",
+        "code": 0
+      },
+      {
+        "name": "admin-account-layout",
+        "code": 0
+      },
+      {
+        "name": "news",
+        "code": 0
+      },
+      {
+        "name": "browser-sessions",
+        "code": 0
+      },
+      {
+        "name": "security",
+        "code": 0
+      },
+      {
+        "name": "quote-guards",
+        "code": 0
+      },
+      {
+        "name": "notification-session",
+        "code": 0
+      },
+      {
+        "name": "product-recovery",
+        "code": 0
+      },
+      {
+        "name": "admin-funding",
+        "code": 0
+      },
+      {
+        "name": "order-concurrency",
+        "code": 0
+      },
+      {
+        "name": "layout-controls",
+        "code": 0
+      },
+      {
+        "name": "write-receipts",
+        "code": 0
+      },
+      {
+        "name": "experience",
+        "code": 0
+      },
+      {
+        "name": "product-notifications",
+        "code": 0
+      },
+      {
+        "name": "mirror",
+        "code": 0
+      },
+      {
+        "name": "contracts",
+        "code": 0
+      },
+      {
+        "name": "charts",
+        "code": 0
+      },
+      {
+        "name": "product-browser",
+        "code": 0
+      },
+      {
+        "name": "products",
+        "code": 0
+      },
+      {
+        "name": "permissions",
+        "code": 0
+      },
+      {
+        "name": "registration",
+        "code": 0
+      },
+      {
+        "name": "stocks",
+        "code": 0
+      },
+      {
+        "name": "interface",
+        "code": 0
+      },
+      {
+        "name": "sessions",
+        "code": 0
+      },
+      {
+        "name": "reference",
+        "code": 0
+      },
+      {
+        "name": "forms",
+        "code": 0
+      },
+      {
+        "name": "access",
+        "code": 0
+      }
+    ]
+  },
+  "environment": "isolated Worker + local PGlite on 127.0.0.1; no production access"
+}
