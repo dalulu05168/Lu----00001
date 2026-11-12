@@ -178,6 +178,30 @@ const nvda = async cookie => ((await api('/api/account', 200, cookie)).data.posi
     a.equal(await page.locator('.holding').filter({ hasText: 'NVDA' }).count(), 0, "B must not see A's holdings");
     pass('account isolation: restore follows the server-confirmed cookie identity; no data from the previous account');
 
+    // 10. A pending order record written before account-keyed journals (key "cn.pending.<email>").
+    const legacyKey = 'cn.pending.' + A, legacyRecord = { path: '/api/orders', digest: 'legacy-digest', key: 'legacy-key-' + stamp };
+    await page.evaluate(([k, v]) => sessionStorage.setItem(k, v), [legacyKey, JSON.stringify(legacyRecord)]);
+    await page.reload(); await page.locator('#login-form').waitFor();
+    a.match(await page.locator('body').innerText(), /尚未确认的订单记录/);
+    a(!(await signedIn(page)), 'a valid cookie (B) must not auto-restore while an unconfirmed legacy record exists');
+    await formLogin(page, B);
+    a.deepEqual(await page.evaluate(() => Object.keys(sessionStorage).filter(k => k.startsWith('cn.pending.'))), [legacyKey], "B must not take over A's record");
+    await page.reload(); await page.locator('#login-form').waitFor();
+    await formLogin(page, A);
+    const idAValue = idA.match(/[0-9a-f-]{36}/i)?.[0]; a(idAValue, 'account id visible: ' + idA);
+    const migrated = await page.evaluate(() => Object.fromEntries(Object.entries(sessionStorage).filter(([k]) => k.startsWith('cn.pending.'))));
+    a.deepEqual(Object.keys(migrated), ['cn.pending.account:' + idAValue]); a.equal(JSON.parse(migrated['cn.pending.account:' + idAValue]).key, legacyRecord.key);
+    const cookieA = (await cookieOf(ctx)).value, before = await nvda(cookieA);
+    const posted = []; page.on('request', r => { if (r.url().endsWith('/api/orders') && r.method() === 'POST') posted.push(r); });
+    await page.locator('nav [data-go=trade]').click();
+    await page.locator('.holding').filter({ hasText: 'NVDA' }).locator('[data-position]').click();
+    await page.locator('form[data-business-form=position-sell] [name=quantity]').fill('1');
+    await page.locator('form[data-business-form=position-sell]').getByRole('button', { name: '确认卖出' }).click();
+    await page.getByText(/存在结果尚未确认的订单/).first().waitFor();
+    a.equal(posted.length, 0, 'no new order may be sent while the migrated record is unconfirmed'); a.equal(await nvda(cookieA), before);
+    await page.evaluate(() => { for (const k of Object.keys(sessionStorage)) if (k.startsWith('cn.pending.')) sessionStorage.removeItem(k); });
+    pass('legacy e-mail record: blocks auto-restore, ignored by another account, migrated to the proven account id, holds back new orders');
+
     a.deepEqual([...errors, ...second.errors], []);
     pass('no uncaught page errors');
     await ctx.close();

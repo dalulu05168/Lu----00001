@@ -96,7 +96,10 @@ window.addEventListener('pageshow',e=>{if(!e.persisted)return;if(mirror){reset('
 business=createBusiness({api,state,esc,display,time,render,refresh,reset,back,friendly});
 experience=createExperience({api,state,business,render,reset,onBackground:backgroundRefresh,onRestore:async page=>{if(business.owns(page))await business.load(page);}});
 if(mirror?.email&&typeof api.adoptMirror==='function'){api.adoptMirror(window.CN_MIRROR_CONTEXT.email);state.authenticated=true;state.email=window.CN_MIRROR_CONTEXT.email;refresh();}else restoreSession();
-async function restoreSession(){const epoch=++state.epoch;state.restoring=true;render();
+async function restoreSession(){const epoch=++state.epoch;
+ // An order from before account-keyed journals is still unconfirmed: sign in with a password so it can be matched safely.
+ if(api.hasLegacyJournal()){state.restoring=false;state.authNotice='检测到尚未确认的订单记录，请输入密码登录以核对，避免重复下单。';render();return;}
+ state.restoring=true;render();
  try{const account=await api.restore();if(epoch!==state.epoch)return;Object.assign(state,{restoring:false,authenticated:true,email:'',account,page:'home'});await refresh();}
  catch(error){if(epoch!==state.epoch)return;state.restoring=false;
   // 401/403: no valid cookie, show the sign-in form quietly. Anything else is reported but never treated as signed in.

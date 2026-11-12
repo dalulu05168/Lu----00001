@@ -64,10 +64,13 @@ try {
  async function toggle(method){console.log('Current mobile toggle '+method);const [r]=await Promise.all([page.waitForResponse(x=>x.url().endsWith('/api/watchlist')&&x.request().method()===method),star.click()]);a.equal(r.status(),200)}
  await toggle('POST');await star.getByText('★ 移出自选',{exact:true}).waitFor();
  const prior=mobileToken;
- await page.reload();await page.locator('#login-form').waitFor();await api('/api/account',401,null,prior);
- await login();await star.getByText('★ 移出自选',{exact:true}).waitFor();
+ // Issue #56: reload restores the same HttpOnly cookie session after the server confirms it.
+ await page.reload();await page.locator('nav [data-go=mine]').waitFor();await api('/api/account',200,null,prior);
+ a.equal((await page.context().cookies()).find(c=>c.name==='__Host-cn-client')?.value,prior,'reload keeps the same session cookie');
+ await page.locator('nav [data-go=market]').click();await page.locator('[data-instrument="US:AAPL"]').first().click();
+ await star.getByText('★ 移出自选',{exact:true}).waitFor();
  await toggle('DELETE');await star.getByText('☆ 加入自选',{exact:true}).waitFor();
- console.log('Current mobile login, refresh revocation, watchlist add/relogin/remove passed');
+ console.log('Current mobile login, refresh session restore, watchlist add/restore/remove passed');
  await page.locator('nav [data-go=mine]').click();const old=mobileToken;
  await page.locator('[data-action=logout]').click();await page.locator('#login-form').waitFor();await api('/api/account',401,null,old);
  await page.locator('[data-auth=request]').click();await page.locator('[name=email]').fill(email);

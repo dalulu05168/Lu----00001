@@ -112,3 +112,20 @@ test('restore needs the protected API to accept the cookie and never writes Web 
   assert.equal(mem.store.size,0);
  }finally{globalThis.sessionStorage=original;}
 });
+test('legacy e-mail records: detected, moved only for the proven e-mail, never overwritten or dropped',async()=>{
+ const original=globalThis.sessionStorage,store=new Map();
+ globalThis.sessionStorage={getItem:k=>store.has(k)?store.get(k):null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k),key:i=>[...store.keys()][i]??null,get length(){return store.size}};
+ const fetcher=account=>async p=>p.endsWith('/login')?Response.json({token:'cn-cookie-session'}):p==='/api/account'?Response.json({account:{id:account}}):Response.json({});
+ try{
+  let api=createApi(fetcher('acct-x'));assert.equal(api.hasLegacyJournal(),false);
+  store.set('cn.pending.account:acct-z','{"key":"modern"}');store.set('cn.pending.mirror:z@example.test','{"key":"mirror"}');assert.equal(api.hasLegacyJournal(),false,'account and mirror records are not legacy');
+  store.set('cn.pending.x@example.test',JSON.stringify({path:'/api/orders',digest:'d',key:'legacy-x'}));assert.equal(api.hasLegacyJournal(),true);
+  // A different account signing in must not take X's record.
+  api=createApi(fetcher('acct-y'));await api.login('y@example.test','pw');assert(store.has('cn.pending.x@example.test'));assert(!store.has('cn.pending.account:acct-y'));assert.equal(api.hasLegacyJournal(),true);
+  // X signs in with a password: the record moves to X's account id.
+  api=createApi(fetcher('acct-x'));await api.login('X@Example.test','pw');assert.equal(JSON.parse(store.get('cn.pending.account:acct-x')).key,'legacy-x');assert(!store.has('cn.pending.x@example.test'));assert.equal(api.hasLegacyJournal(),false);
+  // If the account slot is already occupied, the legacy record is kept, not dropped.
+  store.set('cn.pending.w@example.test','{"key":"legacy-w"}');store.set('cn.pending.account:acct-w','{"key":"current-w"}');
+  api=createApi(fetcher('acct-w'));await api.login('w@example.test','pw');assert.equal(JSON.parse(store.get('cn.pending.account:acct-w')).key,'current-w');assert.equal(JSON.parse(store.get('cn.pending.w@example.test')).key,'legacy-w');
+ }finally{globalThis.sessionStorage=original;}
+});
