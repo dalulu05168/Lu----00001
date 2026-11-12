@@ -72,7 +72,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
   await api('/api/profile-documents',201,client,doc);const review=await api('/api/admin/profile-documents?'+new URLSearchParams({email:a,kind:doc.kind}),200,owner.token);
   await api('/api/admin/profile-documents',200,owner.token,{email:a,kind:doc.kind,status:'APPROVED',version:review.version},'PATCH');
  }
- const deposit=await api('/api/requests',201,client,{kind:'DEPOSIT',amountCents:100000});for(let i=0;i<2;i++)await api('/api/admin/requests',200,master,{id:deposit.id,decision:'APPROVE'});
+ const deposit=await api('/api/requests',201,client,{kind:'DEPOSIT',amountCents:100000});for(let i=0;i<2;i++)await api('/api/admin/requests',200,master,{id:deposit.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED'});
  const fund=await api('/api/admin/products',201,master,{kind:'TERM_FUND',name:'Notification Fund',status:'PUBLISHED',tiers:[{principalCents:10000,holdingDays:1,profitBps:100}]});
  const tier=(await api('/api/products',200,client)).items.find(x=>x.id===fund.id).tiers[0];
  const sub=await fetch(base+'/api/fund-subscriptions',{method:'POST',headers:{Authorization:'Bearer '+client,'Content-Type':'application/json','Idempotency-Key':'notify-fund-contract'},body:JSON.stringify({tierId:tier.id})});assert.equal(sub.status,201);

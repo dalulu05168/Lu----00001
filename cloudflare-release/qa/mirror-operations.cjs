@@ -73,7 +73,7 @@ const pages=JSON.parse(fs.readFileSync(process.env.CN_ACCEPTANCE_SOURCE,'utf8').
   await api('/api/profile-documents',201,client,doc);const review=await api('/api/admin/profile-documents?'+new URLSearchParams({email:a,kind:doc.kind}),200,owner.token);
   await api('/api/admin/profile-documents',200,owner.token,{email:a,kind:doc.kind,status:'APPROVED',version:review.version},'PATCH');
  }
- const deposit=await api('/api/requests',201,client,{kind:'DEPOSIT',amountCents:100000});for(let i=0;i<2;i++)await api('/api/admin/requests',200,master,{id:deposit.id,decision:'APPROVE'});
+ const deposit=await api('/api/requests',201,client,{kind:'DEPOSIT',amountCents:100000});for(let i=0;i<2;i++)await api('/api/admin/requests',200,master,{id:deposit.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED'});
  const p=await api('/api/admin/products',201,master,{kind:'BULK_STOCK',name:'Apple Inc',symbol:'AAPL',market:'US',status:'PUBLISHED',discountBps:1200,holdingDays:0,minQuantity:1,tradePassword:'123456'});
  const act=(token,status,data)=>api('/api/admin/client-action',status,token,{email:a,...data});
  await act(other.token,404,{path:'/api/account',method:'GET'});

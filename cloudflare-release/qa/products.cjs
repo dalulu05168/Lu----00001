@@ -45,7 +45,7 @@ const adminPath='/api/admin/product-settlement',clientPath='/api/product-settlem
   await api(admin('profile-documents'),200,owner.token,{email:a,kind:doc.kind,status:'APPROVED',version:review.version},'PATCH');
  }
  const deposit=await api('/api/requests',201,token,{kind:'DEPOSIT',amountCents:100000});
- for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE'});
+ for(let i=0;i<2;i++)await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED'});
  const date='2026-11-09';
  async function create(kind,symbol,price){
   const product=await adminPost(201,{action:'create',kind,symbol,name:symbol});

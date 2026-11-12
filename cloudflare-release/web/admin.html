@@ -2240,7 +2240,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       body:body?JSON.stringify(body):undefined})
       .then(function(r){return r.text().then(function(t){var j=null;try{j=JSON.parse(t)}catch(e){}return {ok:r.ok,status:r.status,json:j}})});
   }
-  var items=[], selected='', inFlight=null, saving=false;
+  var items=[], selected='', renderedStatus, inFlight=null, saving=false;
   var q=function(selector){return document.querySelector(selector)};
   var zone='Asia/Kuala_Lumpur';
   var day=new Intl.DateTimeFormat('en-CA',{timeZone:zone});
@@ -2287,7 +2287,7 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       return '<tr><td>'+esc(KIND[r.kind]||r.kind)+'</td><td class="r amt">'+money(r.amountCents)+'</td><td>'+chip(r.status)+'</td><td>'+esc(r.email||'—')+'</td><td>'+esc(when(r.createdAt))+'</td></tr>';
     }).join(''):'<tr><td colspan="5" class="empty">暂无资金申请</td></tr>';
     q('#cn-cash-history small').textContent='显示 '+history.length+' / '+scoped.length+' 条';
-    if(!keepDetail)renderDetail(current);
+    if(!keepDetail){renderedStatus=current?.status;renderDetail(current);}
   }
   function loadAppr(force){
     if(!token()||role!=='MASTER'||saving||inFlight)return inFlight;
@@ -2321,15 +2321,16 @@ mountApp(document.getElementById("mirror"),":host{display:block}\n*{box-sizing:b
       var controls=[...q('#cn-cash-approval').querySelectorAll('button,select,textarea')];
       controls.forEach(function(control){control.disabled=true});
       message.textContent='正在提交审核结果…';
-      var updated=false;
+      var updated=false, stale=false;
       try{
-        var res=await api('/api/admin/requests','POST',{id:selected,decision:decision,reason:value||undefined});
+        var res=await api('/api/admin/requests','POST',{id:selected,decision:decision,reason:value||undefined,expectedStatus:renderedStatus});
+        stale=res.status===409;
         if(!res.ok)throw Error(res.json?.error||'操作失败，请重试。');
         updated=true;message.textContent='审核结果已提交';
         window.dispatchEvent(new Event('cn-funding-overview-refresh'));
       }catch(error){message.textContent=error.message||'网络错误，请重试。'}
       finally{saving=false;controls.forEach(function(control){control.disabled=false})}
-      if(updated){for(var control of q('#cn-cash-detail').querySelectorAll('button'))control.disabled=true;if(inFlight)await inFlight;loadAppr(true)}
+      if(updated||stale){for(var control of q('#cn-cash-detail').querySelectorAll('button'))control.disabled=true;if(inFlight)await inFlight;loadAppr(true)}
     });
     window.addEventListener('cn-admin-section',function(e){if(e.detail==='appr')loadAppr()});
     setInterval(function(){if(!document.hidden&&!q('#p-appr').hidden)loadAppr()},60000);

@@ -21,9 +21,9 @@ const request=await api('/api/requests',201,{kind:'DEPOSIT',amountCents:5000},to
 await api('/api/admin/requests',403,null,subToken);
 await api('/api/admin/requests',403,{id:request.id,decision:'APPROVE'},subToken);
 const decision={id:request.id,decision:'APPROVE'};
-a.equal((await api('/api/admin/requests',200,decision,master)).status,'REVIEWED');
+a.equal((await api('/api/admin/requests',200,{...decision,expectedStatus:'PENDING'},master)).status,'REVIEWED');
 a.equal((await account()).account.cashCents,0);
-const results=await Promise.all([api('/api/admin/requests',[200,400],decision,master),api('/api/admin/requests',[200,400],decision,master)]);
+const results=await Promise.all([api('/api/admin/requests',[200,409],{...decision,expectedStatus:'REVIEWED'},master),api('/api/admin/requests',[200,409],{...decision,expectedStatus:'REVIEWED'},master)]);
 a.equal(results.filter(x=>x.status==='APPROVED').length,1);
 a.equal((await account()).account.cashCents,5000);
 await api('/api/withdrawal-pin',200,{password,pin:'472863'},token);

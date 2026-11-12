@@ -85,13 +85,13 @@ async function page(browser,kind,token,email){
  assert(verified.items.every(x=>!x.ciphertext&&!x.name_payload));
  for(const [token,amountCents] of [[ta,3000],[tb,7000]]){
   const deposit=await api('/api/requests',201,token,{kind:'DEPOSIT',amountCents});
-  await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE'});
-  await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE'});
+  await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE',expectedStatus:'PENDING'});
+  await api(admin('requests'),200,master,{id:deposit.id,decision:'APPROVE',expectedStatus:'REVIEWED'});
  }
  await api('/api/withdrawal-pin',200,ta,{password,pin:'472863'});
  const withdrawal=await api('/api/requests',201,ta,{kind:'WITHDRAW',amountCents:1000,withdrawalPin:'472863'});
- await api(admin('requests'),200,master,{id:withdrawal.id,decision:'APPROVE'});
- await api(admin('requests'),200,master,{id:withdrawal.id,decision:'APPROVE'});
+ await api(admin('requests'),200,master,{id:withdrawal.id,decision:'APPROVE',expectedStatus:'PENDING'});
+ await api(admin('requests'),200,master,{id:withdrawal.id,decision:'APPROVE',expectedStatus:'REVIEWED'});
  const funding=admin('funding-overview');
  assert.deepEqual((await api(funding,200,master)).items.map(x=>x.email).sort(),[a,a,b].sort());
  assert.deepEqual((await api(funding+'?'+new URLSearchParams({subaccount:agentA.email}),200,master)).items.map(x=>x.email),[a,a]);

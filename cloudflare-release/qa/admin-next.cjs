@@ -9,10 +9,10 @@ const sub=await api('/api/admin/subaccounts',{email:'next-agent@example.test',pa
 const client=(await api('/api/auth/login',{email:'next-client@example.test',password:'FixturePass123456!'})).token;
 const png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1kAAAAASUVORK5CYII=';
 for(const doc of [{kind:'IDENTITY',fullName:'隔离验收客户',front:png,back:png},{kind:'BANK',bankName:'Fixture Bank',accountNumber:'000000001234'}]){await api('/api/profile-documents',doc,client);const d=await api('/api/admin/profile-documents?'+new URLSearchParams({email:'next-client@example.test',kind:doc.kind}),undefined,agent);await api('/api/admin/profile-documents',{email:'next-client@example.test',kind:doc.kind,status:'APPROVED',version:d.version},agent,'PATCH')}
-const deposit=await api('/api/requests',{kind:'DEPOSIT',amountCents:100000},client,'POST',randomUUID());for(let i=0;i<2;i++)await api('/api/admin/requests',{id:deposit.id,decision:'APPROVE',reason:'隔离初始资金审批测试'},token);
+const deposit=await api('/api/requests',{kind:'DEPOSIT',amountCents:100000},client,'POST',randomUUID());for(let i=0;i<2;i++)await api('/api/admin/requests',{id:deposit.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED',reason:'隔离初始资金审批测试'},token);
 await api('/api/withdrawal-pin',{password:'FixturePass123456!',pin:'123456'},client);
 const withdrawal=await api('/api/requests',{kind:'WITHDRAW',amountCents:2500,withdrawalPin:'123456'},client,'POST',randomUUID());
-for(let i=0;i<2;i++)await api('/api/admin/requests',{id:withdrawal.id,decision:'APPROVE',reason:'隔离出金审批测试'},token);
+for(let i=0;i<2;i++)await api('/api/admin/requests',{id:withdrawal.id,decision:'APPROVE',expectedStatus:i===0?'PENDING':'REVIEWED',reason:'隔离出金审批测试'},token);
 await api('/api/admin/listings',{market:'US',itemType:'STOCK',symbol:'AAPL',name:'Apple',status:'PUBLISHED',tradePin:'749286'},token);
 const order=(await api('/api/orders',{market:'US',symbol:'AAPL',side:'BUY',quantity:1,limitPriceCents:1300,tradePin:'749286'},client,'POST',randomUUID())).order;
 const product=await api('/api/admin/products',{kind:'BULK_STOCK',name:'Native product',symbol:'AAPL',market:'US',status:'PUBLISHED',discountBps:1200,holdingDays:0,minQuantity:1,tradePassword:'123456'},token);
