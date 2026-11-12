@@ -30,6 +30,11 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
    }return route.continue();
   });
   const login=async()=>{await p.locator('[name=email]').fill(email);await p.locator('[name=password]').fill(password);await p.locator('#login-form button').click();await p.locator('nav [data-go=mine]').waitFor()};
+  // Issue #56: the pending-order journal is keyed by the server-confirmed account id, and a reload restores the cookie session.
+  const accountId=(await api('/api/account',200,client)).account.id;
+  assert(accountId,'isolated account id required');
+  const expectedJournal=['cn.pending.account:'+accountId];
+  const pendingRecords=()=>p.evaluate(()=>Object.keys(sessionStorage).filter(k=>k.startsWith('cn.pending.')));
   await p.goto(base);await login();
   async function openForm(kind){await p.locator('nav [data-go=mine]').click();
    if(kind==='IPO'){await p.locator('[data-business=ipo].menulink').click();await p.locator('[data-ipo-product="'+ipo+'"]').click();await p.locator('[name=quantity]').fill('3');return p.locator('[data-business-form=ipo] button')}
@@ -39,18 +44,18 @@ async function api(route,status,token,body,method=body?'POST':'GET'){const r=awa
   for(const kind of ['IPO','SUBSCRIBE','REDEEM','TERM']){
    fault={kind,path:kind==='TERM'?'/api/fund-subscriptions':'/api/product-settlement',action:({IPO:'IPO_SUBSCRIBE',SUBSCRIBE:'FUND_SUBSCRIBE',REDEEM:'FUND_REDEEM'})[kind],phase:0,keys:[]};
    let button=await openForm(kind),r=p.waitForResponse(r=>new URL(r.url()).pathname===fault.path&&r.request().method()==='POST');await button.click();assert.equal((await r).status(),503);
-   await p.getByRole('alert').first().waitFor();assert.equal(await p.evaluate(e=>!!sessionStorage.getItem('cn.pending.'+e),email),true);
-   await p.reload();await login();button=await openForm(kind);r=p.waitForResponse(r=>new URL(r.url()).pathname===fault.path&&r.request().method()==='POST');await button.click();assert.equal((await r).status(),401);await p.locator('#login-form').waitFor();
-   assert.equal(await p.evaluate(e=>!!sessionStorage.getItem('cn.pending.'+e),email),true,'Expired login must preserve receipt');
+   await p.getByRole('alert').first().waitFor();assert.deepEqual(await pendingRecords(),expectedJournal,'pending receipt belongs to this account');
+   await p.reload();await p.locator('nav [data-go=mine]').waitFor();button=await openForm(kind);r=p.waitForResponse(r=>new URL(r.url()).pathname===fault.path&&r.request().method()==='POST');await button.click();assert.equal((await r).status(),401);await p.locator('#login-form').waitFor();
+   assert.deepEqual(await pendingRecords(),expectedJournal,'Expired login must preserve the same account receipt');
    await login();button=await openForm(kind);r=p.waitForResponse(r=>new URL(r.url()).pathname===fault.path&&r.request().method()==='POST');await button.click();assert.equal((await r).status(),kind==='TERM'?200:201);await p.getByRole('status').waitFor();
-   assert.equal(new Set(fault.keys).size,1);assert.equal(fault.keys.length,3);assert.equal(await p.evaluate(e=>sessionStorage.getItem('cn.pending.'+e),email),null);
+   assert.equal(new Set(fault.keys).size,1);assert.equal(fault.keys.length,3);assert.deepEqual(await pendingRecords(),[]);
    checks.push({kind,requests:3,sameKey:true,replayed:true});await p.screenshot({path:path.join(dir,kind+'-recovered.png'),fullPage:true});fault=null;
   }
   client=(await api('/api/auth/login',200,null,{email,password})).token;
   const account=await api('/api/account',200,client),orders=await api('/api/product-settlement',200,client),products=await api('/api/products',200,client);
   assert.equal(orders.orders.length,3);assert.equal(products.contracts.length,1);assert.equal(account.account.cashCents,90125);assert.equal(account.totalAssets,1000);assert.equal(orders.positions.find(x=>x.kind==='MUTUAL_FUND').quantity_micros,'15000000');
   await p.locator('nav [data-go=mine]').click();await p.locator('.compact-grid .panel').filter({hasText:'现金余额'}).getByText('901.25',{exact:true}).waitFor();
-  await p.reload();await login();await p.locator('nav [data-go=mine]').click();await p.locator('.compact-grid .panel').filter({hasText:'现金余额'}).getByText('901.25',{exact:true}).waitFor();
+  await p.reload();await p.locator('nav [data-go=mine]').waitFor();await p.locator('nav [data-go=mine]').click();await p.locator('.compact-grid .panel').filter({hasText:'现金余额'}).getByText('901.25',{exact:true}).waitFor();
   const desktop=await browser.newPage({viewport:{width:1440,height:900}});await desktop.addInitScript(t=>{localStorage.setItem('cncap.session',t)},client);await desktop.route(base+'/**',route=>new URL(route.request().url()).pathname==='/'?route.fulfill({contentType:'text/html',body:pages.desktop}):route.continue());await desktop.goto(base);await desktop.locator('[data-b=cash]').first().filter({hasText:'901.25'}).waitFor();
   await desktop.screenshot({path:path.join(dir,'desktop-same-balance.png'),fullPage:true});
   fs.writeFileSync(path.join(dir,'results.json'),JSON.stringify({checks,cashCents:account.account.cashCents,totalAssets:account.totalAssets,settlementOrders:orders.orders.length,fundContracts:products.contracts.length,fundUnits:'15000000',crossClientBalance:true},null,2));

@@ -1,8 +1,16 @@
 export class ApiError extends Error {
   constructor(message,status=0){super(message);this.status=status;}
 }
+// Browser sessions live in an HttpOnly cookie handled by the injected session transport; this marker
+// only asks the transport to use that cookie. No credential is ever written to Web Storage.
+export const COOKIE_SESSION='cn-cookie-session';
 export function createApi(fetcher=globalThis.fetch){
   let token=null,scope=null;
+  // The pending-order journal is keyed by the server-confirmed account, never by client-supplied data.
+  async function identify(){const snapshot=await request('/api/account');const id=snapshot?.account?.id;if(id===undefined||id===null||id==='')throw new ApiError('账户响应缺少账户编号');scope='account:'+id;return snapshot;}
+  // Records written before account-keyed journals were keyed by e-mail. They are only moved after a password login
+  // proved that e-mail, never overwrite an existing record, and are never dropped unless moved.
+  function adoptLegacyJournal(email){try{const legacy='cn.pending.'+email,current=journal();const record=sessionStorage.getItem(legacy);if(record&&current&&!sessionStorage.getItem(current)){sessionStorage.setItem(current,record);sessionStorage.removeItem(legacy);}}catch{}}
   const journal=()=>scope?'cn.pending.'+scope:null;
   async function durableKey(path,body,key){
     if(!key||!scope||!['/api/orders','/api/bulk-orders','/api/fund-subscriptions','/api/product-settlement','/api/requests','/api/support'].includes(path))return {key};
@@ -35,9 +43,13 @@ export function createApi(fetcher=globalThis.fetch){
   return {
     request,
     adoptMirror(email){if(globalThis.parent===globalThis)throw new ApiError('镜像仅可在后台窗口内初始化');token='delegated';scope='mirror:'+email.trim().toLowerCase();},
-    async login(email,password){const result=await request('/api/auth/login',{method:'POST',body:{email,password,remember:false},anonymous:true});if(typeof result.token!=='string'||!result.token)throw new ApiError('登录响应缺少会话');token=result.token;scope=email.trim().toLowerCase();return result;},
-    clear(){token=null;},
-    async logout(){try{if(token)await request('/api/auth/logout',{method:'POST'})}finally{token=null;}},
+    async login(email,password){const result=await request('/api/auth/login',{method:'POST',body:{email,password,remember:false},anonymous:true});if(typeof result.token!=='string'||!result.token)throw new ApiError('登录响应缺少会话');token=result.token;scope=null;try{const account=await identify();adoptLegacyJournal(email.trim().toLowerCase());return {...result,account};}catch(error){token=null;scope=null;throw error;}},
+    // True while an e-mail-keyed pending order record exists; such a tab must sign in with a password first.
+    hasLegacyJournal(){try{for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i);if(k&&k.startsWith('cn.pending.')&&!k.slice(11).includes(':'))return true;}}catch{return true;}return false;},
+    // Restores a browser session only when the protected account API accepts the HttpOnly cookie.
+    async restore(){if(token)throw new ApiError('会话已存在');token=COOKIE_SESSION;try{return await identify();}catch(error){token=null;scope=null;throw error;}},
+    clear(){token=null;scope=null;},
+    async logout(){try{if(token)await request('/api/auth/logout',{method:'POST'})}finally{token=null;scope=null;}},
     leave(){if(token){fetcher('/api/auth/logout',{method:'POST',headers:{Authorization:'Bearer '+token,'X-CN-Session-Close':'background'},keepalive:true,credentials:'omit'}).catch(()=>{});token=null;}},
     account:()=>request('/api/account'),catalog:()=>request('/api/catalog'),watchlist:()=>request('/api/watchlist'),announcements:()=>request('/api/announcements'),
     watch:(item,add)=>request('/api/watchlist',{method:add?'POST':'DELETE',body:{market:item.market,symbol:item.symbol}})

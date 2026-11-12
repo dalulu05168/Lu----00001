@@ -134,7 +134,8 @@ const adminPath='/api/admin/product-settlement',clientPath='/api/product-settlem
   assert.equal(await held().textContent(),'7');
   await mobile.locator('[data-business=mutual-records]').click();
   await mobile.getByText('7',{exact:true}).waitFor();
-  await mobile.reload();await mobile.locator('[name=email]').fill(a);await mobile.locator('[name=password]').fill(password);await mobile.locator('#login-form button').click();await mobile.locator('nav [data-go=mine]').click();
+  // Issue #56: reload restores the cookie session, so holdings are re-read without signing in again.
+  await mobile.reload();await mobile.locator('nav [data-go=mine]').click();
   await mobile.locator('[data-business=mutual-funds]').click();await mobile.locator('[data-mutual-product="'+fund.product+'"]').click();assert.equal(await held().textContent(),'7');
   await mobile.close();
   const delegate=await api('/api/admin/client-action',200,owner.token,{email:a,path:'/api/product-settlement',method:'GET'});
