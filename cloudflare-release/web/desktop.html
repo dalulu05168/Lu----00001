@@ -825,7 +825,7 @@ dialog:is(.ops-dialog:not(.ops-phone),.ps-dialog,.cn-notify),.mask .dlg,.cp{
 dialog:is(.ops-dialog,.ps-dialog,.cn-notify)::backdrop,.mask.open{background:rgba(5,7,7,.74);backdrop-filter:blur(10px)}
 :is(.ops-heading,.cn-notify-head,.ps-dialog>header,.dlg>.ph,.cp>.ph){background:linear-gradient(180deg,rgba(255,255,255,.045),transparent);border-bottom:1px solid var(--ln,rgba(255,255,255,.13))}
 .ops-phone .ops-heading{background:none;border:0}
-.ps-dialog>header{padding-bottom:10px}
+.ps-dialog>header{padding-bottom:10px}.ps-rights{margin:8px 0 12px;padding:10px 12px;border:1px solid #42534a;border-radius:10px;font-size:12.5px;line-height:1.65;color:#c9d2cb}.ps-rights p{margin:4px 0}.ps-rights strong{color:#e8ece6}
 </style><style id="cn-desktop-order-layout">
 #pn-order{flex:0 1 auto;min-height:0;overflow:hidden}
 #pn-watch{flex:1 1 160px;min-height:120px;overflow:auto}
@@ -1666,10 +1666,11 @@ function renderTrade(anim){var b=$('tr-body');function go(){var buy=TR.side==='�
   +(buy?termsHtml(TR.code):(h&&nextUnlock(TR.code)?'<div class="kv"><span>可卖出数量</span><span>'+sellable(TR.code)+' 股</span></div><div class="kv"><span>其余解锁时间</span><span class="tw">'+esc(fmtT(nextUnlock(TR.code)))+'</span></div>':''))
   +'<div class="kv"><span>预估金额</span><span>'+esc(tradeEstimate())+'</span></div>'
   +'<div class="hint" style="text-align:left">价格可能波动，预估金额仅供参考。</div>'
+  +'<div class="hint" style="text-align:left" role="note" id="tr-rights"><b>交易与权益说明</b><br>您'+(buy?'买入':'卖出')+'的是与标的价格相关的平台内部记账权益，不是登记在您名下的上市证券。订单由平台内部执行，不向券商或交易所下单，也不提供证券托管。成交价以提交时平台确认的报价为准，可能与预估不同，您可能损失本金；页面所列金额之外如有费用，以适用的产品条款为准。</div>'
   +(referenceSymbols.includes(TR.code)?'<div class="hint">此商品 ETF 使用最近可用的延迟参考价结算。</div>':'')
   +(buy?'<div class="fld"><label for="tr-limit">最高买入单价（USD）</label><input id="tr-limit" type="number" inputmode="decimal" min="0.01" step="0.01"></div>':'')
   +(needPw?'<div class="fld"><label for="tr-pw">参与交易密码</label><input id="tr-pw" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="6 位数字" aria-label="参与交易密码"><div class="er" id="tr-pwer"></div></div>':'')
-  +'<label class="chk"><input type="checkbox" id="tr-ag"'+(TR.agree?' checked':'')+'>'+(buy?'我已阅读并理解以上优惠比例、'+LB.days+'、'+LB.min+'及价格提示，确认订单预览':'我已阅读并理解以上提示，确认订单预览')+'</label>'
+  +'<label class="chk"><input type="checkbox" id="tr-ag"'+(TR.agree?' checked':'')+'>'+(buy?'我已阅读并理解以上优惠比例、'+LB.days+'、'+LB.min+'、价格提示及交易与权益说明，确认订单预览':'我已阅读并理解以上提示及交易与权益说明，确认订单预览')+'</label>'
   +'<div class="er" id="tr-submit-error" role="alert"></div><div class="row2"><button class="btn gh w" id="tr-back">返回修改</button><button class="btn '+(buy?'p':'red')+' w" id="tr-go"'+(goOk()?'':' disabled')+'>'+(tradeQuote()!==null&&API?'提交订单':'报价暂不可用')+'</button></div>'}
  b.innerHTML=html;
  if(TR.step===1){var q=$('tq');b.querySelectorAll('.dirbtn').forEach(function(db){db.onclick=function(){var ns=db.getAttribute('data-side');if(ns===TR.side)return;TR.side=ns;TR.qty=ns==='买入'?minQ(TR.code):1;$('tr-title').textContent=ns+'订单预览';$('tr-sub').textContent=TR.code+' · '+nm(TR.code);renderTrade(true)}});
@@ -1697,7 +1698,7 @@ function playOrderConfirm(o){o=o||{};var dlg=document.querySelector('#m-trade .d
  var check='<span class="check" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M9 21 L17 29 L31 12"/></svg></span>';
  el.innerHTML=(o.demo?'':check)+'<b>'+esc(o.demo?'订单预览':o.side+'已记录')+'</b>'+
   '<span>'+esc((o.code||'')+' · '+o.qty+' 股')+'</span>'+
-  (Number.isFinite(o.price)?'<span>成交单价 $'+f(o.price)+'</span>':'');
+  (Number.isFinite(o.price)?'<span>平台执行单价 $'+f(o.price)+'</span>':'');
  dlg.appendChild(el);
  var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
  if(o.demo){setTimeout(()=>el.remove(),rm?700:1600);return;}
@@ -2263,6 +2264,19 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   for(const p of data.catalog){
    const card=group(p.symbol+' · '+p.display_name);
    card.append(node('p',(p.kind==='IPO'?'发行价 ':'确认净值 ')+show(p.unit_price_micros,6)+' USD · '+p.effective_date.slice(0,10)));
+    const rights=node('div','','ps-rights');rights.setAttribute('role','note');
+    const lines=p.kind==='IPO'?[
+     '您提交的是平台内的 IPO 认购申请，不是在交易所或券商处的实际申购。获配后的权益为平台内部记账权益，不是登记在您名下的上市证券。',
+     '提交时先从可用资金预留「发行价 × 申购股数」；最终配售数量由平台审核后确认，申购不代表一定获配。预留金额超出实际获配金额的部分，按配售结果退回可用资金；配售确认前预留资金不可另作他用。',
+     '页面所列金额之外如有费用，以产品条款为准。'
+    ]:[
+     '您申购的是平台提供的基金权益，持有份额为平台内部记账，不是登记在您名下的基金份额。',
+     '申购与赎回按提交时平台已复核生效的确认净值（见上方日期）计算，提交后即时结算，页面不提供撤销。净值会变动，可能低于您的申购成本，您可能损失本金。',
+     '页面所列金额之外如有费用，以产品条款为准。'
+    ];
+    rights.append(node('strong',p.kind==='IPO'?'申购与权益说明':'申购赎回与权益说明'));
+    for(const text of lines)rights.append(node('p',text));
+    card.append(rights);
    const refs={product:p.id,terms:p.terms_id};
    if(p.kind==='IPO')form(card,'提交 IPO 申购',[['quantity','申购股数']],v=>({...refs,action:'IPO_SUBSCRIBE',quantity:fixed(v.quantity,0)}));
    else {
@@ -2291,6 +2305,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  window.addEventListener('cn-open-product-settlement',open);
  document.addEventListener('click',e=>{if(e.target.closest('[data-product-settlement-open]'))open()});
 })();
-</script><script>CNNews.mountBulletin(document.getElementById("cn-bulletin"));</script><aside role="note" aria-label="交易权益说明" style="padding:12px 20px;font-size:13px;line-height:1.6">客户持有平台内部记账权益，不代表实际登记的上市证券。平台内部执行交易并记录资金、持仓及盈亏，不进行客户间撮合，也不向外部券商购买对应股票。外部行情仅提供报价参考。</aside>
+</script><script>CNNews.mountBulletin(document.getElementById("cn-bulletin"));</script><aside role="note" aria-label="交易权益说明" style="padding:12px 20px;font-size:13px;line-height:1.6">客户持有平台内部记账权益，不代表实际登记的上市证券；订单由平台内部执行，不向券商或交易所下单。外部行情仅作报价参考。各产品的具体权益、费用与风险，请在下单或申购前查看下单页和产品页面的说明。</aside>
 </body></html>
 
