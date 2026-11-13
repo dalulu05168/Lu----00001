@@ -15,17 +15,29 @@ function client(t){
   assert(r.ok,'Cloudflare HTTP '+r.status);const j=await r.json();assert(j.success,'Cloudflare request failed');return j;
  }
  async function all(p){const rows=[];for(let page=1;page<=100;page++){const j=await api(p+(p.includes('?')?'&':'?')+'page='+page+'&per_page=100');assert(Array.isArray(j.result));rows.push(...j.result);if(j.result_info?.total_pages===undefined){assert(j.result.length<100,'Unproven pagination completeness');return rows;}if(page>=j.result_info.total_pages)return rows;}throw Error('Pagination incomplete');}
- async function snapshot(){
+ async function snapshot({placeholder=false}={}){
   const [deployment,domains,routes,settings,schedules]=await Promise.all([api(prefix+'/deployments'),all('/accounts/'+t.accountId+'/workers/domains'),all('/zones/'+t.zoneId+'/workers/routes'),api(prefix+'/settings'),api(prefix+'/schedules')]);
   const versions=deployment.result.deployments[0].versions;assert.equal(versions.length,1,'Split deployment unsupported');assert.equal(versions[0].percentage,100);
   const rollbackVersion=(await api(prefix+'/versions/'+versions[0].version_id)).result;
   const required=c.read(path.join(c.root,'runtime-bindings.json')).bindings;
-  for(const binding of [...required,{name:'RELEASE_VERSION',type:'version_metadata'}])assert(rollbackVersion.resources.bindings.some(b=>b.name===binding.name&&b.type===binding.type),'Missing staging binding '+binding.name);
-  assert.equal(rollbackVersion.resources.script_runtime.compatibility_date,'2026-11-08');
-  assert.equal(c.stable(rollbackVersion.resources.script_runtime.compatibility_flags),c.stable(['nodejs_compat']));
+  if(placeholder){
+   assert.equal(rollbackVersion.resources.bindings?.length??0,0,'Placeholder must have no bindings');
+   assert.equal(settings.result.bindings?.length??0,0,'Placeholder settings must have no bindings');
+  }else{
+   for(const binding of [...required,{name:'RELEASE_VERSION',type:'version_metadata'}])assert(rollbackVersion.resources.bindings.some(b=>b.name===binding.name&&b.type===binding.type),'Missing staging binding '+binding.name);
+   assert.equal(rollbackVersion.resources.script_runtime.compatibility_date,'2026-11-08');
+   assert.equal(c.stable(rollbackVersion.resources.script_runtime.compatibility_flags),c.stable(['nodejs_compat']));
+  }
   const ownedDomains=domains.filter(d=>d.service===t.worker),ownedRoutes=routes.filter(r=>r.script===t.worker);
   assert.equal(c.stable(ownedDomains.map(d=>d.hostname)),c.stable([t.hosts.client,t.hosts.admin,t.hosts.mobile]),'Test domains not provisioned exactly');
   assert.equal(ownedRoutes.length,0,'Unexpected zone route overrides');assert.equal(c.stable(schedules.result.schedules||schedules.result),c.stable([]),'Staging schedules must be empty');
+  assert(ownedDomains.every(d=>d.zone_id===t.zoneId),'Unexpected staging zone');
+  for(const route of routes){
+   const pattern=route.pattern.replace(/^https?:\/\//,'');
+   const host=pattern.split('/')[0];
+   const regex=new RegExp('^'+host.split('*').map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('.*')+'$','i');
+   assert(![t.hosts.client,t.hosts.admin,t.hosts.mobile].some(name=>regex.test(name)),'Zone route overlaps staging domain');
+  }
   const safeSettings={...settings.result}; // Cloudflare returns secret names/types, never secret values.
   delete safeSettings.modified_on;delete safeSettings.created_on;
   for(const b of safeSettings.bindings||[])assert(b.type!=='secret_text'||!('text' in b),'Unexpected secret disclosure');
@@ -49,6 +61,40 @@ async function main(){
  if(mode==='validate'){console.log('Bundle, assets, target and candidate lock verified');return;}
  if(mode==='dry-run'){run(['deploy','--dry-run','--config',path.join(dir,'wrangler.json'),'--outdir',path.join(dir,'dry-run')]);console.log('Dry-run passed; use a fresh prepared directory before deployment');return;}
  const live=client(t);
+ if(mode==='takeover'){
+  assert.equal(process.env.NUVEXA_STAGING_WRITE,t.worker,'Explicit staging write approval required');
+  const expected=process.env.NUVEXA_STAGING_PLACEHOLDER_VERSION;
+  assert(/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(expected||''),'Pin the full existing placeholder version ID');
+  assert(recordArg,'New takeover journal path required');
+  await neonCheck(t);
+  const before=await live.snapshot({placeholder:true});c.active(before,expected);
+  const journal=path.resolve(recordArg);
+  fs.writeFileSync(journal,JSON.stringify({step:'baseline',at:new Date().toISOString(),before})+'\n',{flag:'wx'});
+  const log=(step,extra={})=>fs.appendFileSync(journal,JSON.stringify({step,...extra,at:new Date().toISOString()})+'\n');
+  const message='staging-503-takeover:'+require('node:crypto').randomUUID();
+  log('upload-start');
+  run(['versions','upload','--no-bundle','--config',path.join(dir,'wrangler.bootstrap.json'),'--message',message]);
+  const list=(await live.api(live.prefix+'/versions')).result.items;
+  const matches=list.filter(v=>(v.annotations||v.metadata?.annotations)?.['workers/message']===message);
+  assert.equal(matches.length,1,'Uploaded placeholder annotation mismatch');
+  const id=matches[0].id;log('uploaded',{version:id});
+  const candidate=(await live.api(live.prefix+'/versions/'+id)).result;
+  const expectedBindings=[['ASSETS','assets'],['RELEASE_VERSION','version_metadata'],['PGSSL','plain_text'],['COMMODITY_REFERENCE_EXECUTION_ENABLED','plain_text']];
+  assert.equal(c.stable(candidate.resources.bindings.map(b=>[b.name,b.type])),c.stable(expectedBindings),'Unexpected placeholder bindings');
+  assert.equal(candidate.resources.script_runtime.compatibility_date,'2026-11-08');
+  assert.equal(c.stable(candidate.resources.script_runtime.compatibility_flags),c.stable(['nodejs_compat']));
+  const fresh=await live.snapshot({placeholder:true});c.active(fresh,expected);c.invariant(before,fresh);
+  log('activation-start',{version:id});
+  await live.api(live.prefix+'/deployments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({strategy:'percentage',versions:[{version_id:id,percentage:100}]})});
+  log('activated',{version:id});
+  const after=(await live.api(live.prefix+'/deployments')).result.deployments[0];c.active({versions:after.versions},id);
+  for(const host of [t.hosts.client,t.hosts.admin,t.hosts.mobile]){
+   const response=await fetch('https://'+host+'/',{redirect:'manual',signal:AbortSignal.timeout(15000)});
+   assert.equal(response.status,503,'Unexpected placeholder status');
+   assert.equal(await response.text(),'Staging provisioning; unavailable','Unexpected placeholder response');
+  }
+  log('verified',{version:id});console.log(JSON.stringify({placeholderVersion:id,previous:expected}));return;
+ }
  if(mode==='bootstrap'){
   assert.equal(process.env.NUVEXA_STAGING_WRITE,t.worker,'Explicit staging write approval required');await neonCheck(t);
   const r=await fetch('https://api.cloudflare.com/client/v4'+live.prefix+'/settings',{headers:{Authorization:'Bearer '+process.env.CLOUDFLARE_API_TOKEN},signal:AbortSignal.timeout(30000)});
