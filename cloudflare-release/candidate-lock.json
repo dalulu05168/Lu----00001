@@ -1,0 +1,13 @@
+{
+  "candidateCommit": "f0e63b6896ec7e3d0ec5360742ee0db284e90515",
+  "cloudflareVersionId": null,
+  "files": {
+    "assets/admin-next.html": "15372c47074e5e561cea83e1c634d1c8d92e81f055202dead80498805bf55d55",
+    "assets/admin.html": "c1126a92fc0b873e3ebde66b17cce00d5e141a02378b2047a50b8dee744153fe",
+    "assets/index.html": "57226907233191c4f31931c36c744281c779b0f71a9c803fa3e3c913b40bf430",
+    "assets/login.html": "ba09b3fd282c6590739a4bc5b24db2c817c485a7883c86c43d660ea5eba0f00e",
+    "assets/logo.png": "4da4c8b3ce9a6315b26def221612af34e6962f6fd2cfcdf5e902244576519d4d",
+    "assets/mobile.html": "283d00dad00f50d6d56a126a9e1d2b827cde3014a188f3f6f51db0e75ef67b7f",
+    "worker.mjs": "bb4c87a5b840499563d76bf488ce3533104404dc3484b1f3e7ad3643d4c0fe6a"
+  }
+}

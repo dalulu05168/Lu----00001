@@ -5,7 +5,9 @@
   "scripts": {
     "build": "node scripts/build.cjs",
     "build:dev": "node scripts/build.cjs --development",
-    "test": "node scripts/acceptance.cjs"
+    "test": "node scripts/acceptance.cjs",
+    "release:check": "node scripts/build.cjs && node scripts/release.cjs check",
+    "test:release": "node --test scripts/release.test.cjs"
   },
   "engines": {
     "node": ">=22"

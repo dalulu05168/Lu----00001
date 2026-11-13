@@ -1,4 +1,5 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),{createHash}=require('node:crypto');
+throw Error('Legacy production publisher disabled: use scripts/release.cjs for isolated staging. Production activation requires separate approval.');
 const label=process.env.CN_PUBLICATION_LABEL||'9fea07e';assert(/^[a-zA-Z0-9-]+$/.test(label));
 const root=path.resolve(__dirname,'..'),dir=path.join(root,'artifacts','publication-'+label);fs.mkdirSync(dir,{recursive:true});
 const account='8c0339e3cace4c6ecad7052224bd6ac5',service='lu----00001',prefix='/accounts/'+account+'/workers/scripts/'+service;

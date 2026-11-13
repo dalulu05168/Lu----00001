@@ -1,0 +1,26 @@
+{
+  "environment": "staging",
+  "worker": "nuvexa-staging-58",
+  "accountId": "00000000000000000000000000000000",
+  "zoneId": "00000000000000000000000000000000",
+  "hosts": {
+    "client": "client.staging.example.net",
+    "admin": "admin.staging.example.net",
+    "mobile": "mobile.staging.example.net",
+    "workersDev": "nuvexa-staging-58.test-account.workers.dev"
+  },
+  "neon": {
+    "projectId": "replace-with-isolated-project",
+    "branchId": "br-staging-58",
+    "endpointId": "ep-staging-58",
+    "endpointHost": "ep-staging-58.eu-central-1.aws.neon.tech",
+    "database": "nuvexa_staging",
+    "role": "nuvexa_staging",
+    "isolated": true,
+    "syntheticDataOnly": true,
+    "productionBranchIds": ["replace-with-confirmed-production-branch-id"],
+    "productionEndpointHosts": ["replace-with-confirmed-production-endpoint-host"]
+  },
+  "crons": [],
+  "wranglerVersion": "4.134.0"
+}

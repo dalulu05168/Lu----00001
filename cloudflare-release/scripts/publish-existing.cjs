@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+throw Error('Legacy production uploader disabled: use scripts/release.cjs for isolated staging. Production upload requires a separately reviewed and approved procedure.');
 const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 const account = process.env.CLOUDFLARE_ACCOUNT_ID;

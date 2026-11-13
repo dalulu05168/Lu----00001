@@ -39,15 +39,17 @@ const source = fs.readFileSync(path.join(root,'src','worker.template.mjs.in'),'u
  .replace('__CN_BROWSER_SESSIONS__', () => fs.readFileSync(path.join(root,'src/browser-sessions.js'),'utf8')).replace('__CN_SECURITY__', () => fs.readFileSync(path.join(root,'src/security.js'),'utf8')).replace('__CN_PRODUCTS__', () => fs.readFileSync(path.join(root,'src/products/service.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'src/products/quote.js'),'utf8')).replace('__CN_PAGES__', () => JSON.stringify(pages)).replace('__CN_LOGO__', () => JSON.stringify(logo));
 assert(!source.includes('__CN_PAGES__') && !source.includes('__CN_LOGO__'));
 const sha256 = createHash('sha256').update(source).digest('hex');
+const candidate = require('../docs/release-review-58/artifact-manifest.json');
 const development=process.argv.includes('--development');
 assert(!(development&&process.argv.includes('--record')),'Development builds cannot update the release manifest');
-if(!development&&process.argv.includes('--record')){manifest.sourceSha256=sha256;fs.writeFileSync(path.join(root,'release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');} else if(!development) assert.equal(sha256,manifest.sourceSha256,'Source differs from recorded production release');
+assert(!process.argv.includes('--record'),'Historical production manifest is immutable; use a separate candidate lock');
+if(!development) assert.equal(sha256,candidate.files['worker.mjs'],'Source differs from accepted release candidate');
 const dir = path.join(root,development?'dist-dev':'dist');
 fs.mkdirSync(path.join(dir,'assets'),{recursive:true});
 fs.writeFileSync(path.join(dir,'worker.mjs'),source);
-for (const [kind,name] of [['desktop','index'],['mobile','mobile'],['admin','admin'],['login','login']]) fs.writeFileSync(path.join(dir,'assets',name+'.html'),pages[kind]);
+for (const [kind,name] of [['desktop','index'],['mobile','mobile'],['admin','admin'],['login','login'],['adminNext','admin-next']]) fs.writeFileSync(path.join(dir,'assets',name+'.html'),pages[kind]);
 fs.copyFileSync(path.join(root,'web','logo.png'),path.join(dir,'assets','logo.png'));
-console.log(development?'Built development candidate SHA256 '+sha256:'Built release '+manifest.version+' SHA256 '+sha256);
+console.log(development?'Built development candidate SHA256 '+sha256:'Built accepted release candidate SHA256 '+sha256);
 
 
 
